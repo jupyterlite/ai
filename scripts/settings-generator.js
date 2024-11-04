@@ -13,10 +13,12 @@ if (!fs.existsSync(outputDir)) {
 const configBase = {
   path: 'node_modules/@langchain/core/dist/language_models/base.d.ts',
   tsconfig: './tsconfig.json',
-  type: 'BaseLanguageModelParams',
+  type: 'BaseLanguageModelParams'
 };
 
-const schemaBase = tsj.createGenerator(configBase).createSchema(configBase.type);
+const schemaBase = tsj
+  .createGenerator(configBase)
+  .createSchema(configBase.type);
 
 const providers = {
   mistralAI: {
@@ -34,16 +36,14 @@ Object.entries(providers).forEach(([name, desc], index) => {
 
   const outputPath = path.join(outputDir, `${name}.json`);
 
-  const schema =tsj.createGenerator(config).createSchema(config.type);
+  const schema = tsj.createGenerator(config).createSchema(config.type);
 
   if (!schema.definitions) {
     return;
   }
 
   // Remove the properties from extended class.
-  const providerKeys = Object.keys(
-    schema.definitions[desc.type]['properties']
-  );
+  const providerKeys = Object.keys(schema.definitions[desc.type]['properties']);
   Object.keys(
     schemaBase.definitions?.['BaseLanguageModelParams']['properties']
   ).forEach(key => {
@@ -76,7 +76,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
     if (value.type === 'number') {
       value.default = Number(/{(.*)}/.exec(value.default)?.[1] ?? 0);
     } else if (value.type === 'boolean') {
-      value.default = (/{(.*)}/.exec(value.default))?.[1] === 'true';
+      value.default = /{(.*)}/.exec(value.default)?.[1] === 'true';
     } else if (value.type === 'string') {
       value.default = /{\"(.*)\"}/.exec(value.default)?.[1] ?? '';
     }
