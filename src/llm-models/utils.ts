@@ -1,8 +1,12 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatMistralAI } from '@langchain/mistralai';
+import { JSONObject } from '@lumino/coreutils';
+
 import { IBaseCompleter } from './base-completer';
 import { CodestralCompleter } from './codestral-completer';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+
+import mistralAI from '../_provider-settings/mistralAI.json';
 
 /**
  * Get an LLM completer from the name.
@@ -38,4 +42,14 @@ export function getErrorMessage(name: string, error: any): string {
     return error.message;
   }
   return 'Unknown provider';
+}
+
+/*
+ * Get an LLM completer from the name.
+ */
+export function getSettings(name: string): JSONObject | null {
+  if (name === 'MistralAI') {
+    return mistralAI.definitions.ChatMistralAIInput.properties;
+  }
+  return null;
 }
