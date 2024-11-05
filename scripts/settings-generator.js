@@ -36,6 +36,11 @@ const providers = {
     path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
     type: 'ChromeAIInputs'
   },
+  Groq: {
+    path: 'node_modules/@langchain/groq/dist/chat_models.d.ts',
+    type: 'ChatGroqInput',
+    excludedProps: ['httpAgent']
+  },
   MistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
