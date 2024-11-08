@@ -10,7 +10,7 @@
       "title": "The AI provider",
       "description": "The AI provider to use for chat and completion",
       "default": "None",
-      "enum": ["None", "Anthropic", "ChromeAI", "MistralAI"]
+      "enum": ["None", "Anthropic", "ChromeAI", "MistralAI", "OpenAI"]
     }
   },
   "additionalProperties": true
