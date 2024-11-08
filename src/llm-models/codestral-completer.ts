@@ -2,7 +2,7 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { LLM } from '@langchain/core/language_models/llms';
+import { BaseLLM } from '@langchain/core/language_models/llms';
 import { MistralAI } from '@langchain/mistralai';
 import { Throttler } from '@lumino/polling';
 import { CompletionRequest } from '@mistralai/mistralai';
@@ -62,7 +62,7 @@ export class CodestralCompleter implements IBaseCompleter {
     );
   }
 
-  get provider(): LLM {
+  get provider(): BaseLLM {
     return this._mistralProvider;
   }
 
