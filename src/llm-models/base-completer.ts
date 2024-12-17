@@ -2,14 +2,14 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { LLM } from '@langchain/core/language_models/llms';
+import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 export interface IBaseCompleter {
   /**
    * The LLM completer.
    */
-  provider: LLM;
+  provider: BaseLanguageModel;
 
   /**
    * The function to fetch a new completion.

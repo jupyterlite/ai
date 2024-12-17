@@ -4,6 +4,7 @@ import { ChatMistralAI } from '@langchain/mistralai';
 import { JSONObject } from '@lumino/coreutils';
 
 import { IBaseCompleter } from './base-completer';
+import { AnthropicCompleter } from './anthropic-completer';
 import { CodestralCompleter } from './codestral-completer';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
@@ -18,6 +19,8 @@ export function getCompleter(
 ): IBaseCompleter | null {
   if (name === 'MistralAI') {
     return new CodestralCompleter({ settings });
+  } else if (name === 'Anthropic') {
+    return new AnthropicCompleter({ settings });
   }
   return null;
 }
