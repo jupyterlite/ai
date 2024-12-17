@@ -29,21 +29,19 @@ export class AnthropicCompleter implements IBaseCompleter {
 
     const messages = [
       new SystemMessage(
-        'You ara a code completion bot which complete the following code from a Jupyter Notebook cell.'
+        'You are a code-completion AI completing the following code from a Jupyter Notebook cell.'
       ),
       new AIMessage(trimmedPrompt)
     ];
 
     try {
       const response = await this._anthropicProvider.invoke(messages);
-      console.log('CONTENT', response.content);
       const items = [];
 
       // Anthropic can return string or complex content, a list of string/images/other.
       if (typeof response.content === 'string') {
         items.push({
-          insertText: response.content,
-          filterText: prompt.substring(trimmedPrompt.length)
+          insertText: response.content
         });
       } else {
         response.content.forEach(content => {
