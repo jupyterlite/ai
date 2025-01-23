@@ -80,7 +80,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         themeManager,
         rmRegistry
       });
-      chatWidget.title.caption = 'Codestral Chat';
+      chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
       chatWidget = buildErrorWidget(themeManager);
     }
