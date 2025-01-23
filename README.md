@@ -5,7 +5,7 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, powered by MistralAI ✨
 
-[a screencast showing the Codestral extension in JupyterLite](https://github.com/jupyterlite/ai/assets/591645/855c4e3e-3a63-4868-8052-5c9909922c21)
+[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/jupyterlite/ai/assets/591645/855c4e3e-3a63-4868-8052-5c9909922c21)
 
 ## Requirements
 
@@ -14,7 +14,7 @@ AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, powered
 > To enable more AI providers in JupyterLab and Jupyter Notebook, we recommend using the [Jupyter AI](https://github.com/jupyterlab/jupyter-ai) extension directly.
 > At the moment Jupyter AI is not compatible with JupyterLite, but might be to some extent in the future.
 
-- JupyterLab >= 4.1.0 or Notebook >= 7.1.0
+- JupyterLab >= 4.4.0a0 or Notebook >= 7.4.0a0
 
 > [!WARNING]
 > This extension is still very much experimental. It is not an official MistralAI extension.
@@ -37,13 +37,20 @@ To install the extension, execute:
 pip install jupyterlite-ai
 ```
 
+To install requirements (jupyterlab, jupyterlite and notebook), there is an optional dependencies argument:
+
+```bash
+pip install jupyterlite-ai[jupyter]
+```
+
 # Usage
 
 1. Go to https://console.mistral.ai/api-keys/ and create an API key.
 
 ![Screenshot showing how to create an API key](./img/1-api-key.png)
 
-2. Open the JupyterLab settings and go to the Codestral section to enter the API key
+2. Open the JupyterLab settings and go to the **Ai providers** section to select the provider
+   (`mistral` is only supported one currently) and the API key (required).
 
 ![Screenshot showing how to add the API key to the settings](./img/2-jupyterlab-settings.png)
 

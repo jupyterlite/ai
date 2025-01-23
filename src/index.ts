@@ -15,6 +15,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { ChatHandler } from './chat-handler';
+import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
 import { IAIProvider } from './token';
 
@@ -79,7 +80,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         themeManager,
         rmRegistry
       });
-      chatWidget.title.caption = 'Codestral Chat';
+      chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
       chatWidget = buildErrorWidget(themeManager);
     }
@@ -105,11 +106,34 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
       requestCompletion: () => app.commands.execute('inline-completer:invoke')
     });
 
+    let currentProvider = 'None';
     settingRegistry
       .load(aiProviderPlugin.id)
       .then(settings => {
         const updateProvider = () => {
           const provider = settings.get('provider').composite as string;
+          if (provider !== currentProvider) {
+            // Update the settings panel.
+            currentProvider = provider;
+            const settingsProperties = settings.schema.properties;
+            if (settingsProperties) {
+              const schemaKeys = Object.keys(settingsProperties);
+              schemaKeys.forEach(key => {
+                if (key !== 'provider') {
+                  delete settings.schema.properties?.[key];
+                }
+              });
+              const properties = getSettings(provider);
+              if (properties === null) {
+                return;
+              }
+              Object.entries(properties).forEach(([name, value], index) => {
+                settingsProperties[name] = value as ISettingRegistry.IProperty;
+              });
+            }
+          }
+
+          // Update the settings to the AI providers.
           aiProvider.setModels(provider, settings.composite);
         };
 

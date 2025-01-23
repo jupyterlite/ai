@@ -9,13 +9,7 @@
       "description": "The AI provider to use for chat and completion",
       "default": "None",
       "enum": ["None", "MistralAI"]
-    },
-    "apiKey": {
-      "type": "string",
-      "title": "The Codestral API key",
-      "description": "The API key to use for Codestral",
-      "default": ""
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }
