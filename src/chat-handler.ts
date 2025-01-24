@@ -13,10 +13,12 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
   AIMessage,
   HumanMessage,
-  mergeMessageRuns
+  mergeMessageRuns,
+  SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
 import { getErrorMessage } from './llm-models';
+import { chatSystemPrompt } from './provider';
 import { IAIProvider } from './token';
 
 export type ConnectionMessage = {
@@ -28,13 +30,26 @@ export class ChatHandler extends ChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._aiProvider = options.aiProvider;
+    this._prompt = chatSystemPrompt(this._aiProvider.name);
+
     this._aiProvider.modelChange.connect(() => {
       this._errorMessage = this._aiProvider.chatError;
+      this._prompt = chatSystemPrompt(this._aiProvider.name);
     });
   }
 
   get provider(): BaseChatModel | null {
     return this._aiProvider.chatModel;
+  }
+
+  /**
+   * Getter and setter for the initial prompt.
+   */
+  get prompt(): string {
+    return this._prompt;
+  }
+  set prompt(value: string) {
+    this._prompt = value;
   }
 
   async sendMessage(message: INewMessage): Promise<boolean> {
@@ -62,8 +77,9 @@ export class ChatHandler extends ChatModel {
 
     this._history.messages.push(msg);
 
-    const messages = mergeMessageRuns(
-      this._history.messages.map(msg => {
+    const messages = mergeMessageRuns([new SystemMessage(this._prompt)]);
+    messages.push(
+      ...this._history.messages.map(msg => {
         if (msg.sender.username === 'User') {
           return new HumanMessage(msg.body);
         }
@@ -117,6 +133,7 @@ export class ChatHandler extends ChatModel {
   }
 
   private _aiProvider: IAIProvider;
+  private _prompt: string;
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
   private _defaultErrorMessage = 'AI provider not configured';
