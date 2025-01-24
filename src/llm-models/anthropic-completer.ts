@@ -7,6 +7,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 
 import { BaseCompleter, IBaseCompleter } from './base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../provider';
 
 export class AnthropicCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
@@ -15,6 +16,16 @@ export class AnthropicCompleter implements IBaseCompleter {
 
   get provider(): BaseChatModel {
     return this._anthropicProvider;
+  }
+
+  /**
+   * Getter and setter for the initial prompt.
+   */
+  get prompt(): string {
+    return this._prompt;
+  }
+  set prompt(value: string) {
+    this._prompt = value;
   }
 
   async fetch(
@@ -28,9 +39,7 @@ export class AnthropicCompleter implements IBaseCompleter {
     const trimmedPrompt = prompt.trim();
 
     const messages = [
-      new SystemMessage(
-        'You are a code-completion AI completing the following code from a Jupyter Notebook cell.'
-      ),
+      new SystemMessage(this._prompt),
       new AIMessage(trimmedPrompt)
     ];
 
@@ -62,4 +71,5 @@ export class AnthropicCompleter implements IBaseCompleter {
   }
 
   private _anthropicProvider: ChatAnthropic;
+  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }

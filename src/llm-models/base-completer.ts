@@ -12,6 +12,11 @@ export interface IBaseCompleter {
   provider: BaseLanguageModel;
 
   /**
+   * The completion prompt.
+   */
+  prompt: string;
+
+  /**
    * The function to fetch a new completion.
    */
   requestCompletion?: () => void;
