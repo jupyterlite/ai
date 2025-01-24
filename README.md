@@ -53,8 +53,8 @@ The process is different for each provider, so you may refer to their documentat
 
 ![Screenshot showing how to create an API key](./img/1-api-key.png)
 
-2. Open the JupyterLab settings and go to the **Ai providers** section to select the provider
-   (`mistral` is only supported one currently) and the API key (required).
+2. Open the JupyterLab settings and go to the **Ai providers** section to select the `MistralAI`
+   provider and the API key (required).
 
 ![Screenshot showing how to add the API key to the settings](./img/2-jupyterlab-settings.png)
 
