@@ -9,6 +9,7 @@ import { CodestralCompleter } from './codestral-completer';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import mistralAI from '../_provider-settings/mistralAI.json';
+import anthropic from '../_provider-settings/anthropic.json';
 
 /**
  * Get an LLM completer from the name.
@@ -58,6 +59,8 @@ export function getErrorMessage(name: string, error: any): string {
 export function getSettings(name: string): JSONObject | null {
   if (name === 'MistralAI') {
     return mistralAI.definitions.ChatMistralAIInput.properties;
+  } else if (name === 'Anthropic') {
+    return anthropic.definitions.AnthropicInput.properties;
   }
   return null;
 }
