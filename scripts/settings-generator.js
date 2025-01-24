@@ -43,9 +43,8 @@ const providers = {
 };
 
 Object.entries(providers).forEach(([name, desc], index) => {
-
-   //The configuration doesn't include functions, which may probably not be filled
-   // from the settings panel.
+  // The configuration doesn't include functions, which may probably not be filled
+  // from the settings panel.
   const config = {
     path: desc.path,
     tsconfig: './tsconfig.json',
