@@ -39,9 +39,7 @@ export class AnthropicCompleter implements IBaseCompleter {
     const trimmedPrompt = prompt.trim();
 
     const messages = [
-      new SystemMessage(
-        this._prompt
-      ),
+      new SystemMessage(this._prompt),
       new AIMessage(trimmedPrompt)
     ];
 
