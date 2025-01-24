@@ -3,10 +3,10 @@ import {
   IInlineCompletionContext,
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
-import { LLM } from '@langchain/core/language_models/llms';
+import { BaseLanguageModel } from '@langchain/core/language_models/base';
+import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import { getCompleter, IBaseCompleter, BaseCompleter } from './llm-models';
-import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 /**
  * The generic completion provider to register to the completion provider manager.
@@ -57,7 +57,7 @@ export class CompletionProvider implements IInlineCompletionProvider {
   /**
    * Get the LLM completer.
    */
-  get llmCompleter(): LLM | null {
+  get llmCompleter(): BaseLanguageModel | null {
     return this._completer?.provider || null;
   }
 

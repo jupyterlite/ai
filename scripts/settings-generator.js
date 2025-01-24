@@ -20,23 +20,57 @@ const schemaBase = tsj
   .createGenerator(configBase)
   .createSchema(configBase.type);
 
+/**
+ *  The providers are the list of providers for which we'd like to build settings from their interface.
+ *  The keys will be the names of the json files that will be linked to the selected provider.
+ *  The values are:
+ *   - path: path of the module containing the provider input description, in @langchain package.
+ *   - type: the type or interface to format to json settings.
+ *   - excludedProps: (optional) the properties to not include in the settings.
+ *     "ts-json-schema-generator" seems to not handle some imported types, so the workaround is
+ *     to exclude them at the moment, to be able to build other settings.
+ */
 const providers = {
   mistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
+  },
+  anthropic: {
+    path: 'node_modules/@langchain/anthropic/dist/chat_models.d.ts',
+    type: 'AnthropicInput',
+    excludedProps: ['clientOptions']
   }
 };
 
 Object.entries(providers).forEach(([name, desc], index) => {
+  // The configuration doesn't include functions, which may probably not be filled
+  // from the settings panel.
   const config = {
     path: desc.path,
     tsconfig: './tsconfig.json',
-    type: desc.type
+    type: desc.type,
+    functions: 'hide'
   };
 
   const outputPath = path.join(outputDir, `${name}.json`);
 
-  const schema = tsj.createGenerator(config).createSchema(config.type);
+  const generator = tsj.createGenerator(config);
+  let schema;
+
+  // Workaround to exclude some properties from a type or interface.
+  if (desc.excludedProps) {
+    const nodes = generator.getRootNodes(config.type);
+    const finalMembers = [];
+    nodes[0].members.forEach(member => {
+      if (!desc.excludedProps.includes(member.symbol.escapedName)) {
+        finalMembers.push(member);
+      }
+    });
+    nodes[0].members = finalMembers;
+    schema = generator.createSchemaFromNodes(nodes);
+  } else {
+    schema = generator.createSchema(config.type);
+  }
 
   if (!schema.definitions) {
     return;
