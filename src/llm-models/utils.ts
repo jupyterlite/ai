@@ -44,7 +44,7 @@ export function getChatModel(
     return new ChatAnthropic({ ...settings });
   } else if (name === 'ChromeAI') {
     // TODO: fix
-    // @ts-expect-error
+    // @ts-expect-error: missing properties
     return new ChromeAI({ ...settings });
   }
   return null;
