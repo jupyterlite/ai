@@ -3,7 +3,7 @@
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyterlite.github.io/ai/lab/index.html)
 
-AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, powered by MistralAI ✨
+AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite ✨
 
 [a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/jupyterlite/ai/assets/591645/855c4e3e-3a63-4868-8052-5c9909922c21)
 
@@ -15,11 +15,6 @@ AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, powered
 > At the moment Jupyter AI is not compatible with JupyterLite, but might be to some extent in the future.
 
 - JupyterLab >= 4.4.0a0 or Notebook >= 7.4.0a0
-
-> [!WARNING]
-> This extension is still very much experimental. It is not an official MistralAI extension.
-> It is exploring the integration of the MistralAI API with JupyterLab, which can also be used in [JupyterLite](https://jupyterlite.readthedocs.io/).
-> For a more complete AI extension for JupyterLab, see [Jupyter AI](https://github.com/jupyterlab/jupyter-ai).
 
 ## ✨ Try it in your browser ✨
 
@@ -44,6 +39,15 @@ pip install jupyterlite-ai[jupyter]
 ```
 
 # Usage
+
+AI providers typically require using an API key to access their models.
+
+The process is different for each provider, so you may refer to their documentation to learn how to generate new API keys, if they are not covered in the sections below.
+
+## Using MistralAI
+
+> [!WARNING]
+> This extension is still very much experimental. It is not an official MistralAI extension.
 
 1. Go to https://console.mistral.ai/api-keys/ and create an API key.
 
