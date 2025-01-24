@@ -31,6 +31,10 @@ const schemaBase = tsj
  *     to exclude them at the moment, to be able to build other settings.
  */
 const providers = {
+  chromeAI: {
+    path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
+    type: 'ChromeAI'
+  },
   mistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
@@ -78,6 +82,21 @@ Object.entries(providers).forEach(([name, desc], index) => {
 
   // Remove the properties from extended class.
   const providerKeys = Object.keys(schema.definitions[desc.type]['properties']);
+
+  // TODO: fix for ChromeAI
+  const keys = [
+    'ParsedCallOptions',
+    'lc_kwargs',
+    'lc_namespace',
+    'lc_serializable',
+    'caller'
+  ];
+  keys.forEach(key => {
+    if (providerKeys.includes(key)) {
+      delete schema.definitions?.[desc.type]['properties'][key];
+    }
+  });
+
   Object.keys(
     schemaBase.definitions?.['BaseLanguageModelParams']['properties']
   ).forEach(key => {
