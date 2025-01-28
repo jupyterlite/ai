@@ -97,7 +97,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
 
   // Replace all references by their value, and remove the useless definitions.
   const defKeys = Object.keys(schema.definitions);
-  for (let i = defKeys.length -1 ; i >= 0 ; i--) {
+  for (let i = defKeys.length - 1; i >= 0; i--) {
     let schemaString = JSON.stringify(schema);
     const key = defKeys[i];
     const reference = `"$ref":"#/definitions/${key}"`;
@@ -111,7 +111,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
     }
     // Remove the definition
     delete schema.definitions?.[key];
-  };
+  }
 
   // Transform the default values.
   Object.values(schema.properties).forEach(value => {
