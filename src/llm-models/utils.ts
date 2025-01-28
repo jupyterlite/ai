@@ -2,7 +2,6 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
-import { JSONObject } from '@lumino/coreutils';
 
 import { IBaseCompleter } from './base-completer';
 import { AnthropicCompleter } from './anthropic-completer';
@@ -12,6 +11,7 @@ import { OpenAICompleter } from './openai-completer';
 
 import mistralAI from '../_provider-settings/mistralAI.json';
 import anthropic from '../_provider-settings/anthropic.json';
+import openAI from '../_provider-settings/openAI.json';
 
 /**
  * Get an LLM completer from the name.
@@ -64,11 +64,13 @@ export function getErrorMessage(name: string, error: any): string {
 /*
  * Get an LLM completer from the name.
  */
-export function getSettings(name: string): JSONObject | null {
+export function getSettings(name: string): any {
   if (name === 'MistralAI') {
-    return mistralAI.definitions.ChatMistralAIInput.properties;
+    return mistralAI.properties;
   } else if (name === 'Anthropic') {
-    return anthropic.definitions.AnthropicInput.properties;
+    return anthropic.properties;
+  } else if (name === 'OpenAI') {
+    return openAI.properties;
   }
   return null;
 }
