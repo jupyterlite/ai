@@ -149,7 +149,9 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
       .load(aiProviderPlugin.id)
       .then(settings => {
         const updateProvider = () => {
+          console.log('Setting changed');
           const provider = settings.get('provider').composite as string;
+          console.log('Provider', provider);
           if (provider !== currentProvider) {
             // Update the settings panel.
             currentProvider = provider;
@@ -162,10 +164,12 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
                 }
               });
               const properties = getSettings(provider);
+              console.log('PROPS', properties);
               if (properties === null) {
                 return;
               }
               Object.entries(properties).forEach(([name, value], index) => {
+                console.log(name, value);
                 settingsProperties[name] = value as ISettingRegistry.IProperty;
               });
             }
