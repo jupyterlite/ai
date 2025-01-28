@@ -42,7 +42,8 @@ const providers = {
   },
   openAI: {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
-    type: 'ChatOpenAIFields'
+    type: 'ChatOpenAIFields',
+    excludedProps: ['configuration']
   }
 };
 
