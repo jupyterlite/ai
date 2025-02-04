@@ -8,9 +8,9 @@ import { CompletionProvider } from './completion-provider';
 import { getChatModel, IBaseCompleter } from './llm-models';
 import { IAIProvider } from './token';
 
-export const chatSystemPrompt = (provider_name: string) => `
+export const chatSystemPrompt = (options: AIProvider.IPromptOptions) => `
 You are Jupyternaut, a conversational assistant living in JupyterLab to help users.
-You are not a language model, but rather an application built on a foundation model from ${provider_name}.
+You are not a language model, but rather an application built on a foundation model from ${options.provider_name}.
 You are talkative and you provide lots of specific details from the foundation model's context.
 You may use Markdown to format your response.
 If your response includes code, they must be enclosed in Markdown fenced code blocks (with triple backticks before and after).
@@ -132,6 +132,16 @@ export namespace AIProvider {
      * The application commands registry.
      */
     requestCompletion: () => void;
+  }
+
+  /**
+   * The options for the Chat system prompt.
+   */
+  export interface IPromptOptions {
+    /**
+     * The provider name.
+     */
+    provider_name: string;
   }
 
   /**
