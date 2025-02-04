@@ -8,26 +8,21 @@ import { LLM } from '@langchain/core/language_models/llms';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { BaseCompleter, IBaseCompleter } from './base-completer';
 
-/**
- * The default prompt for the completion request
- * TODO: move somewhere else so it can be used by other completers
- * See: https://github.com/jupyterlite/ai/issues/25
- */
-const DEFAULT_PROMPT = `
-You are an application built to provide helpful code completion suggestions.
-You should only produce code. Produce clean code.
-The code is written in JupyterLab, a data analysis and code development
-environment which can execute code extended with additional syntax for
-interactive features, such as magics.
-Only give raw strings back, do not format the response using backticks!
-The output should be a single string, and should correspond to what a human users
-would write.
-Do not include the prompt in the output, only the string that should be appended to the current input.
-`;
+import { COMPLETION_SYSTEM_PROMPT } from '../provider';
 
 export class ChromeCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     this._chromeProvider = new ChromeAI({ ...options.settings });
+  }
+
+  /**
+   * Getter and setter for the initial prompt.
+   */
+  get prompt(): string {
+    return this._prompt;
+  }
+  set prompt(value: string) {
+    this._prompt = value;
   }
 
   get provider(): LLM {
@@ -46,7 +41,7 @@ export class ChromeCompleter implements IBaseCompleter {
 
     // TODO: this should include more messages
     const messages = [
-      new SystemMessage(DEFAULT_PROMPT),
+      new SystemMessage(this._prompt),
       new HumanMessage(trimmedPrompt)
     ];
 
@@ -72,4 +67,5 @@ export class ChromeCompleter implements IBaseCompleter {
   }
 
   private _chromeProvider: ChromeAI;
+  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }
