@@ -57,12 +57,8 @@ export class ChromeCompleter implements IBaseCompleter {
       const response = await this._chromeProvider.invoke(messages);
 
       if (response.startsWith('```')) {
-        console.log('Skipping response that includes code block');
         return { items: [] };
       }
-
-      console.log('input:', trimmedPrompt);
-      console.log('response:', response);
 
       const items = [{ insertText: response }];
       return {
