@@ -48,7 +48,6 @@ export class ChromeCompleter implements IBaseCompleter {
 
     const trimmedPrompt = prompt.trim();
 
-    // TODO: this should include more messages
     const messages = [
       new SystemMessage(this._prompt),
       new HumanMessage(trimmedPrompt)
