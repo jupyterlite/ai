@@ -4,11 +4,20 @@ import {
 } from '@jupyterlab/completer';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { LLM } from '@langchain/core/language_models/llms';
-
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { BaseCompleter, IBaseCompleter } from './base-completer';
-
 import { COMPLETION_SYSTEM_PROMPT } from '../provider';
+
+/**
+ * The initial prompt to use for the completion.
+ * Add extra instructions to get better results.
+ */
+const CUSTOM_SYSTEM_PROMPT = `${COMPLETION_SYSTEM_PROMPT}
+Only give raw strings back, do not format the response using backticks!
+The output should be a single string, and should correspond to what a human users
+would write.
+Do not include the prompt in the output, only the string that should be appended to the current input.
+`;
 
 export class ChromeCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
@@ -67,5 +76,5 @@ export class ChromeCompleter implements IBaseCompleter {
   }
 
   private _chromeProvider: ChromeAI;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  private _prompt: string = CUSTOM_SYSTEM_PROMPT;
 }
