@@ -8,6 +8,7 @@ import { Throttler } from '@lumino/polling';
 import { CompletionRequest } from '@mistralai/mistralai';
 
 import { BaseCompleter, IBaseCompleter } from './base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../provider';
 
 /**
  * The Mistral API has a rate limit of 1 request per second
@@ -66,6 +67,16 @@ export class CodestralCompleter implements IBaseCompleter {
     return this._mistralProvider;
   }
 
+  /**
+   * Getter and setter for the initial prompt.
+   */
+  get prompt(): string {
+    return this._prompt;
+  }
+  set prompt(value: string) {
+    this._prompt = value;
+  }
+
   set requestCompletion(value: () => void) {
     this._requestCompletion = value;
   }
@@ -109,5 +120,6 @@ export class CodestralCompleter implements IBaseCompleter {
   private _requestCompletion?: () => void;
   private _throttler: Throttler;
   private _mistralProvider: MistralAI;
+  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
   private _currentData: CompletionRequest | null = null;
 }
