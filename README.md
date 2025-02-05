@@ -65,7 +65,7 @@ The process is different for each provider, so you may refer to their documentat
 ## Using ChromeAI
 
 > [!WARNING]
-> Support for ChromeAI is still experimental.
+> Support for ChromeAI is still experimental and only available in Google Chrome.
 
 Enable the proper flags in Google Chrome.
 
@@ -77,7 +77,7 @@ Enable the proper flags in Google Chrome.
 Then restart Chrome for these changes to take effect.
 
 > [!WARNING]
-> On first use, Chrome will download the on-device model, which can be as large as 22GB (according to their docs).
+> On first use, Chrome will download the on-device model, which can be as large as 22GB (according to their docs and at the time of writing).
 > During the download, ChromeAI may not be available via the extension.
 
 > [!NOTE]
