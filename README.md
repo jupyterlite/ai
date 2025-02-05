@@ -76,6 +76,8 @@ Enable the proper flags in Google Chrome.
 
 Then restart Chrome for these changes to take effect.
 
+You can test ChromeAI is enabled in your browser by going to the following URL: https://chromeai.org/
+
 > [!WARNING]
 > On first use, Chrome will download the on-device model, which can be as large as 22GB (according to their docs and at the time of writing).
 > During the download, ChromeAI may not be available via the extension.
