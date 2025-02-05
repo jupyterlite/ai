@@ -73,7 +73,7 @@ export function getSettings(name: string): JSONObject | null {
   } else if (name === 'Anthropic') {
     return anthropic.definitions.AnthropicInput.properties;
   } else if (name === 'ChromeAI') {
-    return chromeAI.definitions.ChromeAI.properties;
+    return chromeAI.definitions.ChromeAIInputs.properties;
   }
 
   return null;
