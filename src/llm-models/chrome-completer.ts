@@ -55,6 +55,8 @@ export class ChromeCompleter implements IBaseCompleter {
     try {
       const response = await this._chromeProvider.invoke(messages);
 
+      // ChromeAI sometimes returns a string starting with '```', which
+      // is not great for completing text, so ignore it
       if (response.startsWith('```')) {
         return { items: [] };
       }
