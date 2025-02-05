@@ -44,7 +44,6 @@ export class ChromeCompleter implements IBaseCompleter {
   ) {
     const { text, offset: cursorOffset } = request;
     const prompt = text.slice(0, cursorOffset);
-    // const suffix = text.slice(cursorOffset);
 
     const trimmedPrompt = prompt.trim();
 
