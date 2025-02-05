@@ -33,7 +33,7 @@ const schemaBase = tsj
 const providers = {
   chromeAI: {
     path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
-    type: 'ChromeAIInputs',
+    type: 'ChromeAIInputs'
   },
   mistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
