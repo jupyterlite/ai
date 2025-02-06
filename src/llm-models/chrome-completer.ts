@@ -19,6 +19,27 @@ would write.
 Do not include the prompt in the output, only the string that should be appended to the current input.
 `;
 
+/**
+ * Regular expression to match the '```' string at the start of a string.
+ * So the completions returned by the LLM can still be kept after removing the code block formatting.
+ *
+ * For example, if the response contains the following content after typing `import pandas`:
+ *
+ * ```python
+ * as pd
+ * ```
+ *
+ * The formatting string after removing the code block delimiters will be:
+ *
+ * as pd
+ */
+const CODE_BLOCK_START_REGEX = /^```(?:[a-zA-Z]+)?\n?/;
+
+/**
+ * Regular expression to match the '```' string at the end of a string.
+ */
+const CODE_BLOCK_END_REGEX = /```$/;
+
 export class ChromeCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     this._chromeProvider = new ChromeAI({ ...options.settings });
@@ -53,12 +74,16 @@ export class ChromeCompleter implements IBaseCompleter {
     ];
 
     try {
-      const response = await this._chromeProvider.invoke(messages);
+      let response = await this._chromeProvider.invoke(messages);
 
-      // ChromeAI sometimes returns a string starting with '```', which
-      // is not great for completing text, so ignore it
-      if (response.startsWith('```')) {
-        return { items: [] };
+      // ChromeAI sometimes returns a string starting with '```',
+      // so process the response to remove the code block delimiters
+      if (CODE_BLOCK_START_REGEX.test(response)) {
+        console.log('Removing code block from response', response);
+        response = response
+          .replace(CODE_BLOCK_START_REGEX, '')
+          .replace(CODE_BLOCK_END_REGEX, '');
+        console.log('New response', response);
       }
 
       const items = [{ insertText: response }];
