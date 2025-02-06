@@ -62,6 +62,29 @@ The process is different for each provider, so you may refer to their documentat
 
 ![Screenshot showing how to use the chat](./img/3-usage.png)
 
+## Using ChromeAI
+
+> [!WARNING]
+> Support for ChromeAI is still experimental and only available in Google Chrome.
+
+Enable the proper flags in Google Chrome.
+
+- chrome://flags/#prompt-api-for-gemini-nano
+- [Optional] chrome://flags/#text-safety-classifier
+
+![a screenshot showing how to enable the ChromeAI flag in Google Chrome](https://github.com/user-attachments/assets/d48f46cc-52ee-4ce5-9eaf-c763cdbee04c)
+
+Then restart Chrome for these changes to take effect.
+
+You can test ChromeAI is enabled in your browser by going to the following URL: https://chromeai.org/
+
+> [!WARNING]
+> On first use, Chrome will download the on-device model, which can be as large as 22GB (according to their docs and at the time of writing).
+> During the download, ChromeAI may not be available via the extension.
+
+> [!NOTE]
+> For more information about Chrome Built-in AI: https://developer.chrome.com/docs/ai/get-started
+
 ## Uninstall
 
 To remove the extension, execute:
