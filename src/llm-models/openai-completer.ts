@@ -2,18 +2,30 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { BaseLLM } from '@langchain/core/language_models/llms';
-import { OpenAI } from '@langchain/openai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { AIMessage, SystemMessage } from '@langchain/core/messages';
+import { ChatOpenAI } from '@langchain/openai';
 
 import { BaseCompleter, IBaseCompleter } from './base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../provider';
 
 export class OpenAICompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._gptProvider = new OpenAI({ ...options.settings });
+    this._gptProvider = new ChatOpenAI({ ...options.settings });
   }
 
-  get provider(): BaseLLM {
+  get provider(): BaseChatModel {
     return this._gptProvider;
+  }
+
+  /**
+   * Getter and setter for the initial prompt.
+   */
+  get prompt(): string {
+    return this._prompt;
+  }
+  set prompt(value: string) {
+    this._prompt = value;
   }
 
   async fetch(
@@ -22,25 +34,27 @@ export class OpenAICompleter implements IBaseCompleter {
   ) {
     const { text, offset: cursorOffset } = request;
     const prompt = text.slice(0, cursorOffset);
-    const suffix = text.slice(cursorOffset);
 
-    const data = {
-      prompt,
-      suffix,
-      model: this._gptProvider.model,
-      // temperature: 0,
-      // top_p: 1,
-      // max_tokens: 1024,
-      // min_tokens: 0,
-      // random_seed: 1337,
-      stop: []
-    };
+    const messages = [new SystemMessage(this._prompt), new AIMessage(prompt)];
 
     try {
-      const response = await this._gptProvider.completionWithRetry(data, {});
-      const items = response.choices.map((choice: any) => {
-        return { insertText: choice.message.content as string };
-      });
+      const response = await this._gptProvider.invoke(messages);
+      const items = [];
+      if (typeof response.content === 'string') {
+        items.push({
+          insertText: response.content
+        });
+      } else {
+        response.content.forEach(content => {
+          if (content.type !== 'text') {
+            return;
+          }
+          items.push({
+            insertText: content.text,
+            filterText: prompt.substring(prompt.length)
+          });
+        });
+      }
       return items;
     } catch (error) {
       console.error('Error fetching completions', error);
@@ -48,5 +62,6 @@ export class OpenAICompleter implements IBaseCompleter {
     }
   }
 
-  private _gptProvider: OpenAI;
+  private _gptProvider: ChatOpenAI;
+  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }
