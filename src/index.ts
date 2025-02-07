@@ -11,17 +11,21 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
+import { IThemeManager, ReactWidget } from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+import { PartialJSONValue } from '@lumino/coreutils';
 import { ChatHandler } from './chat-handler';
 import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
+
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { IMagicProvider } from 'jupyterlab_magic_wand';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {
@@ -189,4 +193,74 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   }
 };
 
-export default [chatPlugin, autocompletionRegistryPlugin, aiProviderPlugin];
+const magicProviderPlugin: JupyterFrontEndPlugin<IMagicProvider> = {
+  id: '@jupyterlite/ai:magic-provider',
+  autoStart: true,
+  requires: [IAIProvider],
+  provides: IMagicProvider,
+  activate: (app: JupyterFrontEnd, aiProvider: IAIProvider): IMagicProvider => {
+    console.log('@jupyterlite/ai magic provider plugin activated');
+    const events = app.serviceManager.events;
+
+    return {
+      magic: async (
+        cellId: string,
+        codeInput: string,
+        content: PartialJSONValue | undefined
+      ) => {
+        const trimmedPrompt = codeInput.trim();
+
+        // TODO: taken from jupyterlab-magic-wand
+        const PROMPT =
+          'The input below came from a code cell in Jupyter. If the input does not look like code, but instead a prompt, write code based on the prompt. Then, update the code to make it more efficient, add code comments, and respond with only the code and comments. ';
+
+        const messages = [
+          new SystemMessage(PROMPT),
+          new HumanMessage(trimmedPrompt)
+        ];
+
+        const response = await aiProvider.chatModel?.invoke(messages);
+        if (!response) {
+          return;
+        }
+
+        const source = response.content;
+
+        events.emit({
+          schema_id: 'https://events.jupyter.org/jupyter_ai/magic_button/v1',
+          version: '1',
+          data: {
+            agent: 'Magic Button Agent',
+            input: codeInput,
+            // @ts-expect-error: TODO
+            context: {
+              cell_id: cellId,
+              content
+            },
+            messages: [source],
+            commands: [
+              {
+                name: 'update-cell-source',
+                args: {
+                  cell_id: cellId,
+                  cell_type: 'code',
+                  source: source
+                }
+              }
+            ]
+          }
+        });
+        // TODO:
+        console.log('MAGIC PROVIDER');
+        console.log(cellId, codeInput, content);
+      }
+    };
+  }
+};
+
+export default [
+  chatPlugin,
+  aiProviderPlugin,
+  autocompletionRegistryPlugin,
+  magicProviderPlugin
+];

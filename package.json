@@ -70,6 +70,7 @@
         "@lumino/signaling": "^2.1.2",
         "@mui/icons-material": "^5.11.0",
         "@mui/material": "^5.11.0",
+        "jupyterlab_magic_wand": "^0.4.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },
@@ -110,6 +111,15 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "disabledExtensions": [
+            "jupyterlab_magic_wand:magic-provider"
+        ],
+        "sharedPackages": {
+            "jupyterlab_magic_wand": {
+                "bundled": false,
+                "singleton": true
+            }
+        }
     }
 }
