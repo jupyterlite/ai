@@ -246,6 +246,15 @@ const magicProviderPlugin: JupyterFrontEndPlugin<IMagicProvider> = {
                   cell_type: 'code',
                   source: source
                 }
+              },
+              {
+                name: 'show-diff',
+                args: {
+                  cell_id: cellId,
+                  original_source: codeInput
+                  // TODO
+                  // diff: {}
+                }
               }
             ]
           }
