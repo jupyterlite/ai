@@ -211,8 +211,7 @@ const magicProviderPlugin: JupyterFrontEndPlugin<IMagicProvider> = {
         const trimmedPrompt = codeInput.trim();
 
         // TODO: taken from jupyterlab-magic-wand
-        const PROMPT =
-          'The input below came from a code cell in Jupyter. If the input does not look like code, but instead a prompt, write code based on the prompt. Then, update the code to make it more efficient, add code comments, and respond with only the code and comments. ';
+        const PROMPT = 'The input below came from a code cell in Jupyter. If the input does not look like code, but instead a prompt, write code based on the prompt. Then, update the code to make it more efficient, add code comments, and respond with only the code and comments. Do not format the response using backticks or code block delimiters, just give the code that will be inserted into the cell directly.';
 
         const messages = [
           new SystemMessage(PROMPT),
