@@ -91,7 +91,9 @@ export class ChatHandler extends ChatModel {
     return this._aiProvider.chatModel
       .invoke(messages)
       .then(response => {
-        const content = response.content;
+        // Some providers may use text-completion models (for example ChromeAI),
+        // for which the response is a string.
+        const content = response.content ?? response;
         const botMsg: IChatMessage = {
           id: UUID.uuid4(),
           body: content.toString(),
