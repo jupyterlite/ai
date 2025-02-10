@@ -30,6 +30,10 @@ programming language comment syntax. Produce clean code.
 The code is written in JupyterLab, a data analysis and code development
 environment which can execute code extended with additional syntax for
 interactive features, such as magics.
+Only give raw strings back, do not format the response using backticks.
+The output should be a single string, and should correspond to what a human users
+would write.
+Do not include the prompt in the output, only the string that should be appended to the current input.
 `;
 
 export class AIProvider implements IAIProvider {
