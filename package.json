@@ -62,6 +62,7 @@
         "@jupyterlab/rendermime": "^4.4.0-alpha.0",
         "@jupyterlab/settingregistry": "^4.4.0-alpha.0",
         "@langchain/anthropic": "^0.3.9",
+        "@langchain/community": "^0.3.26",
         "@langchain/core": "^0.3.13",
         "@langchain/mistralai": "^0.1.1",
         "@lumino/coreutils": "^2.1.2",
