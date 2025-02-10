@@ -67,7 +67,8 @@
         "@langchain/mistralai": "^0.1.1",
         "@lumino/coreutils": "^2.1.2",
         "@lumino/polling": "^2.1.2",
-        "@lumino/signaling": "^2.1.2"
+        "@lumino/signaling": "^2.1.2",
+        "jupyterlab_magic_wand": "*"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.0.0",
@@ -105,7 +106,16 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "disabledExtensions": [
+            "jupyterlab_magic_wand:magic-provider"
+        ],
+        "sharedPackages": {
+            "jupyterlab_magic_wand": {
+                "bundled": false,
+                "singleton": true
+            }
+        }
     },
     "eslintIgnore": [
         "node_modules",
@@ -197,5 +207,8 @@
             "selector-no-vendor-prefix": null,
             "value-no-vendor-prefix": null
         }
+    },
+    "resolutions": {
+        "jupyterlab_magic_wand": "file:/Users/jtp/git/jtpio/jupyterlab-magic-wand"
     }
 }
