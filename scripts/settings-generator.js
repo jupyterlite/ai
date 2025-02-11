@@ -43,6 +43,11 @@ const providers = {
     path: 'node_modules/@langchain/anthropic/dist/chat_models.d.ts',
     type: 'AnthropicInput',
     excludedProps: ['clientOptions']
+  },
+  openAI: {
+    path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
+    type: 'ChatOpenAIFields',
+    excludedProps: ['configuration']
   }
 };
 
@@ -53,7 +58,8 @@ Object.entries(providers).forEach(([name, desc], index) => {
     path: desc.path,
     tsconfig: './tsconfig.json',
     type: desc.type,
-    functions: 'hide'
+    functions: 'hide',
+    topRef: false
   };
 
   const outputPath = path.join(outputDir, `${name}.json`);
@@ -81,33 +87,35 @@ Object.entries(providers).forEach(([name, desc], index) => {
   }
 
   // Remove the properties from extended class.
-  const providerKeys = Object.keys(schema.definitions[desc.type]['properties']);
-
+  const providerKeys = Object.keys(schema.properties);
   Object.keys(
     schemaBase.definitions?.['BaseLanguageModelParams']['properties']
   ).forEach(key => {
     if (providerKeys.includes(key)) {
-      delete schema.definitions?.[desc.type]['properties'][key];
+      delete schema.properties?.[key];
     }
   });
 
-  // Remove the useless definitions.
-  let change = true;
-  while (change) {
-    change = false;
-    const temporarySchemaString = JSON.stringify(schema);
+  // Replace all references by their value, and remove the useless definitions.
+  const defKeys = Object.keys(schema.definitions);
+  for (let i = defKeys.length - 1; i >= 0; i--) {
+    let schemaString = JSON.stringify(schema);
+    const key = defKeys[i];
+    const reference = `"$ref":"#/definitions/${key}"`;
 
-    Object.keys(schema.definitions).forEach(key => {
-      const index = temporarySchemaString.indexOf(`#/definitions/${key}`);
-      if (index === -1) {
-        delete schema.definitions?.[key];
-        change = true;
-      }
-    });
+    // Replace all the references to the definition by the content (after removal of the brace).
+    const replacement = JSON.stringify(schema.definitions?.[key]).slice(1, -1);
+    temporarySchemaString = schemaString.replaceAll(reference, replacement);
+    // Build again the schema from the string representation if it change.
+    if (schemaString !== temporarySchemaString) {
+      schema = JSON.parse(temporarySchemaString);
+    }
+    // Remove the definition
+    delete schema.definitions?.[key];
   }
 
   // Transform the default values.
-  Object.values(schema.definitions[desc.type]['properties']).forEach(value => {
+  Object.values(schema.properties).forEach(value => {
     const defaultValue = value.default;
     if (!defaultValue) {
       return;
