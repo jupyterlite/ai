@@ -20,6 +20,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ChatHandler } from './chat-handler';
 import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
+import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
@@ -34,8 +35,15 @@ const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistr
       const autocompletionCommands: IAutocompletionCommandsProps = {
         opener: '/',
         commands: options.map(option => {
-          return { label: option, description: 'Clear the chat window' };
-        })
+          return {
+            id: option.slice(1),
+            label: option,
+            description: 'Clear the chat window'
+          };
+        }),
+        props: {
+          renderOption: renderSlashCommandOption
+        }
       };
       autocompletionRegistry.add('jupyterlite-ai', autocompletionCommands);
       return autocompletionRegistry;
