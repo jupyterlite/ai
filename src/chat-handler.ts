@@ -88,38 +88,42 @@ export class ChatHandler extends ChatModel {
     );
 
     this.updateWriters([{ username: 'AI' }]);
-    return this._aiProvider.chatModel
-      .invoke(messages)
-      .then(response => {
-        // Some providers may use text-completion models (for example ChromeAI),
-        // for which the response is a string.
-        const content = response.content ?? response;
-        const botMsg: IChatMessage = {
-          id: UUID.uuid4(),
-          body: content.toString(),
-          sender: { username: 'AI' },
-          time: Date.now(),
-          type: 'msg'
-        };
+
+    // create an empty message to be filled by the AI provider
+    const botMsg: IChatMessage = {
+      id: UUID.uuid4(),
+      body: '',
+      sender: { username: 'AI' },
+      time: Date.now(),
+      type: 'msg'
+    };
+
+    let content = '';
+
+    try {
+      for await (const chunk of await this._aiProvider.chatModel.stream(
+        messages
+      )) {
+        content += chunk.content;
+        botMsg.body = content;
         this.messageAdded(botMsg);
-        this._history.messages.push(botMsg);
-        return true;
-      })
-      .catch(reason => {
-        const error = getErrorMessage(this._aiProvider.name, reason);
-        const errorMsg: IChatMessage = {
-          id: UUID.uuid4(),
-          body: `**${error}**`,
-          sender: { username: 'ERROR' },
-          time: Date.now(),
-          type: 'msg'
-        };
-        this.messageAdded(errorMsg);
-        return false;
-      })
-      .finally(() => {
-        this.updateWriters([]);
-      });
+      }
+      this._history.messages.push(botMsg);
+      return true;
+    } catch (reason) {
+      const error = getErrorMessage(this._aiProvider.name, reason);
+      const errorMsg: IChatMessage = {
+        id: UUID.uuid4(),
+        body: `**${error}**`,
+        sender: { username: 'ERROR' },
+        time: Date.now(),
+        type: 'msg'
+      };
+      this.messageAdded(errorMsg);
+      return false;
+    } finally {
+      this.updateWriters([]);
+    }
   }
 
   async getHistory(): Promise<IChatHistory> {
