@@ -51,6 +51,16 @@ export class ChatHandler extends ChatModel {
   }
 
   /**
+   * Getter and setter for the persona name.
+   */
+  get personaName(): string {
+    return this._personaName;
+  }
+  set personaName(value: string) {
+    this._personaName = value;
+  }
+
+  /**
    * Getter and setter for the initial prompt.
    */
   get prompt(): string {
@@ -95,7 +105,7 @@ export class ChatHandler extends ChatModel {
       })
     );
 
-    const sender = { username: 'AI', avatar_url: AI_AVATAR };
+    const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([sender]);
 
     // create an empty message to be filled by the AI provider
@@ -148,6 +158,7 @@ export class ChatHandler extends ChatModel {
   }
 
   private _aiProvider: IAIProvider;
+  private _personaName = 'AI';
   private _prompt: string;
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
