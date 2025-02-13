@@ -87,13 +87,14 @@ export class ChatHandler extends ChatModel {
       })
     );
 
-    this.updateWriters([{ username: 'AI' }]);
+    const sender = { username: 'AI' };
+    this.updateWriters([sender]);
 
     // create an empty message to be filled by the AI provider
     const botMsg: IChatMessage = {
       id: UUID.uuid4(),
       body: '',
-      sender: { username: 'AI' },
+      sender,
       time: Date.now(),
       type: 'msg'
     };
