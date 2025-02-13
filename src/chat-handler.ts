@@ -53,10 +53,16 @@ export class ChatHandler extends ChatModel {
   }
 
   async sendMessage(message: INewMessage): Promise<boolean> {
+    const body = message.body;
+    if (body.startsWith('/clear')) {
+      // TODO: do we need a clear method?
+      this.messagesDeleted(0, this.messages.length);
+      return false;
+    }
     message.id = UUID.uuid4();
     const msg: IChatMessage = {
       id: message.id,
-      body: message.body,
+      body,
       sender: { username: 'User' },
       time: Date.now(),
       type: 'msg'
