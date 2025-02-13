@@ -20,6 +20,14 @@ import { UUID } from '@lumino/coreutils';
 import { getErrorMessage } from './llm-models';
 import { chatSystemPrompt } from './provider';
 import { IAIProvider } from './token';
+import { jupyternautLiteIcon } from './icons';
+
+/**
+ * The base64 encoded SVG string of the jupyternaut lite icon.
+ * Encode so it can be passed as avatar_url to jupyter-chat.
+ */
+const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
+const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
 export type ConnectionMessage = {
   type: 'connection';
@@ -87,7 +95,7 @@ export class ChatHandler extends ChatModel {
       })
     );
 
-    const sender = { username: 'AI' };
+    const sender = { username: 'AI', avatar_url: AI_AVATAR };
     this.updateWriters([sender]);
 
     // create an empty message to be filled by the AI provider
