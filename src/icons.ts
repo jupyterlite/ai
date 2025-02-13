@@ -13,6 +13,6 @@ import { LabIcon } from '@jupyterlab/ui-components';
 import jupyternautLiteSvg from '../style/icons/jupyternaut-lite.svg';
 
 export const jupyternautLiteIcon = new LabIcon({
-  name: 'jupyter-ai::jupyternaut-lite',
+  name: '@jupyterlite/ai:jupyternaut-lite',
   svgstr: jupyternautLiteSvg
 });
