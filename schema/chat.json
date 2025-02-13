@@ -1,6 +1,8 @@
 {
   "title": "Chat configuration",
   "description": "Configuration for the chat panel",
+  "jupyter.lab.setting-icon": "jupyter-chat::chat",
+  "jupyter.lab.setting-icon-label": "Jupyter Chat",
   "type": "object",
   "properties": {
     "sendWithShiftEnter": {
