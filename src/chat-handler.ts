@@ -57,6 +57,13 @@ export class ChatHandler extends ChatModel {
     return this._personaName;
   }
   set personaName(value: string) {
+      this.messages.forEach(message => {
+      if (message.sender.username === this._personaName) {
+        const updated: IChatMessage = { ...message };
+        updated.sender.username = value;
+        this.messageAdded(updated);
+      }
+    });
     this._personaName = value;
   }
 
