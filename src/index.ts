@@ -48,12 +48,17 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
+    let personaName = 'AI';
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
         .composite as boolean;
       enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
+      personaName = setting.get('personaName').composite as string;
+
+      // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
+      chatHandler.personaName = personaName;
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
