@@ -82,6 +82,7 @@ export class ChatHandler extends ChatModel {
     if (body.startsWith('/clear')) {
       // TODO: do we need a clear method?
       this.messagesDeleted(0, this.messages.length);
+      this._history.messages = [];
       return false;
     }
     message.id = UUID.uuid4();
