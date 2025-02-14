@@ -1,8 +1,11 @@
 import {
   ActiveCellManager,
+  AutocompletionRegistry,
   buildChatSidebar,
   buildErrorWidget,
-  IActiveCellManager
+  IActiveCellManager,
+  IAutocompletionCommandsProps,
+  IAutocompletionRegistry
 } from '@jupyter/chat';
 import {
   JupyterFrontEnd,
@@ -17,18 +20,47 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ChatHandler } from './chat-handler';
 import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
+import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
+
+const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
+  {
+    id: '@jupyterlite/ai:autocompletion-registry',
+    description: 'Autocompletion registry',
+    autoStart: true,
+    provides: IAutocompletionRegistry,
+    activate: () => {
+      const autocompletionRegistry = new AutocompletionRegistry();
+      const options = ['/clear'];
+      const autocompletionCommands: IAutocompletionCommandsProps = {
+        opener: '/',
+        commands: options.map(option => {
+          return {
+            id: option.slice(1),
+            label: option,
+            description: 'Clear the chat window'
+          };
+        }),
+        props: {
+          renderOption: renderSlashCommandOption
+        }
+      };
+      autocompletionRegistry.add('jupyterlite-ai', autocompletionCommands);
+      return autocompletionRegistry;
+    }
+  };
 
 const chatPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:chat',
   description: 'LLM chat extension',
   autoStart: true,
+  requires: [IAIProvider, IRenderMimeRegistry, IAutocompletionRegistry],
   optional: [INotebookTracker, ISettingRegistry, IThemeManager],
-  requires: [IAIProvider, IRenderMimeRegistry],
   activate: async (
     app: JupyterFrontEnd,
     aiProvider: IAIProvider,
     rmRegistry: IRenderMimeRegistry,
+    autocompletionRegistry: IAutocompletionRegistry,
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null
@@ -83,7 +115,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       chatWidget = buildChatSidebar({
         model: chatHandler,
         themeManager,
-        rmRegistry
+        rmRegistry,
+        autocompletionRegistry
       });
       chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
@@ -156,4 +189,4 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   }
 };
 
-export default [chatPlugin, aiProviderPlugin];
+export default [chatPlugin, autocompletionRegistryPlugin, aiProviderPlugin];
