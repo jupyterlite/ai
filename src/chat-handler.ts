@@ -20,6 +20,14 @@ import { UUID } from '@lumino/coreutils';
 import { getErrorMessage } from './llm-models';
 import { chatSystemPrompt } from './provider';
 import { IAIProvider } from './token';
+import { jupyternautLiteIcon } from './icons';
+
+/**
+ * The base64 encoded SVG string of the jupyternaut lite icon.
+ * Encode so it can be passed as avatar_url to jupyter-chat.
+ */
+const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
+const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
 export type ConnectionMessage = {
   type: 'connection';
@@ -40,6 +48,23 @@ export class ChatHandler extends ChatModel {
 
   get provider(): BaseChatModel | null {
     return this._aiProvider.chatModel;
+  }
+
+  /**
+   * Getter and setter for the persona name.
+   */
+  get personaName(): string {
+    return this._personaName;
+  }
+  set personaName(value: string) {
+    this.messages.forEach(message => {
+      if (message.sender.username === this._personaName) {
+        const updated: IChatMessage = { ...message };
+        updated.sender.username = value;
+        this.messageAdded(updated);
+      }
+    });
+    this._personaName = value;
   }
 
   /**
@@ -93,7 +118,7 @@ export class ChatHandler extends ChatModel {
       })
     );
 
-    const sender = { username: 'AI' };
+    const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([sender]);
 
     // create an empty message to be filled by the AI provider
@@ -146,6 +171,7 @@ export class ChatHandler extends ChatModel {
   }
 
   private _aiProvider: IAIProvider;
+  private _personaName = 'AI';
   private _prompt: string;
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
