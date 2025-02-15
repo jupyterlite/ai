@@ -68,11 +68,9 @@ export class ChromeCompleter implements IBaseCompleter {
       // ChromeAI sometimes returns a string starting with '```',
       // so process the response to remove the code block delimiters
       if (CODE_BLOCK_START_REGEX.test(response)) {
-        console.log('Removing code block from response', response);
         response = response
           .replace(CODE_BLOCK_START_REGEX, '')
           .replace(CODE_BLOCK_END_REGEX, '');
-        console.log('New response', response);
       }
 
       const items = [{ insertText: response }];
