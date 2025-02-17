@@ -17,7 +17,6 @@ import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-import { PartialJSONValue } from '@lumino/coreutils';
 import { ChatHandler } from './chat-handler';
 import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
@@ -203,15 +202,13 @@ const magicProviderPlugin: JupyterFrontEndPlugin<IMagicProvider> = {
     const events = app.serviceManager.events;
 
     return {
-      magic: async (
-        cellId: string,
-        codeInput: string,
-        content: PartialJSONValue | undefined
-      ) => {
+      magic: async (magicContext: IMagicProvider.IMagicContext) => {
+        const { codeInput, cellId, content } = magicContext;
         const trimmedPrompt = codeInput.trim();
 
         // TODO: taken from jupyterlab-magic-wand
-        const PROMPT = 'The input below came from a code cell in Jupyter. If the input does not look like code, but instead a prompt, write code based on the prompt. Then, update the code to make it more efficient, add code comments, and respond with only the code and comments. Do not format the response using backticks or code block delimiters, just give the code that will be inserted into the cell directly.';
+        const PROMPT =
+          'The input below came from a code cell in Jupyter. If the input does not look like code, but instead a prompt, write code based on the prompt. Then, update the code to make it more efficient, add code comments, and respond with only the code and comments. Do not format the response using backticks or code block delimiters, just give the code that will be inserted into the cell directly.';
 
         const messages = [
           new SystemMessage(PROMPT),
