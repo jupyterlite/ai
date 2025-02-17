@@ -11,7 +11,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
+import { ReactWidget, IThemeManager, Notification } from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
@@ -22,6 +22,7 @@ import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
+import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {
@@ -173,6 +174,60 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
 
           // Update the settings to the AI providers.
           aiProvider.setModels(provider, settings.composite);
+          const { chatModel, chatError } = aiProvider;
+          if (chatModel === null) {
+            Notification.emit(chatError, 'error', {
+              autoClose: 2000
+            });
+            return;
+          }
+
+          // TODO: implement a proper way to handle models that may need to be initialized before being used.
+          // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
+          if (provider === 'WebLLM') {
+            const model = aiProvider.chatModel as ChatWebLLM;
+            if (model === null || !model.model) {
+              return;
+            }
+            // create a notification
+            const notification = Notification.emit(
+              'Loading model...',
+              'in-progress',
+              {
+                autoClose: false,
+                progress: 0
+              }
+            );
+            try {
+              void model.initialize(report => {
+                const { progress, text } = report;
+                if (progress === 1) {
+                  Notification.update({
+                    id: notification,
+                    progress: 1,
+                    message: `Model ${model.model} loaded successfully`,
+                    type: 'success',
+                    autoClose: 2000
+                  });
+                  return;
+                }
+                Notification.update({
+                  id: notification,
+                  progress: progress / 1,
+                  message: text,
+                  type: 'in-progress'
+                });
+              });
+            } catch (err) {
+              Notification.update({
+                id: notification,
+                progress: 1,
+                message: `Error loading model ${model.model}`,
+                type: 'error',
+                autoClose: 2000
+              });
+            }
+          }
         };
 
         settings.changed.connect(() => updateProvider());
