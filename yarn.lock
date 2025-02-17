@@ -1639,17 +1639,22 @@ __metadata:
     "@lumino/coreutils": ^2.1.2
     "@lumino/polling": ^2.1.2
     "@lumino/signaling": ^2.1.2
+    "@mlc-ai/web-llm": ^0.2.78
+    "@mlc-ai/web-runtime": ^0.18.0-dev2
+    "@mlc-ai/web-tokenizers": ^0.1.5
     "@mui/icons-material": ^5.11.0
     "@mui/material": ^5.11.0
     "@rjsf/core": ^5.18.4
     "@rjsf/utils": ^5.18.4
     "@rjsf/validator-ajv8": ^5.18.4
     "@stylistic/eslint-plugin": ^3.0.1
+    "@types/chrome": ^0.0.304
     "@types/json-schema": ^7.0.11
     "@types/react": ^18.0.26
     "@types/react-addons-linked-state-mixin": ^0.14.22
     "@typescript-eslint/eslint-plugin": ^6.1.0
     "@typescript-eslint/parser": ^6.1.0
+    "@webgpu/types": ^0.1.54
     css-loader: ^6.7.1
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
@@ -2577,6 +2582,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mlc-ai/web-llm@npm:^0.2.78":
+  version: 0.2.78
+  resolution: "@mlc-ai/web-llm@npm:0.2.78"
+  dependencies:
+    loglevel: ^1.9.1
+  checksum: c63986887807a90a3732fccf81a18e812c33f30590acb33776ea607ac2720d64259176e83e59bb641bb4f17daee0f66ebeaf81ec9a08b66be45bd79feba0f60b
+  languageName: node
+  linkType: hard
+
+"@mlc-ai/web-runtime@npm:^0.18.0-dev2":
+  version: 0.18.0-dev2
+  resolution: "@mlc-ai/web-runtime@npm:0.18.0-dev2"
+  checksum: 968a33825d49493b9a30827f92fec506445c446f1d0497c75c98321020e6e2a7184fdbf8d745174374149114064dc004e58dd121ce940f458bebf317b8f0f302
+  languageName: node
+  linkType: hard
+
+"@mlc-ai/web-tokenizers@npm:^0.1.5":
+  version: 0.1.5
+  resolution: "@mlc-ai/web-tokenizers@npm:0.1.5"
+  checksum: e8876752a402431241ccadc57ece284d5b6b346232828da55255e91356ee2a3a6b076a4442bf6be6a4e45b5b75e4b360b16bb24690393cf442a57d377e456d26
+  languageName: node
+  linkType: hard
+
 "@mui/base@npm:5.0.0-beta.40":
   version: 5.0.0-beta.40
   resolution: "@mui/base@npm:5.0.0-beta.40"
@@ -2932,6 +2960,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/chrome@npm:^0.0.304":
+  version: 0.0.304
+  resolution: "@types/chrome@npm:0.0.304"
+  dependencies:
+    "@types/filesystem": "*"
+    "@types/har-format": "*"
+  checksum: 92a96c3fc0dbd6dbcec570052ecf80d9f395621128d17fa3c51d83f58b37526f0185eb65f2c42956e96400f24b16892223af6cf7f9809db883c166578e554225
+  languageName: node
+  linkType: hard
+
 "@types/create-react-class@npm:*":
   version: 15.6.8
   resolution: "@types/create-react-class@npm:15.6.8"
@@ -2966,6 +3004,29 @@ __metadata:
   version: 1.0.5
   resolution: "@types/estree@npm:1.0.5"
   checksum: dd8b5bed28e6213b7acd0fb665a84e693554d850b0df423ac8076cc3ad5823a6bc26b0251d080bdc545af83179ede51dd3f6fa78cad2c46ed1f29624ddf3e41a
+  languageName: node
+  linkType: hard
+
+"@types/filesystem@npm:*":
+  version: 0.0.36
+  resolution: "@types/filesystem@npm:0.0.36"
+  dependencies:
+    "@types/filewriter": "*"
+  checksum: fad9f6b291598e65a0c5e73e685977b2c86c9bdb1ede5ce29eb35f196bbdf8d668a32bd4361624391ae1eb699362daa13442b75177dd73c6b300967fdd1ed765
+  languageName: node
+  linkType: hard
+
+"@types/filewriter@npm:*":
+  version: 0.0.33
+  resolution: "@types/filewriter@npm:0.0.33"
+  checksum: 56ba7f0d3c2dafbb899e7f5a9574df41d2f07494040aa09f9fd51c7004c0b255c36c554333c380b23625afb50e50cf1d13f5925d956a627d4ee6e3fbe8f3176b
+  languageName: node
+  linkType: hard
+
+"@types/har-format@npm:*":
+  version: 1.2.16
+  resolution: "@types/har-format@npm:1.2.16"
+  checksum: 8012e244818e50492d6785dc2e11287532eff0cd72337f4bcee75f5c15a49da06f237b2afdc81c1b1cfec0757609edf0101fa1f9f50e9cdf7f562c07b6e760ac
   languageName: node
   linkType: hard
 
@@ -3447,6 +3508,13 @@ __metadata:
     "@webassemblyjs/ast": 1.12.1
     "@xtuc/long": 4.2.2
   checksum: 2974b5dda8d769145ba0efd886ea94a601e61fb37114c14f9a9a7606afc23456799af652ac3052f284909bd42edc3665a76bc9b50f95f0794c053a8a1757b713
+  languageName: node
+  linkType: hard
+
+"@webgpu/types@npm:^0.1.54":
+  version: 0.1.54
+  resolution: "@webgpu/types@npm:0.1.54"
+  checksum: e831d805c868c75b82ee4984184e517e4449834915d062c2fd4d7ceed59ac6b45f02b311e8ebe8a616b462a0c7c31c32d3c231f39fdc600a655721683a3c9147
   languageName: node
   linkType: hard
 
@@ -6193,6 +6261,13 @@ __metadata:
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: eb835a2e51d381e561e508ce932ea50a8e5a68f4ebdd771ea240d3048244a8d13658acbd502cd4829768c56f2e16bdd4340b9ea141297d472517b83868e677f7
+  languageName: node
+  linkType: hard
+
+"loglevel@npm:^1.9.1":
+  version: 1.9.2
+  resolution: "loglevel@npm:1.9.2"
+  checksum: 896c67b90a507bfcfc1e9a4daa7bf789a441dd70d95cd13b998d6dd46233a3bfadfb8fadb07250432bbfb53bf61e95f2520f9b11f9d3175cc460e5c251eca0af
   languageName: node
   linkType: hard
 

@@ -63,6 +63,12 @@ const providers = {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
     type: 'ChatOpenAIFields',
     excludedProps: ['configuration']
+  },
+  WebLLM: {
+    path: 'node_modules/@langchain/community/chat_models/webllm.d.ts',
+    type: 'WebLLMInputs',
+    // TODO: re-enable?
+    excludedProps: ['appConfig', 'chatOptions']
   }
 };
 
