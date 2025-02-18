@@ -173,6 +173,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cfworker/json-schema@npm:^4.0.2":
+  version: 4.1.1
+  resolution: "@cfworker/json-schema@npm:4.1.1"
+  checksum: 35b5b246eff7bc75a17befb6e6d56475ab9261279c5d727610dc6827cce557d11db353cca3c06b8272f3974eb2ac508a7bbae3accd3d6c8402dfe0aafbfea0aa
+  languageName: node
+  linkType: hard
+
 "@codemirror/autocomplete@npm:^6.0.0, @codemirror/autocomplete@npm:^6.15.0, @codemirror/autocomplete@npm:^6.3.2, @codemirror/autocomplete@npm:^6.7.1":
   version: 6.16.2
   resolution: "@codemirror/autocomplete@npm:6.16.2"
@@ -1959,8 +1966,8 @@ __metadata:
     "@jupyterlab/rendermime": ^4.4.0-alpha.0
     "@jupyterlab/settingregistry": ^4.4.0-alpha.0
     "@langchain/anthropic": ^0.3.9
-    "@langchain/community": ^0.3.26
-    "@langchain/core": ^0.3.13
+    "@langchain/community": ^0.3.31
+    "@langchain/core": ^0.3.40
     "@langchain/mistralai": ^0.1.1
     "@lumino/coreutils": ^2.1.2
     "@lumino/polling": ^2.1.2
@@ -2009,11 +2016,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@langchain/community@npm:^0.3.26":
-  version: 0.3.26
-  resolution: "@langchain/community@npm:0.3.26"
+"@langchain/community@npm:^0.3.31":
+  version: 0.3.31
+  resolution: "@langchain/community@npm:0.3.31"
   dependencies:
-    "@langchain/openai": ">=0.2.0 <0.4.0"
+    "@langchain/openai": ">=0.2.0 <0.5.0"
     binary-extensions: ^2.2.0
     expr-eval: ^2.0.2
     flat: ^5.0.2
@@ -2105,7 +2112,6 @@ __metadata:
     dria: ^0.0.3
     duck-duck-scrape: ^2.2.5
     epub2: ^3.0.1
-    faiss-node: ^0.5.1
     fast-xml-parser: "*"
     firebase-admin: ^11.9.0 || ^12.0.0
     google-auth-library: "*"
@@ -2138,7 +2144,7 @@ __metadata:
     puppeteer: "*"
     pyodide: ">=0.24.1 <0.27.0"
     redis: "*"
-    replicate: ^0.29.4
+    replicate: "*"
     sonix-speech-recognition: ^2.1.1
     srt-parser-2: ^1.2.3
     typeorm: ^0.3.20
@@ -2307,8 +2313,6 @@ __metadata:
       optional: true
     epub2:
       optional: true
-    faiss-node:
-      optional: true
     fast-xml-parser:
       optional: true
     firebase-admin:
@@ -2393,26 +2397,27 @@ __metadata:
       optional: true
     youtubei.js:
       optional: true
-  checksum: 220931ab4e749d7c07c6f676b09bd5e908a58d74803e4665f7d3a47be5fa40e0c2976535e2d750878f0f816d688784aa8303982f1af47e38595a4b4b884b1b49
+  checksum: 336e1b9dc2814ce80554decbc4d8da626c05db12a4c271ce7fd016991739080056614c3037c5299fae65a470aef31c493a389bf0edb0e2fb1b68be40d0712e9c
   languageName: node
   linkType: hard
 
-"@langchain/core@npm:^0.3.13":
-  version: 0.3.13
-  resolution: "@langchain/core@npm:0.3.13"
+"@langchain/core@npm:^0.3.40":
+  version: 0.3.40
+  resolution: "@langchain/core@npm:0.3.40"
   dependencies:
+    "@cfworker/json-schema": ^4.0.2
     ansi-styles: ^5.0.0
     camelcase: 6
     decamelize: 1.2.0
     js-tiktoken: ^1.0.12
-    langsmith: ^0.1.65
+    langsmith: ">=0.2.8 <0.4.0"
     mustache: ^4.2.0
     p-queue: ^6.6.2
     p-retry: 4
     uuid: ^10.0.0
     zod: ^3.22.4
     zod-to-json-schema: ^3.22.3
-  checksum: 9d6c25f9c276f8107c9b7f824d4b5688f23e4b047fc90af8c1bc4149f61ec2f82f5234c7d23a2029a1c2edc95c9a6caef6122017704be35f91c9a0f0498a2f75
+  checksum: faa546111d492a4df3f867908571dc94218ed3c680f0a8ff9cca2192a8f9100a23998fedafe368ec9b6989dc45c3bbf027832fbc37cf61bdcf535813c9fa55ea
   languageName: node
   linkType: hard
 
@@ -2430,7 +2435,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@langchain/openai@npm:>=0.1.0 <0.4.0, @langchain/openai@npm:>=0.2.0 <0.4.0":
+"@langchain/openai@npm:>=0.1.0 <0.4.0":
   version: 0.3.17
   resolution: "@langchain/openai@npm:0.3.17"
   dependencies:
@@ -2441,6 +2446,20 @@ __metadata:
   peerDependencies:
     "@langchain/core": ">=0.3.29 <0.4.0"
   checksum: af88894dcfa8381c0b0df924e085796995f5d5ba2a2657ea72b4181b35c5d92b0040c5cf305378c1f48a8f1f04d4a3b0b29ba1d84f80cedf5dab8bc46d7d5c6c
+  languageName: node
+  linkType: hard
+
+"@langchain/openai@npm:>=0.2.0 <0.5.0":
+  version: 0.4.4
+  resolution: "@langchain/openai@npm:0.4.4"
+  dependencies:
+    js-tiktoken: ^1.0.12
+    openai: ^4.77.0
+    zod: ^3.22.4
+    zod-to-json-schema: ^3.22.3
+  peerDependencies:
+    "@langchain/core": ">=0.3.39 <0.4.0"
+  checksum: fb8fe03764637a790b47f4a0c7d7050c796b43a4c03590e77b00c3183c52581f52d4077cec7b57ad4eeb7710d3bbbf1d8286e225da5e844580592d4e3218b1f2
   languageName: node
   linkType: hard
 
@@ -6262,25 +6281,6 @@ __metadata:
     openai:
       optional: true
   checksum: b7fa447957b183cdd45a8729855e8bd7ef09b2c653491c2a0d244095c18d72df543cdaf64d3dc00bb6b360b50153853e131f2c91a5f6e838e58f180676ca8748
-  languageName: node
-  linkType: hard
-
-"langsmith@npm:^0.1.65":
-  version: 0.1.66
-  resolution: "langsmith@npm:0.1.66"
-  dependencies:
-    "@types/uuid": ^10.0.0
-    commander: ^10.0.1
-    p-queue: ^6.6.2
-    p-retry: 4
-    semver: ^7.6.3
-    uuid: ^10.0.0
-  peerDependencies:
-    openai: "*"
-  peerDependenciesMeta:
-    openai:
-      optional: true
-  checksum: 9c0cb365e2278a255dc0d045402fbec67cf3a6314e7858b398a267b1e97d3f24e5b4ba5286c80a3fe6c13443ac1fca8fd1555f3a0990b74b7c6be8c608581394
   languageName: node
   linkType: hard
 
