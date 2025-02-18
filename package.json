@@ -65,7 +65,7 @@
         "@langchain/community": "^0.3.31",
         "@langchain/core": "^0.3.40",
         "@langchain/mistralai": "^0.1.1",
-        "@langchain/openai": "^0.3.12",
+        "@langchain/openai": "^0.4.4",
         "@lumino/coreutils": "^2.1.2",
         "@lumino/polling": "^2.1.2",
         "@lumino/signaling": "^2.1.2",
