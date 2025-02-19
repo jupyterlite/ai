@@ -3,6 +3,7 @@ import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
+import { JSONSchema7 } from 'json-schema';
 
 import { IBaseCompleter } from './base-completer';
 import { AnthropicCompleter } from './anthropic-completer';
@@ -75,15 +76,15 @@ export function getErrorMessage(name: string, error: any): string {
 /*
  * Get an LLM completer from the name.
  */
-export function getSettings(name: string): any {
+export function getSettings(name: string): JSONSchema7 | null {
   if (name === 'MistralAI') {
-    return mistralAI.properties;
+    return mistralAI.properties as JSONSchema7;
   } else if (name === 'Anthropic') {
-    return anthropic.properties;
+    return anthropic.properties as JSONSchema7;
   } else if (name === 'ChromeAI') {
-    return chromeAI.properties;
+    return chromeAI.properties as JSONSchema7;
   } else if (name === 'OpenAI') {
-    return openAI.properties;
+    return openAI.properties as JSONSchema7;
   }
 
   return null;

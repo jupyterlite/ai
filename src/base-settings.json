@@ -6,14 +6,12 @@
   "type": "object",
   "properties": {
     "provider": {
-      "type": "object",
+      "type": "string",
       "title": "The AI provider",
       "description": "The AI provider to use for chat and completion",
-      "default": {
-        "provider": "None"
-      },
-      "additionalProperties": true
+      "default": "None",
+      "enum": ["None", "Anthropic", "ChromeAI", "MistralAI", "OpenAI"]
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

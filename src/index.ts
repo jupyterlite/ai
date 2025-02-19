@@ -11,15 +11,21 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ReactWidget,
+  IThemeManager,
+  ICommandPalette
+} from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { IFormRendererRegistry } from '@jupyterlab/ui-components';
+import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import { ChatHandler } from './chat-handler';
-import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
+import { aiSettingsRenderer } from './settings-panel';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
 
@@ -132,47 +138,41 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   id: '@jupyterlite/ai:ai-provider',
   autoStart: true,
-  requires: [ICompletionProviderManager, ISettingRegistry],
+  requires: [
+    ICompletionProviderManager,
+    IFormRendererRegistry,
+    ISettingRegistry
+  ],
+  optional: [ICommandPalette],
   provides: IAIProvider,
   activate: (
     app: JupyterFrontEnd,
     manager: ICompletionProviderManager,
-    settingRegistry: ISettingRegistry
+    editorRegistry: IFormRendererRegistry,
+    settingRegistry: ISettingRegistry,
+    palette?: ICommandPalette
   ): IAIProvider => {
     const aiProvider = new AIProvider({
       completionProviderManager: manager,
       requestCompletion: () => app.commands.execute('inline-completer:invoke')
     });
 
-    let currentProvider = 'None';
+    editorRegistry.addRenderer(
+      '@jupyterlite/ai:ai-provider.provider',
+      aiSettingsRenderer
+    );
     settingRegistry
       .load(aiProviderPlugin.id)
       .then(settings => {
         const updateProvider = () => {
-          const provider = settings.get('provider').composite as string;
-          if (provider !== currentProvider) {
-            // Update the settings panel.
-            currentProvider = provider;
-            const settingsProperties = settings.schema.properties;
-            if (settingsProperties) {
-              const schemaKeys = Object.keys(settingsProperties);
-              schemaKeys.forEach(key => {
-                if (key !== 'provider') {
-                  delete settings.schema.properties?.[key];
-                }
-              });
-              const properties = getSettings(provider);
-              if (properties === null) {
-                return;
-              }
-              Object.entries(properties).forEach(([name, value], index) => {
-                settingsProperties[name] = value as ISettingRegistry.IProperty;
-              });
-            }
-          }
-
           // Update the settings to the AI providers.
-          aiProvider.setModels(provider, settings.composite);
+          const providerSettings = (settings.get('provider').composite ?? {
+            provider: 'None'
+          }) as ReadonlyPartialJSONObject;
+          aiProvider.setModels(
+            providerSettings.provider as string,
+            providerSettings
+          );
         };
 
         settings.changed.connect(() => updateProvider());
