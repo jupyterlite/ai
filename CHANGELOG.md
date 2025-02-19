@@ -2,6 +2,45 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.3.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.2.0...1b482ade692e42ad8885aaf3211502720cadeecf))
+
+### Enhancements made
+
+- Add chat autocompletion and the `/clear` command [#41](https://github.com/jupyterlite/ai/pull/41) ([@jtpio](https://github.com/jtpio))
+- Add icon and name for the AI assistant [#40](https://github.com/jupyterlite/ai/pull/40) ([@jtpio](https://github.com/jtpio))
+- Stream responses [#39](https://github.com/jupyterlite/ai/pull/39) ([@jtpio](https://github.com/jtpio))
+- Use a chat model instead of LLM for codestral completion [#31](https://github.com/jupyterlite/ai/pull/31) ([@brichet](https://github.com/brichet))
+- Add initial system prompt in ChatHandler and completion [#28](https://github.com/jupyterlite/ai/pull/28) ([@brichet](https://github.com/brichet))
+- Add `ChromeAI` [#27](https://github.com/jupyterlite/ai/pull/27) ([@jtpio](https://github.com/jtpio))
+- Anthropic (Claude) provider [#22](https://github.com/jupyterlite/ai/pull/22) ([@brichet](https://github.com/brichet))
+- Add OpenAI provider [#19](https://github.com/jupyterlite/ai/pull/19) ([@brichet](https://github.com/brichet))
+- Dynamic settings for providers [#14](https://github.com/jupyterlite/ai/pull/14) ([@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Update to a newer `@langchain/community` to fix ChromeAI integration [#43](https://github.com/jupyterlite/ai/pull/43) ([@jtpio](https://github.com/jtpio))
+- Upgrade the jupyterlite-core package in deployment [#30](https://github.com/jupyterlite/ai/pull/30) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Deployment with prereleased jupyterlite-pyodide-kernel [#33](https://github.com/jupyterlite/ai/pull/33) ([@brichet](https://github.com/brichet))
+- Fix installation of pre-released jupyterlite in deployment [#32](https://github.com/jupyterlite/ai/pull/32) ([@brichet](https://github.com/brichet))
+- Upgrade the jupyterlite-core package in deployment [#30](https://github.com/jupyterlite/ai/pull/30) ([@brichet](https://github.com/brichet))
+
+### Documentation improvements
+
+- Update README.md [#26](https://github.com/jupyterlite/ai/pull/26) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2024-12-04&to=2025-02-19&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2024-12-04..2025-02-19&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2024-12-04..2025-02-19&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.2.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.1.0...8c41100bf87c99e377fd4752c50853dace7667e1))
@@ -28,8 +67,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2024-06-24&to=2024-12-04&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2024-06-24..2024-12-04&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2024-06-24..2024-12-04&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.1.0
 
