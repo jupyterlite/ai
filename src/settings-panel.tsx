@@ -8,8 +8,8 @@ import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
-import BaseSchema from './base-settings.json';
-import { getSettingsSchema } from './llm-models';
+import baseSettings from './provider-settings/base.json';
+import ProviderSettings from './provider-settings';
 
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 
@@ -37,7 +37,7 @@ export class AiSettings extends React.Component<
     super(props);
     this._settingsRegistry = props.formContext.settings;
     this.state = {
-      schema: JSONExt.deepCopy(BaseSchema) as JSONSchema7
+      schema: JSONExt.deepCopy(baseSettings) as JSONSchema7
     };
     this._currentSettings = { provider: 'None' };
   }
@@ -73,9 +73,9 @@ export class AiSettings extends React.Component<
    * update the settings schema for the generated one for each provider.
    */
   private _updateSchema(provider: string) {
-    const newSchema = JSONExt.deepCopy(BaseSchema) as any;
+    const newSchema = JSONExt.deepCopy(baseSettings) as any;
     this._uiSchema = {};
-    const settingsSchema = getSettingsSchema(provider);
+    const settingsSchema = (ProviderSettings[provider] as JSONSchema7) ?? null;
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         newSchema.properties[key] = value;
