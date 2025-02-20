@@ -5,11 +5,11 @@
   "properties": {
     "provider": {
       "type": "string",
-      "title": "The AI provider",
+      "title": "Provider",
       "description": "The AI provider to use for chat and completion",
       "default": "None",
       "enum": ["None", "Anthropic", "ChromeAI", "MistralAI", "OpenAI"]
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

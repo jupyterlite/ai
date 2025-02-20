@@ -158,7 +158,7 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
     });
 
     editorRegistry.addRenderer(
-      '@jupyterlite/ai:ai-provider.provider',
+      '@jupyterlite/ai:ai-provider.AIprovider',
       aiSettingsRenderer
     );
     settingRegistry
@@ -166,7 +166,7 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
       .then(settings => {
         const updateProvider = () => {
           // Update the settings to the AI providers.
-          const providerSettings = (settings.get('provider').composite ?? {
+          const providerSettings = (settings.get('AIprovider').composite ?? {
             provider: 'None'
           }) as ReadonlyPartialJSONObject;
           aiProvider.setModels(
