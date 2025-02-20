@@ -4,11 +4,14 @@ import { JSONExt } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
+
 import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
 import BaseSchema from './base-settings.json';
-import { getSettings } from './llm-models';
+import { getSettingsSchema } from './llm-models';
+
+const STORAGE_NAME = '@jupyterlite/ai:settings';
 
 export const aiSettingsRenderer: IFormRenderer = {
   fieldRenderer: (props: FieldProps) => <AiSettings {...props} />
@@ -39,16 +42,40 @@ export class AiSettings extends React.Component<
     this._currentSettings = { provider: 'None' };
   }
 
+  /**
+   * Restore settings from local storage for a given provider.
+   */
+  restoreSettings(provider: string): IDict<any> {
+    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    return settings[provider] ?? { provider };
+  }
+
+  /**
+   * Save settings in local storage for a given provider.
+   */
+  saveSettings(provider: string, value: IDict<any>) {
+    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
+    settings[provider] = value;
+    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+  }
+
+  /**
+   * Update the UI schema of the form.
+   * Currently use to hide API keys.
+   */
   private _updateUiSchema(key: string) {
     if (key.toLowerCase().includes('key')) {
       this._uiSchema[key] = { 'ui:widget': 'password' };
     }
   }
 
+  /**
+   * update the settings schema for the generated one for each provider.
+   */
   private _updateSchema(provider: string) {
     const newSchema = JSONExt.deepCopy(BaseSchema) as any;
     this._uiSchema = {};
-    const settingsSchema = getSettings(provider);
+    const settingsSchema = getSettingsSchema(provider);
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         newSchema.properties[key] = value;
@@ -58,19 +85,22 @@ export class AiSettings extends React.Component<
     this.setState({ schema: newSchema as JSONSchema7 });
   }
 
+  /**
+   * Triggered when the form value has changed.
+   * - If the provider has changed, update the schema and restore the settings for
+   * this provider from the local storage.
+   * - If not, update the current settings and save it in local storage.
+   *
+   * Update the Jupyterlab settings accordingly.
+   */
   private _onFormChange = (e: IChangeEvent) => {
     const provider = e.formData.provider;
     if (provider !== this._currentSettings.provider) {
-      this._settingsRecords.set(
-        this._currentSettings.provider,
-        JSONExt.deepCopy(this._currentSettings)
-      );
-      this._currentSettings = this._settingsRecords.get(provider) ?? {
-        provider
-      };
-      this._updateSchema(e.formData.provider);
+      this._currentSettings = this.restoreSettings(provider);
+      this._updateSchema(provider);
     } else {
       this._currentSettings = JSONExt.deepCopy(e.formData);
+      this.saveSettings(provider, this._currentSettings);
     }
     this._settingsRegistry
       .set('provider', this._currentSettings)
@@ -91,6 +121,5 @@ export class AiSettings extends React.Component<
 
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
-  private _settingsRecords = new Map<string, IDict<any>>();
   private _settingsRegistry: ISettingRegistry.ISettings;
 }
