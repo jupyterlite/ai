@@ -47,7 +47,7 @@ export class AiSettings extends React.Component<
 
     // Update the setting registry
     this._settingsRegistry
-      .set('provider', this._currentSettings)
+      .set('AIprovider', this._currentSettings)
       .catch(console.error);
   }
 
@@ -140,7 +140,7 @@ export class AiSettings extends React.Component<
       this.saveSettings(provider, this._currentSettings);
     }
     this._settingsRegistry
-      .set('provider', this._currentSettings)
+      .set('AIprovider', this._currentSettings)
       .catch(console.error);
   };
 
