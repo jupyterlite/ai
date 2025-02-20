@@ -76,7 +76,7 @@ export function getErrorMessage(name: string, error: any): string {
 /*
  * Get an LLM completer from the name.
  */
-export function getSettings(name: string): JSONSchema7 | null {
+export function getSettingsSchema(name: string): JSONSchema7 | null {
   if (name === 'MistralAI') {
     return mistralAI.properties as JSONSchema7;
   } else if (name === 'Anthropic') {
