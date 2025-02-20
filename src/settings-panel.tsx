@@ -75,7 +75,8 @@ export class AiSettings extends React.Component<
   private _updateSchema(provider: string) {
     const newSchema = JSONExt.deepCopy(baseSettings) as any;
     this._uiSchema = {};
-    const settingsSchema = (ProviderSettings[provider] as JSONSchema7) ?? null;
+    const settingsSchema =
+      (ProviderSettings[provider]?.properties as JSONSchema7) ?? null;
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         newSchema.properties[key] = value;
