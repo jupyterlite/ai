@@ -36,15 +36,23 @@ export class AiSettings extends React.Component<
     this.state = {
       schema: JSONExt.deepCopy(BaseSchema) as JSONSchema7
     };
-    this.currentSettings = { provider: 'None' };
+    this._currentSettings = { provider: 'None' };
+  }
+
+  private _updateUiSchema(key: string) {
+    if (key.toLowerCase().includes('key')) {
+      this._uiSchema[key] = { 'ui:widget': 'password' };
+    }
   }
 
   private _updateSchema(provider: string) {
     const newSchema = JSONExt.deepCopy(BaseSchema) as any;
+    this._uiSchema = {};
     const settingsSchema = getSettings(provider);
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         newSchema.properties[key] = value;
+        this._updateUiSchema(key);
       });
     }
     this.setState({ schema: newSchema as JSONSchema7 });
@@ -52,34 +60,37 @@ export class AiSettings extends React.Component<
 
   private _onFormChange = (e: IChangeEvent) => {
     const provider = e.formData.provider;
-    if (provider !== this.currentSettings.provider) {
+    if (provider !== this._currentSettings.provider) {
       this._settingsRecords.set(
-        this.currentSettings.provider,
-        JSONExt.deepCopy(this.currentSettings)
+        this._currentSettings.provider,
+        JSONExt.deepCopy(this._currentSettings)
       );
-      this.currentSettings = this._settingsRecords.get(provider) ?? {
+      this._currentSettings = this._settingsRecords.get(provider) ?? {
         provider
       };
       this._updateSchema(e.formData.provider);
     } else {
-      this.currentSettings = JSONExt.deepCopy(e.formData);
+      this._currentSettings = JSONExt.deepCopy(e.formData);
     }
     this._settingsRegistry
-      .set('provider', this.currentSettings)
+      .set('provider', this._currentSettings)
       .catch(console.error);
   };
 
   render(): JSX.Element {
     return (
       <WrappedFormComponent
-        formData={this.currentSettings}
+        formData={this._currentSettings}
         schema={this.state.schema}
         onChange={this._onFormChange}
+        uiSchema={this._uiSchema}
+        validator={validator}
       />
     );
   }
 
-  protected currentSettings: IDict<any> = { provider: 'None' };
+  private _currentSettings: IDict<any> = { provider: 'None' };
+  private _uiSchema: IDict<any> = {};
   private _settingsRecords = new Map<string, IDict<any>>();
   private _settingsRegistry: ISettingRegistry.ISettings;
 }
