@@ -36,16 +36,42 @@ export class AiSettings extends React.Component<
   constructor(props: FieldProps) {
     super(props);
     this._settingsRegistry = props.formContext.settings;
-    this.state = {
-      schema: JSONExt.deepCopy(baseSettings) as JSONSchema7
-    };
-    this._currentSettings = { provider: 'None' };
+
+    // Initialize the settings from saved one
+    const provider = this.getCurrentProvider();
+    this._currentSettings = this.getSettings(provider);
+
+    // Initialize the schema
+    const schema = this._buildSchema(provider);
+    this.state = { schema };
+
+    // Update the setting registry
+    this._settingsRegistry
+      .set('provider', this._currentSettings)
+      .catch(console.error);
   }
 
   /**
-   * Restore settings from local storage for a given provider.
+   * Get the current provider from the local storage.
    */
-  restoreSettings(provider: string): IDict<any> {
+  getCurrentProvider(): string {
+    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    return settings['_current'] ?? 'None';
+  }
+
+  /**
+   * Save the current provider to the local storage.
+   */
+  saveCurrentProvider(provider: string): void {
+    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    settings['_current'] = provider;
+    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+  }
+
+  /**
+   * Get settings from local storage for a given provider.
+   */
+  getSettings(provider: string): IDict<any> {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
     return settings[provider] ?? { provider };
   }
@@ -70,20 +96,29 @@ export class AiSettings extends React.Component<
   }
 
   /**
-   * update the settings schema for the generated one for each provider.
+   * Build the schema for a given provider.
    */
-  private _updateSchema(provider: string) {
-    const newSchema = JSONExt.deepCopy(baseSettings) as any;
+  private _buildSchema(provider: string): JSONSchema7 {
+    const schema = JSONExt.deepCopy(baseSettings) as any;
     this._uiSchema = {};
     const settingsSchema =
       (ProviderSettings[provider]?.properties as JSONSchema7) ?? null;
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
-        newSchema.properties[key] = value;
+        schema.properties[key] = value;
         this._updateUiSchema(key);
       });
     }
-    this.setState({ schema: newSchema as JSONSchema7 });
+    return schema as JSONSchema7;
+  }
+
+  /**
+   * Update the schema state for the given provider, that trigger the re-rendering of
+   * the component.
+   */
+  private _updateSchema(provider: string) {
+    const schema = this._buildSchema(provider);
+    this.setState({ schema });
   }
 
   /**
@@ -97,7 +132,8 @@ export class AiSettings extends React.Component<
   private _onFormChange = (e: IChangeEvent) => {
     const provider = e.formData.provider;
     if (provider !== this._currentSettings.provider) {
-      this._currentSettings = this.restoreSettings(provider);
+      this.saveCurrentProvider(provider);
+      this._currentSettings = this.getSettings(provider);
       this._updateSchema(provider);
     } else {
       this._currentSettings = JSONExt.deepCopy(e.formData);
