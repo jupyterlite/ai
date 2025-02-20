@@ -11,11 +11,6 @@ import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ChromeCompleter } from './chrome-completer';
 import { OpenAICompleter } from './openai-completer';
 
-import chromeAI from '../_provider-settings/chromeAI.json';
-import mistralAI from '../_provider-settings/mistralAI.json';
-import anthropic from '../_provider-settings/anthropic.json';
-import openAI from '../_provider-settings/openAI.json';
-
 /**
  * Get an LLM completer from the name.
  */
@@ -70,21 +65,4 @@ export function getErrorMessage(name: string, error: any): string {
     return error.message;
   }
   return 'Unknown provider';
-}
-
-/*
- * Get an LLM completer from the name.
- */
-export function getSettings(name: string): any {
-  if (name === 'MistralAI') {
-    return mistralAI.properties;
-  } else if (name === 'Anthropic') {
-    return anthropic.properties;
-  } else if (name === 'ChromeAI') {
-    return chromeAI.properties;
-  } else if (name === 'OpenAI') {
-    return openAI.properties;
-  }
-
-  return null;
 }
