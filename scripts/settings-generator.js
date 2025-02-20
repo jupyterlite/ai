@@ -145,17 +145,23 @@ Object.keys(providers).forEach(name => {
   indexContent.push(`import ${name} from './_generated/${name}.json';`);
 });
 
-indexContent.push('', 'const ProviderSettings: { [name: string]: any } = {',);
+indexContent.push('', 'const ProviderSettings: { [name: string]: any } = {');
 
 Object.keys(providers).forEach((name, index) => {
-  indexContent.push(`  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : ''));
+  indexContent.push(
+    `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
+  );
 });
 indexContent.push('};', '', 'export default ProviderSettings;', '');
-fs.writeFile(path.join(settingsDir, 'index.ts'), indexContent.join('\n'), err => {
-  if (err) {
-    throw err;
+fs.writeFile(
+  path.join(settingsDir, 'index.ts'),
+  indexContent.join('\n'),
+  err => {
+    if (err) {
+      throw err;
+    }
   }
-});
+);
 
 console.log('Settings schema built\n');
 console.log('=====================\n');
