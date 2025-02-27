@@ -37,12 +37,23 @@ export class AiSettings extends React.Component<
     super(props);
     this._settingsRegistry = props.formContext.settings;
 
+    // Initialize the providers schema
+    const providerSchema = JSONExt.deepCopy(baseSettings) as any;
+    providerSchema.properties.provider = {
+      type: 'string',
+      title: 'Provider',
+      description: 'The AI provider to use for chat and completion',
+      default: 'None',
+      enum: Object.keys(ProviderSettings)
+    };
+    this._providerSchema = providerSchema as JSONSchema7;
+
     // Initialize the settings from saved one
-    const provider = this.getCurrentProvider();
-    this._currentSettings = this.getSettings(provider);
+    this._provider = this.getCurrentProvider();
+    this._currentSettings = this.getSettings();
 
     // Initialize the schema
-    const schema = this._buildSchema(provider);
+    const schema = this._buildSchema();
     this.state = { schema };
 
     // Update the setting registry
@@ -62,26 +73,26 @@ export class AiSettings extends React.Component<
   /**
    * Save the current provider to the local storage.
    */
-  saveCurrentProvider(provider: string): void {
+  saveCurrentProvider(): void {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
-    settings['_current'] = provider;
+    settings['_current'] = this._provider;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
   }
 
   /**
    * Get settings from local storage for a given provider.
    */
-  getSettings(provider: string): IDict<any> {
+  getSettings(): IDict<any> {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
-    return settings[provider] ?? { provider };
+    return settings[this._provider] ?? { provider: this._provider };
   }
 
   /**
    * Save settings in local storage for a given provider.
    */
-  saveSettings(provider: string, value: IDict<any>) {
+  saveSettings(value: IDict<any>) {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
-    settings[provider] = value;
+    settings[this._provider] = value;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
   }
 
@@ -98,11 +109,11 @@ export class AiSettings extends React.Component<
   /**
    * Build the schema for a given provider.
    */
-  private _buildSchema(provider: string): JSONSchema7 {
+  private _buildSchema(): JSONSchema7 {
     const schema = JSONExt.deepCopy(baseSettings) as any;
     this._uiSchema = {};
     const settingsSchema =
-      (ProviderSettings[provider]?.properties as JSONSchema7) ?? null;
+      (ProviderSettings[this._provider]?.properties as JSONSchema7) ?? null;
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         schema.properties[key] = value;
@@ -116,46 +127,62 @@ export class AiSettings extends React.Component<
    * Update the schema state for the given provider, that trigger the re-rendering of
    * the component.
    */
-  private _updateSchema(provider: string) {
-    const schema = this._buildSchema(provider);
+  private _updateSchema() {
+    const schema = this._buildSchema();
     this.setState({ schema });
   }
 
   /**
-   * Triggered when the form value has changed.
-   * - If the provider has changed, update the schema and restore the settings for
-   * this provider from the local storage.
-   * - If not, update the current settings and save it in local storage.
-   *
+   * Triggered when the provider hes changed, to update the schema and values.
+   * Update the Jupyterlab settings accordingly.
+   */
+  private _onProviderChanged = (e: IChangeEvent) => {
+    const provider = e.formData.provider;
+    if (provider === this._currentSettings.provider) {
+      return;
+    }
+    this._provider = provider;
+    this.saveCurrentProvider();
+    this._currentSettings = this.getSettings();
+    this._updateSchema();
+    this._settingsRegistry
+      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
+      .catch(console.error);
+  };
+
+  /**
+   * Triggered when the form value has changed, to update the current settings and save
+   * it in local storage.
    * Update the Jupyterlab settings accordingly.
    */
   private _onFormChange = (e: IChangeEvent) => {
-    const provider = e.formData.provider;
-    if (provider !== this._currentSettings.provider) {
-      this.saveCurrentProvider(provider);
-      this._currentSettings = this.getSettings(provider);
-      this._updateSchema(provider);
-    } else {
-      this._currentSettings = JSONExt.deepCopy(e.formData);
-      this.saveSettings(provider, this._currentSettings);
-    }
+    this._currentSettings = JSONExt.deepCopy(e.formData);
+    this.saveSettings(this._currentSettings);
     this._settingsRegistry
-      .set('AIprovider', this._currentSettings)
+      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
       .catch(console.error);
   };
 
   render(): JSX.Element {
     return (
-      <WrappedFormComponent
-        formData={this._currentSettings}
-        schema={this.state.schema}
-        onChange={this._onFormChange}
-        uiSchema={this._uiSchema}
-        validator={validator}
-      />
+      <>
+        <WrappedFormComponent
+          formData={{ provider: this._provider }}
+          schema={this._providerSchema}
+          onChange={this._onProviderChanged}
+        />
+        <WrappedFormComponent
+          formData={this._currentSettings}
+          schema={this.state.schema}
+          onChange={this._onFormChange}
+          uiSchema={this._uiSchema}
+        />
+      </>
     );
   }
 
+  private _provider: string;
+  private _providerSchema: JSONSchema7;
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
   private _settingsRegistry: ISettingRegistry.ISettings;
