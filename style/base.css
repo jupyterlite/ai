@@ -5,3 +5,7 @@
 */
 
 @import url('@jupyter/chat/style/index.css');
+
+.jp-lite-ai-settings-instruction {
+  font-size: var(--jp-content-font-size1);
+}

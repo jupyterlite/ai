@@ -20,11 +20,11 @@ import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import { ChatHandler } from './chat-handler';
+import { CompletionProvider } from './completion-provider';
 import { AIProvider } from './provider';
-import { aiSettingsRenderer } from './settings-panel';
+import { AiSettings, aiSettingsRenderer } from './settings/panel';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
-import { CompletionProvider } from './completion-provider';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {
@@ -153,14 +153,17 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   id: '@jupyterlite/ai:ai-provider',
   autoStart: true,
   requires: [IFormRendererRegistry, ISettingRegistry],
+  optional: [IRenderMimeRegistry],
   provides: IAIProvider,
   activate: (
     app: JupyterFrontEnd,
     editorRegistry: IFormRendererRegistry,
-    settingRegistry: ISettingRegistry
+    settingRegistry: ISettingRegistry,
+    rmRegistry?: IRenderMimeRegistry
   ): IAIProvider => {
     const aiProvider = new AIProvider();
 
+    AiSettings.rmRegistry = rmRegistry ?? null;
     editorRegistry.addRenderer(
       '@jupyterlite/ai:ai-provider.AIprovider',
       aiSettingsRenderer

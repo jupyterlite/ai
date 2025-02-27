@@ -1,28 +1,28 @@
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { FormComponent, IFormRenderer } from '@jupyterlab/ui-components';
 import { JSONExt } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
-
 import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
-import baseSettings from './provider-settings/base.json';
-import ProviderSettings from './provider-settings';
+import { IDict, instructions } from './instructions';
+import baseSettings from './schemas/base.json';
+import ProviderSettings from './schemas';
 
+const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
+const INSTRUCTION_CLASS = 'jp-lite-ai-settings-instruction';
 
 export const aiSettingsRenderer: IFormRenderer = {
   fieldRenderer: (props: FieldProps) => <AiSettings {...props} />
 };
 
-export interface IDict<T = any> {
-  [key: string]: T;
-}
-
 export interface ISettingsFormStates {
   schema: JSONSchema7;
+  instruction: HTMLElement | null;
 }
 
 const WrappedFormComponent = (props: any): JSX.Element => {
@@ -33,6 +33,8 @@ export class AiSettings extends React.Component<
   FieldProps,
   ISettingsFormStates
 > {
+  static rmRegistry: IRenderMimeRegistry | null = null;
+
   constructor(props: FieldProps) {
     super(props);
     this._settingsRegistry = props.formContext.settings;
@@ -54,7 +56,9 @@ export class AiSettings extends React.Component<
 
     // Initialize the schema
     const schema = this._buildSchema();
-    this.state = { schema };
+    this.state = { schema, instruction: null };
+
+    this._renderInstruction();
 
     // Update the setting registry
     this._settingsRegistry
@@ -62,6 +66,20 @@ export class AiSettings extends React.Component<
       .catch(console.error);
   }
 
+  async _renderInstruction(): Promise<void> {
+    if (!AiSettings.rmRegistry || !instructions[this._provider]) {
+      this.setState({ instruction: null });
+      return;
+    }
+    let mdStr = instructions[this._provider];
+    mdStr = `---\n\n${mdStr}\n\n---`;
+    const renderer = AiSettings.rmRegistry.createRenderer(MD_MIME_TYPE);
+    const model = AiSettings.rmRegistry.createModel({
+      data: { [MD_MIME_TYPE]: mdStr }
+    });
+    await renderer.renderModel(model);
+    this.setState({ instruction: renderer.node });
+  }
   /**
    * Get the current provider from the local storage.
    */
@@ -145,6 +163,7 @@ export class AiSettings extends React.Component<
     this.saveCurrentProvider();
     this._currentSettings = this.getSettings();
     this._updateSchema();
+    this._renderInstruction();
     this._settingsRegistry
       .set('AIprovider', { provider: this._provider, ...this._currentSettings })
       .catch(console.error);
@@ -171,6 +190,16 @@ export class AiSettings extends React.Component<
           schema={this._providerSchema}
           onChange={this._onProviderChanged}
         />
+        {this.state.instruction !== null && (
+          <details>
+            <summary className={INSTRUCTION_CLASS}>Instructions</summary>
+            <span
+              ref={node =>
+                node && node.replaceChildren(this.state.instruction!)
+              }
+            />
+          </details>
+        )}
         <WrappedFormComponent
           formData={this._currentSettings}
           schema={this.state.schema}

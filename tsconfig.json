@@ -22,7 +22,7 @@
   "include": [
     "src/*",
     "src/**/*",
-    "src/provider-settings/base.json",
-    "src/provider-settings/_generated/*.json"
+    "src/settings/schemas/base.json",
+    "src/settings/schemas/_generated/*.json"
   ]
 }

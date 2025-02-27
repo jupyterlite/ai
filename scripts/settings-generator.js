@@ -4,8 +4,8 @@ const path = require('path');
 
 console.log('Building settings schema\n');
 
-const settingsDir = 'src/provider-settings';
-const outputDir = path.join(settingsDir, '/_generated');
+const schemasDir = 'src/settings/schemas';
+const outputDir = path.join(schemasDir, '/_generated');
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
@@ -154,7 +154,7 @@ Object.keys(providers).forEach((name, index) => {
 });
 indexContent.push('};', '', 'export default ProviderSettings;', '');
 fs.writeFile(
-  path.join(settingsDir, 'index.ts'),
+  path.join(schemasDir, 'index.ts'),
   indexContent.join('\n'),
   err => {
     if (err) {
