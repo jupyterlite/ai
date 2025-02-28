@@ -22,6 +22,7 @@ import { getSettings } from './llm-models';
 import { AIProvider } from './provider';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
+import { CompletionProvider } from './completion-provider';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {
@@ -129,20 +130,33 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+const completerPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:completer',
+  autoStart: true,
+  requires: [IAIProvider, ICompletionProviderManager],
+  activate: (
+    app: JupyterFrontEnd,
+    aiProvider: IAIProvider,
+    manager: ICompletionProviderManager
+  ): void => {
+    const completer = new CompletionProvider({
+      aiProvider,
+      requestCompletion: () => app.commands.execute('inline-completer:invoke')
+    });
+    manager.registerInlineProvider(completer);
+  }
+};
+
 const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   id: '@jupyterlite/ai:ai-provider',
   autoStart: true,
-  requires: [ICompletionProviderManager, ISettingRegistry],
+  requires: [ISettingRegistry],
   provides: IAIProvider,
   activate: (
     app: JupyterFrontEnd,
-    manager: ICompletionProviderManager,
     settingRegistry: ISettingRegistry
   ): IAIProvider => {
-    const aiProvider = new AIProvider({
-      completionProviderManager: manager,
-      requestCompletion: () => app.commands.execute('inline-completer:invoke')
-    });
+    const aiProvider = new AIProvider();
 
     let currentProvider = 'None';
     settingRegistry
@@ -189,4 +203,9 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   }
 };
 
-export default [chatPlugin, autocompletionRegistryPlugin, aiProviderPlugin];
+export default [
+  aiProviderPlugin,
+  autocompletionRegistryPlugin,
+  chatPlugin,
+  completerPlugin
+];
