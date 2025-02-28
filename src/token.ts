@@ -8,7 +8,7 @@ export interface IAIProvider {
   name: string;
   completer: IBaseCompleter | null;
   chatModel: BaseChatModel | null;
-  modelChange: ISignal<IAIProvider, void>;
+  providerChanged: ISignal<IAIProvider, void>;
   chatError: string;
   completerError: string;
 }

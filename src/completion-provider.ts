@@ -17,7 +17,7 @@ export class CompletionProvider implements IInlineCompletionProvider {
     this._aiProvider = options.aiProvider;
     this._requestCompletion = options.requestCompletion;
 
-    this._aiProvider.modelChange.connect(() => {
+    this._aiProvider.providerChanged.connect(() => {
       if (this.completer) {
         this.completer.requestCompletion = this._requestCompletion;
       }

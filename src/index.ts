@@ -186,7 +186,7 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
           }
 
           // Update the settings to the AI providers.
-          aiProvider.setModels(provider, settings.composite);
+          aiProvider.setProvider(provider, settings.composite);
         };
 
         settings.changed.connect(() => updateProvider());

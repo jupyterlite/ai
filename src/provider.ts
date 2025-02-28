@@ -78,13 +78,13 @@ export class AIProvider implements IAIProvider {
   }
 
   /**
-   * Set the models (chat model and completer).
-   * Creates the models if the name has changed, otherwise only updates their config.
+   * Set the provider (chat model and completer).
+   * Creates the providers if the name has changed, otherwise only updates their config.
    *
-   * @param name - the name of the model to use.
+   * @param name - the name of the provider to use.
    * @param settings - the settings for the models.
    */
-  setModels(name: string, settings: ReadonlyPartialJSONObject) {
+  setProvider(name: string, settings: ReadonlyPartialJSONObject) {
     try {
       this._completer = getCompleter(name, settings);
       this._completerError = '';
@@ -99,17 +99,17 @@ export class AIProvider implements IAIProvider {
       this._llmChatModel = null;
     }
     this._name = name;
-    this._modelChange.emit();
+    this._providerChanged.emit();
   }
 
-  get modelChange(): ISignal<IAIProvider, void> {
-    return this._modelChange;
+  get providerChanged(): ISignal<IAIProvider, void> {
+    return this._providerChanged;
   }
 
   private _completer: IBaseCompleter | null = null;
   private _llmChatModel: BaseChatModel | null = null;
   private _name: string = 'None';
-  private _modelChange = new Signal<IAIProvider, void>(this);
+  private _providerChanged = new Signal<IAIProvider, void>(this);
   private _chatError: string = '';
   private _completerError: string = '';
 }
