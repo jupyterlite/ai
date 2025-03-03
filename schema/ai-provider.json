@@ -9,6 +9,7 @@
       "type": "object",
       "title": "AI provider",
       "description": "The AI provider configuration",
+      "default": {},
       "additionalProperties": true
     }
   },

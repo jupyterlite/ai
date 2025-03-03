@@ -46,9 +46,31 @@ export class AiSettings extends React.Component<
       title: 'Provider',
       description: 'The AI provider to use for chat and completion',
       default: 'None',
-      enum: Object.keys(ProviderSettings)
+      enum: ['None'].concat(Object.keys(ProviderSettings))
     };
     this._providerSchema = providerSchema as JSONSchema7;
+
+    // Check if there is saved values in storage, otherwise save the default values in
+    // local storage if default are provided.
+    const backupSettings = localStorage.getItem(STORAGE_NAME);
+    if (backupSettings === null) {
+      const defaultSettings = this._settingsRegistry.default('AIprovider');
+      if (
+        defaultSettings &&
+        Object.keys(defaultSettings).includes('provider')
+      ) {
+        // Get the provider name.
+        const provider = Object.entries(defaultSettings).find(
+          v => v[0] === 'provider'
+        )?.[1] as string;
+        // Save the settings.
+        const settings: any = {
+          _current: provider
+        };
+        settings[provider] = defaultSettings;
+        localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+      }
+    }
 
     // Initialize the settings from saved one
     this._provider = this.getCurrentProvider();
