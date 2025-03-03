@@ -40,7 +40,7 @@ export class ChatHandler extends ChatModel {
     this._aiProvider = options.aiProvider;
     this._prompt = chatSystemPrompt({ provider_name: this._aiProvider.name });
 
-    this._aiProvider.modelChange.connect(() => {
+    this._aiProvider.providerChanged.connect(() => {
       this._errorMessage = this._aiProvider.chatError;
       this._prompt = chatSystemPrompt({ provider_name: this._aiProvider.name });
     });

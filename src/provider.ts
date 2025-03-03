@@ -4,8 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
-import { CompletionProvider } from './completion-provider';
-import { getChatModel, IBaseCompleter } from './llm-models';
+import { getChatModel, getCompleter, IBaseCompleter } from './llm-models';
 import { IAIProvider } from './token';
 
 export const chatSystemPrompt = (options: AIProvider.IPromptOptions) => `
@@ -37,17 +36,9 @@ Do not include the prompt in the output, only the string that should be appended
 `;
 
 export class AIProvider implements IAIProvider {
-  constructor(options: AIProvider.IOptions) {
-    this._completionProvider = new CompletionProvider({
-      name: 'None',
-      settings: {},
-      requestCompletion: options.requestCompletion
-    });
-    options.completionProviderManager.registerInlineProvider(
-      this._completionProvider
-    );
-  }
-
+  /**
+   * Get the provider name.
+   */
   get name(): string {
     return this._name;
   }
@@ -59,7 +50,7 @@ export class AIProvider implements IAIProvider {
     if (this._name === null) {
       return null;
     }
-    return this._completionProvider.completer;
+    return this._completer;
   }
 
   /**
@@ -87,15 +78,15 @@ export class AIProvider implements IAIProvider {
   }
 
   /**
-   * Set the models (chat model and completer).
-   * Creates the models if the name has changed, otherwise only updates their config.
+   * Set the provider (chat model and completer).
+   * Creates the providers if the name has changed, otherwise only updates their config.
    *
-   * @param name - the name of the model to use.
+   * @param name - the name of the provider to use.
    * @param settings - the settings for the models.
    */
-  setModels(name: string, settings: ReadonlyPartialJSONObject) {
+  setProvider(name: string, settings: ReadonlyPartialJSONObject) {
     try {
-      this._completionProvider.setCompleter(name, settings);
+      this._completer = getCompleter(name, settings);
       this._completerError = '';
     } catch (e: any) {
       this._completerError = e.message;
@@ -108,17 +99,17 @@ export class AIProvider implements IAIProvider {
       this._llmChatModel = null;
     }
     this._name = name;
-    this._modelChange.emit();
+    this._providerChanged.emit();
   }
 
-  get modelChange(): ISignal<IAIProvider, void> {
-    return this._modelChange;
+  get providerChanged(): ISignal<IAIProvider, void> {
+    return this._providerChanged;
   }
 
-  private _completionProvider: CompletionProvider;
+  private _completer: IBaseCompleter | null = null;
   private _llmChatModel: BaseChatModel | null = null;
   private _name: string = 'None';
-  private _modelChange = new Signal<IAIProvider, void>(this);
+  private _providerChanged = new Signal<IAIProvider, void>(this);
   private _chatError: string = '';
   private _completerError: string = '';
 }
