@@ -21,10 +21,11 @@ import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
-import { AIProvider } from './provider';
+import { AIProviders } from './llm-models';
+import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { renderSlashCommandOption } from './slash-commands';
-import { IAIProvider } from './token';
+import { IAIProviderRegistry } from './token';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {
@@ -57,11 +58,11 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:chat',
   description: 'LLM chat extension',
   autoStart: true,
-  requires: [IAIProvider, IRenderMimeRegistry, IAutocompletionRegistry],
+  requires: [IAIProviderRegistry, IRenderMimeRegistry, IAutocompletionRegistry],
   optional: [INotebookTracker, ISettingRegistry, IThemeManager],
   activate: async (
     app: JupyterFrontEnd,
-    aiProvider: IAIProvider,
+    aiProvider: IAIProviderRegistry,
     rmRegistry: IRenderMimeRegistry,
     autocompletionRegistry: IAutocompletionRegistry,
     notebookTracker: INotebookTracker | null,
@@ -135,10 +136,10 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 const completerPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:completer',
   autoStart: true,
-  requires: [IAIProvider, ICompletionProviderManager],
+  requires: [IAIProviderRegistry, ICompletionProviderManager],
   activate: (
     app: JupyterFrontEnd,
-    aiProvider: IAIProvider,
+    aiProvider: IAIProviderRegistry,
     manager: ICompletionProviderManager
   ): void => {
     const completer = new CompletionProvider({
@@ -149,19 +150,19 @@ const completerPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
+const aiProviderPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
   id: '@jupyterlite/ai:ai-provider',
   autoStart: true,
   requires: [IFormRendererRegistry, ISettingRegistry],
   optional: [IRenderMimeRegistry],
-  provides: IAIProvider,
+  provides: IAIProviderRegistry,
   activate: (
     app: JupyterFrontEnd,
     editorRegistry: IFormRendererRegistry,
     settingRegistry: ISettingRegistry,
     rmRegistry?: IRenderMimeRegistry
-  ): IAIProvider => {
-    const aiProvider = new AIProvider();
+  ): IAIProviderRegistry => {
+    const providerRegistry = new AIProviderRegistry();
 
     editorRegistry.addRenderer(
       '@jupyterlite/ai:ai-provider.AIprovider',
@@ -175,7 +176,7 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
           const providerSettings = (settings.get('AIprovider').composite ?? {
             provider: 'None'
           }) as ReadonlyPartialJSONObject;
-          aiProvider.setProvider(
+          providerRegistry.setProvider(
             providerSettings.provider as string,
             providerSettings
           );
@@ -191,7 +192,12 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
         );
       });
 
-    return aiProvider;
+    // Initialize the registry with the default providers
+    AIProviders.forEach(provider =>
+      providerRegistry.add(provider.name, provider)
+    );
+
+    return providerRegistry;
   }
 };
 

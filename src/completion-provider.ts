@@ -5,7 +5,7 @@ import {
 } from '@jupyterlab/completer';
 
 import { IBaseCompleter } from './llm-models';
-import { IAIProvider } from './token';
+import { IAIProviderRegistry } from './token';
 
 /**
  * The generic completion provider to register to the completion provider manager.
@@ -45,13 +45,13 @@ export class CompletionProvider implements IInlineCompletionProvider {
     return this.completer?.fetch(request, context);
   }
 
-  private _aiProvider: IAIProvider;
+  private _aiProvider: IAIProviderRegistry;
   private _requestCompletion: () => void;
 }
 
 export namespace CompletionProvider {
   export interface IOptions {
-    aiProvider: IAIProvider;
+    aiProvider: IAIProviderRegistry;
     requestCompletion: () => void;
   }
 }

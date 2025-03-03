@@ -17,9 +17,8 @@ import {
   SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
-import { getErrorMessage } from './llm-models';
 import { chatSystemPrompt } from './provider';
-import { IAIProvider } from './token';
+import { IAIProviderRegistry } from './token';
 import { jupyternautLiteIcon } from './icons';
 
 /**
@@ -144,7 +143,7 @@ export class ChatHandler extends ChatModel {
       this._history.messages.push(botMsg);
       return true;
     } catch (reason) {
-      const error = getErrorMessage(this._aiProvider.name, reason);
+      const error = this._aiProvider.formatErrorMessage(reason);
       const errorMsg: IChatMessage = {
         id: UUID.uuid4(),
         body: `**${error}**`,
@@ -171,7 +170,7 @@ export class ChatHandler extends ChatModel {
     super.messageAdded(message);
   }
 
-  private _aiProvider: IAIProvider;
+  private _aiProvider: IAIProviderRegistry;
   private _personaName = 'AI';
   private _prompt: string;
   private _errorMessage: string = '';
@@ -181,6 +180,6 @@ export class ChatHandler extends ChatModel {
 
 export namespace ChatHandler {
   export interface IOptions extends ChatModel.IOptions {
-    aiProvider: IAIProvider;
+    aiProvider: IAIProviderRegistry;
   }
 }
