@@ -37,9 +37,9 @@ export class AiSettings extends React.Component<
 
   constructor(props: FieldProps) {
     super(props);
-    this._settingsRegistry = props.formContext.settings;
+    this._settings = props.formContext.settings;
 
-    // Initialize the providers schema
+    // Initialize the providers schema.
     const providerSchema = JSONExt.deepCopy(baseSettings) as any;
     providerSchema.properties.provider = {
       type: 'string',
@@ -54,7 +54,7 @@ export class AiSettings extends React.Component<
     // local storage if default are provided.
     const backupSettings = localStorage.getItem(STORAGE_NAME);
     if (backupSettings === null) {
-      const defaultSettings = this._settingsRegistry.default('AIprovider');
+      const defaultSettings = this._settings.default('AIprovider');
       if (
         defaultSettings &&
         Object.keys(defaultSettings).includes('provider')
@@ -72,18 +72,18 @@ export class AiSettings extends React.Component<
       }
     }
 
-    // Initialize the settings from saved one
+    // Initialize the settings from the saved ones.
     this._provider = this.getCurrentProvider();
     this._currentSettings = this.getSettings();
 
-    // Initialize the schema
+    // Initialize the schema.
     const schema = this._buildSchema();
     this.state = { schema, instruction: null };
 
     this._renderInstruction();
 
-    // Update the setting registry
-    this._settingsRegistry
+    // Update the setting registry.
+    this._settings
       .set('AIprovider', this._currentSettings)
       .catch(console.error);
   }
@@ -186,7 +186,7 @@ export class AiSettings extends React.Component<
     this._currentSettings = this.getSettings();
     this._updateSchema();
     this._renderInstruction();
-    this._settingsRegistry
+    this._settings
       .set('AIprovider', { provider: this._provider, ...this._currentSettings })
       .catch(console.error);
   };
@@ -199,7 +199,7 @@ export class AiSettings extends React.Component<
   private _onFormChange = (e: IChangeEvent) => {
     this._currentSettings = JSONExt.deepCopy(e.formData);
     this.saveSettings(this._currentSettings);
-    this._settingsRegistry
+    this._settings
       .set('AIprovider', { provider: this._provider, ...this._currentSettings })
       .catch(console.error);
   };
@@ -236,5 +236,5 @@ export class AiSettings extends React.Component<
   private _providerSchema: JSONSchema7;
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
-  private _settingsRegistry: ISettingRegistry.ISettings;
+  private _settings: ISettingRegistry.ISettings;
 }
