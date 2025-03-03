@@ -8,18 +8,18 @@ import { CodestralCompleter } from './codestral-completer';
 import { ChromeCompleter } from './chrome-completer';
 import { OpenAICompleter } from './openai-completer';
 
-import { ProviderSettings } from '../settings/schemas';
+import ProviderSettings from '../settings/schemas';
+
 import { IAIProvider } from '../token';
 
 export * from './base-completer';
-export * from './utils';
 
 const AIProviders: IAIProvider[] = [
   {
     name: 'Anthropic',
     chatModel: ChatAnthropic,
     completer: AnthropicCompleter,
-    settings: ProviderSettings['Anthropic'],
+    settings: ProviderSettings.Anthropic,
     errorMessage: (error: any) => error.error.error.message
   },
   {
@@ -28,19 +28,19 @@ const AIProviders: IAIProvider[] = [
     // @ts-expect-error: missing properties
     chatModel: ChromeAI,
     completer: ChromeCompleter,
-    settings: ProviderSettings['ChromeAI']
+    settings: ProviderSettings.ChromeAI
   },
   {
     name: 'MistralAI',
     chatModel: ChatMistralAI,
     completer: CodestralCompleter,
-    settings: ProviderSettings['MistralAI']
+    settings: ProviderSettings.MistralAI
   },
   {
     name: 'OpenAI',
     chatModel: ChatOpenAI,
     completer: OpenAICompleter,
-    settings: ProviderSettings['OpenAI']
+    settings: ProviderSettings.OpenAI
   }
 ];
 

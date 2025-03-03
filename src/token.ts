@@ -3,7 +3,6 @@ import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 
 import { IBaseCompleter } from './llm-models';
-import { JSONSchema7 } from 'json-schema';
 
 export interface IType<T> {
   new (...args: any[]): T;
@@ -13,7 +12,7 @@ export interface IAIProvider {
   name: string;
   chatModel?: IType<BaseChatModel>;
   completer?: IType<IBaseCompleter>;
-  settings?: JSONSchema7;
+  settings?: any;
   instructions?: string;
   errorMessage?: (error: any) => string;
 }
