@@ -22,7 +22,7 @@ import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
 import { AIProvider } from './provider';
-import { AiSettings, aiSettingsRenderer } from './settings/panel';
+import { aiSettingsRenderer } from './settings/panel';
 import { renderSlashCommandOption } from './slash-commands';
 import { IAIProvider } from './token';
 
@@ -163,10 +163,9 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   ): IAIProvider => {
     const aiProvider = new AIProvider();
 
-    AiSettings.rmRegistry = rmRegistry ?? null;
     editorRegistry.addRenderer(
       '@jupyterlite/ai:ai-provider.AIprovider',
-      aiSettingsRenderer
+      aiSettingsRenderer({ rmRegistry })
     );
     settingRegistry
       .load(aiProviderPlugin.id)

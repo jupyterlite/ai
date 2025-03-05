@@ -16,8 +16,15 @@ const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-lite-ai-settings-instruction';
 
-export const aiSettingsRenderer: IFormRenderer = {
-  fieldRenderer: (props: FieldProps) => <AiSettings {...props} />
+export const aiSettingsRenderer = (options: {
+  rmRegistry?: IRenderMimeRegistry;
+}): IFormRenderer => {
+  return {
+    fieldRenderer: (props: FieldProps) => {
+      props.formContext = { ...props.formContext, ...options };
+      return <AiSettings {...props} />;
+    }
+  };
 };
 
 export interface ISettingsFormStates {
@@ -33,10 +40,9 @@ export class AiSettings extends React.Component<
   FieldProps,
   ISettingsFormStates
 > {
-  static rmRegistry: IRenderMimeRegistry | null = null;
-
   constructor(props: FieldProps) {
     super(props);
+    this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._settings = props.formContext.settings;
 
     // Initialize the providers schema.
@@ -89,19 +95,20 @@ export class AiSettings extends React.Component<
   }
 
   async _renderInstruction(): Promise<void> {
-    if (!AiSettings.rmRegistry || !instructions[this._provider]) {
+    if (!this._rmRegistry || !instructions[this._provider]) {
       this.setState({ instruction: null });
       return;
     }
     let mdStr = instructions[this._provider];
     mdStr = `---\n\n${mdStr}\n\n---`;
-    const renderer = AiSettings.rmRegistry.createRenderer(MD_MIME_TYPE);
-    const model = AiSettings.rmRegistry.createModel({
+    const renderer = this._rmRegistry.createRenderer(MD_MIME_TYPE);
+    const model = this._rmRegistry.createModel({
       data: { [MD_MIME_TYPE]: mdStr }
     });
     await renderer.renderModel(model);
     this.setState({ instruction: renderer.node });
   }
+
   /**
    * Get the current provider from the local storage.
    */
@@ -234,6 +241,7 @@ export class AiSettings extends React.Component<
 
   private _provider: string;
   private _providerSchema: JSONSchema7;
+  private _rmRegistry: IRenderMimeRegistry | null;
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
   private _settings: ISettingRegistry.ISettings;
