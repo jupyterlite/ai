@@ -56,24 +56,21 @@ export class AiSettings extends React.Component<
     };
     this._providerSchema = providerSchema as JSONSchema7;
 
-    // Check if there is saved values in storage, otherwise save the default values in
-    // local storage if default are provided.
-    const backupSettings = localStorage.getItem(STORAGE_NAME);
-    if (backupSettings === null) {
-      const defaultSettings = this._settings.default('AIprovider');
-      if (
-        defaultSettings &&
-        Object.keys(defaultSettings).includes('provider')
-      ) {
+    // Check if there is saved values in local storage, otherwise use the settings from
+    // the setting registry (led to default if there are no user settings).
+    const storageSettings = localStorage.getItem(STORAGE_NAME);
+    if (storageSettings === null) {
+      const labSettings = this._settings.get('AIprovider').composite;
+      if (labSettings && Object.keys(labSettings).includes('provider')) {
         // Get the provider name.
-        const provider = Object.entries(defaultSettings).find(
+        const provider = Object.entries(labSettings).find(
           v => v[0] === 'provider'
         )?.[1] as string;
         // Save the settings.
         const settings: any = {
           _current: provider
         };
-        settings[provider] = defaultSettings;
+        settings[provider] = labSettings;
         localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
       }
     }
