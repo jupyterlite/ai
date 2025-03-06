@@ -14,7 +14,7 @@ import ProviderSettings from './schemas';
 
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
-const INSTRUCTION_CLASS = 'jp-lite-ai-settings-instruction';
+const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
 
 export const aiSettingsRenderer = (options: {
   rmRegistry?: IRenderMimeRegistry;
@@ -91,21 +91,6 @@ export class AiSettings extends React.Component<
       .catch(console.error);
   }
 
-  async _renderInstruction(): Promise<void> {
-    if (!this._rmRegistry || !instructions[this._provider]) {
-      this.setState({ instruction: null });
-      return;
-    }
-    let mdStr = instructions[this._provider];
-    mdStr = `---\n\n${mdStr}\n\n---`;
-    const renderer = this._rmRegistry.createRenderer(MD_MIME_TYPE);
-    const model = this._rmRegistry.createModel({
-      data: { [MD_MIME_TYPE]: mdStr }
-    });
-    await renderer.renderModel(model);
-    this.setState({ instruction: renderer.node });
-  }
-
   /**
    * Get the current provider from the local storage.
    */
@@ -174,6 +159,24 @@ export class AiSettings extends React.Component<
   private _updateSchema() {
     const schema = this._buildSchema();
     this.setState({ schema });
+  }
+
+  /**
+   * Render the markdown instructions for the current provider.
+   */
+  private async _renderInstruction(): Promise<void> {
+    if (!this._rmRegistry || !instructions[this._provider]) {
+      this.setState({ instruction: null });
+      return;
+    }
+    let mdStr = instructions[this._provider];
+    mdStr = `---\n\n${mdStr}\n\n---`;
+    const renderer = this._rmRegistry.createRenderer(MD_MIME_TYPE);
+    const model = this._rmRegistry.createModel({
+      data: { [MD_MIME_TYPE]: mdStr }
+    });
+    await renderer.renderModel(model);
+    this.setState({ instruction: renderer.node });
   }
 
   /**
