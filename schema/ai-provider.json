@@ -5,13 +5,13 @@
   "jupyter.lab.setting-icon-label": "JupyterLite AI Chat",
   "type": "object",
   "properties": {
-    "provider": {
-      "type": "string",
-      "title": "The AI provider",
-      "description": "The AI provider to use for chat and completion",
-      "default": "None",
-      "enum": ["None", "Anthropic", "ChromeAI", "MistralAI", "OpenAI"]
+    "AIprovider": {
+      "type": "object",
+      "title": "AI provider",
+      "description": "The AI provider configuration",
+      "default": {},
+      "additionalProperties": true
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

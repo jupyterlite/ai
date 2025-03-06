@@ -19,5 +19,10 @@
     "strictNullChecks": true,
     "target": "ES2018"
   },
-  "include": ["src/*", "src/**/*", "src/_provider-settings/*.json"]
+  "include": [
+    "src/*",
+    "src/**/*",
+    "src/settings/schemas/base.json",
+    "src/settings/schemas/_generated/*.json"
+  ]
 }

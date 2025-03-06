@@ -4,7 +4,8 @@ const path = require('path');
 
 console.log('Building settings schema\n');
 
-const outputDir = 'src/_provider-settings';
+const schemasDir = 'src/settings/schemas';
+const outputDir = path.join(schemasDir, '/_generated');
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
@@ -31,20 +32,20 @@ const schemaBase = tsj
  *     to exclude them at the moment, to be able to build other settings.
  */
 const providers = {
-  chromeAI: {
+  ChromeAI: {
     path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
     type: 'ChromeAIInputs'
   },
-  mistralAI: {
+  MistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
   },
-  anthropic: {
+  Anthropic: {
     path: 'node_modules/@langchain/anthropic/dist/chat_models.d.ts',
     type: 'AnthropicInput',
     excludedProps: ['clientOptions']
   },
-  openAI: {
+  OpenAI: {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
     type: 'ChatOpenAIFields',
     excludedProps: ['configuration']
@@ -137,6 +138,30 @@ Object.entries(providers).forEach(([name, desc], index) => {
     }
   });
 });
+
+// Build the index.ts file
+const indexContent = [];
+Object.keys(providers).forEach(name => {
+  indexContent.push(`import ${name} from './_generated/${name}.json';`);
+});
+
+indexContent.push('', 'const ProviderSettings: { [name: string]: any } = {');
+
+Object.keys(providers).forEach((name, index) => {
+  indexContent.push(
+    `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
+  );
+});
+indexContent.push('};', '', 'export default ProviderSettings;', '');
+fs.writeFile(
+  path.join(schemasDir, 'index.ts'),
+  indexContent.join('\n'),
+  err => {
+    if (err) {
+      throw err;
+    }
+  }
+);
 
 console.log('Settings schema built\n');
 console.log('=====================\n');
