@@ -18,6 +18,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
@@ -153,19 +154,20 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProvider> = {
   id: '@jupyterlite/ai:ai-provider',
   autoStart: true,
   requires: [IFormRendererRegistry, ISettingRegistry],
-  optional: [IRenderMimeRegistry],
+  optional: [IRenderMimeRegistry, ISecretsManager],
   provides: IAIProvider,
   activate: (
     app: JupyterFrontEnd,
     editorRegistry: IFormRendererRegistry,
     settingRegistry: ISettingRegistry,
-    rmRegistry?: IRenderMimeRegistry
+    rmRegistry?: IRenderMimeRegistry,
+    secretsManager?: ISecretsManager
   ): IAIProvider => {
     const aiProvider = new AIProvider();
 
     editorRegistry.addRenderer(
       '@jupyterlite/ai:ai-provider.AIprovider',
-      aiSettingsRenderer({ rmRegistry })
+      aiSettingsRenderer({ rmRegistry, secretsManager })
     );
     settingRegistry
       .load(aiProviderPlugin.id)
