@@ -4,10 +4,13 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
-import { getChatModel, getCompleter, IBaseCompleter } from './llm-models';
-import { IAIProvider } from './token';
+import { IBaseCompleter } from './llm-models';
+import { IAIProvider, IAIProviderRegistry } from './tokens';
+import { JSONSchema7 } from 'json-schema';
 
-export const chatSystemPrompt = (options: AIProvider.IPromptOptions) => `
+export const chatSystemPrompt = (
+  options: AIProviderRegistry.IPromptOptions
+) => `
 You are Jupyternaut, a conversational assistant living in JupyterLab to help users.
 You are not a language model, but rather an application built on a foundation model from ${options.provider_name}.
 You are talkative and you provide lots of specific details from the foundation model's context.
@@ -35,19 +38,38 @@ would write.
 Do not include the prompt in the output, only the string that should be appended to the current input.
 `;
 
-export class AIProvider implements IAIProvider {
+export class AIProviderRegistry implements IAIProviderRegistry {
   /**
-   * Get the provider name.
+   * Get the list of provider names.
    */
-  get name(): string {
+  get providers(): string[] {
+    return Array.from(this._providers.keys());
+  }
+
+  /**
+   * Add a new provider.
+   */
+  add(provider: IAIProvider): void {
+    if (this._providers.has(provider.name)) {
+      throw new Error(
+        `A AI provider named '${provider.name}' is already registered`
+      );
+    }
+    this._providers.set(provider.name, provider);
+  }
+
+  /**
+   * Get the current provider name.
+   */
+  get currentName(): string {
     return this._name;
   }
 
   /**
    * Get the current completer of the completion provider.
    */
-  get completer(): IBaseCompleter | null {
-    if (this._name === null) {
+  get currentCompleter(): IBaseCompleter | null {
+    if (this._name === 'None') {
       return null;
     }
     return this._completer;
@@ -56,11 +78,39 @@ export class AIProvider implements IAIProvider {
   /**
    * Get the current llm chat model.
    */
-  get chatModel(): BaseChatModel | null {
-    if (this._name === null) {
+  get currentChatModel(): BaseChatModel | null {
+    if (this._name === 'None') {
       return null;
     }
-    return this._llmChatModel;
+    return this._chatModel;
+  }
+
+  /**
+   * Get the settings schema of a given provider.
+   */
+  getSettingsSchema(provider: string): JSONSchema7 {
+    return (this._providers.get(provider)?.settingsSchema?.properties ||
+      {}) as JSONSchema7;
+  }
+
+  /**
+   * Get the instructions of a given provider.
+   */
+  getInstructions(provider: string): string | undefined {
+    return this._providers.get(provider)?.instructions;
+  }
+
+  /**
+   * Format an error message from the current provider.
+   */
+  formatErrorMessage(error: any): string {
+    if (this._currentProvider?.errorMessage) {
+      return this._currentProvider?.errorMessage(error);
+    }
+    if (error.message) {
+      return error.message;
+    }
+    return error;
   }
 
   /**
@@ -78,43 +128,59 @@ export class AIProvider implements IAIProvider {
   }
 
   /**
-   * Set the provider (chat model and completer).
+   * Set the providers (chat model and completer).
    * Creates the providers if the name has changed, otherwise only updates their config.
    *
    * @param name - the name of the provider to use.
    * @param settings - the settings for the models.
    */
-  setProvider(name: string, settings: ReadonlyPartialJSONObject) {
-    try {
-      this._completer = getCompleter(name, settings);
-      this._completerError = '';
-    } catch (e: any) {
-      this._completerError = e.message;
+  setProvider(name: string, settings: ReadonlyPartialJSONObject): void {
+    this._currentProvider = this._providers.get(name) ?? null;
+
+    if (this._currentProvider?.completer !== undefined) {
+      try {
+        this._completer = new this._currentProvider.completer({ ...settings });
+        this._completerError = '';
+      } catch (e: any) {
+        this._completerError = e.message;
+      }
+    } else {
+      this._completer = null;
     }
-    try {
-      this._llmChatModel = getChatModel(name, settings);
-      this._chatError = '';
-    } catch (e: any) {
-      this._chatError = e.message;
-      this._llmChatModel = null;
+
+    if (this._currentProvider?.chatModel !== undefined) {
+      try {
+        this._chatModel = new this._currentProvider.chatModel({ ...settings });
+        this._chatError = '';
+      } catch (e: any) {
+        this._chatError = e.message;
+        this._chatModel = null;
+      }
+    } else {
+      this._chatModel = null;
     }
     this._name = name;
     this._providerChanged.emit();
   }
 
-  get providerChanged(): ISignal<IAIProvider, void> {
+  /**
+   * A signal emitting when the provider or its settings has changed.
+   */
+  get providerChanged(): ISignal<IAIProviderRegistry, void> {
     return this._providerChanged;
   }
 
+  private _currentProvider: IAIProvider | null = null;
   private _completer: IBaseCompleter | null = null;
-  private _llmChatModel: BaseChatModel | null = null;
+  private _chatModel: BaseChatModel | null = null;
   private _name: string = 'None';
-  private _providerChanged = new Signal<IAIProvider, void>(this);
+  private _providerChanged = new Signal<IAIProviderRegistry, void>(this);
   private _chatError: string = '';
   private _completerError: string = '';
+  private _providers = new Map<string, IAIProvider>();
 }
 
-export namespace AIProvider {
+export namespace AIProviderRegistry {
   /**
    * The options for the LLM provider.
    */

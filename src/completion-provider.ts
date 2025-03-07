@@ -5,7 +5,7 @@ import {
 } from '@jupyterlab/completer';
 
 import { IBaseCompleter } from './llm-models';
-import { IAIProvider } from './token';
+import { IAIProviderRegistry } from './tokens';
 
 /**
  * The generic completion provider to register to the completion provider manager.
@@ -14,10 +14,10 @@ export class CompletionProvider implements IInlineCompletionProvider {
   readonly identifier = '@jupyterlite/ai';
 
   constructor(options: CompletionProvider.IOptions) {
-    this._aiProvider = options.aiProvider;
+    this._providerRegistry = options.providerRegistry;
     this._requestCompletion = options.requestCompletion;
 
-    this._aiProvider.providerChanged.connect(() => {
+    this._providerRegistry.providerChanged.connect(() => {
       if (this.completer) {
         this.completer.requestCompletion = this._requestCompletion;
       }
@@ -28,14 +28,14 @@ export class CompletionProvider implements IInlineCompletionProvider {
    * Get the current completer name.
    */
   get name(): string {
-    return this._aiProvider.name;
+    return this._providerRegistry.currentName;
   }
 
   /**
    * Get the current completer.
    */
   get completer(): IBaseCompleter | null {
-    return this._aiProvider.completer;
+    return this._providerRegistry.currentCompleter;
   }
 
   async fetch(
@@ -45,13 +45,13 @@ export class CompletionProvider implements IInlineCompletionProvider {
     return this.completer?.fetch(request, context);
   }
 
-  private _aiProvider: IAIProvider;
+  private _providerRegistry: IAIProviderRegistry;
   private _requestCompletion: () => void;
 }
 
 export namespace CompletionProvider {
   export interface IOptions {
-    aiProvider: IAIProvider;
+    providerRegistry: IAIProviderRegistry;
     requestCompletion: () => void;
   }
 }
