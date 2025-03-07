@@ -8,16 +8,15 @@ import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
-import { instructions } from './instructions';
 import baseSettings from './schemas/base.json';
-import { ProviderSettings } from './schemas';
-import { IDict } from '../token';
+import { IAIProviderRegistry, IDict } from '../token';
 
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
 
 export const aiSettingsRenderer = (options: {
+  providerRegistry: IAIProviderRegistry;
   rmRegistry?: IRenderMimeRegistry;
 }): IFormRenderer => {
   return {
@@ -43,6 +42,12 @@ export class AiSettings extends React.Component<
 > {
   constructor(props: FieldProps) {
     super(props);
+    if (!props.formContext.providerRegistry) {
+      throw new Error(
+        'The provider registry is needed to enable the jupyterlite-ai settings panel'
+      );
+    }
+    this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._settings = props.formContext.settings;
 
@@ -53,7 +58,7 @@ export class AiSettings extends React.Component<
       title: 'Provider',
       description: 'The AI provider to use for chat and completion',
       default: 'None',
-      enum: ['None'].concat(Object.keys(ProviderSettings))
+      enum: ['None'].concat(this._providerRegistry.providers)
     };
     this._providerSchema = providerSchema as JSONSchema7;
 
@@ -142,8 +147,10 @@ export class AiSettings extends React.Component<
   private _buildSchema(): JSONSchema7 {
     const schema = JSONExt.deepCopy(baseSettings) as any;
     this._uiSchema = {};
-    const settingsSchema =
-      (ProviderSettings[this._provider]?.properties as JSONSchema7) ?? null;
+    const settingsSchema = this._providerRegistry.getSettingsSchema(
+      this._provider
+    );
+
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         schema.properties[key] = value;
@@ -166,15 +173,15 @@ export class AiSettings extends React.Component<
    * Render the markdown instructions for the current provider.
    */
   private async _renderInstruction(): Promise<void> {
-    if (!this._rmRegistry || !instructions[this._provider]) {
+    let instructions = this._providerRegistry.getInstructions(this._provider);
+    if (!this._rmRegistry || !instructions) {
       this.setState({ instruction: null });
       return;
     }
-    let mdStr = instructions[this._provider];
-    mdStr = `---\n\n${mdStr}\n\n---`;
+    instructions = `---\n\n${instructions}\n\n---`;
     const renderer = this._rmRegistry.createRenderer(MD_MIME_TYPE);
     const model = this._rmRegistry.createModel({
-      data: { [MD_MIME_TYPE]: mdStr }
+      data: { [MD_MIME_TYPE]: instructions }
     });
     await renderer.renderModel(model);
     this.setState({ instruction: renderer.node });
@@ -240,6 +247,7 @@ export class AiSettings extends React.Component<
     );
   }
 
+  private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
   private _rmRegistry: IRenderMimeRegistry | null;

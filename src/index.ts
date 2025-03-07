@@ -166,7 +166,7 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
 
     editorRegistry.addRenderer(
       '@jupyterlite/ai:ai-provider.AIprovider',
-      aiSettingsRenderer({ rmRegistry })
+      aiSettingsRenderer({ providerRegistry, rmRegistry })
     );
     settingRegistry
       .load(aiProviderPlugin.id)
