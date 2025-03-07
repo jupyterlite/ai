@@ -140,7 +140,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
 });
 
 // Build the index.ts file
-const indexContent = ["import { IDict } from '../../token';", ''];
+const indexContent = ["import { IDict } from '../../tokens';", ''];
 Object.keys(providers).forEach(name => {
   indexContent.push(`import ${name} from './_generated/${name}.json';`);
 });
