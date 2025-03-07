@@ -5,7 +5,7 @@ import {
 } from '@jupyterlab/completer';
 
 import { IBaseCompleter } from './llm-models';
-import { IAIProviderRegistry } from './token';
+import { IAIProviderRegistry } from './tokens';
 
 /**
  * The generic completion provider to register to the completion provider manager.

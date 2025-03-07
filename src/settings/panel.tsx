@@ -9,7 +9,7 @@ import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
 import baseSettings from './schemas/base.json';
-import { IAIProviderRegistry, IDict } from '../token';
+import { IAIProviderRegistry, IDict } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';

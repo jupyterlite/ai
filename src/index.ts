@@ -25,7 +25,7 @@ import { AIProviders } from './llm-models';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { renderSlashCommandOption } from './slash-commands';
-import { IAIProviderRegistry } from './token';
+import { IAIProviderRegistry } from './tokens';
 
 const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
   {

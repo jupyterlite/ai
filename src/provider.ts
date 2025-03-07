@@ -5,7 +5,7 @@ import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
 import { IBaseCompleter } from './llm-models';
-import { IAIProvider, IAIProviderRegistry } from './token';
+import { IAIProvider, IAIProviderRegistry } from './tokens';
 import { JSONSchema7 } from 'json-schema';
 
 export const chatSystemPrompt = (

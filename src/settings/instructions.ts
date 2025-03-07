@@ -1,4 +1,4 @@
-import { IDict } from '../token';
+import { IDict } from '../tokens';
 
 const chromeAiInstructions = `
 <i class="fas fa-exclamation-triangle"></i> Support for ChromeAI is still experimental and only available in Google Chrome.

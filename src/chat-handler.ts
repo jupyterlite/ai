@@ -18,7 +18,7 @@ import {
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
 import { chatSystemPrompt } from './provider';
-import { IAIProviderRegistry } from './token';
+import { IAIProviderRegistry } from './tokens';
 import { jupyternautLiteIcon } from './icons';
 
 /**

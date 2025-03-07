@@ -11,7 +11,7 @@ import { OpenAICompleter } from './openai-completer';
 import { instructions } from '../settings/instructions';
 import { ProviderSettings } from '../settings/schemas';
 
-import { IAIProvider } from '../token';
+import { IAIProvider } from '../tokens';
 
 export * from './base-completer';
 
