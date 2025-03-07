@@ -1,5 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { Token } from '@lumino/coreutils';
+import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
 
@@ -13,31 +13,104 @@ export interface IType<T> {
   new (...args: any[]): T;
 }
 
+/**
+ * The provider interface.
+ */
 export interface IAIProvider {
+  /**
+   * The name of the provider.
+   */
   name: string;
+  /**
+   * The chat model class to use.
+   */
   chatModel?: IType<BaseChatModel>;
+  /**
+   * The completer class to use.
+   */
   completer?: IType<IBaseCompleter>;
-  settings?: any;
+  /**
+   * the settings schema for the provider.
+   */
+  settingsSchema?: any;
+  /**
+   * The instructions to be displayed in the settings, as helper to use the provider.
+   * A markdown renderer is used to render the instructions.
+   */
   instructions?: string;
+  /**
+   * A function that extract the error message from the provider API error.
+   * Default to `(error) => error.message`.
+   */
   errorMessage?: (error: any) => string;
 }
 
+/**
+ * The provider registry interface.
+ */
 export interface IAIProviderRegistry {
+  /**
+   * Get the list of provider names.
+   */
   readonly providers: string[];
-  add(name: string, provider: IAIProvider): void;
+  /**
+   * Add a new provider.
+   */
+  add(provider: IAIProvider): void;
+  /**
+   * Remove a provider.
+   */
   remove(name: string): void;
-  name: string;
-  completer: IBaseCompleter | null;
-  chatModel: BaseChatModel | null;
+  /**
+   * Get the current provider name.
+   */
+  currentName: string;
+  /**
+   * Get the current completer of the completion provider.
+   */
+  currentCompleter: IBaseCompleter | null;
+  /**
+   * Get the current llm chat model.
+   */
+  currentChatModel: BaseChatModel | null;
+  /**
+   * Get the settings schema of a given provider.
+   */
   getSettingsSchema(provider: string): JSONSchema7;
+  /**
+   * Get the instructions of a given provider.
+   */
   getInstructions(provider: string): string | undefined;
+  /**
+   * Format an error message from the current provider.
+   */
   formatErrorMessage(error: any): string;
-  providerChanged: ISignal<IAIProviderRegistry, void>;
-  chatError: string;
-  completerError: string;
+  /**
+   * Set the providers (chat model and completer).
+   * Creates the providers if the name has changed, otherwise only updates their config.
+   *
+   * @param name - the name of the provider to use.
+   * @param settings - the settings for the models.
+   */
+  setProvider(name: string, settings: ReadonlyPartialJSONObject): void;
+  /**
+   * A signal emitting when the provider or its settings has changed.
+   */
+  readonly providerChanged: ISignal<IAIProviderRegistry, void>;
+  /**
+   * Get the current chat error;
+   */
+  readonly chatError: string;
+  /**
+   * get the current completer error.
+   */
+  readonly completerError: string;
 }
 
+/**
+ * The provider registry token.
+ */
 export const IAIProviderRegistry = new Token<IAIProviderRegistry>(
-  '@jupyterlite/ai:AIProvider',
+  '@jupyterlite/ai:provider-registry',
   'Provider for chat and completion LLM provider'
 );

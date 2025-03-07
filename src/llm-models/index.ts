@@ -20,7 +20,7 @@ const AIProviders: IAIProvider[] = [
     name: 'Anthropic',
     chatModel: ChatAnthropic,
     completer: AnthropicCompleter,
-    settings: ProviderSettings.Anthropic,
+    settingsSchema: ProviderSettings.Anthropic,
     errorMessage: (error: any) => error.error.error.message
   },
   {
@@ -30,20 +30,20 @@ const AIProviders: IAIProvider[] = [
     chatModel: ChromeAI,
     completer: ChromeCompleter,
     instructions: instructions.ChromeAI,
-    settings: ProviderSettings.ChromeAI
+    settingsSchema: ProviderSettings.ChromeAI
   },
   {
     name: 'MistralAI',
     chatModel: ChatMistralAI,
     completer: CodestralCompleter,
     instructions: instructions.MistralAI,
-    settings: ProviderSettings.MistralAI
+    settingsSchema: ProviderSettings.MistralAI
   },
   {
     name: 'OpenAI',
     chatModel: ChatOpenAI,
     completer: OpenAICompleter,
-    settings: ProviderSettings.OpenAI
+    settingsSchema: ProviderSettings.OpenAI
   }
 ];
 

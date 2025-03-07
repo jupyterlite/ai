@@ -62,7 +62,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
   optional: [INotebookTracker, ISettingRegistry, IThemeManager],
   activate: async (
     app: JupyterFrontEnd,
-    aiProvider: IAIProviderRegistry,
+    providerRegistry: IAIProviderRegistry,
     rmRegistry: IRenderMimeRegistry,
     autocompletionRegistry: IAutocompletionRegistry,
     notebookTracker: INotebookTracker | null,
@@ -78,8 +78,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     }
 
     const chatHandler = new ChatHandler({
-      aiProvider: aiProvider,
-      activeCellManager: activeCellManager
+      providerRegistry,
+      activeCellManager
     });
 
     let sendWithShiftEnter = false;
@@ -139,19 +139,19 @@ const completerPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IAIProviderRegistry, ICompletionProviderManager],
   activate: (
     app: JupyterFrontEnd,
-    aiProvider: IAIProviderRegistry,
+    providerRegistry: IAIProviderRegistry,
     manager: ICompletionProviderManager
   ): void => {
     const completer = new CompletionProvider({
-      aiProvider,
+      providerRegistry,
       requestCompletion: () => app.commands.execute('inline-completer:invoke')
     });
     manager.registerInlineProvider(completer);
   }
 };
 
-const aiProviderPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
-  id: '@jupyterlite/ai:ai-provider',
+const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
+  id: '@jupyterlite/ai:provider-registry',
   autoStart: true,
   requires: [IFormRendererRegistry, ISettingRegistry],
   optional: [IRenderMimeRegistry],
@@ -165,11 +165,11 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
     const providerRegistry = new AIProviderRegistry();
 
     editorRegistry.addRenderer(
-      '@jupyterlite/ai:ai-provider.AIprovider',
+      '@jupyterlite/ai:provider-registry.AIprovider',
       aiSettingsRenderer({ providerRegistry, rmRegistry })
     );
     settingRegistry
-      .load(aiProviderPlugin.id)
+      .load(providerRegistryPlugin.id)
       .then(settings => {
         const updateProvider = () => {
           // Update the settings to the AI providers.
@@ -187,22 +187,20 @@ const aiProviderPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
       })
       .catch(reason => {
         console.error(
-          `Failed to load settings for ${aiProviderPlugin.id}`,
+          `Failed to load settings for ${providerRegistryPlugin.id}`,
           reason
         );
       });
 
     // Initialize the registry with the default providers
-    AIProviders.forEach(provider =>
-      providerRegistry.add(provider.name, provider)
-    );
+    AIProviders.forEach(provider => providerRegistry.add(provider));
 
     return providerRegistry;
   }
 };
 
 export default [
-  aiProviderPlugin,
+  providerRegistryPlugin,
   autocompletionRegistryPlugin,
   chatPlugin,
   completerPlugin

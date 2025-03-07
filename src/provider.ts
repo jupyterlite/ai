@@ -39,29 +39,39 @@ Do not include the prompt in the output, only the string that should be appended
 `;
 
 export class AIProviderRegistry implements IAIProviderRegistry {
+  /**
+   * Get the list of provider names.
+   */
   get providers(): string[] {
     return Array.from(this._providers.keys());
   }
 
-  add(name: string, provider: IAIProvider): void {
-    this._providers.set(name, provider);
+  /**
+   * Add a new provider.
+   */
+  add(provider: IAIProvider): void {
+    this._providers.set(provider.name, provider);
   }
 
+  /**
+   * Remove a provider.
+   */
   remove(name: string): void {
     this._providers.delete(name);
   }
+
   /**
    * Get the current provider name.
    */
-  get name(): string {
+  get currentName(): string {
     return this._name;
   }
 
   /**
    * Get the current completer of the completion provider.
    */
-  get completer(): IBaseCompleter | null {
-    if (this._name === null) {
+  get currentCompleter(): IBaseCompleter | null {
+    if (this._name === 'None') {
       return null;
     }
     return this._completer;
@@ -70,8 +80,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Get the current llm chat model.
    */
-  get chatModel(): BaseChatModel | null {
-    if (this._name === null) {
+  get currentChatModel(): BaseChatModel | null {
+    if (this._name === 'None') {
       return null;
     }
     return this._chatModel;
@@ -81,7 +91,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the settings schema of a given provider.
    */
   getSettingsSchema(provider: string): JSONSchema7 {
-    return (this._providers.get(provider)?.settings?.properties ||
+    return (this._providers.get(provider)?.settingsSchema?.properties ||
       {}) as JSONSchema7;
   }
 
@@ -93,7 +103,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Format an error message from a provider.
+   * Format an error message from the current provider.
    */
   formatErrorMessage(error: any): string {
     if (this._currentProvider?.errorMessage) {
@@ -120,13 +130,13 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Set the provider (chat model and completer).
+   * Set the providers (chat model and completer).
    * Creates the providers if the name has changed, otherwise only updates their config.
    *
    * @param name - the name of the provider to use.
    * @param settings - the settings for the models.
    */
-  setProvider(name: string, settings: ReadonlyPartialJSONObject) {
+  setProvider(name: string, settings: ReadonlyPartialJSONObject): void {
     this._currentProvider = this._providers.get(name) ?? null;
 
     if (this._currentProvider?.completer !== undefined) {
@@ -155,6 +165,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     this._providerChanged.emit();
   }
 
+  /**
+   * A signal emitting when the provider or its settings has changed.
+   */
   get providerChanged(): ISignal<IAIProviderRegistry, void> {
     return this._providerChanged;
   }

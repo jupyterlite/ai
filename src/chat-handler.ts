@@ -36,17 +36,21 @@ export type ConnectionMessage = {
 export class ChatHandler extends ChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
-    this._aiProvider = options.aiProvider;
-    this._prompt = chatSystemPrompt({ provider_name: this._aiProvider.name });
+    this._providerRegistry = options.providerRegistry;
+    this._prompt = chatSystemPrompt({
+      provider_name: this._providerRegistry.currentName
+    });
 
-    this._aiProvider.providerChanged.connect(() => {
-      this._errorMessage = this._aiProvider.chatError;
-      this._prompt = chatSystemPrompt({ provider_name: this._aiProvider.name });
+    this._providerRegistry.providerChanged.connect(() => {
+      this._errorMessage = this._providerRegistry.chatError;
+      this._prompt = chatSystemPrompt({
+        provider_name: this._providerRegistry.currentName
+      });
     });
   }
 
   get provider(): BaseChatModel | null {
-    return this._aiProvider.chatModel;
+    return this._providerRegistry.currentChatModel;
   }
 
   /**
@@ -94,7 +98,7 @@ export class ChatHandler extends ChatModel {
     };
     this.messageAdded(msg);
 
-    if (this._aiProvider.chatModel === null) {
+    if (this._providerRegistry.currentChatModel === null) {
       const errorMsg: IChatMessage = {
         id: UUID.uuid4(),
         body: `**${this._errorMessage ? this._errorMessage : this._defaultErrorMessage}**`,
@@ -133,7 +137,7 @@ export class ChatHandler extends ChatModel {
     let content = '';
 
     try {
-      for await (const chunk of await this._aiProvider.chatModel.stream(
+      for await (const chunk of await this._providerRegistry.currentChatModel.stream(
         messages
       )) {
         content += chunk.content ?? chunk;
@@ -143,7 +147,7 @@ export class ChatHandler extends ChatModel {
       this._history.messages.push(botMsg);
       return true;
     } catch (reason) {
-      const error = this._aiProvider.formatErrorMessage(reason);
+      const error = this._providerRegistry.formatErrorMessage(reason);
       const errorMsg: IChatMessage = {
         id: UUID.uuid4(),
         body: `**${error}**`,
@@ -170,7 +174,7 @@ export class ChatHandler extends ChatModel {
     super.messageAdded(message);
   }
 
-  private _aiProvider: IAIProviderRegistry;
+  private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _prompt: string;
   private _errorMessage: string = '';
@@ -180,6 +184,6 @@ export class ChatHandler extends ChatModel {
 
 export namespace ChatHandler {
   export interface IOptions extends ChatModel.IOptions {
-    aiProvider: IAIProviderRegistry;
+    providerRegistry: IAIProviderRegistry;
   }
 }
