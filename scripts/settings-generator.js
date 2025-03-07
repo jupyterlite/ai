@@ -140,19 +140,19 @@ Object.entries(providers).forEach(([name, desc], index) => {
 });
 
 // Build the index.ts file
-const indexContent = [];
+const indexContent = ['import { IDict } from \'../../token\';', ''];
 Object.keys(providers).forEach(name => {
   indexContent.push(`import ${name} from './_generated/${name}.json';`);
 });
 
-indexContent.push('', 'const ProviderSettings: { [name: string]: any } = {');
+indexContent.push('', 'const ProviderSettings: IDict<any> = {');
 
 Object.keys(providers).forEach((name, index) => {
   indexContent.push(
     `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
   );
 });
-indexContent.push('};', '', 'export default ProviderSettings;', '');
+indexContent.push('};', '', 'export { ProviderSettings };', '');
 fs.writeFile(
   path.join(schemasDir, 'index.ts'),
   indexContent.join('\n'),

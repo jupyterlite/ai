@@ -8,9 +8,10 @@ import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import React from 'react';
 
-import { IDict, instructions } from './instructions';
+import { instructions } from './instructions';
 import baseSettings from './schemas/base.json';
-import ProviderSettings from './schemas';
+import { ProviderSettings } from './schemas';
+import { IDict } from '../token';
 
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';

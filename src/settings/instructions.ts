@@ -1,6 +1,4 @@
-export interface IDict<T = any> {
-  [key: string]: T;
-}
+import { IDict } from '../token';
 
 const chromeAiInstructions = `
 <i class="fas fa-exclamation-triangle"></i> Support for ChromeAI is still experimental and only available in Google Chrome.

@@ -78,11 +78,18 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Get the settings schema.
+   * Get the settings schema of a given provider.
    */
-  settingsSchema(provider: string): JSONSchema7 {
+  getSettingsSchema(provider: string): JSONSchema7 {
     return (this._providers.get(provider)?.settings?.properties ||
       {}) as JSONSchema7;
+  }
+
+  /**
+   * Get the instructions of a given provider.
+   */
+  getInstructions(provider: string): string | undefined {
+    return this._providers.get(provider)?.instructions;
   }
 
   /**

@@ -8,7 +8,8 @@ import { CodestralCompleter } from './codestral-completer';
 import { ChromeCompleter } from './chrome-completer';
 import { OpenAICompleter } from './openai-completer';
 
-import ProviderSettings from '../settings/schemas';
+import { instructions } from '../settings/instructions';
+import { ProviderSettings } from '../settings/schemas';
 
 import { IAIProvider } from '../token';
 
@@ -28,12 +29,14 @@ const AIProviders: IAIProvider[] = [
     // @ts-expect-error: missing properties
     chatModel: ChromeAI,
     completer: ChromeCompleter,
+    instructions: instructions.ChromeAI,
     settings: ProviderSettings.ChromeAI
   },
   {
     name: 'MistralAI',
     chatModel: ChatMistralAI,
     completer: CodestralCompleter,
+    instructions: instructions.MistralAI,
     settings: ProviderSettings.MistralAI
   },
   {
