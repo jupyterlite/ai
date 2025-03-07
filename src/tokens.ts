@@ -58,10 +58,6 @@ export interface IAIProviderRegistry {
    */
   add(provider: IAIProvider): void;
   /**
-   * Remove a provider.
-   */
-  remove(name: string): void;
-  /**
    * Get the current provider name.
    */
   currentName: string;

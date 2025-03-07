@@ -50,14 +50,12 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Add a new provider.
    */
   add(provider: IAIProvider): void {
+    if (this._providers.has(provider.name)) {
+      throw new Error(
+        `A AI provider named '${provider.name}' is already registered`
+      );
+    }
     this._providers.set(provider.name, provider);
-  }
-
-  /**
-   * Remove a provider.
-   */
-  remove(name: string): void {
-    this._providers.delete(name);
   }
 
   /**
