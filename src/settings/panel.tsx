@@ -102,21 +102,7 @@ export class AiSettings extends React.Component<
       .catch(console.error);
   }
 
-  async componentWillUpdate(): Promise<void> {
-    if (!this._secretsManager) {
-      return;
-    }
-    const inputs = this._formRef.current?.getElementsByTagName('input') || [];
-    for (let i = 0; i < inputs.length; i++) {
-      if (inputs[i].type.toLowerCase() === 'password') {
-        (await this._secretsManager.list(SECRETS_NAMESPACE)).forEach(id =>
-          this._secretsManager?.detach(SECRETS_NAMESPACE, id)
-        );
-      }
-    }
-  }
-
-  componentDidUpdate(): void {
+  async componentDidUpdate(): Promise<void> {
     if (!this._secretsManager) {
       return;
     }
@@ -125,6 +111,8 @@ export class AiSettings extends React.Component<
     if (ArrayExt.shallowEqual(inputs, this._formInputs)) {
       return;
     }
+
+    await this._secretsManager?.detachAll(SECRETS_NAMESPACE);
     this._formInputs = [...inputs];
     this._unsavedFields = [];
     for (let i = 0; i < inputs.length; i++) {
