@@ -1,5 +1,6 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
+import { ChatGroq } from '@langchain/groq';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -31,6 +32,11 @@ const AIProviders: IAIProvider[] = [
     completer: ChromeCompleter,
     instructions: instructions.ChromeAI,
     settingsSchema: ProviderSettings.ChromeAI
+  },
+  {
+    name: 'Groq',
+    chatModel: ChatGroq,
+    settingsSchema: ProviderSettings.Groq
   },
   {
     name: 'MistralAI',
