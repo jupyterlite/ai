@@ -4,9 +4,12 @@
  */
 
 import {
+  ChatCommand,
   ChatModel,
+  IChatCommandProvider,
   IChatHistory,
   IChatMessage,
+  IInputModel,
   INewMessage
 } from '@jupyter/chat';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -185,5 +188,36 @@ export class ChatHandler extends ChatModel {
 export namespace ChatHandler {
   export interface IOptions extends ChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
+  }
+
+  export class ClearCommandProvider implements IChatCommandProvider {
+    public id: string = '@jupyterlite/ai:clear-commands';
+    private _slash_commands: ChatCommand[] = [
+      {
+        name: '/clear',
+        providerId: this.id,
+        replaceWith: '/clear',
+        description: 'Clear the chat'
+      }
+    ];
+    async getChatCommands(inputModel: IInputModel) {
+      const match = inputModel.currentWord?.match(/^\/\w*/)?.[0];
+      if (!match) {
+        return [];
+      }
+
+      const commands = this._slash_commands.filter(cmd =>
+        cmd.name.startsWith(match)
+      );
+      return commands;
+    }
+
+    async handleChatCommand(
+      command: ChatCommand,
+      inputModel: IInputModel
+    ): Promise<void> {
+      // no handling needed because `replaceWith` is set in each command.
+      return;
+    }
   }
 }

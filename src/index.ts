@@ -1,11 +1,10 @@
 import {
   ActiveCellManager,
-  AutocompletionRegistry,
   buildChatSidebar,
   buildErrorWidget,
+  ChatCommandRegistry,
   IActiveCellManager,
-  IAutocompletionCommandsProps,
-  IAutocompletionRegistry
+  IChatCommandRegistry
 } from '@jupyter/chat';
 import {
   JupyterFrontEnd,
@@ -24,47 +23,31 @@ import { CompletionProvider } from './completion-provider';
 import { AIProviders } from './llm-models';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
-import { renderSlashCommandOption } from './slash-commands';
 import { IAIProviderRegistry } from './tokens';
 
-const autocompletionRegistryPlugin: JupyterFrontEndPlugin<IAutocompletionRegistry> =
-  {
-    id: '@jupyterlite/ai:autocompletion-registry',
-    description: 'Autocompletion registry',
-    autoStart: true,
-    provides: IAutocompletionRegistry,
-    activate: () => {
-      const autocompletionRegistry = new AutocompletionRegistry();
-      const options = ['/clear'];
-      const autocompletionCommands: IAutocompletionCommandsProps = {
-        opener: '/',
-        commands: options.map(option => {
-          return {
-            id: option.slice(1),
-            label: option,
-            description: 'Clear the chat window'
-          };
-        }),
-        props: {
-          renderOption: renderSlashCommandOption
-        }
-      };
-      autocompletionRegistry.add('jupyterlite-ai', autocompletionCommands);
-      return autocompletionRegistry;
-    }
-  };
+const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
+  id: '@jupyterlite/ai:autocompletion-registry',
+  description: 'Autocompletion registry',
+  autoStart: true,
+  provides: IChatCommandRegistry,
+  activate: () => {
+    const registry = new ChatCommandRegistry();
+    registry.addProvider(new ChatHandler.ClearCommandProvider());
+    return registry;
+  }
+};
 
 const chatPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:chat',
   description: 'LLM chat extension',
   autoStart: true,
-  requires: [IAIProviderRegistry, IRenderMimeRegistry, IAutocompletionRegistry],
+  requires: [IAIProviderRegistry, IRenderMimeRegistry, IChatCommandRegistry],
   optional: [INotebookTracker, ISettingRegistry, IThemeManager],
   activate: async (
     app: JupyterFrontEnd,
     providerRegistry: IAIProviderRegistry,
     rmRegistry: IRenderMimeRegistry,
-    autocompletionRegistry: IAutocompletionRegistry,
+    chatCommandRegistry: IChatCommandRegistry,
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null
@@ -120,7 +103,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         model: chatHandler,
         themeManager,
         rmRegistry,
-        autocompletionRegistry
+        chatCommandRegistry
       });
       chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
@@ -201,7 +184,7 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
 
 export default [
   providerRegistryPlugin,
-  autocompletionRegistryPlugin,
+  chatCommandRegistryPlugin,
   chatPlugin,
   completerPlugin
 ];
