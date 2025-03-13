@@ -56,6 +56,9 @@ export class AiSettings extends React.Component<
     this._secretsManager = props.formContext.secretsManager ?? null;
     this._settings = props.formContext.settings;
 
+    this._useSecretsManager =
+      (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
+
     // Initialize the providers schema.
     const providerSchema = JSONExt.deepCopy(baseSettings) as any;
     providerSchema.properties.provider = {
@@ -100,10 +103,18 @@ export class AiSettings extends React.Component<
     this._settings
       .set('AIprovider', this._currentSettings)
       .catch(console.error);
+
+    this._settings.changed.connect(() => {
+      const useSecretsManager =
+        (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
+      if (useSecretsManager !== this._useSecretsManager) {
+        this.updateUseSecretsManager(useSecretsManager);
+      }
+    });
   }
 
   async componentDidUpdate(): Promise<void> {
-    if (!this._secretsManager) {
+    if (!this._secretsManager || !this._useSecretsManager) {
       return;
     }
     // Attach the password inputs to the secrets manager only if they have changed.
@@ -112,7 +123,7 @@ export class AiSettings extends React.Component<
       return;
     }
 
-    await this._secretsManager?.detachAll(SECRETS_NAMESPACE);
+    await this._secretsManager.detachAll(SECRETS_NAMESPACE);
     this._formInputs = [...inputs];
     this._unsavedFields = [];
     for (let i = 0; i < inputs.length; i++) {
@@ -167,6 +178,31 @@ export class AiSettings extends React.Component<
     settings[this._provider] = currentSettings;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
   }
+
+  private updateUseSecretsManager = (value: boolean) => {
+    this._useSecretsManager = value;
+    if (!value) {
+      // Detach all the password inputs attached to the secrets manager, and save the
+      // current settings to the local storage to save the password.
+      this._secretsManager?.detachAll(SECRETS_NAMESPACE);
+      this._formInputs = [];
+      this._unsavedFields = [];
+      this.saveSettings(this._currentSettings);
+    } else {
+      // Remove all the keys stored locally and attach the password inputs to the
+      // secrets manager.
+      const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+      Object.keys(settings).forEach(provider => {
+        Object.keys(settings[provider])
+          .filter(key => key.toLowerCase().includes('key'))
+          .forEach(key => {
+            delete settings[provider][key];
+          });
+      });
+      localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+      this.componentDidUpdate();
+    }
+  };
 
   /**
    * Update the UI schema of the form.
@@ -298,6 +334,7 @@ export class AiSettings extends React.Component<
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
+  private _useSecretsManager: boolean;
   private _rmRegistry: IRenderMimeRegistry | null;
   private _secretsManager: ISecretsManager | null;
   private _currentSettings: IDict<any> = { provider: 'None' };
