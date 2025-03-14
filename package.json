@@ -14,7 +14,7 @@
     "license": "BSD-3-Clause",
     "author": "JupyterLite Contributors",
     "files": [
-        "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+        "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf,md}",
         "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
         "src/**/*.{ts,tsx}",
         "schema/*.json"
@@ -27,9 +27,9 @@
         "url": "https://github.com/jupyterlite/ai.git"
     },
     "scripts": {
-        "build": "node ./scripts/settings-generator.js && jlpm build:lib && jlpm build:labextension:dev",
+        "build": "jlpm settings:build && jlpm build:lib && jlpm build:labextension:dev",
         "build:dev": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:prod": "node ./scripts/settings-generator.js && jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
+        "build:prod": "jlpm settings:build && jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
         "build:lib": "tsc --sourceMap",
@@ -47,6 +47,8 @@
         "prettier": "jlpm prettier:base --write --list-different",
         "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
         "prettier:check": "jlpm prettier:base --check",
+        "settings:build": "node ./scripts/settings-checker.js --generate",
+        "settings:check": "node ./scripts/settings-checker.js",
         "stylelint": "jlpm stylelint:check --fix",
         "stylelint:check": "stylelint --cache \"style/**/*.css\"",
         "watch": "run-p watch:src watch:labextension",

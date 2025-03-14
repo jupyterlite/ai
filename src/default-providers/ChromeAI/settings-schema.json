@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "concurrency": {
+      "type": "number",
+      "deprecated": "Use `maxConcurrency` instead"
+    },
+    "topK": {
+      "type": "number"
+    },
+    "temperature": {
+      "type": "number"
+    },
+    "systemPrompt": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {}
+}

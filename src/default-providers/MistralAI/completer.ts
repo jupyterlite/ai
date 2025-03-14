@@ -11,8 +11,8 @@ import {
 import { ChatMistralAI } from '@langchain/mistralai';
 import { Throttler } from '@lumino/polling';
 
-import { BaseCompleter, IBaseCompleter } from './base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../provider';
+import { BaseCompleter, IBaseCompleter } from '../../base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
 /**
  * The Mistral API has a rate limit of 1 request per second

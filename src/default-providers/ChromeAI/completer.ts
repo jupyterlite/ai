@@ -5,8 +5,9 @@ import {
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { LLM } from '@langchain/core/language_models/llms';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { BaseCompleter, IBaseCompleter } from './base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../provider';
+
+import { BaseCompleter, IBaseCompleter } from '../../base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
 /**
  * Regular expression to match the '```' string at the start of a string.
