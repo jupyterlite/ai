@@ -1,3 +1,4 @@
+export default `
 <i class="fas fa-exclamation-triangle"></i> This extension is still very much experimental. It is not an official MistralAI extension.
 
 1. Go to <https://console.mistral.ai/api-keys/> and create an API key.
@@ -12,3 +13,4 @@
 3. Open the chat, or use the inline completer
 
     <img src="https://raw.githubusercontent.com/jupyterlite/ai/refs/heads/main/img/3-usage.png" alt="Screenshot showing how to use the chat" width="500px">
+`;

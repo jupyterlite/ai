@@ -1,3 +1,4 @@
+export default `
 <i class="fas fa-exclamation-triangle"></i> Support for ChromeAI is still experimental and only available in Google Chrome.
 
 You can test ChromeAI is enabled in your browser by going to the following URL: <https://chromeai.org/>
@@ -20,3 +21,4 @@ Then restart Chrome for these changes to take effect.
 During the download, ChromeAI may not be available via the extension.
 
 <i class="fa fa-info-circle" aria-hidden="true"></i> For more information about Chrome Built-in AI: <https://developer.chrome.com/docs/ai/get-started>
+`;

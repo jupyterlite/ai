@@ -22,8 +22,8 @@ import MistralAISettings from './MistralAI/settings-schema.json';
 import OpenAISettings from './OpenAI/settings-schema.json';
 
 // Import instructions
-import ChromeAIInstructions from './ChromeAI/instructions.md';
-import MistralAIInstructions from './MistralAI/instructions.md';
+import ChromeAIInstructions from './ChromeAI/instructions';
+import MistralAIInstructions from './MistralAI/instructions';
 
 // Build the AIProvider list
 const AIProviders: IAIProvider[] = [
