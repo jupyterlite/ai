@@ -42,10 +42,7 @@
                           "description": "The type of the content part."
                         }
                       },
-                      "required": [
-                        "text",
-                        "type"
-                      ],
+                      "required": ["text", "type"],
                       "additionalProperties": false,
                       "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
                     }
@@ -63,10 +60,7 @@
                 "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
               }
             },
-            "required": [
-              "content",
-              "role"
-            ],
+            "required": ["content", "role"],
             "additionalProperties": false,
             "description": "Developer-provided instructions that the model should follow, regardless of messages sent by the user. With o1 models and newer, `developer` messages replace the previous `system` messages."
           },
@@ -93,10 +87,7 @@
                           "description": "The type of the content part."
                         }
                       },
-                      "required": [
-                        "text",
-                        "type"
-                      ],
+                      "required": ["text", "type"],
                       "additionalProperties": false,
                       "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
                     }
@@ -114,10 +105,7 @@
                 "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
               }
             },
-            "required": [
-              "content",
-              "role"
-            ],
+            "required": ["content", "role"],
             "additionalProperties": false,
             "description": "Developer-provided instructions that the model should follow, regardless of messages sent by the user. With o1 models and newer, use `developer` messages for this purpose instead."
           },
@@ -146,10 +134,7 @@
                               "description": "The type of the content part."
                             }
                           },
-                          "required": [
-                            "text",
-                            "type"
-                          ],
+                          "required": ["text", "type"],
                           "additionalProperties": false,
                           "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
                         },
@@ -165,17 +150,11 @@
                                 },
                                 "detail": {
                                   "type": "string",
-                                  "enum": [
-                                    "auto",
-                                    "low",
-                                    "high"
-                                  ],
+                                  "enum": ["auto", "low", "high"],
                                   "description": "Specifies the detail level of the image. Learn more in the [Vision guide](https://platform.openai.com/docs/guides/vision#low-or-high-fidelity-image-understanding)."
                                 }
                               },
-                              "required": [
-                                "url"
-                              ],
+                              "required": ["url"],
                               "additionalProperties": false
                             },
                             "type": {
@@ -184,10 +163,7 @@
                               "description": "The type of the content part."
                             }
                           },
-                          "required": [
-                            "image_url",
-                            "type"
-                          ],
+                          "required": ["image_url", "type"],
                           "additionalProperties": false,
                           "description": "Learn about [image inputs](https://platform.openai.com/docs/guides/vision)."
                         },
@@ -203,17 +179,11 @@
                                 },
                                 "format": {
                                   "type": "string",
-                                  "enum": [
-                                    "wav",
-                                    "mp3"
-                                  ],
+                                  "enum": ["wav", "mp3"],
                                   "description": "The format of the encoded audio data. Currently supports \"wav\" and \"mp3\"."
                                 }
                               },
-                              "required": [
-                                "data",
-                                "format"
-                              ],
+                              "required": ["data", "format"],
                               "additionalProperties": false
                             },
                             "type": {
@@ -222,10 +192,7 @@
                               "description": "The type of the content part. Always `input_audio`."
                             }
                           },
-                          "required": [
-                            "input_audio",
-                            "type"
-                          ],
+                          "required": ["input_audio", "type"],
                           "additionalProperties": false,
                           "description": "Learn about [audio inputs](https://platform.openai.com/docs/guides/audio)."
                         }
@@ -246,10 +213,7 @@
                 "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
               }
             },
-            "required": [
-              "content",
-              "role"
-            ],
+            "required": ["content", "role"],
             "additionalProperties": false,
             "description": "Messages sent by an end user, containing prompts or additional context information."
           },
@@ -271,9 +235,7 @@
                         "description": "Unique identifier for a previous audio response from the model."
                       }
                     },
-                    "required": [
-                      "id"
-                    ],
+                    "required": ["id"],
                     "additionalProperties": false,
                     "description": "Data about a previous audio response from the model. [Learn more](https://platform.openai.com/docs/guides/audio)."
                   },
@@ -305,10 +267,7 @@
                               "description": "The type of the content part."
                             }
                           },
-                          "required": [
-                            "text",
-                            "type"
-                          ],
+                          "required": ["text", "type"],
                           "additionalProperties": false,
                           "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
                         },
@@ -325,10 +284,7 @@
                               "description": "The type of the content part."
                             }
                           },
-                          "required": [
-                            "refusal",
-                            "type"
-                          ],
+                          "required": ["refusal", "type"],
                           "additionalProperties": false
                         }
                       ]
@@ -354,10 +310,7 @@
                         "description": "The name of the function to call."
                       }
                     },
-                    "required": [
-                      "arguments",
-                      "name"
-                    ],
+                    "required": ["arguments", "name"],
                     "additionalProperties": false,
                     "deprecated": "Deprecated and replaced by `tool_calls`. The name and arguments of a\nfunction that should be called, as generated by the model."
                   },
@@ -372,10 +325,7 @@
                 "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
               },
               "refusal": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "description": "The refusal message by the assistant."
               },
               "tool_calls": {
@@ -399,10 +349,7 @@
                           "description": "The name of the function to call."
                         }
                       },
-                      "required": [
-                        "arguments",
-                        "name"
-                      ],
+                      "required": ["arguments", "name"],
                       "additionalProperties": false,
                       "description": "The function that the model called."
                     },
@@ -412,19 +359,13 @@
                       "description": "The type of the tool. Currently, only `function` is supported."
                     }
                   },
-                  "required": [
-                    "id",
-                    "function",
-                    "type"
-                  ],
+                  "required": ["id", "function", "type"],
                   "additionalProperties": false
                 },
                 "description": "The tool calls generated by the model, such as function calls."
               }
             },
-            "required": [
-              "role"
-            ],
+            "required": ["role"],
             "additionalProperties": false,
             "description": "Messages sent by the model in response to user messages."
           },
@@ -451,10 +392,7 @@
                           "description": "The type of the content part."
                         }
                       },
-                      "required": [
-                        "text",
-                        "type"
-                      ],
+                      "required": ["text", "type"],
                       "additionalProperties": false,
                       "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
                     }
@@ -472,21 +410,14 @@
                 "description": "Tool call that this message is responding to."
               }
             },
-            "required": [
-              "content",
-              "role",
-              "tool_call_id"
-            ],
+            "required": ["content", "role", "tool_call_id"],
             "additionalProperties": false
           },
           {
             "type": "object",
             "properties": {
               "content": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "description": "The contents of the function message."
               },
               "name": {
@@ -499,11 +430,7 @@
                 "description": "The role of the messages author, in this case `function`."
               }
             },
-            "required": [
-              "content",
-              "name",
-              "role"
-            ],
+            "required": ["content", "name", "role"],
             "additionalProperties": false,
             "deprecated": true
           }
@@ -524,10 +451,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "text",
-          "audio"
-        ]
+        "enum": ["text", "audio"]
       },
       "description": "Output types that you would like the model to generate for this request. Most models are capable of generating text, which is the default:\n\n`[\"text\"]`\n\nThe `gpt-4o-audio-preview` model can also be used to [generate audio](https://platform.openai.com/docs/guides/audio). To request that this model generate both text and audio responses, you can use:\n\n`[\"text\", \"audio\"]`"
     },
@@ -536,13 +460,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": [
-            "wav",
-            "mp3",
-            "flac",
-            "opus",
-            "pcm16"
-          ],
+          "enum": ["wav", "mp3", "flac", "opus", "pcm16"],
           "description": "Specifies the output audio format. Must be one of `wav`, `mp3`, `flac`, `opus`, or `pcm16`."
         },
         "voice": {
@@ -560,20 +478,13 @@
           "description": "The voice the model uses to respond. Supported voices are `ash`, `ballad`, `coral`, `sage`, and `verse` (also supported but not recommended are `alloy`, `echo`, and `shimmer`; these voices are less expressive)."
         }
       },
-      "required": [
-        "format",
-        "voice"
-      ],
+      "required": ["format", "voice"],
       "additionalProperties": false,
       "description": "Parameters for audio output. Required when audio output is requested with `modalities: [\"audio\"]`. [Learn more](https://platform.openai.com/docs/guides/audio)."
     },
     "reasoningEffort": {
       "type": "string",
-      "enum": [
-        "low",
-        "medium",
-        "high"
-      ],
+      "enum": ["low", "medium", "high"],
       "description": "Constrains effort on reasoning for reasoning models. Currently supported values are low, medium, and high. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response."
     },
     "temperature": {

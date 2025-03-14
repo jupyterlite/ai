@@ -2,7 +2,7 @@ const fs = require('fs');
 const tsj = require('ts-json-schema-generator');
 const path = require('path');
 
-const providersDir = 'src/default_providers';
+const providersDir = 'src/default-providers';
 
 const error = [];
 let generate = false;
@@ -10,7 +10,7 @@ if (process.argv.length >= 3) {
   if (process.argv[2] === '--generate') {
     generate = true;
   } else {
-    throw Error(`Argument '${process.argv[2]}' is not valid.`)
+    throw Error(`Argument '${process.argv[2]}' is not valid.`);
   }
 }
 
@@ -157,9 +157,11 @@ Object.entries(providers).forEach(([name, desc], index) => {
       }
     });
   } else {
-    const currentContent = fs.readFileSync(outputPath, {encoding: 'utf-8'});
+    const currentContent = fs.readFileSync(outputPath, { encoding: 'utf-8' });
     if (currentContent !== schemaString) {
-      error.push(`The content of ${name} settings does not match with the generated one.`)
+      error.push(
+        `The content of ${name} settings does not match with the generated one.`
+      );
     }
   }
 });
@@ -169,7 +171,7 @@ if (generate) {
   console.log('=====================\n');
 } else if (error.length) {
   console.error(error.join('\n'));
-  console.error('Please run "jlpm settings:build" to fix it')
+  console.error('Please run "jlpm settings:build" to fix it');
   throw Error('Errors in settings schemas');
 } else {
   console.log('Settings schemas checked successfully\n');

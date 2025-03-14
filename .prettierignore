@@ -5,3 +5,4 @@ node_modules
 !/package.json
 jupyterlite_ai
 .venv
+src/default-providers/**/settings_schema.json

@@ -21,7 +21,7 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
-import { defaultProviderPlugins } from './default_providers';
+import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { IAIProviderRegistry } from './tokens';
