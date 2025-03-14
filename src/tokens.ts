@@ -3,7 +3,7 @@ import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
 
-import { IBaseCompleter } from './llm-models';
+import { IBaseCompleter } from './base-completer';
 
 export interface IDict<T = any> {
   [key: string]: T;

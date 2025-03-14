@@ -1,0 +1,668 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "disableStreaming": {
+      "type": "boolean",
+      "description": "Whether to disable streaming.\n\nIf streaming is bypassed, then `stream()` will defer to `invoke()`.\n\n- If true, will always bypass streaming case.\n- If false (default), will always use streaming case if available."
+    },
+    "logprobs": {
+      "type": "boolean",
+      "description": "Whether to return log probabilities of the output tokens or not. If true, returns the log probabilities of each output token returned in the content of message."
+    },
+    "topLogprobs": {
+      "type": "number",
+      "description": "An integer between 0 and 5 specifying the number of most likely tokens to return at each token position, each with an associated log probability. logprobs must be set to true if this parameter is used."
+    },
+    "prefixMessages": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "description": "The text content."
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "text",
+                          "description": "The type of the content part."
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "type"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                    }
+                  }
+                ],
+                "description": "The contents of the developer message."
+              },
+              "role": {
+                "type": "string",
+                "const": "developer",
+                "description": "The role of the messages author, in this case `developer`."
+              },
+              "name": {
+                "type": "string",
+                "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
+              }
+            },
+            "required": [
+              "content",
+              "role"
+            ],
+            "additionalProperties": false,
+            "description": "Developer-provided instructions that the model should follow, regardless of messages sent by the user. With o1 models and newer, `developer` messages replace the previous `system` messages."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "description": "The text content."
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "text",
+                          "description": "The type of the content part."
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "type"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                    }
+                  }
+                ],
+                "description": "The contents of the system message."
+              },
+              "role": {
+                "type": "string",
+                "const": "system",
+                "description": "The role of the messages author, in this case `system`."
+              },
+              "name": {
+                "type": "string",
+                "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
+              }
+            },
+            "required": [
+              "content",
+              "role"
+            ],
+            "additionalProperties": false,
+            "description": "Developer-provided instructions that the model should follow, regardless of messages sent by the user. With o1 models and newer, use `developer` messages for this purpose instead."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "description": "The text content."
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "text",
+                              "description": "The type of the content part."
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "type"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "image_url": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "description": "Either a URL of the image or the base64 encoded image data."
+                                },
+                                "detail": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "low",
+                                    "high"
+                                  ],
+                                  "description": "Specifies the detail level of the image. Learn more in the [Vision guide](https://platform.openai.com/docs/guides/vision#low-or-high-fidelity-image-understanding)."
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "image_url",
+                              "description": "The type of the content part."
+                            }
+                          },
+                          "required": [
+                            "image_url",
+                            "type"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Learn about [image inputs](https://platform.openai.com/docs/guides/vision)."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "input_audio": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "string",
+                                  "description": "Base64 encoded audio data."
+                                },
+                                "format": {
+                                  "type": "string",
+                                  "enum": [
+                                    "wav",
+                                    "mp3"
+                                  ],
+                                  "description": "The format of the encoded audio data. Currently supports \"wav\" and \"mp3\"."
+                                }
+                              },
+                              "required": [
+                                "data",
+                                "format"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "input_audio",
+                              "description": "The type of the content part. Always `input_audio`."
+                            }
+                          },
+                          "required": [
+                            "input_audio",
+                            "type"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Learn about [audio inputs](https://platform.openai.com/docs/guides/audio)."
+                        }
+                      ],
+                      "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                    }
+                  }
+                ],
+                "description": "The contents of the user message."
+              },
+              "role": {
+                "type": "string",
+                "const": "user",
+                "description": "The role of the messages author, in this case `user`."
+              },
+              "name": {
+                "type": "string",
+                "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
+              }
+            },
+            "required": [
+              "content",
+              "role"
+            ],
+            "additionalProperties": false,
+            "description": "Messages sent by an end user, containing prompts or additional context information."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "assistant",
+                "description": "The role of the messages author, in this case `assistant`."
+              },
+              "audio": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Unique identifier for a previous audio response from the model."
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Data about a previous audio response from the model. [Learn more](https://platform.openai.com/docs/guides/audio)."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Data about a previous audio response from the model. [Learn more](https://platform.openai.com/docs/guides/audio)."
+              },
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "description": "The text content."
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "text",
+                              "description": "The type of the content part."
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "type"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "refusal": {
+                              "type": "string",
+                              "description": "The refusal message generated by the model."
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "refusal",
+                              "description": "The type of the content part."
+                            }
+                          },
+                          "required": [
+                            "refusal",
+                            "type"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The contents of the assistant message. Required unless `tool_calls` or `function_call` is specified."
+              },
+              "function_call": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "arguments": {
+                        "type": "string",
+                        "description": "The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function."
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the function to call."
+                      }
+                    },
+                    "required": [
+                      "arguments",
+                      "name"
+                    ],
+                    "additionalProperties": false,
+                    "deprecated": "Deprecated and replaced by `tool_calls`. The name and arguments of a\nfunction that should be called, as generated by the model."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "deprecated": "Deprecated and replaced by `tool_calls`. The name and arguments of a\nfunction that should be called, as generated by the model."
+              },
+              "name": {
+                "type": "string",
+                "description": "An optional name for the participant. Provides the model information to differentiate between participants of the same role."
+              },
+              "refusal": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The refusal message by the assistant."
+              },
+              "tool_calls": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The ID of the tool call."
+                    },
+                    "function": {
+                      "type": "object",
+                      "properties": {
+                        "arguments": {
+                          "type": "string",
+                          "description": "The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function."
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the function to call."
+                        }
+                      },
+                      "required": [
+                        "arguments",
+                        "name"
+                      ],
+                      "additionalProperties": false,
+                      "description": "The function that the model called."
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "function",
+                      "description": "The type of the tool. Currently, only `function` is supported."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "function",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "The tool calls generated by the model, such as function calls."
+              }
+            },
+            "required": [
+              "role"
+            ],
+            "additionalProperties": false,
+            "description": "Messages sent by the model in response to user messages."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "description": "The text content."
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "text",
+                          "description": "The type of the content part."
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "type"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation)."
+                    }
+                  }
+                ],
+                "description": "The contents of the tool message."
+              },
+              "role": {
+                "type": "string",
+                "const": "tool",
+                "description": "The role of the messages author, in this case `tool`."
+              },
+              "tool_call_id": {
+                "type": "string",
+                "description": "Tool call that this message is responding to."
+              }
+            },
+            "required": [
+              "content",
+              "role",
+              "tool_call_id"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The contents of the function message."
+              },
+              "name": {
+                "type": "string",
+                "description": "The name of the function to call."
+              },
+              "role": {
+                "type": "string",
+                "const": "function",
+                "description": "The role of the messages author, in this case `function`."
+              }
+            },
+            "required": [
+              "content",
+              "name",
+              "role"
+            ],
+            "additionalProperties": false,
+            "deprecated": true
+          }
+        ],
+        "description": "Developer-provided instructions that the model should follow, regardless of messages sent by the user. With o1 models and newer, `developer` messages replace the previous `system` messages."
+      },
+      "description": "ChatGPT messages to pass as a prefix to the prompt"
+    },
+    "__includeRawResponse": {
+      "type": "boolean",
+      "description": "Whether to include the raw OpenAI response in the output message's \"additional_kwargs\" field. Currently in experimental beta."
+    },
+    "supportsStrictToolCalling": {
+      "type": "boolean",
+      "description": "Whether the model supports the `strict` argument when passing in tools. If `undefined` the `strict` argument will not be passed to OpenAI."
+    },
+    "modalities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "text",
+          "audio"
+        ]
+      },
+      "description": "Output types that you would like the model to generate for this request. Most models are capable of generating text, which is the default:\n\n`[\"text\"]`\n\nThe `gpt-4o-audio-preview` model can also be used to [generate audio](https://platform.openai.com/docs/guides/audio). To request that this model generate both text and audio responses, you can use:\n\n`[\"text\", \"audio\"]`"
+    },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "wav",
+            "mp3",
+            "flac",
+            "opus",
+            "pcm16"
+          ],
+          "description": "Specifies the output audio format. Must be one of `wav`, `mp3`, `flac`, `opus`, or `pcm16`."
+        },
+        "voice": {
+          "type": "string",
+          "enum": [
+            "alloy",
+            "ash",
+            "ballad",
+            "coral",
+            "echo",
+            "sage",
+            "shimmer",
+            "verse"
+          ],
+          "description": "The voice the model uses to respond. Supported voices are `ash`, `ballad`, `coral`, `sage`, and `verse` (also supported but not recommended are `alloy`, `echo`, and `shimmer`; these voices are less expressive)."
+        }
+      },
+      "required": [
+        "format",
+        "voice"
+      ],
+      "additionalProperties": false,
+      "description": "Parameters for audio output. Required when audio output is requested with `modalities: [\"audio\"]`. [Learn more](https://platform.openai.com/docs/guides/audio)."
+    },
+    "reasoningEffort": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Constrains effort on reasoning for reasoning models. Currently supported values are low, medium, and high. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response."
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Sampling temperature to use"
+    },
+    "maxTokens": {
+      "type": "number",
+      "description": "Maximum number of tokens to generate in the completion. -1 returns as many tokens as possible given the prompt and the model's maximum context size."
+    },
+    "maxCompletionTokens": {
+      "type": "number",
+      "description": "Maximum number of tokens to generate in the completion. -1 returns as many tokens as possible given the prompt and the model's maximum context size. Alias for `maxTokens` for reasoning models."
+    },
+    "topP": {
+      "type": "number",
+      "description": "Total probability mass of tokens to consider at each step"
+    },
+    "frequencyPenalty": {
+      "type": "number",
+      "description": "Penalizes repeated tokens according to frequency"
+    },
+    "presencePenalty": {
+      "type": "number",
+      "description": "Penalizes repeated tokens"
+    },
+    "n": {
+      "type": "number",
+      "description": "Number of completions to generate for each prompt"
+    },
+    "logitBias": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Dictionary used to adjust the probability of specific tokens being generated"
+    },
+    "user": {
+      "type": "string",
+      "description": "Unique string identifier representing your end-user, which can help OpenAI to monitor and detect abuse."
+    },
+    "streaming": {
+      "type": "boolean",
+      "description": "Whether to stream the results or not. Enabling disables tokenUsage reporting"
+    },
+    "streamUsage": {
+      "type": "boolean",
+      "description": "Whether or not to include token usage data in streamed chunks.",
+      "default": false
+    },
+    "modelName": {
+      "type": "string",
+      "description": "Model name to use Alias for `model`",
+      "deprecated": "Use \"model\" instead."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model name to use"
+    },
+    "modelKwargs": {
+      "type": "object",
+      "description": "Holds any additional parameters that are valid to pass to  {@link  * https://platform.openai.com/docs/api-reference/completions/create | }      * `openai.createCompletion`} that are not explicitly specified on this class."
+    },
+    "stop": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of stop words to use when generating Alias for `stopSequences`"
+    },
+    "stopSequences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of stop words to use when generating"
+    },
+    "timeout": {
+      "type": "number",
+      "description": "Timeout to use when making requests to OpenAI."
+    },
+    "openAIApiKey": {
+      "type": "string",
+      "description": "API key to use when making requests to OpenAI. Defaults to the value of `OPENAI_API_KEY` environment variable. Alias for `apiKey`"
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "API key to use when making requests to OpenAI. Defaults to the value of `OPENAI_API_KEY` environment variable."
+    }
+  },
+  "definitions": {}
+}

@@ -2,13 +2,9 @@ const fs = require('fs');
 const tsj = require('ts-json-schema-generator');
 const path = require('path');
 
-console.log('Building settings schema\n');
+console.log('Building settings schemas\n');
 
-const schemasDir = 'src/settings/schemas';
-const outputDir = path.join(schemasDir, '/_generated');
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir);
-}
+const providersDir = 'src/default_providers';
 
 // Build the langchain BaseLanguageModelParams object
 const configBase = {
@@ -32,6 +28,11 @@ const schemaBase = tsj
  *     to exclude them at the moment, to be able to build other settings.
  */
 const providers = {
+  Anthropic: {
+    path: 'node_modules/@langchain/anthropic/dist/chat_models.d.ts',
+    type: 'AnthropicInput',
+    excludedProps: ['clientOptions']
+  },
   ChromeAI: {
     path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
     type: 'ChromeAIInputs'
@@ -39,11 +40,6 @@ const providers = {
   MistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
-  },
-  Anthropic: {
-    path: 'node_modules/@langchain/anthropic/dist/chat_models.d.ts',
-    type: 'AnthropicInput',
-    excludedProps: ['clientOptions']
   },
   OpenAI: {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
@@ -53,6 +49,10 @@ const providers = {
 };
 
 Object.entries(providers).forEach(([name, desc], index) => {
+  const outputDir = path.join(providersDir, name);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
   // The configuration doesn't include functions, which may probably not be filled
   // from the settings panel.
   const config = {
@@ -63,7 +63,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
     topRef: false
   };
 
-  const outputPath = path.join(outputDir, `${name}.json`);
+  const outputPath = path.join(outputDir, 'settings-schema.json');
 
   const generator = tsj.createGenerator(config);
   let schema;
@@ -139,29 +139,29 @@ Object.entries(providers).forEach(([name, desc], index) => {
   });
 });
 
-// Build the index.ts file
-const indexContent = ["import { IDict } from '../../tokens';", ''];
-Object.keys(providers).forEach(name => {
-  indexContent.push(`import ${name} from './_generated/${name}.json';`);
-});
+// // Build the index.ts file
+// const indexContent = ["import { IDict } from '../../tokens';", ''];
+// Object.keys(providers).forEach(name => {
+//   indexContent.push(`import ${name} from './_generated/${name}.json';`);
+// });
 
-indexContent.push('', 'const ProviderSettings: IDict<any> = {');
+// indexContent.push('', 'const ProviderSettings: IDict<any> = {');
 
-Object.keys(providers).forEach((name, index) => {
-  indexContent.push(
-    `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
-  );
-});
-indexContent.push('};', '', 'export { ProviderSettings };', '');
-fs.writeFile(
-  path.join(schemasDir, 'index.ts'),
-  indexContent.join('\n'),
-  err => {
-    if (err) {
-      throw err;
-    }
-  }
-);
+// Object.keys(providers).forEach((name, index) => {
+//   indexContent.push(
+//     `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
+//   );
+// });
+// indexContent.push('};', '', 'export { ProviderSettings };', '');
+// fs.writeFile(
+//   path.join(providersDir, 'index.ts'),
+//   indexContent.join('\n'),
+//   err => {
+//     if (err) {
+//       throw err;
+//     }
+//   }
+// );
 
-console.log('Settings schema built\n');
+console.log('Settings schemas built\n');
 console.log('=====================\n');
