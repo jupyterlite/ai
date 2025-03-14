@@ -2,9 +2,23 @@ const fs = require('fs');
 const tsj = require('ts-json-schema-generator');
 const path = require('path');
 
-console.log('Building settings schemas\n');
-
 const providersDir = 'src/default_providers';
+
+const error = [];
+let generate = false;
+if (process.argv.length >= 3) {
+  if (process.argv[2] === '--generate') {
+    generate = true;
+  } else {
+    throw Error(`Argument '${process.argv[2]}' is not valid.`)
+  }
+}
+
+if (generate) {
+  console.log('Building settings schemas\n');
+} else {
+  console.log('Checking settings schemas\n');
+}
 
 // Build the langchain BaseLanguageModelParams object
 const configBase = {
@@ -50,9 +64,11 @@ const providers = {
 
 Object.entries(providers).forEach(([name, desc], index) => {
   const outputDir = path.join(providersDir, name);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir);
+  const outputPath = path.join(outputDir, 'settings-schema.json');
+  if (!generate && !fs.existsSync(outputPath)) {
+    throw Error(`${outputPath} does not exist`);
   }
+
   // The configuration doesn't include functions, which may probably not be filled
   // from the settings panel.
   const config = {
@@ -62,8 +78,6 @@ Object.entries(providers).forEach(([name, desc], index) => {
     functions: 'hide',
     topRef: false
   };
-
-  const outputPath = path.join(outputDir, 'settings-schema.json');
 
   const generator = tsj.createGenerator(config);
   let schema;
@@ -130,38 +144,33 @@ Object.entries(providers).forEach(([name, desc], index) => {
     }
   });
 
-  // Write JSON file.
-  const schemaString = JSON.stringify(schema, null, 2);
-  fs.writeFile(outputPath, schemaString, err => {
-    if (err) {
-      throw err;
+  let schemaString = JSON.stringify(schema, null, 2);
+  schemaString += '\n';
+  if (generate) {
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir);
     }
-  });
+    // Write JSON file.
+    fs.writeFile(outputPath, schemaString, err => {
+      if (err) {
+        throw err;
+      }
+    });
+  } else {
+    const currentContent = fs.readFileSync(outputPath, {encoding: 'utf-8'});
+    if (currentContent !== schemaString) {
+      error.push(`The content of ${name} settings does not match with the generated one.`)
+    }
+  }
 });
 
-// // Build the index.ts file
-// const indexContent = ["import { IDict } from '../../tokens';", ''];
-// Object.keys(providers).forEach(name => {
-//   indexContent.push(`import ${name} from './_generated/${name}.json';`);
-// });
-
-// indexContent.push('', 'const ProviderSettings: IDict<any> = {');
-
-// Object.keys(providers).forEach((name, index) => {
-//   indexContent.push(
-//     `  ${name}` + (index < Object.keys(providers).length - 1 ? ',' : '')
-//   );
-// });
-// indexContent.push('};', '', 'export { ProviderSettings };', '');
-// fs.writeFile(
-//   path.join(providersDir, 'index.ts'),
-//   indexContent.join('\n'),
-//   err => {
-//     if (err) {
-//       throw err;
-//     }
-//   }
-// );
-
-console.log('Settings schemas built\n');
-console.log('=====================\n');
+if (generate) {
+  console.log('Settings schemas built\n');
+  console.log('=====================\n');
+} else if (error.length) {
+  console.error(error.join('\n'));
+  console.error('Please run "jlpm settings:build" to fix it')
+  throw Error('Errors in settings schemas');
+} else {
+  console.log('Settings schemas checked successfully\n');
+}
