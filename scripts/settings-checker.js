@@ -4,7 +4,7 @@ const path = require('path');
 
 const providersDir = 'src/default-providers';
 
-const error = [];
+let checkError = false;
 let generate = false;
 if (process.argv.length >= 3) {
   if (process.argv[2] === '--generate') {
@@ -159,9 +159,10 @@ Object.entries(providers).forEach(([name, desc], index) => {
   } else {
     const currentContent = fs.readFileSync(outputPath, { encoding: 'utf-8' });
     if (currentContent !== schemaString) {
-      error.push(
-        `The content of ${name} settings does not match with the generated one.`
-      );
+      checkError = true;
+      console.log(`\x1b[31mX \x1b[0m${name}`);
+    } else {
+      console.log(`\x1b[32m\u2713 \x1b[0m${name}`);
     }
   }
 });
@@ -169,10 +170,9 @@ Object.entries(providers).forEach(([name, desc], index) => {
 if (generate) {
   console.log('Settings schemas built\n');
   console.log('=====================\n');
-} else if (error.length) {
-  console.error(error.join('\n'));
-  console.error('Please run "jlpm settings:build" to fix it');
-  throw Error('Errors in settings schemas');
+} else if (checkError) {
+  console.error('Please run "jlpm settings:build" to fix it.');
+  process.exit(1);
 } else {
   console.log('Settings schemas checked successfully\n');
 }
