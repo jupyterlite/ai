@@ -21,7 +21,7 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
-import { AIProviders } from './llm-models';
+import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { IAIProviderRegistry } from './tokens';
@@ -177,9 +177,6 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
         );
       });
 
-    // Initialize the registry with the default providers
-    AIProviders.forEach(provider => providerRegistry.add(provider));
-
     return providerRegistry;
   }
 };
@@ -188,5 +185,6 @@ export default [
   providerRegistryPlugin,
   chatCommandRegistryPlugin,
   chatPlugin,
-  completerPlugin
+  completerPlugin,
+  ...defaultProviderPlugins
 ];

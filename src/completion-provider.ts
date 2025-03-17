@@ -4,7 +4,7 @@ import {
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
 
-import { IBaseCompleter } from './llm-models';
+import { IBaseCompleter } from './base-completer';
 import { IAIProviderRegistry } from './tokens';
 
 /**

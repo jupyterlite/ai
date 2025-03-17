@@ -10,7 +10,7 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React from 'react';
 
-import baseSettings from './schemas/base.json';
+import baseSettings from './base.json';
 import { IAIProviderRegistry, IDict } from '../tokens';
 
 const SECRETS_NAMESPACE = '@jupyterlite/ai';

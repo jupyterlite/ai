@@ -81,7 +81,6 @@ jobs:
         jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
         python -m jupyterlab.browser_check --no-browser-test
 
-
   check_links:
     name: Check Links
     runs-on: ubuntu-latest
@@ -90,3 +89,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
+
+  check_settings:
+    name: Check default provider settings
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+    - name: Install jupyterlab
+      run: python -m pip install -U "jupyterlab>=4.0.0,<5"
+    - name: Install node packages
+      run: jlpm install
+    - name: Check the settings
+      run: jlpm settings:check

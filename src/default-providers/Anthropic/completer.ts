@@ -2,20 +2,20 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
-import { ChatOpenAI } from '@langchain/openai';
 
-import { BaseCompleter, IBaseCompleter } from './base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../provider';
+import { BaseCompleter, IBaseCompleter } from '../../base-completer';
+import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
-export class OpenAICompleter implements IBaseCompleter {
+export class AnthropicCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._openAIProvider = new ChatOpenAI({ ...options.settings });
+    this._anthropicProvider = new ChatAnthropic({ ...options.settings });
   }
 
   get provider(): BaseChatModel {
-    return this._openAIProvider;
+    return this._anthropicProvider;
   }
 
   /**
@@ -35,11 +35,19 @@ export class OpenAICompleter implements IBaseCompleter {
     const { text, offset: cursorOffset } = request;
     const prompt = text.slice(0, cursorOffset);
 
-    const messages = [new SystemMessage(this._prompt), new AIMessage(prompt)];
+    // Anthropic does not allow whitespace at the end of the AIMessage
+    const trimmedPrompt = prompt.trim();
+
+    const messages = [
+      new SystemMessage(this._prompt),
+      new AIMessage(trimmedPrompt)
+    ];
 
     try {
-      const response = await this._openAIProvider.invoke(messages);
+      const response = await this._anthropicProvider.invoke(messages);
       const items = [];
+
+      // Anthropic can return string or complex content, a list of string/images/other.
       if (typeof response.content === 'string') {
         items.push({
           insertText: response.content
@@ -51,7 +59,7 @@ export class OpenAICompleter implements IBaseCompleter {
           }
           items.push({
             insertText: content.text,
-            filterText: prompt.substring(prompt.length)
+            filterText: prompt.substring(trimmedPrompt.length)
           });
         });
       }
@@ -62,6 +70,6 @@ export class OpenAICompleter implements IBaseCompleter {
     }
   }
 
-  private _openAIProvider: ChatOpenAI;
+  private _anthropicProvider: ChatAnthropic;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }

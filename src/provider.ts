@@ -4,7 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
-import { IBaseCompleter } from './llm-models';
+import { IBaseCompleter } from './base-completer';
 import { IAIProvider, IAIProviderRegistry } from './tokens';
 import { JSONSchema7 } from 'json-schema';
 
