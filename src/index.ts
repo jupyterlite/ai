@@ -14,7 +14,10 @@ import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import {
+  ISettingConnector,
+  ISettingRegistry
+} from '@jupyterlab/settingregistry';
 import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ISecretsManager } from 'jupyter-secrets-manager';
@@ -25,6 +28,7 @@ import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { IAIProviderRegistry } from './tokens';
+import { SettingConnector } from './settings/settings-connector';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: '@jupyterlite/ai:autocompletion-registry',
@@ -138,21 +142,28 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
   id: '@jupyterlite/ai:provider-registry',
   autoStart: true,
   requires: [IFormRendererRegistry, ISettingRegistry],
-  optional: [IRenderMimeRegistry, ISecretsManager],
+  optional: [IRenderMimeRegistry, ISecretsManager, ISettingConnector],
   provides: IAIProviderRegistry,
   activate: (
     app: JupyterFrontEnd,
     editorRegistry: IFormRendererRegistry,
     settingRegistry: ISettingRegistry,
     rmRegistry?: IRenderMimeRegistry,
-    secretsManager?: ISecretsManager
+    secretsManager?: ISecretsManager,
+    settingConnector?: ISettingConnector
   ): IAIProviderRegistry => {
     const providerRegistry = new AIProviderRegistry();
 
     editorRegistry.addRenderer(
       '@jupyterlite/ai:provider-registry.AIprovider',
-      aiSettingsRenderer({ providerRegistry, rmRegistry, secretsManager })
+      aiSettingsRenderer({
+        providerRegistry,
+        rmRegistry,
+        secretsManager,
+        settingConnector
+      })
     );
+
     settingRegistry
       .load(providerRegistryPlugin.id)
       .then(settings => {
@@ -181,10 +192,25 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
   }
 };
 
+/**
+ * Provides the settings connector as a separate plugin to allow for alternative
+ * implementations that may want to fetch settings from a different source or
+ * endpoint.
+ */
+const settingsConnector: JupyterFrontEndPlugin<ISettingConnector> = {
+  id: '@jupyterlite/ai:settings-connector',
+  description: 'Provides a settings connector which does not save passwords.',
+  autoStart: true,
+  provides: ISettingConnector,
+  activate: (app: JupyterFrontEnd) =>
+    new SettingConnector(app.serviceManager.settings)
+};
+
 export default [
   providerRegistryPlugin,
   chatCommandRegistryPlugin,
   chatPlugin,
   completerPlugin,
+  settingsConnector,
   ...defaultProviderPlugins
 ];
