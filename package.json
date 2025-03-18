@@ -27,7 +27,7 @@
         "url": "https://github.com/jupyterlite/ai.git"
     },
     "scripts": {
-        "build": "jlpm settings:build && jlpm build:lib && jlpm build:labextension:dev",
+        "build": "jlpm build:lib && jlpm build:labextension:dev",
         "build:dev": "jlpm build:lib && jlpm build:labextension:dev",
         "build:prod": "jlpm settings:build && jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
         "build:labextension": "jupyter labextension build .",
