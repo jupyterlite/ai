@@ -29,9 +29,9 @@ dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 jupyter = [
-    "jupyterlab>=4.4.0a0",
+    "jupyterlab>=4.4.0b1",
     "jupyterlite>=0.6.0a0",
-    "notebook>=7.4.0a0"
+    "notebook>=7.4.0b1"
 ]
 
 [tool.hatch.version]
