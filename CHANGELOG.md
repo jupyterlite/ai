@@ -2,6 +2,32 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.5.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.4.0...f37fb548ee1c49f5600495ccb6be35ab976a3bce))
+
+### Enhancements made
+
+- Default providers refactoring [#58](https://github.com/jupyterlite/ai/pull/58) ([@brichet](https://github.com/brichet))
+- Use the secrets manager [#53](https://github.com/jupyterlite/ai/pull/53) ([@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Avoid building settings schemas when building javascript [#59](https://github.com/jupyterlite/ai/pull/59) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Default providers refactoring [#58](https://github.com/jupyterlite/ai/pull/58) ([@brichet](https://github.com/brichet))
+- Update @jupyter/chat to v0.8.1 [#57](https://github.com/jupyterlite/ai/pull/57) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-10&to=2025-03-21&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-10..2025-03-21&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.4.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.3.0...bd9c07a7fec2bfb62c6863a0aacdaefbf22bcd82))
@@ -17,8 +43,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-02-19&to=2025-03-10&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-02-19..2025-03-10&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.3.0
 
