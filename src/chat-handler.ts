@@ -139,9 +139,11 @@ export class ChatHandler extends ChatModel {
 
     let content = '';
 
+    this._controller = new AbortController();
     try {
       for await (const chunk of await this._providerRegistry.currentChatModel.stream(
-        messages
+        messages,
+        { signal: this._controller.signal }
       )) {
         content += chunk.content ?? chunk;
         botMsg.body = content;
@@ -162,6 +164,7 @@ export class ChatHandler extends ChatModel {
       return false;
     } finally {
       this.updateWriters([]);
+      this._controller = null;
     }
   }
 
@@ -177,12 +180,17 @@ export class ChatHandler extends ChatModel {
     super.messageAdded(message);
   }
 
+  stopStreaming(): void {
+    this._controller?.abort();
+  }
+
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _prompt: string;
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
   private _defaultErrorMessage = 'AI provider not configured';
+  private _controller: AbortController | null = null;
 }
 
 export namespace ChatHandler {
