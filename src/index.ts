@@ -4,7 +4,8 @@ import {
   buildErrorWidget,
   ChatCommandRegistry,
   IActiveCellManager,
-  IChatCommandRegistry
+  IChatCommandRegistry,
+  InputToolbarRegistry
 } from '@jupyter/chat';
 import {
   JupyterFrontEnd,
@@ -25,6 +26,7 @@ import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer } from './settings/panel';
 import { IAIProviderRegistry } from './tokens';
+import { stopItem } from './components/stop-button';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: '@jupyterlite/ai:autocompletion-registry',
@@ -99,12 +101,30 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       });
 
     let chatWidget: ReactWidget | null = null;
+
+    const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
+    const stopButton = stopItem(() => chatHandler.stopStreaming());
+    inputToolbarRegistry.addItem('stop', stopButton);
+
+    chatHandler.writersChanged.connect((_, users) => {
+      if (
+        users.filter(user => user.username === chatHandler.personaName).length
+      ) {
+        inputToolbarRegistry.hide('send');
+        inputToolbarRegistry.show('stop');
+      } else {
+        inputToolbarRegistry.hide('stop');
+        inputToolbarRegistry.show('send');
+      }
+    });
+
     try {
       chatWidget = buildChatSidebar({
         model: chatHandler,
         themeManager,
         rmRegistry,
-        chatCommandRegistry
+        chatCommandRegistry,
+        inputToolbarRegistry
       });
       chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
