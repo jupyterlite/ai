@@ -171,10 +171,10 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
           const providerSettings = (settings.get('AIprovider').composite ?? {
             provider: 'None'
           }) as ReadonlyPartialJSONObject;
-          providerRegistry.setProvider(
-            providerSettings.provider as string,
-            providerSettings
-          );
+          providerRegistry.setProvider({
+            name: providerSettings.provider as string,
+            settings: providerSettings
+          });
         };
 
         settings.changed.connect(() => updateProvider());

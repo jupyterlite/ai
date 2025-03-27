@@ -11,7 +11,12 @@ import {
   SECRETS_NAMESPACE,
   SECRETS_REPLACEMENT
 } from './settings';
-import { IAIProvider, IAIProviderRegistry, IDict } from './tokens';
+import {
+  IAIProvider,
+  IAIProviderRegistry,
+  IDict,
+  ISetProviderOptions
+} from './tokens';
 
 export const chatSystemPrompt = (
   options: AIProviderRegistry.IPromptOptions
@@ -68,6 +73,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       );
     }
     this._providers.set(provider.name, provider);
+
+    // Set the provider if the loading has been deferred.
+    if (provider.name === this._deferredProvider?.name) {
+      this.setProvider(this._deferredProvider);
+    }
   }
 
   /**
@@ -143,14 +153,18 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Set the providers (chat model and completer).
    * Creates the providers if the name has changed, otherwise only updates their config.
    *
-   * @param name - the name of the provider to use.
-   * @param settings - the settings for the models.
+   * @param options - An object with the name and the settings of the provider to use.
    */
-  async setProvider(
-    name: string,
-    settings: ReadonlyPartialJSONObject
-  ): Promise<void> {
+  async setProvider(options: ISetProviderOptions): Promise<void> {
+    const { name, settings } = options;
     this._currentProvider = this._providers.get(name) ?? null;
+    if (this._currentProvider === null) {
+      // The current provider may not be loaded when the settings are first loaded.
+      // Let's defer the provider loading.
+      this._deferredProvider = options;
+    } else {
+      this._deferredProvider = null;
+    }
 
     // Build a new settings object containing the secrets.
     const fullSettings: IDict = {};
@@ -210,6 +224,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   private _chatError: string = '';
   private _completerError: string = '';
   private _providers = new Map<string, IAIProvider>();
+  private _deferredProvider: ISetProviderOptions | null = null;
 }
 
 export namespace AIProviderRegistry {
