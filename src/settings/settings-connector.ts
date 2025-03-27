@@ -7,6 +7,8 @@ import { DataConnector, IDataConnector } from '@jupyterlab/statedb';
 import { Throttler } from '@lumino/polling';
 import * as json5 from 'json5';
 
+import { SECRETS_REPLACEMENT } from '.';
+
 /**
  * A data connector for fetching settings.
  *
@@ -70,9 +72,15 @@ export class SettingConnector
   async save(id: string, raw: string): Promise<void> {
     const settings = json5.parse(raw);
     this._doNotSave.forEach(field => {
-      delete settings['AIprovider']?.[field];
+      if (
+        settings['AIprovider'] !== undefined &&
+        settings['AIprovider'][field] !== undefined &&
+        settings['AIprovider'][field] !== ''
+      ) {
+        settings['AIprovider'][field] = SECRETS_REPLACEMENT;
+      }
     });
-    await this._connector.save(id, raw);
+    await this._connector.save(id, json5.stringify(settings, null, 2));
   }
 
   private _connector: IDataConnector<ISettingRegistry.IPlugin, string>;

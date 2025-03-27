@@ -26,9 +26,8 @@ import { ChatHandler } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
-import { aiSettingsRenderer } from './settings/panel';
+import { aiSettingsRenderer, SettingConnector } from './settings';
 import { IAIProviderRegistry } from './tokens';
-import { SettingConnector } from './settings/settings-connector';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: '@jupyterlite/ai:autocompletion-registry',
@@ -152,7 +151,7 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> = {
     secretsManager?: ISecretsManager,
     settingConnector?: ISettingConnector
   ): IAIProviderRegistry => {
-    const providerRegistry = new AIProviderRegistry();
+    const providerRegistry = new AIProviderRegistry({ secretsManager });
 
     editorRegistry.addRenderer(
       '@jupyterlite/ai:provider-registry.AIprovider',

@@ -13,11 +13,10 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React from 'react';
 
+import { getSecretId, SECRETS_NAMESPACE, SettingConnector } from '.';
 import baseSettings from './base.json';
-import { SettingConnector } from './settings-connector';
 import { IAIProviderRegistry, IDict } from '../tokens';
 
-const SECRETS_NAMESPACE = '@jupyterlite/ai';
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
@@ -136,7 +135,7 @@ export class AiSettings extends React.Component<
       if (inputs[i].type.toLowerCase() === 'password') {
         const label = inputs[i].getAttribute('label');
         if (label) {
-          const id = `${this._provider}-${label}`;
+          const id = getSecretId(this._provider, label);
           this._secretsManager.attach(
             SECRETS_NAMESPACE,
             id,

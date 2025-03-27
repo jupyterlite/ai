@@ -1,12 +1,17 @@
-import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+import { JSONSchema7 } from 'json-schema';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { IBaseCompleter } from './base-completer';
-import { IAIProvider, IAIProviderRegistry } from './tokens';
-import { JSONSchema7 } from 'json-schema';
+import {
+  getSecretId,
+  SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT
+} from './settings';
+import { IAIProvider, IAIProviderRegistry, IDict } from './tokens';
 
 export const chatSystemPrompt = (
   options: AIProviderRegistry.IPromptOptions
@@ -39,6 +44,13 @@ Do not include the prompt in the output, only the string that should be appended
 `;
 
 export class AIProviderRegistry implements IAIProviderRegistry {
+  /**
+   * The constructor of the provider registry.
+   */
+  constructor(options: AIProviderRegistry.IOptions) {
+    this._secretsManager = options.secretsManager || null;
+  }
+
   /**
    * Get the list of provider names.
    */
@@ -134,12 +146,29 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * @param name - the name of the provider to use.
    * @param settings - the settings for the models.
    */
-  setProvider(name: string, settings: ReadonlyPartialJSONObject): void {
+  async setProvider(
+    name: string,
+    settings: ReadonlyPartialJSONObject
+  ): Promise<void> {
     this._currentProvider = this._providers.get(name) ?? null;
+
+    // Build a new settings object containing the secrets.
+    const fullSettings: IDict = {};
+    for (const key of Object.keys(settings)) {
+      if (settings[key] === SECRETS_REPLACEMENT) {
+        const id = getSecretId(name, key);
+        const secrets = await this._secretsManager?.get(SECRETS_NAMESPACE, id);
+        fullSettings[key] = secrets?.value || settings[key];
+        continue;
+      }
+      fullSettings[key] = settings[key];
+    }
 
     if (this._currentProvider?.completer !== undefined) {
       try {
-        this._completer = new this._currentProvider.completer({ ...settings });
+        this._completer = new this._currentProvider.completer({
+          ...fullSettings
+        });
         this._completerError = '';
       } catch (e: any) {
         this._completerError = e.message;
@@ -150,7 +179,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
 
     if (this._currentProvider?.chatModel !== undefined) {
       try {
-        this._chatModel = new this._currentProvider.chatModel({ ...settings });
+        this._chatModel = new this._currentProvider.chatModel({
+          ...fullSettings
+        });
         this._chatError = '';
       } catch (e: any) {
         this._chatError = e.message;
@@ -170,6 +201,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     return this._providerChanged;
   }
 
+  private _secretsManager: ISecretsManager | null;
   private _currentProvider: IAIProvider | null = null;
   private _completer: IBaseCompleter | null = null;
   private _chatModel: BaseChatModel | null = null;
@@ -186,13 +218,9 @@ export namespace AIProviderRegistry {
    */
   export interface IOptions {
     /**
-     * The completion provider manager in which register the LLM completer.
+     * The secrets manager used in the application.
      */
-    completionProviderManager: ICompletionProviderManager;
-    /**
-     * The application commands registry.
-     */
-    requestCompletion: () => void;
+    secretsManager?: ISecretsManager;
   }
 
   /**
