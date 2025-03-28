@@ -85,10 +85,9 @@ export interface IAIProviderRegistry {
    * Set the providers (chat model and completer).
    * Creates the providers if the name has changed, otherwise only updates their config.
    *
-   * @param name - the name of the provider to use.
-   * @param settings - the settings for the models.
+   * @param options - an object with the name and the settings of the provider to use.
    */
-  setProvider(name: string, settings: ReadonlyPartialJSONObject): void;
+  setProvider(options: ISetProviderOptions): void;
   /**
    * A signal emitting when the provider or its settings has changed.
    */
@@ -101,6 +100,20 @@ export interface IAIProviderRegistry {
    * get the current completer error.
    */
   readonly completerError: string;
+}
+
+/**
+ * The set provider options.
+ */
+export interface ISetProviderOptions {
+  /**
+   * The name of the provider.
+   */
+  name: string;
+  /**
+   * The settings of the provider.
+   */
+  settings: ReadonlyPartialJSONObject;
 }
 
 /**

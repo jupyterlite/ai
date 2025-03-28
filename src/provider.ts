@@ -1,12 +1,22 @@
-import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+import { JSONSchema7 } from 'json-schema';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { IBaseCompleter } from './base-completer';
-import { IAIProvider, IAIProviderRegistry } from './tokens';
-import { JSONSchema7 } from 'json-schema';
+import {
+  getSecretId,
+  SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT
+} from './settings';
+import {
+  IAIProvider,
+  IAIProviderRegistry,
+  IDict,
+  ISetProviderOptions
+} from './tokens';
 
 export const chatSystemPrompt = (
   options: AIProviderRegistry.IPromptOptions
@@ -40,6 +50,13 @@ Do not include the prompt in the output, only the string that should be appended
 
 export class AIProviderRegistry implements IAIProviderRegistry {
   /**
+   * The constructor of the provider registry.
+   */
+  constructor(options: AIProviderRegistry.IOptions) {
+    this._secretsManager = options.secretsManager || null;
+  }
+
+  /**
    * Get the list of provider names.
    */
   get providers(): string[] {
@@ -56,6 +73,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       );
     }
     this._providers.set(provider.name, provider);
+
+    // Set the provider if the loading has been deferred.
+    if (provider.name === this._deferredProvider?.name) {
+      this.setProvider(this._deferredProvider);
+    }
   }
 
   /**
@@ -131,15 +153,36 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Set the providers (chat model and completer).
    * Creates the providers if the name has changed, otherwise only updates their config.
    *
-   * @param name - the name of the provider to use.
-   * @param settings - the settings for the models.
+   * @param options - An object with the name and the settings of the provider to use.
    */
-  setProvider(name: string, settings: ReadonlyPartialJSONObject): void {
+  async setProvider(options: ISetProviderOptions): Promise<void> {
+    const { name, settings } = options;
     this._currentProvider = this._providers.get(name) ?? null;
+    if (this._currentProvider === null) {
+      // The current provider may not be loaded when the settings are first loaded.
+      // Let's defer the provider loading.
+      this._deferredProvider = options;
+    } else {
+      this._deferredProvider = null;
+    }
+
+    // Build a new settings object containing the secrets.
+    const fullSettings: IDict = {};
+    for (const key of Object.keys(settings)) {
+      if (settings[key] === SECRETS_REPLACEMENT) {
+        const id = getSecretId(name, key);
+        const secrets = await this._secretsManager?.get(SECRETS_NAMESPACE, id);
+        fullSettings[key] = secrets?.value || settings[key];
+        continue;
+      }
+      fullSettings[key] = settings[key];
+    }
 
     if (this._currentProvider?.completer !== undefined) {
       try {
-        this._completer = new this._currentProvider.completer({ ...settings });
+        this._completer = new this._currentProvider.completer({
+          ...fullSettings
+        });
         this._completerError = '';
       } catch (e: any) {
         this._completerError = e.message;
@@ -150,7 +193,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
 
     if (this._currentProvider?.chatModel !== undefined) {
       try {
-        this._chatModel = new this._currentProvider.chatModel({ ...settings });
+        this._chatModel = new this._currentProvider.chatModel({
+          ...fullSettings
+        });
         this._chatError = '';
       } catch (e: any) {
         this._chatError = e.message;
@@ -170,6 +215,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     return this._providerChanged;
   }
 
+  private _secretsManager: ISecretsManager | null;
   private _currentProvider: IAIProvider | null = null;
   private _completer: IBaseCompleter | null = null;
   private _chatModel: BaseChatModel | null = null;
@@ -178,6 +224,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   private _chatError: string = '';
   private _completerError: string = '';
   private _providers = new Map<string, IAIProvider>();
+  private _deferredProvider: ISetProviderOptions | null = null;
 }
 
 export namespace AIProviderRegistry {
@@ -186,13 +233,9 @@ export namespace AIProviderRegistry {
    */
   export interface IOptions {
     /**
-     * The completion provider manager in which register the LLM completer.
+     * The secrets manager used in the application.
      */
-    completionProviderManager: ICompletionProviderManager;
-    /**
-     * The application commands registry.
-     */
-    requestCompletion: () => void;
+    secretsManager?: ISecretsManager;
   }
 
   /**

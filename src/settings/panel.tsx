@@ -1,5 +1,8 @@
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import {
+  ISettingConnector,
+  ISettingRegistry
+} from '@jupyterlab/settingregistry';
 import { FormComponent, IFormRenderer } from '@jupyterlab/ui-components';
 import { ArrayExt } from '@lumino/algorithm';
 import { JSONExt } from '@lumino/coreutils';
@@ -10,10 +13,10 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React from 'react';
 
+import { getSecretId, SECRETS_NAMESPACE, SettingConnector } from '.';
 import baseSettings from './base.json';
 import { IAIProviderRegistry, IDict } from '../tokens';
 
-const SECRETS_NAMESPACE = '@jupyterlite/ai';
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
@@ -22,6 +25,7 @@ export const aiSettingsRenderer = (options: {
   providerRegistry: IAIProviderRegistry;
   rmRegistry?: IRenderMimeRegistry;
   secretsManager?: ISecretsManager;
+  settingConnector?: ISettingConnector;
 }): IFormRenderer => {
   return {
     fieldRenderer: (props: FieldProps) => {
@@ -54,6 +58,7 @@ export class AiSettings extends React.Component<
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
+    this._settingConnector = props.formContext.settingConnector ?? null;
     this._settings = props.formContext.settings;
 
     this._useSecretsManager =
@@ -130,7 +135,7 @@ export class AiSettings extends React.Component<
       if (inputs[i].type.toLowerCase() === 'password') {
         const label = inputs[i].getAttribute('label');
         if (label) {
-          const id = `${this._provider}-${label}`;
+          const id = getSecretId(this._provider, label);
           this._secretsManager.attach(
             SECRETS_NAMESPACE,
             id,
@@ -140,6 +145,9 @@ export class AiSettings extends React.Component<
           this._unsavedFields.push(label);
         }
       }
+    }
+    if (this._settingConnector instanceof SettingConnector) {
+      this._settingConnector.doNotSave = this._unsavedFields;
     }
   }
 
@@ -187,6 +195,9 @@ export class AiSettings extends React.Component<
       this._secretsManager?.detachAll(SECRETS_NAMESPACE);
       this._formInputs = [];
       this._unsavedFields = [];
+      if (this._settingConnector instanceof SettingConnector) {
+        this._settingConnector.doNotSave = [];
+      }
       this.saveSettings(this._currentSettings);
     } else {
       // Remove all the keys stored locally and attach the password inputs to the
@@ -202,6 +213,9 @@ export class AiSettings extends React.Component<
       localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
       this.componentDidUpdate();
     }
+    this._settings
+      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
+      .catch(console.error);
   };
 
   /**
@@ -337,6 +351,7 @@ export class AiSettings extends React.Component<
   private _useSecretsManager: boolean;
   private _rmRegistry: IRenderMimeRegistry | null;
   private _secretsManager: ISecretsManager | null;
+  private _settingConnector: ISettingConnector | null;
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
   private _settings: ISettingRegistry.ISettings;

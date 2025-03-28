@@ -1649,6 +1649,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@jupyterlab/nbformat@npm:^4.4.0-beta.1":
+  version: 4.4.0-beta.1
+  resolution: "@jupyterlab/nbformat@npm:4.4.0-beta.1"
+  dependencies:
+    "@lumino/coreutils": ^2.2.0
+  checksum: 761245ab4b4895c7d4ae31f92cb593d8493ca7c14c632a01699b86028f269c330652d53374cb71793090015369e65722343188143823e7e2b48ef8f7f7781f1d
+  languageName: node
+  linkType: hard
+
 "@jupyterlab/notebook@npm:^4.2.0, @jupyterlab/notebook@npm:^4.4.0-alpha.0":
   version: 4.4.0-alpha.2
   resolution: "@jupyterlab/notebook@npm:4.4.0-alpha.2"
@@ -1852,7 +1861,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/settingregistry@npm:^4.4.0-alpha.0, @jupyterlab/settingregistry@npm:^4.4.0-alpha.2, @jupyterlab/settingregistry@npm:^4.4.0-alpha.3":
+"@jupyterlab/settingregistry@npm:^4.4.0-alpha.2, @jupyterlab/settingregistry@npm:^4.4.0-alpha.3":
   version: 4.4.0-alpha.3
   resolution: "@jupyterlab/settingregistry@npm:4.4.0-alpha.3"
   dependencies:
@@ -1868,6 +1877,25 @@ __metadata:
   peerDependencies:
     react: ">=16"
   checksum: 8c384e9e25fd9cc18bed0d503090d0b74a01d1ba8c90d8fd5cfe9bcd767a509d7cee983271e1eff03ddeef58fa331724f421f9eab41bc6077072bbc01a80f625
+  languageName: node
+  linkType: hard
+
+"@jupyterlab/settingregistry@npm:^4.4.0-beta.1":
+  version: 4.4.0-beta.1
+  resolution: "@jupyterlab/settingregistry@npm:4.4.0-beta.1"
+  dependencies:
+    "@jupyterlab/nbformat": ^4.4.0-beta.1
+    "@jupyterlab/statedb": ^4.4.0-beta.1
+    "@lumino/commands": ^2.3.1
+    "@lumino/coreutils": ^2.2.0
+    "@lumino/disposable": ^2.1.3
+    "@lumino/signaling": ^2.1.3
+    "@rjsf/utils": ^5.13.4
+    ajv: ^8.12.0
+    json5: ^2.2.3
+  peerDependencies:
+    react: ">=16"
+  checksum: 37630b667768dc0f5ceb01a149d4f1c7bdceca85e7d83e5e5f5fbfe75781e02e351257310a43f841c291756e46891a870715c01382c56f927a3a481bed2179d3
   languageName: node
   linkType: hard
 
@@ -1894,6 +1922,19 @@ __metadata:
     "@lumino/properties": ^2.0.2
     "@lumino/signaling": ^2.1.3
   checksum: 1ca3c37e59500d01818c7eada8b3e57ce5c41c10e188a4f75938be570bb6c05530dc052cd4fd9b7dc64135ff98d642b9e6e8eb54681f5abdbf089fc6f9a0a534
+  languageName: node
+  linkType: hard
+
+"@jupyterlab/statedb@npm:^4.4.0-beta.1":
+  version: 4.4.0-beta.1
+  resolution: "@jupyterlab/statedb@npm:4.4.0-beta.1"
+  dependencies:
+    "@lumino/commands": ^2.3.1
+    "@lumino/coreutils": ^2.2.0
+    "@lumino/disposable": ^2.1.3
+    "@lumino/properties": ^2.0.2
+    "@lumino/signaling": ^2.1.3
+  checksum: 57f67cbc2997b607bd29c0cb96a38d5215602e74caa6d776de5f34900f81b56e967843b30b298951ae10af8157c9cbf5ce9166c72dfd8295264c73846e2dbfef
   languageName: node
   linkType: hard
 
@@ -2074,7 +2115,7 @@ __metadata:
     "@jupyterlab/completer": ^4.4.0-alpha.0
     "@jupyterlab/notebook": ^4.4.0-alpha.0
     "@jupyterlab/rendermime": ^4.4.0-alpha.0
-    "@jupyterlab/settingregistry": ^4.4.0-alpha.0
+    "@jupyterlab/settingregistry": ^4.4.0-beta.1
     "@jupyterlab/ui-components": ^4.4.0-alpha.0
     "@langchain/anthropic": ^0.3.9
     "@langchain/community": ^0.3.31
@@ -2099,7 +2140,8 @@ __metadata:
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
-    jupyter-secrets-manager: ^0.1.1
+    json5: ^2.2.3
+    jupyter-secrets-manager: ^0.2.0
     npm-run-all: ^4.1.5
     prettier: ^3.0.0
     react: ^18.2.0
@@ -6217,15 +6259,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyter-secrets-manager@npm:^0.1.1":
-  version: 0.1.1
-  resolution: "jupyter-secrets-manager@npm:0.1.1"
+"jupyter-secrets-manager@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "jupyter-secrets-manager@npm:0.2.0"
   dependencies:
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/statedb": ^4.0.0
     "@lumino/algorithm": ^2.0.0
     "@lumino/coreutils": ^2.1.2
-  checksum: 608b1ad45dd037362caf0db1555d833203985d4069091da91f4407c80a21d6acadbf86a322d8e0b6c476089d8edd8a634f0978a57565fe76842920822e9ce2c0
+  checksum: 7745809a2b1922247b100ed36fabf8ffaa96c73b4343233ce70bfffec1ff131ac365a190e2661516642f57f9d84c6f0a834643bbbf7ebc98579ae2961bcc645f
   languageName: node
   linkType: hard
 

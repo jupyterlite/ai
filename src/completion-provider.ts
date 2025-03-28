@@ -51,7 +51,14 @@ export class CompletionProvider implements IInlineCompletionProvider {
 
 export namespace CompletionProvider {
   export interface IOptions {
+    /**
+     * The registry where the completion provider belongs.
+     */
     providerRegistry: IAIProviderRegistry;
+    /**
+     * The request completion commands, can be useful if a provider needs to request
+     * the completion by itself.
+     */
     requestCompletion: () => void;
   }
 }
