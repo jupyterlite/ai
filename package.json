@@ -78,7 +78,7 @@
         "@rjsf/utils": "^5.18.4",
         "@rjsf/validator-ajv8": "^5.18.4",
         "json5": "^2.2.3",
-        "jupyter-secrets-manager": "^0.1.1",
+        "jupyter-secrets-manager": "^0.2.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },
