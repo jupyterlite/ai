@@ -2,6 +2,23 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.6.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.5.0...15b6de565429273e0b159fa1a66712575449605d))
+
+### Enhancements made
+
+- Stop streaming [#61](https://github.com/jupyterlite/ai/pull/61) ([@brichet](https://github.com/brichet))
+- Do not store passwords to server settings [#60](https://github.com/jupyterlite/ai/pull/60) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-21&to=2025-03-31&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-21..2025-03-31&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-03-21..2025-03-31&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.5.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.4.0...f37fb548ee1c49f5600495ccb6be35ab976a3bce))
@@ -25,8 +42,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-10&to=2025-03-21&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-10..2025-03-21&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.4.0
 
