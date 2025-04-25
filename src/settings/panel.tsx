@@ -13,20 +13,27 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React from 'react';
 
-import { getSecretId, SECRETS_NAMESPACE, SettingConnector } from '.';
+import { getSecretId, SettingConnector } from '.';
 import baseSettings from './base.json';
-import { IAIProviderRegistry, IDict } from '../tokens';
+import { IAIProviderRegistry, IDict, PLUGIN_IDS } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
+const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
 
 export const aiSettingsRenderer = (options: {
   providerRegistry: IAIProviderRegistry;
+  secretsToken?: symbol;
   rmRegistry?: IRenderMimeRegistry;
   secretsManager?: ISecretsManager;
   settingConnector?: ISettingConnector;
 }): IFormRenderer => {
+  const { secretsToken } = options;
+  delete options.secretsToken;
+  if (secretsToken) {
+    Private.setToken(secretsToken);
+  }
   return {
     fieldRenderer: (props: FieldProps) => {
       props.formContext = { ...props.formContext, ...options };
@@ -128,7 +135,7 @@ export class AiSettings extends React.Component<
       return;
     }
 
-    await this._secretsManager.detachAll(SECRETS_NAMESPACE);
+    await this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     this._formInputs = [...inputs];
     this._unsavedFields = [];
     for (let i = 0; i < inputs.length; i++) {
@@ -137,6 +144,7 @@ export class AiSettings extends React.Component<
         if (label) {
           const id = getSecretId(this._provider, label);
           this._secretsManager.attach(
+            Private.getToken(),
             SECRETS_NAMESPACE,
             id,
             inputs[i],
@@ -149,6 +157,13 @@ export class AiSettings extends React.Component<
     if (this._settingConnector instanceof SettingConnector) {
       this._settingConnector.doNotSave = this._unsavedFields;
     }
+  }
+
+  componentWillUnmount(): void {
+    if (!this._secretsManager || !this._useSecretsManager) {
+      return;
+    }
+    this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
   }
 
   /**
@@ -192,7 +207,7 @@ export class AiSettings extends React.Component<
     if (!value) {
       // Detach all the password inputs attached to the secrets manager, and save the
       // current settings to the local storage to save the password.
-      this._secretsManager?.detachAll(SECRETS_NAMESPACE);
+      this._secretsManager?.detachAll(Private.getToken(), SECRETS_NAMESPACE);
       this._formInputs = [];
       this._unsavedFields = [];
       if (this._settingConnector instanceof SettingConnector) {
@@ -358,4 +373,25 @@ export class AiSettings extends React.Component<
   private _formRef = React.createRef<HTMLDivElement>();
   private _unsavedFields: string[] = [];
   private _formInputs: HTMLInputElement[] = [];
+}
+
+namespace Private {
+  /**
+   * The token to use with the secrets manager.
+   */
+  let secretsToken: symbol;
+
+  /**
+   * Set of the token.
+   */
+  export function setToken(value: symbol): void {
+    secretsToken = value;
+  }
+
+  /**
+   * get the token.
+   */
+  export function getToken(): symbol {
+    return secretsToken;
+  }
 }
