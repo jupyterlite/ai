@@ -70,6 +70,8 @@ export class AiSettings extends React.Component<
 
     this._useSecretsManager =
       (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
+    this._hideSecretFields =
+      (this._settings.get('HideSecretFields').composite as boolean) ?? true;
 
     // Initialize the providers schema.
     const providerSchema = JSONExt.deepCopy(baseSettings) as any;
@@ -121,6 +123,12 @@ export class AiSettings extends React.Component<
         (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
       if (useSecretsManager !== this._useSecretsManager) {
         this.updateUseSecretsManager(useSecretsManager);
+      }
+      const hideSecretFields =
+        (this._settings.get('HideSecretFields').composite as boolean) ?? true;
+      if (hideSecretFields !== this._hideSecretFields) {
+        this._hideSecretFields = hideSecretFields;
+        this._updateSchema();
       }
     });
   }
@@ -234,16 +242,6 @@ export class AiSettings extends React.Component<
   };
 
   /**
-   * Update the UI schema of the form.
-   * Currently use to hide API keys.
-   */
-  private _updateUiSchema(key: string) {
-    if (key.toLowerCase().includes('key')) {
-      this._uiSchema[key] = { 'ui:widget': 'password' };
-    }
-  }
-
-  /**
    * Build the schema for a given provider.
    */
   private _buildSchema(): JSONSchema7 {
@@ -255,8 +253,13 @@ export class AiSettings extends React.Component<
 
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
+        if (key.toLowerCase().includes('key')) {
+          if (this._hideSecretFields) {
+            return;
+          }
+          this._uiSchema[key] = { 'ui:widget': 'password' };
+        }
         schema.properties[key] = value;
-        this._updateUiSchema(key);
       });
     }
     return schema as JSONSchema7;
@@ -364,6 +367,7 @@ export class AiSettings extends React.Component<
   private _provider: string;
   private _providerSchema: JSONSchema7;
   private _useSecretsManager: boolean;
+  private _hideSecretFields: boolean;
   private _rmRegistry: IRenderMimeRegistry | null;
   private _secretsManager: ISecretsManager | null;
   private _settingConnector: ISettingConnector | null;
