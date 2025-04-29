@@ -5,6 +5,14 @@ import { JSONSchema7 } from 'json-schema';
 
 import { IBaseCompleter } from './base-completer';
 
+export const PLUGIN_IDS = {
+  chat: '@jupyterlite/ai:chat',
+  chatCommandRegistry: '@jupyterlite/ai:autocompletion-registry',
+  completer: '@jupyterlite/ai:completer',
+  providerRegistry: '@jupyterlite/ai:provider-registry',
+  settingsConnector: '@jupyterlite/ai:settings-connector'
+};
+
 export interface IDict<T = any> {
   [key: string]: T;
 }

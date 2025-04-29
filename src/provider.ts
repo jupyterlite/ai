@@ -6,17 +6,16 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { IBaseCompleter } from './base-completer';
-import {
-  getSecretId,
-  SECRETS_NAMESPACE,
-  SECRETS_REPLACEMENT
-} from './settings';
+import { getSecretId, SECRETS_REPLACEMENT } from './settings';
 import {
   IAIProvider,
   IAIProviderRegistry,
   IDict,
-  ISetProviderOptions
+  ISetProviderOptions,
+  PLUGIN_IDS
 } from './tokens';
+
+const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
 
 export const chatSystemPrompt = (
   options: AIProviderRegistry.IPromptOptions
@@ -54,6 +53,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    */
   constructor(options: AIProviderRegistry.IOptions) {
     this._secretsManager = options.secretsManager || null;
+    Private.setToken(options.token);
   }
 
   /**
@@ -171,7 +171,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     for (const key of Object.keys(settings)) {
       if (settings[key] === SECRETS_REPLACEMENT) {
         const id = getSecretId(name, key);
-        const secrets = await this._secretsManager?.get(SECRETS_NAMESPACE, id);
+        const secrets = await this._secretsManager?.get(
+          Private.getToken(),
+          SECRETS_NAMESPACE,
+          id
+        );
         fullSettings[key] = secrets?.value || settings[key];
         continue;
       }
@@ -236,6 +240,10 @@ export namespace AIProviderRegistry {
      * The secrets manager used in the application.
      */
     secretsManager?: ISecretsManager;
+    /**
+     * The token used to request the secrets manager.
+     */
+    token: symbol;
   }
 
   /**
@@ -288,5 +296,26 @@ export namespace AIProviderRegistry {
         }
       }
     });
+  }
+}
+
+namespace Private {
+  /**
+   * The token to use with the secrets manager.
+   */
+  let secretsToken: symbol;
+
+  /**
+   * Set of the token.
+   */
+  export function setToken(value: symbol): void {
+    secretsToken = value;
+  }
+
+  /**
+   * get the token.
+   */
+  export function getToken(): symbol {
+    return secretsToken;
   }
 }
