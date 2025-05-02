@@ -2,6 +2,28 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.6.1
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.0...52376d7823635a8561eda88d6fcd7acd615c50c8))
+
+### Enhancements made
+
+- Allow to avoid displaying the secret fields of the settings UI [#65](https://github.com/jupyterlite/ai/pull/65) ([@brichet](https://github.com/brichet))
+- Update secrets manager to >=0.3.0 [#63](https://github.com/jupyterlite/ai/pull/63) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update secrets manager to >=0.3.0 [#63](https://github.com/jupyterlite/ai/pull/63) ([@brichet](https://github.com/brichet))
+- Update to jupyterlab>=4.4.0 [#62](https://github.com/jupyterlite/ai/pull/62) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-31&to=2025-05-02&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-31..2025-05-02&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.6.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.5.0...15b6de565429273e0b159fa1a66712575449605d))
@@ -16,8 +38,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-21&to=2025-03-31&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-21..2025-03-31&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-03-21..2025-03-31&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.5.0
 
