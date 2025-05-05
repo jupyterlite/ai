@@ -71,12 +71,11 @@ export class SettingConnector
 
   async save(id: string, raw: string): Promise<void> {
     const settings = json5.parse(raw);
+
+    // Replace secrets fields with the replacement string.
+    // Create the field if it does not exist in settings.
     this._doNotSave.forEach(field => {
-      if (
-        settings['AIprovider'] !== undefined &&
-        settings['AIprovider'][field] !== undefined &&
-        settings['AIprovider'][field] !== ''
-      ) {
+      if (settings['AIprovider'] !== undefined) {
         settings['AIprovider'][field] = SECRETS_REPLACEMENT;
       }
     });

@@ -176,7 +176,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
           SECRETS_NAMESPACE,
           id
         );
-        fullSettings[key] = secrets?.value || settings[key];
+        if (secrets !== undefined) {
+          fullSettings[key] = secrets.value;
+        }
         continue;
       }
       fullSettings[key] = settings[key];
