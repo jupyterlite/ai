@@ -4,7 +4,6 @@ import {
   ISettingRegistry
 } from '@jupyterlab/settingregistry';
 import { FormComponent, IFormRenderer } from '@jupyterlab/ui-components';
-import { ArrayExt } from '@lumino/algorithm';
 import { JSONExt } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
@@ -122,7 +121,7 @@ export class AiSettings extends React.Component<
       const useSecretsManager =
         (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
       if (useSecretsManager !== this._useSecretsManager) {
-        this.updateUseSecretsManager(useSecretsManager);
+        this._updateUseSecretsManager(useSecretsManager);
       }
       const hideSecretFields =
         (this._settings.get('HideSecretFields').composite as boolean) ?? true;
@@ -137,15 +136,10 @@ export class AiSettings extends React.Component<
     if (!this._secretsManager || !this._useSecretsManager) {
       return;
     }
-    // Attach the password inputs to the secrets manager only if they have changed.
-    const inputs = this._formRef.current?.getElementsByTagName('input') || [];
-    if (ArrayExt.shallowEqual(inputs, this._formInputs)) {
-      return;
-    }
 
+    // Attach the password inputs to the secrets manager.
     await this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
-    this._formInputs = [...inputs];
-    this._unsavedFields = [];
+    const inputs = this._formRef.current?.getElementsByTagName('input') || [];
     for (let i = 0; i < inputs.length; i++) {
       if (inputs[i].type.toLowerCase() === 'password') {
         const label = inputs[i].getAttribute('label');
@@ -158,12 +152,8 @@ export class AiSettings extends React.Component<
             inputs[i],
             (value: string) => this._onPasswordUpdated(label, value)
           );
-          this._unsavedFields.push(label);
         }
       }
-    }
-    if (this._settingConnector instanceof SettingConnector) {
-      this._settingConnector.doNotSave = this._unsavedFields;
     }
   }
 
@@ -205,26 +195,31 @@ export class AiSettings extends React.Component<
   saveSettings(value: IDict<any>) {
     const currentSettings = { ...value };
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
-    this._unsavedFields.forEach(field => delete currentSettings[field]);
+    // Do not save secrets in local storage if using the secrets manager.
+    if (this._secretsManager && this._useSecretsManager) {
+      this._secretFields.forEach(field => delete currentSettings[field]);
+    }
     settings[this._provider] = currentSettings;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
   }
 
-  private updateUseSecretsManager = (value: boolean) => {
+  /**
+   * Update the settings whether the secrets manager is used or not.
+   *
+   * @param value - whether to use the secrets manager or not.
+   */
+  private _updateUseSecretsManager = (value: boolean) => {
     this._useSecretsManager = value;
     if (!value) {
       // Detach all the password inputs attached to the secrets manager, and save the
       // current settings to the local storage to save the password.
       this._secretsManager?.detachAll(Private.getToken(), SECRETS_NAMESPACE);
-      this._formInputs = [];
-      this._unsavedFields = [];
       if (this._settingConnector instanceof SettingConnector) {
         this._settingConnector.doNotSave = [];
       }
       this.saveSettings(this._currentSettings);
     } else {
-      // Remove all the keys stored locally and attach the password inputs to the
-      // secrets manager.
+      // Remove all the keys stored locally.
       const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
       Object.keys(settings).forEach(provider => {
         Object.keys(settings[provider])
@@ -234,6 +229,11 @@ export class AiSettings extends React.Component<
           });
       });
       localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+      // Update the fields not to save in settings.
+      if (this._settingConnector instanceof SettingConnector) {
+        this._settingConnector.doNotSave = this._secretFields;
+      }
+      // Attach the password inputs to the secrets manager.
       this.componentDidUpdate();
     }
     this._settings
@@ -251,9 +251,11 @@ export class AiSettings extends React.Component<
       this._provider
     );
 
+    this._secretFields = [];
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         if (key.toLowerCase().includes('key')) {
+          this._secretFields.push(key);
           if (this._hideSecretFields) {
             return;
           }
@@ -261,6 +263,15 @@ export class AiSettings extends React.Component<
         }
         schema.properties[key] = value;
       });
+    }
+
+    // Do not save secrets in settings if using the secrets manager.
+    if (
+      this._secretsManager &&
+      this._useSecretsManager &&
+      this._settingConnector instanceof SettingConnector
+    ) {
+      this._settingConnector.doNotSave = this._secretFields;
     }
     return schema as JSONSchema7;
   }
@@ -375,8 +386,7 @@ export class AiSettings extends React.Component<
   private _uiSchema: IDict<any> = {};
   private _settings: ISettingRegistry.ISettings;
   private _formRef = React.createRef<HTMLDivElement>();
-  private _unsavedFields: string[] = [];
-  private _formInputs: HTMLInputElement[] = [];
+  private _secretFields: string[] = [];
 }
 
 namespace Private {
