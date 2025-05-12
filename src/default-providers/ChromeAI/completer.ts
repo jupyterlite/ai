@@ -32,7 +32,7 @@ const CODE_BLOCK_END_REGEX = /```$/;
 
 export class ChromeCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._chromeProvider = new ChromeAI({ ...options.settings });
+    this._completer = new ChromeAI({ ...options.settings });
   }
 
   /**
@@ -45,8 +45,8 @@ export class ChromeCompleter implements IBaseCompleter {
     this._prompt = value;
   }
 
-  get provider(): LLM {
-    return this._chromeProvider;
+  get completer(): LLM {
+    return this._completer;
   }
 
   async fetch(
@@ -64,7 +64,7 @@ export class ChromeCompleter implements IBaseCompleter {
     ];
 
     try {
-      let response = await this._chromeProvider.invoke(messages);
+      let response = await this._completer.invoke(messages);
 
       // ChromeAI sometimes returns a string starting with '```',
       // so process the response to remove the code block delimiters
@@ -84,6 +84,6 @@ export class ChromeCompleter implements IBaseCompleter {
     }
   }
 
-  private _chromeProvider: ChromeAI;
+  private _completer: ChromeAI;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }

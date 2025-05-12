@@ -11,11 +11,11 @@ import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
 export class AnthropicCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._anthropicProvider = new ChatAnthropic({ ...options.settings });
+    this._completer = new ChatAnthropic({ ...options.settings });
   }
 
-  get provider(): BaseChatModel {
-    return this._anthropicProvider;
+  get completer(): BaseChatModel {
+    return this._completer;
   }
 
   /**
@@ -44,7 +44,7 @@ export class AnthropicCompleter implements IBaseCompleter {
     ];
 
     try {
-      const response = await this._anthropicProvider.invoke(messages);
+      const response = await this._completer.invoke(messages);
       const items = [];
 
       // Anthropic can return string or complex content, a list of string/images/other.
@@ -70,6 +70,6 @@ export class AnthropicCompleter implements IBaseCompleter {
     }
   }
 
-  private _anthropicProvider: ChatAnthropic;
+  private _completer: ChatAnthropic;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }
