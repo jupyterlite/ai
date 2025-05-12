@@ -14,6 +14,7 @@ import { IAIProvider, IAIProviderRegistry } from '../tokens';
 import { AnthropicCompleter } from './Anthropic/completer';
 import { ChromeCompleter } from './ChromeAI/completer';
 import { CodestralCompleter } from './MistralAI/completer';
+import { OllamaCompleter } from './Ollama/completer';
 import { OpenAICompleter } from './OpenAI/completer';
 
 // Import Settings
@@ -56,7 +57,7 @@ const AIProviders: IAIProvider[] = [
   {
     name: 'Ollama',
     chatModel: ChatOllama,
-    completer: undefined,
+    completer: OllamaCompleter,
     instructions: OllamaInstructions,
     settingsSchema: OllamaAISettings
   },
