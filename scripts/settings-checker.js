@@ -55,6 +55,10 @@ const providers = {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
     type: 'ChatMistralAIInput'
   },
+  Ollama: {
+    path: 'node_modules/@langchain/ollama/dist/chat_models.d.ts',
+    type: 'ChatOllamaInput'
+  },
   OpenAI: {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
     type: 'ChatOpenAIFields',
@@ -151,7 +155,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
       fs.mkdirSync(outputDir);
     }
     // Write JSON file.
-    fs.writeFile(outputPath, schemaString, err => {
+    fs.writeFileSync(outputPath, schemaString, err => {
       if (err) {
         throw err;
       }

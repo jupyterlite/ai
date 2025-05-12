@@ -5,6 +5,7 @@ import {
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { ChatMistralAI } from '@langchain/mistralai';
+import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
 
 import { IAIProvider, IAIProviderRegistry } from '../tokens';
@@ -19,11 +20,13 @@ import { OpenAICompleter } from './OpenAI/completer';
 import AnthropicSettings from './Anthropic/settings-schema.json';
 import ChromeAISettings from './ChromeAI/settings-schema.json';
 import MistralAISettings from './MistralAI/settings-schema.json';
+import OllamaAISettings from './Ollama/settings-schema.json';
 import OpenAISettings from './OpenAI/settings-schema.json';
 
 // Import instructions
 import ChromeAIInstructions from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
+import OllamaInstructions from './Ollama/instructions';
 
 // Build the AIProvider list
 const AIProviders: IAIProvider[] = [
@@ -49,6 +52,13 @@ const AIProviders: IAIProvider[] = [
     completer: CodestralCompleter,
     instructions: MistralAIInstructions,
     settingsSchema: MistralAISettings
+  },
+  {
+    name: 'Ollama',
+    chatModel: ChatOllama,
+    completer: undefined,
+    instructions: OllamaInstructions,
+    settingsSchema: OllamaAISettings
   },
   {
     name: 'OpenAI',
