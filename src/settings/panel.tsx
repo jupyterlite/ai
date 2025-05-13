@@ -84,7 +84,7 @@ export class AiSettings extends React.Component<
     this._providerSchema = providerSchema as JSONSchema7;
 
     // Check if there is saved values in local storage, otherwise use the settings from
-    // the setting registry (led to default if there are no user settings).
+    // the setting registry (leads to default if there are no user settings).
     const storageSettings = localStorage.getItem(STORAGE_NAME);
     if (storageSettings === null) {
       const labSettings = this._settings.get('AIprovider').composite;
@@ -104,7 +104,7 @@ export class AiSettings extends React.Component<
 
     // Initialize the settings from the saved ones.
     this._provider = this.getCurrentProvider();
-    this._currentSettings = this.getSettings();
+    this._currentSettings = this.getSettingsFromLocalStorage();
 
     // Initialize the schema.
     const schema = this._buildSchema();
@@ -113,9 +113,7 @@ export class AiSettings extends React.Component<
     this._renderInstruction();
 
     // Update the setting registry.
-    this._settings
-      .set('AIprovider', this._currentSettings)
-      .catch(console.error);
+    this.saveSettingsToRegistry();
 
     this._settings.changed.connect(() => {
       const useSecretsManager =
@@ -184,7 +182,7 @@ export class AiSettings extends React.Component<
   /**
    * Get settings from local storage for a given provider.
    */
-  getSettings(): IDict<any> {
+  getSettingsFromLocalStorage(): IDict<any> {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
     return settings[this._provider] ?? { provider: this._provider };
   }
@@ -192,7 +190,7 @@ export class AiSettings extends React.Component<
   /**
    * Save settings in local storage for a given provider.
    */
-  saveSettings(value: IDict<any>) {
+  saveSettingsToLocalStorage(value: IDict<any>) {
     const currentSettings = { ...value };
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
@@ -201,6 +199,15 @@ export class AiSettings extends React.Component<
     }
     settings[this._provider] = currentSettings;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+  }
+
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry(): void {
+    this._settings
+      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
+      .catch(console.error);
   }
 
   /**
@@ -217,7 +224,7 @@ export class AiSettings extends React.Component<
       if (this._settingConnector instanceof SettingConnector) {
         this._settingConnector.doNotSave = [];
       }
-      this.saveSettings(this._currentSettings);
+      this.saveSettingsToLocalStorage(this._currentSettings);
     } else {
       // Remove all the keys stored locally.
       const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
@@ -236,9 +243,7 @@ export class AiSettings extends React.Component<
       // Attach the password inputs to the secrets manager.
       this.componentDidUpdate();
     }
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+    this.saveSettingsToRegistry();
   };
 
   /**
@@ -304,7 +309,7 @@ export class AiSettings extends React.Component<
   }
 
   /**
-   * Triggered when the provider hes changed, to update the schema and values.
+   * Triggered when the provider has changed, to update the schema and values.
    * Update the Jupyterlab settings accordingly.
    */
   private _onProviderChanged = (e: IChangeEvent) => {
@@ -314,12 +319,11 @@ export class AiSettings extends React.Component<
     }
     this._provider = provider;
     this.saveCurrentProvider();
-    this._currentSettings = this.getSettings();
+    this._currentSettings = this.getSettingsFromLocalStorage();
     this._updateSchema();
     this._renderInstruction();
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+
+    this.saveSettingsToRegistry();
   };
 
   /**
@@ -328,9 +332,7 @@ export class AiSettings extends React.Component<
    */
   private _onPasswordUpdated = (fieldName: string, value: string) => {
     this._currentSettings[fieldName] = value;
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+    this.saveSettingsToRegistry();
   };
 
   /**
@@ -338,12 +340,10 @@ export class AiSettings extends React.Component<
    * it in local storage.
    * Update the Jupyterlab settings accordingly.
    */
-  private _onFormChange = (e: IChangeEvent) => {
+  private _onFormChanged = (e: IChangeEvent) => {
     this._currentSettings = JSONExt.deepCopy(e.formData);
-    this.saveSettings(this._currentSettings);
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToRegistry();
   };
 
   render(): JSX.Element {
@@ -367,8 +367,9 @@ export class AiSettings extends React.Component<
         <WrappedFormComponent
           formData={this._currentSettings}
           schema={this.state.schema}
-          onChange={this._onFormChange}
+          onChange={this._onFormChanged}
           uiSchema={this._uiSchema}
+          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
         />
       </div>
     );
