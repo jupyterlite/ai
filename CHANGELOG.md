@@ -2,6 +2,27 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.6.2
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.1...8cf12919ab5922b2ec7ed8f284299725a493d349))
+
+### Bugs fixed
+
+- Fix completer settings [#70](https://github.com/jupyterlite/ai/pull/70) ([@brichet](https://github.com/brichet))
+- Fix the API keys in provider when using the secrets manager [#68](https://github.com/jupyterlite/ai/pull/68) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Align the version of rjsf dependencies [#72](https://github.com/jupyterlite/ai/pull/72) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-05-02&to=2025-05-13&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-05-02..2025-05-13&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.6.1
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.0...52376d7823635a8561eda88d6fcd7acd615c50c8))
@@ -21,8 +42,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-03-31&to=2025-05-02&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-03-31..2025-05-02&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.6.0
 
