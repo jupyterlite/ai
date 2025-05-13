@@ -75,7 +75,7 @@
         "@lumino/signaling": "^2.1.2",
         "@mui/icons-material": "^5.11.0",
         "@mui/material": "^5.11.0",
-        "@rjsf/core": "^4.2.0",
+        "@rjsf/core": "^5.18.4",
         "@rjsf/utils": "^5.18.4",
         "@rjsf/validator-ajv8": "^5.18.4",
         "json5": "^2.2.3",
