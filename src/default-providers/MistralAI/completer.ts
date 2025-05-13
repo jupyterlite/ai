@@ -21,10 +21,10 @@ const INTERVAL = 1000;
 
 export class CodestralCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._mistralProvider = new ChatMistralAI({ ...options.settings });
+    this._completer = new ChatMistralAI({ ...options.settings });
     this._throttler = new Throttler(
       async (messages: BaseMessage[]) => {
-        const response = await this._mistralProvider.invoke(messages);
+        const response = await this._completer.invoke(messages);
         // Extract results of completion request.
         const items = [];
         if (typeof response.content === 'string') {
@@ -47,8 +47,8 @@ export class CodestralCompleter implements IBaseCompleter {
     );
   }
 
-  get provider(): BaseChatModel {
-    return this._mistralProvider;
+  get completer(): BaseChatModel {
+    return this._completer;
   }
 
   /**
@@ -82,6 +82,6 @@ export class CodestralCompleter implements IBaseCompleter {
   }
 
   private _throttler: Throttler;
-  private _mistralProvider: ChatMistralAI;
+  private _completer: ChatMistralAI;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }

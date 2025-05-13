@@ -11,11 +11,11 @@ import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
 export class OpenAICompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._openAIProvider = new ChatOpenAI({ ...options.settings });
+    this._completer = new ChatOpenAI({ ...options.settings });
   }
 
-  get provider(): BaseChatModel {
-    return this._openAIProvider;
+  get completer(): BaseChatModel {
+    return this._completer;
   }
 
   /**
@@ -38,7 +38,7 @@ export class OpenAICompleter implements IBaseCompleter {
     const messages = [new SystemMessage(this._prompt), new AIMessage(prompt)];
 
     try {
-      const response = await this._openAIProvider.invoke(messages);
+      const response = await this._completer.invoke(messages);
       const items = [];
       if (typeof response.content === 'string') {
         items.push({
@@ -62,6 +62,6 @@ export class OpenAICompleter implements IBaseCompleter {
     }
   }
 
-  private _openAIProvider: ChatOpenAI;
+  private _completer: ChatOpenAI;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }

@@ -187,7 +187,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (this._currentProvider?.completer !== undefined) {
       try {
         this._completer = new this._currentProvider.completer({
-          ...fullSettings
+          settings: fullSettings
         });
         this._completerError = '';
       } catch (e: any) {

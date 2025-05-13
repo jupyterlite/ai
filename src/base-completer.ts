@@ -9,7 +9,7 @@ export interface IBaseCompleter {
   /**
    * The LLM completer.
    */
-  provider: BaseLanguageModel;
+  completer: BaseLanguageModel;
 
   /**
    * The completion prompt.
