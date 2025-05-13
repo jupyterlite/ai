@@ -341,7 +341,21 @@ export class AiSettings extends React.Component<
    * Update the Jupyterlab settings accordingly.
    */
   private _onFormChanged = (e: IChangeEvent) => {
-    this._currentSettings = JSONExt.deepCopy(e.formData);
+    const { formData } = e;
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value === undefined) {
+        const schemaProperty = this.state.schema.properties?.[
+          key
+        ] as JSONSchema7;
+        if (
+          schemaProperty.default !== undefined &&
+          schemaProperty.type === 'string'
+        ) {
+          formData[key] = '';
+        }
+      }
+    });
+    this._currentSettings = JSONExt.deepCopy(formData);
     this.saveSettingsToLocalStorage(this._currentSettings);
     this.saveSettingsToRegistry();
   };
