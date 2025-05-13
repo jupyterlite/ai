@@ -3,7 +3,11 @@ import {
   ISettingConnector,
   ISettingRegistry
 } from '@jupyterlab/settingregistry';
-import { FormComponent, IFormRenderer } from '@jupyterlab/ui-components';
+import {
+  Button,
+  FormComponent,
+  IFormRenderer
+} from '@jupyterlab/ui-components';
 import { JSONExt } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
@@ -44,6 +48,7 @@ export const aiSettingsRenderer = (options: {
 export interface ISettingsFormStates {
   schema: JSONSchema7;
   instruction: HTMLElement | null;
+  isModified?: boolean;
 }
 
 const WrappedFormComponent = (props: any): JSX.Element => {
@@ -104,12 +109,16 @@ export class AiSettings extends React.Component<
 
     // Initialize the settings from the saved ones.
     this._provider = this.getCurrentProvider();
-    this._currentSettings = this.getSettingsFromLocalStorage();
 
     // Initialize the schema.
     const schema = this._buildSchema();
-    this.state = { schema, instruction: null };
 
+    // Initialize the current settings.
+    const isModified = this._updatedFormData(
+      this.getSettingsFromLocalStorage()
+    );
+
+    this.state = { schema, instruction: null, isModified: isModified };
     this._renderInstruction();
 
     // Update the setting registry.
@@ -257,6 +266,7 @@ export class AiSettings extends React.Component<
     );
 
     this._secretFields = [];
+    this._defaultFormData = {};
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         if (key.toLowerCase().includes('key')) {
@@ -267,6 +277,9 @@ export class AiSettings extends React.Component<
           this._uiSchema[key] = { 'ui:widget': 'password' };
         }
         schema.properties[key] = value;
+        if (value.default !== undefined) {
+          this._defaultFormData[key] = value.default;
+        }
       });
     }
 
@@ -319,10 +332,16 @@ export class AiSettings extends React.Component<
     }
     this._provider = provider;
     this.saveCurrentProvider();
-    this._currentSettings = this.getSettingsFromLocalStorage();
     this._updateSchema();
     this._renderInstruction();
 
+    // Initialize the current settings.
+    const isModified = this._updatedFormData(
+      this.getSettingsFromLocalStorage()
+    );
+    if (isModified !== this.state.isModified) {
+      this.setState({ isModified });
+    }
     this.saveSettingsToRegistry();
   };
 
@@ -336,28 +355,61 @@ export class AiSettings extends React.Component<
   };
 
   /**
+   * Update the current settings with the new values from the form.
+   *
+   * @param data - The form data to update.
+   * @returns - Boolean whether the form is not the default one.
+   */
+  private _updatedFormData(data: IDict): boolean {
+    let isModified = false;
+    Object.entries(data).forEach(([key, value]) => {
+      if (this._defaultFormData[key] !== undefined) {
+        if (value === undefined) {
+          const schemaProperty = this.state.schema.properties?.[
+            key
+          ] as JSONSchema7;
+          if (schemaProperty.type === 'string') {
+            data[key] = '';
+          }
+        }
+        if (value !== this._defaultFormData[key]) {
+          isModified = true;
+        }
+      }
+    });
+    this._currentSettings = JSONExt.deepCopy(data);
+    return isModified;
+  }
+
+  /**
    * Triggered when the form value has changed, to update the current settings and save
    * it in local storage.
    * Update the Jupyterlab settings accordingly.
    */
-  private _onFormChanged = (e: IChangeEvent) => {
+  private _onFormChanged = (e: IChangeEvent): void => {
     const { formData } = e;
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value === undefined) {
-        const schemaProperty = this.state.schema.properties?.[
-          key
-        ] as JSONSchema7;
-        if (
-          schemaProperty.default !== undefined &&
-          schemaProperty.type === 'string'
-        ) {
-          formData[key] = '';
-        }
-      }
-    });
-    this._currentSettings = JSONExt.deepCopy(formData);
+    const isModified = this._updatedFormData(formData);
     this.saveSettingsToLocalStorage(this._currentSettings);
     this.saveSettingsToRegistry();
+    if (isModified !== this.state.isModified) {
+      this.setState({ isModified });
+    }
+  };
+
+  /**
+   * Handler for the "Restore to defaults" button - clears all
+   * modified settings then calls `setFormData` to restore the
+   * values.
+   */
+  private _reset = async (event: React.MouseEvent): Promise<void> => {
+    event.stopPropagation();
+    this._currentSettings = {
+      ...this._currentSettings,
+      ...this._defaultFormData
+    };
+    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToRegistry();
+    this.setState({ isModified: false });
   };
 
   render(): JSX.Element {
@@ -378,12 +430,26 @@ export class AiSettings extends React.Component<
             />
           </details>
         )}
+        <div className="jp-SettingsHeader">
+          <h3 title={this._provider}>{this._provider}</h3>
+          <div className="jp-SettingsHeader-buttonbar">
+            {this.state.isModified && (
+              <Button className="jp-RestoreButton" onClick={this._reset}>
+                Restore to Defaults
+              </Button>
+            )}
+          </div>
+        </div>
         <WrappedFormComponent
           formData={this._currentSettings}
           schema={this.state.schema}
           onChange={this._onFormChanged}
           uiSchema={this._uiSchema}
           idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
+          formContext={{
+            ...this.props.formContext,
+            defaultFormData: this._defaultFormData
+          }}
         />
       </div>
     );
@@ -402,6 +468,7 @@ export class AiSettings extends React.Component<
   private _settings: ISettingRegistry.ISettings;
   private _formRef = React.createRef<HTMLDivElement>();
   private _secretFields: string[] = [];
+  private _defaultFormData: IDict<any> = {};
 }
 
 namespace Private {
