@@ -23,7 +23,7 @@ if (generate) {
 // Build the langchain BaseLanguageModelParams object
 const configBase = {
   path: 'node_modules/@langchain/core/dist/language_models/base.d.ts',
-  tsconfig: './scripts/tsconfig-settings.json',
+  tsconfig: './tsconfig.json',
   type: 'BaseLanguageModelParams'
 };
 
@@ -77,7 +77,7 @@ Object.entries(providers).forEach(([name, desc], index) => {
   // from the settings panel.
   const config = {
     path: desc.path,
-    tsconfig: './scripts/tsconfig-settings.json',
+    tsconfig: './tsconfig.json',
     type: desc.type,
     functions: 'hide',
     topRef: false

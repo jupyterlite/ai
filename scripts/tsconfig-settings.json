@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "target": "ES2018"
-  }
-}
