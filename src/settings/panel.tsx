@@ -3,7 +3,11 @@ import {
   ISettingConnector,
   ISettingRegistry
 } from '@jupyterlab/settingregistry';
-import { FormComponent, IFormRenderer } from '@jupyterlab/ui-components';
+import {
+  Button,
+  FormComponent,
+  IFormRenderer
+} from '@jupyterlab/ui-components';
 import { JSONExt } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
@@ -44,6 +48,7 @@ export const aiSettingsRenderer = (options: {
 export interface ISettingsFormStates {
   schema: JSONSchema7;
   instruction: HTMLElement | null;
+  isModified?: boolean;
 }
 
 const WrappedFormComponent = (props: any): JSX.Element => {
@@ -84,7 +89,7 @@ export class AiSettings extends React.Component<
     this._providerSchema = providerSchema as JSONSchema7;
 
     // Check if there is saved values in local storage, otherwise use the settings from
-    // the setting registry (led to default if there are no user settings).
+    // the setting registry (leads to default if there are no user settings).
     const storageSettings = localStorage.getItem(STORAGE_NAME);
     if (storageSettings === null) {
       const labSettings = this._settings.get('AIprovider').composite;
@@ -104,18 +109,20 @@ export class AiSettings extends React.Component<
 
     // Initialize the settings from the saved ones.
     this._provider = this.getCurrentProvider();
-    this._currentSettings = this.getSettings();
 
     // Initialize the schema.
     const schema = this._buildSchema();
-    this.state = { schema, instruction: null };
 
+    // Initialize the current settings.
+    const isModified = this._updatedFormData(
+      this.getSettingsFromLocalStorage()
+    );
+
+    this.state = { schema, instruction: null, isModified: isModified };
     this._renderInstruction();
 
     // Update the setting registry.
-    this._settings
-      .set('AIprovider', this._currentSettings)
-      .catch(console.error);
+    this.saveSettingsToRegistry();
 
     this._settings.changed.connect(() => {
       const useSecretsManager =
@@ -184,7 +191,7 @@ export class AiSettings extends React.Component<
   /**
    * Get settings from local storage for a given provider.
    */
-  getSettings(): IDict<any> {
+  getSettingsFromLocalStorage(): IDict<any> {
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
     return settings[this._provider] ?? { provider: this._provider };
   }
@@ -192,7 +199,7 @@ export class AiSettings extends React.Component<
   /**
    * Save settings in local storage for a given provider.
    */
-  saveSettings(value: IDict<any>) {
+  saveSettingsToLocalStorage(value: IDict<any>) {
     const currentSettings = { ...value };
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
@@ -201,6 +208,15 @@ export class AiSettings extends React.Component<
     }
     settings[this._provider] = currentSettings;
     localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+  }
+
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry(): void {
+    this._settings
+      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
+      .catch(console.error);
   }
 
   /**
@@ -217,7 +233,7 @@ export class AiSettings extends React.Component<
       if (this._settingConnector instanceof SettingConnector) {
         this._settingConnector.doNotSave = [];
       }
-      this.saveSettings(this._currentSettings);
+      this.saveSettingsToLocalStorage(this._currentSettings);
     } else {
       // Remove all the keys stored locally.
       const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
@@ -236,9 +252,7 @@ export class AiSettings extends React.Component<
       // Attach the password inputs to the secrets manager.
       this.componentDidUpdate();
     }
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+    this.saveSettingsToRegistry();
   };
 
   /**
@@ -252,6 +266,7 @@ export class AiSettings extends React.Component<
     );
 
     this._secretFields = [];
+    this._defaultFormData = {};
     if (settingsSchema) {
       Object.entries(settingsSchema).forEach(([key, value]) => {
         if (key.toLowerCase().includes('key')) {
@@ -262,6 +277,9 @@ export class AiSettings extends React.Component<
           this._uiSchema[key] = { 'ui:widget': 'password' };
         }
         schema.properties[key] = value;
+        if (value.default !== undefined) {
+          this._defaultFormData[key] = value.default;
+        }
       });
     }
 
@@ -304,7 +322,7 @@ export class AiSettings extends React.Component<
   }
 
   /**
-   * Triggered when the provider hes changed, to update the schema and values.
+   * Triggered when the provider has changed, to update the schema and values.
    * Update the Jupyterlab settings accordingly.
    */
   private _onProviderChanged = (e: IChangeEvent) => {
@@ -314,12 +332,17 @@ export class AiSettings extends React.Component<
     }
     this._provider = provider;
     this.saveCurrentProvider();
-    this._currentSettings = this.getSettings();
     this._updateSchema();
     this._renderInstruction();
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+
+    // Initialize the current settings.
+    const isModified = this._updatedFormData(
+      this.getSettingsFromLocalStorage()
+    );
+    if (isModified !== this.state.isModified) {
+      this.setState({ isModified });
+    }
+    this.saveSettingsToRegistry();
   };
 
   /**
@@ -328,22 +351,65 @@ export class AiSettings extends React.Component<
    */
   private _onPasswordUpdated = (fieldName: string, value: string) => {
     this._currentSettings[fieldName] = value;
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+    this.saveSettingsToRegistry();
   };
+
+  /**
+   * Update the current settings with the new values from the form.
+   *
+   * @param data - The form data to update.
+   * @returns - Boolean whether the form is not the default one.
+   */
+  private _updatedFormData(data: IDict): boolean {
+    let isModified = false;
+    Object.entries(data).forEach(([key, value]) => {
+      if (this._defaultFormData[key] !== undefined) {
+        if (value === undefined) {
+          const schemaProperty = this.state.schema.properties?.[
+            key
+          ] as JSONSchema7;
+          if (schemaProperty.type === 'string') {
+            data[key] = '';
+          }
+        }
+        if (value !== this._defaultFormData[key]) {
+          isModified = true;
+        }
+      }
+    });
+    this._currentSettings = JSONExt.deepCopy(data);
+    return isModified;
+  }
 
   /**
    * Triggered when the form value has changed, to update the current settings and save
    * it in local storage.
    * Update the Jupyterlab settings accordingly.
    */
-  private _onFormChange = (e: IChangeEvent) => {
-    this._currentSettings = JSONExt.deepCopy(e.formData);
-    this.saveSettings(this._currentSettings);
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
-      .catch(console.error);
+  private _onFormChanged = (e: IChangeEvent): void => {
+    const { formData } = e;
+    const isModified = this._updatedFormData(formData);
+    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToRegistry();
+    if (isModified !== this.state.isModified) {
+      this.setState({ isModified });
+    }
+  };
+
+  /**
+   * Handler for the "Restore to defaults" button - clears all
+   * modified settings then calls `setFormData` to restore the
+   * values.
+   */
+  private _reset = async (event: React.MouseEvent): Promise<void> => {
+    event.stopPropagation();
+    this._currentSettings = {
+      ...this._currentSettings,
+      ...this._defaultFormData
+    };
+    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToRegistry();
+    this.setState({ isModified: false });
   };
 
   render(): JSX.Element {
@@ -364,11 +430,26 @@ export class AiSettings extends React.Component<
             />
           </details>
         )}
+        <div className="jp-SettingsHeader">
+          <h3 title={this._provider}>{this._provider}</h3>
+          <div className="jp-SettingsHeader-buttonbar">
+            {this.state.isModified && (
+              <Button className="jp-RestoreButton" onClick={this._reset}>
+                Restore to Defaults
+              </Button>
+            )}
+          </div>
+        </div>
         <WrappedFormComponent
           formData={this._currentSettings}
           schema={this.state.schema}
-          onChange={this._onFormChange}
+          onChange={this._onFormChanged}
           uiSchema={this._uiSchema}
+          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
+          formContext={{
+            ...this.props.formContext,
+            defaultFormData: this._defaultFormData
+          }}
         />
       </div>
     );
@@ -387,6 +468,7 @@ export class AiSettings extends React.Component<
   private _settings: ISettingRegistry.ISettings;
   private _formRef = React.createRef<HTMLDivElement>();
   private _secretFields: string[] = [];
+  private _defaultFormData: IDict<any> = {};
 }
 
 namespace Private {
