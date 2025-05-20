@@ -72,10 +72,10 @@ export class AiSettings extends React.Component<
     this._settingConnector = props.formContext.settingConnector ?? null;
     this._settings = props.formContext.settings;
 
-    this._useSecretsManager =
+    const useSecretsManagerSetting =
       (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
-    this._hideSecretFields =
-      (this._settings.get('HideSecretFields').composite as boolean) ?? true;
+    this._useSecretsManager =
+      useSecretsManagerSetting && this._secretsManager !== null;
 
     // Initialize the providers schema.
     const providerSchema = JSONExt.deepCopy(baseSettings) as any;
@@ -124,19 +124,11 @@ export class AiSettings extends React.Component<
     // Update the setting registry.
     this.saveSettingsToRegistry();
 
-    this._settings.changed.connect(() => {
-      const useSecretsManager =
-        (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
-      if (useSecretsManager !== this._useSecretsManager) {
-        this._updateUseSecretsManager(useSecretsManager);
-      }
-      const hideSecretFields =
-        (this._settings.get('HideSecretFields').composite as boolean) ?? true;
-      if (hideSecretFields !== this._hideSecretFields) {
-        this._hideSecretFields = hideSecretFields;
-        this._updateSchema();
-      }
-    });
+    this._secretsManager?.fieldVisibilityChanged.connect(
+      this._fieldVisibilityChanged
+    );
+
+    this._settings.changed.connect(this._settingsChanged);
   }
 
   async componentDidUpdate(): Promise<void> {
@@ -165,6 +157,10 @@ export class AiSettings extends React.Component<
   }
 
   componentWillUnmount(): void {
+    this._settings.changed.disconnect(this._settingsChanged);
+    this._secretsManager?.fieldVisibilityChanged.disconnect(
+      this._fieldVisibilityChanged
+    );
     if (!this._secretsManager || !this._useSecretsManager) {
       return;
     }
@@ -199,8 +195,8 @@ export class AiSettings extends React.Component<
   /**
    * Save settings in local storage for a given provider.
    */
-  saveSettingsToLocalStorage(value: IDict<any>) {
-    const currentSettings = { ...value };
+  saveSettingsToLocalStorage() {
+    const currentSettings = { ...this._currentSettings };
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
     if (this._secretsManager && this._useSecretsManager) {
@@ -220,20 +216,43 @@ export class AiSettings extends React.Component<
   }
 
   /**
+   * Triggered when the settings has changed.
+   */
+  private _settingsChanged = (settings: ISettingRegistry.ISettings) => {
+    this._updateUseSecretsManager(
+      (this._settings.get('UseSecretsManager').composite as boolean) ?? true
+    );
+  };
+
+  /**
+   * Triggered when the secret fields visibility has changed.
+   */
+  private _fieldVisibilityChanged = (
+    _: ISecretsManager,
+    value: boolean
+  ): void => {
+    if (this._useSecretsManager) {
+      this._updateSchema();
+    }
+  };
+
+  /**
    * Update the settings whether the secrets manager is used or not.
    *
    * @param value - whether to use the secrets manager or not.
    */
   private _updateUseSecretsManager = (value: boolean) => {
+    // No-op if the value did not change or the secrets manager has not been provided.
+    if (value === this._useSecretsManager || this._secretsManager === null) {
+      return;
+    }
+
+    // Update the secrets manager.
     this._useSecretsManager = value;
     if (!value) {
       // Detach all the password inputs attached to the secrets manager, and save the
       // current settings to the local storage to save the password.
-      this._secretsManager?.detachAll(Private.getToken(), SECRETS_NAMESPACE);
-      if (this._settingConnector instanceof SettingConnector) {
-        this._settingConnector.doNotSave = [];
-      }
-      this.saveSettingsToLocalStorage(this._currentSettings);
+      this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     } else {
       // Remove all the keys stored locally.
       const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
@@ -245,13 +264,9 @@ export class AiSettings extends React.Component<
           });
       });
       localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
-      // Update the fields not to save in settings.
-      if (this._settingConnector instanceof SettingConnector) {
-        this._settingConnector.doNotSave = this._secretFields;
-      }
-      // Attach the password inputs to the secrets manager.
-      this.componentDidUpdate();
     }
+    this._updateSchema();
+    this.saveSettingsToLocalStorage();
     this.saveSettingsToRegistry();
   };
 
@@ -271,9 +286,16 @@ export class AiSettings extends React.Component<
       Object.entries(settingsSchema).forEach(([key, value]) => {
         if (key.toLowerCase().includes('key')) {
           this._secretFields.push(key);
-          if (this._hideSecretFields) {
+
+          // If the secrets manager is not used, do not show the secrets fields.
+          // If the secrets manager is used, check if the fields should be visible.
+          const showSecretFields =
+            !this._useSecretsManager ||
+            (this._secretsManager?.secretFieldsVisibility ?? true);
+          if (!showSecretFields) {
             return;
           }
+
           this._uiSchema[key] = { 'ui:widget': 'password' };
         }
         schema.properties[key] = value;
@@ -284,12 +306,12 @@ export class AiSettings extends React.Component<
     }
 
     // Do not save secrets in settings if using the secrets manager.
-    if (
-      this._secretsManager &&
-      this._useSecretsManager &&
-      this._settingConnector instanceof SettingConnector
-    ) {
-      this._settingConnector.doNotSave = this._secretFields;
+    if (this._settingConnector instanceof SettingConnector) {
+      if (this._useSecretsManager) {
+        this._settingConnector.doNotSave = this._secretFields;
+      } else {
+        this._settingConnector.doNotSave = [];
+      }
     }
     return schema as JSONSchema7;
   }
@@ -389,7 +411,7 @@ export class AiSettings extends React.Component<
   private _onFormChanged = (e: IChangeEvent): void => {
     const { formData } = e;
     const isModified = this._updatedFormData(formData);
-    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToLocalStorage();
     this.saveSettingsToRegistry();
     if (isModified !== this.state.isModified) {
       this.setState({ isModified });
@@ -407,7 +429,7 @@ export class AiSettings extends React.Component<
       ...this._currentSettings,
       ...this._defaultFormData
     };
-    this.saveSettingsToLocalStorage(this._currentSettings);
+    this.saveSettingsToLocalStorage();
     this.saveSettingsToRegistry();
     this.setState({ isModified: false });
   };
@@ -459,7 +481,6 @@ export class AiSettings extends React.Component<
   private _provider: string;
   private _providerSchema: JSONSchema7;
   private _useSecretsManager: boolean;
-  private _hideSecretFields: boolean;
   private _rmRegistry: IRenderMimeRegistry | null;
   private _secretsManager: ISecretsManager | null;
   private _settingConnector: ISettingConnector | null;
