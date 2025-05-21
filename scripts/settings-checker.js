@@ -89,6 +89,11 @@ Object.entries(providers).forEach(([name, desc], index) => {
     topRef: false
   };
 
+  // Skip for WebLLM due to ts-json-schema-generator not picking up the typeRoots?
+  if (name === 'WebLLM') {
+    config.skipTypeCheck = true;
+  }
+
   const generator = tsj.createGenerator(config);
   let schema;
 

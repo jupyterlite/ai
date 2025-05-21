@@ -111,8 +111,8 @@
         "stylelint-config-standard": "^34.0.0",
         "stylelint-csstree-validator": "^3.0.0",
         "stylelint-prettier": "^4.0.0",
-        "ts-json-schema-generator": "^2.3.0",
-        "typescript": "~5.1.6",
+        "ts-json-schema-generator": "^2.4.0",
+        "typescript": "~5.8.3",
         "yjs": "^13.5.0"
     },
     "sideEffects": [
