@@ -1612,7 +1612,7 @@ __metadata:
     stylelint-csstree-validator: ^3.0.0
     stylelint-prettier: ^4.0.0
     ts-json-schema-generator: ^2.3.0
-    typescript: ~5.8.3
+    typescript: ~5.1.6
     yjs: ^13.5.0
   languageName: unknown
   linkType: soft
@@ -8186,7 +8186,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.4.5, typescript@npm:~5.8.3":
+"typescript@npm:^5.4.5":
   version: 5.8.3
   resolution: "typescript@npm:5.8.3"
   bin:
@@ -8196,13 +8196,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^5.4.5#~builtin<compat/typescript>, typescript@patch:typescript@~5.8.3#~builtin<compat/typescript>":
+"typescript@npm:~5.1.6":
+  version: 5.1.6
+  resolution: "typescript@npm:5.1.6"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: b2f2c35096035fe1f5facd1e38922ccb8558996331405eb00a5111cc948b2e733163cc22fab5db46992aba7dd520fff637f2c1df4996ff0e134e77d3249a7350
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.4.5#~builtin<compat/typescript>":
   version: 5.8.3
   resolution: "typescript@patch:typescript@npm%3A5.8.3#~builtin<compat/typescript>::version=5.8.3&hash=85af82"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 1b503525a88ff0ff5952e95870971c4fb2118c17364d60302c21935dedcd6c37e6a0a692f350892bafcef6f4a16d09073fe461158547978d2f16fbe4cb18581c
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@~5.1.6#~builtin<compat/typescript>":
+  version: 5.1.6
+  resolution: "typescript@patch:typescript@npm%3A5.1.6#~builtin<compat/typescript>::version=5.1.6&hash=85af82"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 21e88b0a0c0226f9cb9fd25b9626fb05b4c0f3fddac521844a13e1f30beb8f14e90bd409a9ac43c812c5946d714d6e0dee12d5d02dfc1c562c5aacfa1f49b606
   languageName: node
   linkType: hard
 
@@ -8806,14 +8826,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.22.3":
-  version: 3.24.1
-  resolution: "zod@npm:3.24.1"
-  checksum: dcd5334725b29555593c186fd6505878bb7ccb4f5954f728d2de24bf71f9397492d83bdb69d5b8a376eb500a02273ae0691b57deb1eb8718df3f64c77cc5534a
-  languageName: node
-  linkType: hard
-
-"zod@npm:^3.22.4, zod@npm:^3.24.1":
+"zod@npm:^3.22.3, zod@npm:^3.22.4, zod@npm:^3.24.1":
   version: 3.24.4
   resolution: "zod@npm:3.24.4"
   checksum: 62829789765a9187bd72bed3972a7c1a39fdfe6c59bc752eedabec5f99af701658471b8577d22e0fee2081e6e35d4efc93c02c90e13350755a36feadbf72bbbc

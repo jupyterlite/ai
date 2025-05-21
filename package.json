@@ -112,7 +112,7 @@
         "stylelint-csstree-validator": "^3.0.0",
         "stylelint-prettier": "^4.0.0",
         "ts-json-schema-generator": "^2.3.0",
-        "typescript": "~5.8.3",
+        "typescript": "~5.1.6",
         "yjs": "^13.5.0"
     },
     "sideEffects": [
