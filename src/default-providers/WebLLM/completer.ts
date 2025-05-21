@@ -91,7 +91,15 @@ export class WebLLMCompleter implements IBaseCompleter {
     request: CompletionHandler.IRequest,
     context: IInlineCompletionContext
   ) {
-    // Check if the model is initialized
+    // Abort any pending request
+    if (this._abortController) {
+      this._abortController.abort();
+    }
+
+    // Create a new abort controller for this request
+    this._abortController = new AbortController();
+    const signal = this._abortController.signal;
+
     if (!this._isInitialized) {
       if (this._initError) {
         console.error('WebLLM model failed to initialize:', this._initError);
@@ -124,8 +132,10 @@ export class WebLLMCompleter implements IBaseCompleter {
     ];
 
     try {
-      const response = await this._completer.invoke(messages);
+      console.log('Trigger invoke');
+      const response = await this._completer.invoke(messages, { signal });
       let content = response.content as string;
+      console.log('Response content:', content);
 
       if (CODE_BLOCK_START_REGEX.test(content)) {
         content = content
@@ -152,4 +162,5 @@ export class WebLLMCompleter implements IBaseCompleter {
   private _isInitialized: boolean = false;
   private _isInitializing: boolean = false;
   private _initError: Error | null = null;
+  private _abortController: AbortController | null = null;
 }
