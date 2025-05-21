@@ -7,10 +7,13 @@
     "incremental": true,
     "jsx": "react",
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
+    "paths": {
+      "ollama/browser": ["./node_modules/@langchain/ollama/dist"]
+    },
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",
