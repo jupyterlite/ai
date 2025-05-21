@@ -199,7 +199,7 @@ export class AiSettings extends React.Component<
     const currentSettings = { ...this._currentSettings };
     const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
-    if (this._secretsManager && this._useSecretsManager) {
+    if (this._useSecretsManager) {
       this._secretFields.forEach(field => delete currentSettings[field]);
     }
     settings[this._provider] = currentSettings;
