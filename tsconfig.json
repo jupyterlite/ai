@@ -11,6 +11,9 @@
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
+    "paths": {
+      "ollama/browser": ["./node_modules/@langchain/ollama/dist"]
+    },
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",
