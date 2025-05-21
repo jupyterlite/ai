@@ -1639,9 +1639,9 @@ __metadata:
     "@lumino/coreutils": ^2.1.2
     "@lumino/polling": ^2.1.2
     "@lumino/signaling": ^2.1.2
-    "@mlc-ai/web-llm": ^0.2.78
+    "@mlc-ai/web-llm": ^0.2.79
     "@mlc-ai/web-runtime": ^0.18.0-dev2
-    "@mlc-ai/web-tokenizers": ^0.1.5
+    "@mlc-ai/web-tokenizers": ^0.1.6
     "@mui/icons-material": ^5.11.0
     "@mui/material": ^5.11.0
     "@rjsf/core": ^5.18.4
@@ -2582,12 +2582,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mlc-ai/web-llm@npm:^0.2.78":
-  version: 0.2.78
-  resolution: "@mlc-ai/web-llm@npm:0.2.78"
+"@mlc-ai/web-llm@npm:^0.2.79":
+  version: 0.2.79
+  resolution: "@mlc-ai/web-llm@npm:0.2.79"
   dependencies:
     loglevel: ^1.9.1
-  checksum: c63986887807a90a3732fccf81a18e812c33f30590acb33776ea607ac2720d64259176e83e59bb641bb4f17daee0f66ebeaf81ec9a08b66be45bd79feba0f60b
+  checksum: dbdb9ea13776f5b8c57e02f3901b32f6862d9fb87f13e7ae5d84d289a95620d168d44e706c9e9f51f9f1edef0c714481286315fcaeea0440a2c9ed85e451c52d
   languageName: node
   linkType: hard
 
@@ -2598,10 +2598,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mlc-ai/web-tokenizers@npm:^0.1.5":
-  version: 0.1.5
-  resolution: "@mlc-ai/web-tokenizers@npm:0.1.5"
-  checksum: e8876752a402431241ccadc57ece284d5b6b346232828da55255e91356ee2a3a6b076a4442bf6be6a4e45b5b75e4b360b16bb24690393cf442a57d377e456d26
+"@mlc-ai/web-tokenizers@npm:^0.1.6":
+  version: 0.1.6
+  resolution: "@mlc-ai/web-tokenizers@npm:0.1.6"
+  checksum: 48d2cd4c6064a5cc7de4661e744e6b1cfc9953ced53474a3111822a7d0b3da3adb09a14dcd784ed36ea55af779e314563dc3a7bbb81eeeaabe45bc9efd8246d7
   languageName: node
   linkType: hard
 
