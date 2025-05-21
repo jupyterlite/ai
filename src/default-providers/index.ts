@@ -30,6 +30,7 @@ import WebLLMSettings from './WebLLM/settings-schema.json';
 import ChromeAIInstructions from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
+import WebLLMInstructions from './WebLLM/instructions';
 
 import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 
@@ -88,7 +89,8 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
     registry.add({
       name: 'WebLLM',
       chatModel: ChatWebLLM,
-      settingsSchema: WebLLMSettings
+      settingsSchema: WebLLMSettings,
+      instructions: WebLLMInstructions
     });
 
     registry.providerChanged.connect((sender, args) => {
