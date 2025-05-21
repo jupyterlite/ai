@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react",
-    "lib": ["ES2018", "WebWorker", "DOM"],
+    "lib": ["ES2022", "DOM"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmitOnError": true,
@@ -19,10 +19,10 @@
     "resolveJsonModule": true,
     "outDir": "lib",
     "rootDir": "src",
-    "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2018"
+    "target": "ES2022",
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": [
     "src/*",
