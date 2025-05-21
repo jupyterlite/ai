@@ -70,11 +70,6 @@ const AIProviders: IAIProvider[] = [
     chatModel: ChatOpenAI,
     completer: OpenAICompleter,
     settingsSchema: OpenAISettings
-  },
-  {
-    name: 'WebLLM',
-    chatModel: ChatWebLLM,
-    settingsSchema: WebLLMSettings
   }
 ];
 
