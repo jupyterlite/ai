@@ -5,11 +5,11 @@ import {
 import { Notification } from '@jupyterlab/apputils';
 
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
-import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 
 // Import completers
 import { AnthropicCompleter } from './Anthropic/completer';
@@ -17,6 +17,7 @@ import { ChromeCompleter } from './ChromeAI/completer';
 import { CodestralCompleter } from './MistralAI/completer';
 import { OllamaCompleter } from './Ollama/completer';
 import { OpenAICompleter } from './OpenAI/completer';
+import { WebLLMCompleter } from './WebLLM/completer';
 
 // Import Settings
 import AnthropicSettings from './Anthropic/settings-schema.json';
@@ -35,7 +36,6 @@ import WebLLMInstructions from './WebLLM/instructions';
 import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 
 import { IAIProvider, IAIProviderRegistry } from '../tokens';
-import { WebLLMCompleter } from './WebLLM/completer';
 
 // Build the AIProvider list
 const AIProviders: IAIProvider[] = [
