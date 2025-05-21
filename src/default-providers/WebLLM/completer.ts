@@ -31,11 +31,11 @@ const CODE_BLOCK_END_REGEX = /```$/;
 
 export class WebLLMCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    const model = options.settings.model as string;
+    // provide model separately since ChatWebLLM expects it
     this._completer = new ChatWebLLM({
-      model: 'Phi-3-mini-4k-instruct-q4f16_1-MLC',
-      chatOptions: {
-        temperature: 0.5
-      }
+      ...options.settings,
+      model
     });
     void this._completer.initialize((progress: any) => {
       console.log(progress);
