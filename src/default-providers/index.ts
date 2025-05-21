@@ -31,6 +31,8 @@ import ChromeAIInstructions from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
 
+import { prebuiltAppConfig } from '@mlc-ai/web-llm';
+
 import { IAIProvider, IAIProviderRegistry } from '../tokens';
 
 // Build the AIProvider list
@@ -105,6 +107,23 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
         if (model === null || !model.model) {
           return;
         }
+
+        // Find if the model is part of the prebuiltAppConfig
+        const modelRecord = prebuiltAppConfig.model_list.find(
+          modelRecord => modelRecord.model_id === model.model
+        );
+        if (!modelRecord) {
+          Notification.dismiss();
+          Notification.emit(
+            `Model ${model.model} not found in the prebuiltAppConfig`,
+            'error',
+            {
+              autoClose: 2000
+            }
+          );
+          return;
+        }
+
         // create a notification
         const notification = Notification.emit(
           'Loading model...',
