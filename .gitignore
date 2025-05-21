@@ -124,6 +124,10 @@ dmypy.json
 # Yarn cache
 .yarn/
 
+# keep the patches
+!.yarn/patches
+
+
 # JupyterLite
 _output
 *.doit.db
