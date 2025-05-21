@@ -37,9 +37,36 @@ export class WebLLMCompleter implements IBaseCompleter {
       ...options.settings,
       model
     });
-    void this._completer.initialize((progress: any) => {
-      console.log(progress);
-    });
+
+    // Initialize the model and track its status
+    this._isInitialized = false;
+    this._isInitializing = false;
+    this._initError = null;
+    void this._initializeModel();
+  }
+
+  /**
+   * Initialize the WebLLM model
+   */
+  private async _initializeModel(): Promise<void> {
+    if (this._isInitialized || this._isInitializing) {
+      return;
+    }
+
+    this._isInitializing = true;
+    try {
+      await this._completer.initialize((progress: any) => {
+        console.log('WebLLM initialization progress:', progress);
+      });
+      this._isInitialized = true;
+      this._isInitializing = false;
+      console.log('WebLLM model successfully initialized');
+    } catch (error) {
+      this._initError =
+        error instanceof Error ? error : new Error(String(error));
+      this._isInitializing = false;
+      console.error('Failed to initialize WebLLM model:', error);
+    }
   }
 
   get completer(): BaseChatModel {
@@ -64,9 +91,31 @@ export class WebLLMCompleter implements IBaseCompleter {
     request: CompletionHandler.IRequest,
     context: IInlineCompletionContext
   ) {
+    // Check if the model is initialized
+    if (!this._isInitialized) {
+      if (this._initError) {
+        console.error('WebLLM model failed to initialize:', this._initError);
+        return { items: [] };
+      }
+
+      if (!this._isInitializing) {
+        // Try to initialize again if it's not currently initializing
+        await this._initializeModel();
+      } else {
+        console.log(
+          'WebLLM model is still initializing, please try again later'
+        );
+        return { items: [] };
+      }
+
+      // Return empty if still not initialized
+      if (!this._isInitialized) {
+        return { items: [] };
+      }
+    }
+
     const { text, offset: cursorOffset } = request;
     const prompt = text.slice(0, cursorOffset);
-
     const trimmedPrompt = prompt.trim();
 
     const messages = [
@@ -75,7 +124,6 @@ export class WebLLMCompleter implements IBaseCompleter {
     ];
 
     try {
-      // TODO: this does not work yet
       const response = await this._completer.invoke(messages);
       let content = response.content as string;
 
@@ -90,11 +138,18 @@ export class WebLLMCompleter implements IBaseCompleter {
         items
       };
     } catch (error) {
-      console.error('Error fetching completion:', error);
+      if (error instanceof Error) {
+        console.error('Error fetching completion from WebLLM:', error.message);
+      } else {
+        console.error('Unknown error fetching completion from WebLLM:', error);
+      }
       return { items: [] };
     }
   }
 
   private _completer: ChatWebLLM;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  private _isInitialized: boolean = false;
+  private _isInitializing: boolean = false;
+  private _initError: Error | null = null;
 }

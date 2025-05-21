@@ -35,6 +35,7 @@ import WebLLMInstructions from './WebLLM/instructions';
 import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 
 import { IAIProvider, IAIProviderRegistry } from '../tokens';
+import { WebLLMCompleter } from './WebLLM/completer';
 
 // Build the AIProvider list
 const AIProviders: IAIProvider[] = [
@@ -89,6 +90,7 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
     registry.add({
       name: 'WebLLM',
       chatModel: ChatWebLLM,
+      completer: WebLLMCompleter,
       settingsSchema: WebLLMSettings,
       instructions: WebLLMInstructions
     });
