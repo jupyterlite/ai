@@ -191,6 +191,9 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
       settingRegistry
         .load(providerRegistryPlugin.id)
         .then(settings => {
+          if (!secretsManager) {
+            delete settings.schema.properties?.['UseSecretsManager'];
+          }
           const updateProvider = () => {
             // Update the settings to the AI providers.
             const providerSettings = (settings.get('AIprovider').composite ?? {

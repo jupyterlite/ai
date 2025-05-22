@@ -1439,7 +1439,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/settingregistry@npm:^4.4.0, @jupyterlab/settingregistry@npm:^4.4.1":
+"@jupyterlab/settingregistry@npm:^4.0.0, @jupyterlab/settingregistry@npm:^4.4.0, @jupyterlab/settingregistry@npm:^4.4.1":
   version: 4.4.1
   resolution: "@jupyterlab/settingregistry@npm:4.4.1"
   dependencies:
@@ -1598,7 +1598,7 @@ __metadata:
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
     json5: ^2.2.3
-    jupyter-secrets-manager: ^0.3.0
+    jupyter-secrets-manager: ^0.4.0
     npm-run-all: ^4.1.5
     prettier: ^3.0.0
     react: ^18.2.0
@@ -5862,16 +5862,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyter-secrets-manager@npm:^0.3.0":
-  version: 0.3.0
-  resolution: "jupyter-secrets-manager@npm:0.3.0"
+"jupyter-secrets-manager@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "jupyter-secrets-manager@npm:0.4.0"
   dependencies:
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/coreutils": ^6.0.0
+    "@jupyterlab/settingregistry": ^4.0.0
     "@jupyterlab/statedb": ^4.0.0
     "@lumino/algorithm": ^2.0.0
     "@lumino/coreutils": ^2.1.2
-  checksum: 8e0b9dd4acf746c3e8383a8de2621745297f7e96a323b7a5469e9cb487d4ddf0ef36af9b716a53e85868e922dfae3632dc4a961b8c059b2b79b5a0b93f2146d5
+    "@lumino/signaling": ^2.1.2
+  checksum: 1cf0399df4bc9c16e91b60d2526e32f6690b5a3b4293d5ff727ab992b49d08d172e3fba6f3d95ad97eef44b1f934d2db56823c886c47bca2fb1216e4a9b4f140
   languageName: node
   linkType: hard
 
