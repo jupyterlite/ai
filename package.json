@@ -124,8 +124,5 @@
         "disabledExtensions": [
             "@jupyterlab/apputils-extension:settings-connector"
         ]
-    },
-    "resolutions": {
-        "@langchain/community@^0.3.31": "patch:@langchain/community@npm%3A0.3.31#./.yarn/patches/@langchain-community-npm-0.3.31-e7e6211c56.patch"
     }
 }
