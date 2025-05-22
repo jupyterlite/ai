@@ -63,6 +63,12 @@ const providers = {
     path: 'node_modules/@langchain/openai/dist/chat_models.d.ts',
     type: 'ChatOpenAIFields',
     excludedProps: ['configuration']
+  },
+  WebLLM: {
+    path: 'node_modules/@langchain/community/chat_models/webllm.d.ts',
+    type: 'WebLLMInputs',
+    // TODO: re-enable?
+    excludedProps: ['appConfig', 'chatOptions']
   }
 };
 
@@ -82,6 +88,11 @@ Object.entries(providers).forEach(([name, desc], index) => {
     functions: 'hide',
     topRef: false
   };
+
+  // Skip for WebLLM due to ts-json-schema-generator not picking up the typeRoots?
+  if (name === 'WebLLM') {
+    config.skipTypeCheck = true;
+  }
 
   const generator = tsj.createGenerator(config);
   let schema;

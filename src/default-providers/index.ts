@@ -2,13 +2,14 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { Notification } from '@jupyterlab/apputils';
+
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
-
-import { IAIProvider, IAIProviderRegistry } from '../tokens';
 
 // Import completers
 import { AnthropicCompleter } from './Anthropic/completer';
@@ -16,6 +17,7 @@ import { ChromeCompleter } from './ChromeAI/completer';
 import { CodestralCompleter } from './MistralAI/completer';
 import { OllamaCompleter } from './Ollama/completer';
 import { OpenAICompleter } from './OpenAI/completer';
+import { WebLLMCompleter } from './WebLLM/completer';
 
 // Import Settings
 import AnthropicSettings from './Anthropic/settings-schema.json';
@@ -23,11 +25,17 @@ import ChromeAISettings from './ChromeAI/settings-schema.json';
 import MistralAISettings from './MistralAI/settings-schema.json';
 import OllamaAISettings from './Ollama/settings-schema.json';
 import OpenAISettings from './OpenAI/settings-schema.json';
+import WebLLMSettings from './WebLLM/settings-schema.json';
 
 // Import instructions
 import ChromeAIInstructions from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
+import WebLLMInstructions from './WebLLM/instructions';
+
+import { prebuiltAppConfig } from '@mlc-ai/web-llm';
+
+import { IAIProvider, IAIProviderRegistry } from '../tokens';
 
 // Build the AIProvider list
 const AIProviders: IAIProvider[] = [
@@ -69,14 +77,115 @@ const AIProviders: IAIProvider[] = [
   }
 ];
 
-export const defaultProviderPlugins: JupyterFrontEndPlugin<void>[] =
-  AIProviders.map(provider => {
-    return {
-      id: `@jupyterlite/ai:${provider.name}`,
-      autoStart: true,
-      requires: [IAIProviderRegistry],
-      activate: (app: JupyterFrontEnd, registry: IAIProviderRegistry) => {
-        registry.add(provider);
+/**
+ * Register the WebLLM provider in a separate plugin since it creates notifications
+ * when the model is changed in the settings.
+ */
+const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:webllm',
+  description: 'Register the WebLLM provider',
+  autoStart: true,
+  requires: [IAIProviderRegistry],
+  activate: (app: JupyterFrontEnd, registry: IAIProviderRegistry) => {
+    registry.add({
+      name: 'WebLLM',
+      chatModel: ChatWebLLM,
+      completer: WebLLMCompleter,
+      settingsSchema: WebLLMSettings,
+      instructions: WebLLMInstructions
+    });
+
+    registry.providerChanged.connect((sender, args) => {
+      const { currentName, currentChatModel, chatError } = registry;
+      if (currentChatModel === null) {
+        Notification.emit(chatError, 'error', {
+          autoClose: 2000
+        });
+        return;
       }
-    };
-  });
+
+      // TODO: implement a proper way to handle models that may need to be initialized before being used.
+      // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
+      if (currentName === 'WebLLM') {
+        const model = currentChatModel as ChatWebLLM;
+        if (model === null || !model.model) {
+          return;
+        }
+
+        // Find if the model is part of the prebuiltAppConfig
+        const modelRecord = prebuiltAppConfig.model_list.find(
+          modelRecord => modelRecord.model_id === model.model
+        );
+        if (!modelRecord) {
+          Notification.dismiss();
+          Notification.emit(
+            `Model ${model.model} not found in the prebuiltAppConfig`,
+            'error',
+            {
+              autoClose: 2000
+            }
+          );
+          return;
+        }
+
+        // create a notification
+        const notification = Notification.emit(
+          'Loading model...',
+          'in-progress',
+          {
+            autoClose: false,
+            progress: 0
+          }
+        );
+        try {
+          void model.initialize(report => {
+            const { progress, text } = report;
+            if (progress === 1) {
+              Notification.update({
+                id: notification,
+                progress: 1,
+                message: `Model ${model.model} loaded successfully`,
+                type: 'success',
+                autoClose: 2000
+              });
+              return;
+            }
+            Notification.update({
+              id: notification,
+              progress: progress / 1,
+              message: text,
+              type: 'in-progress'
+            });
+          });
+        } catch (err) {
+          Notification.update({
+            id: notification,
+            progress: 1,
+            message: `Error loading model ${model.model}`,
+            type: 'error',
+            autoClose: 2000
+          });
+        }
+      }
+    });
+  }
+};
+
+/**
+ * Register all default AI providers.
+ */
+const aiProviderPlugins = AIProviders.map(provider => {
+  return {
+    id: `@jupyterlite/ai:${provider.name}`,
+    autoStart: true,
+    requires: [IAIProviderRegistry],
+    activate: (app: JupyterFrontEnd, registry: IAIProviderRegistry) => {
+      registry.add(provider);
+    }
+  };
+});
+
+export const defaultProviderPlugins: JupyterFrontEndPlugin<void>[] = [
+  webLLMProviderPlugin,
+  ...aiProviderPlugins
+];

@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react",
+    "lib": ["ES2022", "DOM"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmitOnError": true,
@@ -20,7 +21,8 @@
     "rootDir": "src",
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2018"
+    "target": "ES2022",
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": [
     "src/*",

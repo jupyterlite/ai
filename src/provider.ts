@@ -42,9 +42,10 @@ The code is written in JupyterLab, a data analysis and code development
 environment which can execute code extended with additional syntax for
 interactive features, such as magics.
 Only give raw strings back, do not format the response using backticks.
-The output should be a single string, and should correspond to what a human users
-would write.
+The output should be a single string, and should only contain the code that will complete the
+give code passed as input, no explanation whatsoever.
 Do not include the prompt in the output, only the string that should be appended to the current input.
+Here is the code to complete:
 `;
 
 export class AIProviderRegistry implements IAIProviderRegistry {
