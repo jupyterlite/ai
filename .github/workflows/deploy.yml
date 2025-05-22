@@ -20,7 +20,11 @@ jobs:
           python-version: '3.11'
       - name: Install the dependencies
         run: |
+          # install the JupyterLite dependencies
           python -m pip install jupyterlite-pyodide-kernel jupyterlite-core --pre
+
+          # install a couple of other useful packages for the demo
+          python -m pip install ipywidgets
 
           # install a dev version of the extension
           python -m pip install .
