@@ -4,8 +4,8 @@ import {
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
 
-import { IBaseCompleter } from './base-completer';
 import { IAIProviderRegistry } from './tokens';
+import { AICompleter } from './types/ai-model';
 
 /**
  * The generic completion provider to register to the completion provider manager.
@@ -34,7 +34,7 @@ export class CompletionProvider implements IInlineCompletionProvider {
   /**
    * Get the current completer.
    */
-  get completer(): IBaseCompleter | null {
+  get completer(): AICompleter | null {
     return this._providerRegistry.currentCompleter;
   }
 
