@@ -1,3 +1,7 @@
+import {
+  CompletionHandler,
+  IInlineCompletionContext
+} from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -14,6 +18,7 @@ import {
   ISetProviderOptions,
   PLUGIN_IDS
 } from './tokens';
+import { AIChatModel, AICompleter } from './types/ai-model';
 
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
 
@@ -91,21 +96,36 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Get the current completer of the completion provider.
    */
-  get currentCompleter(): IBaseCompleter | null {
+  get currentCompleter(): AICompleter | null {
     if (this._name === 'None') {
       return null;
     }
-    return this._completer;
+    const completer = Private.getCompleter();
+    if (completer === null) {
+      return null;
+    }
+    return {
+      fetch: (
+        request: CompletionHandler.IRequest,
+        context: IInlineCompletionContext
+      ) => completer.fetch(request, context)
+    };
   }
 
   /**
    * Get the current llm chat model.
    */
-  get currentChatModel(): BaseChatModel | null {
+  get currentChatModel(): AIChatModel | null {
     if (this._name === 'None') {
       return null;
     }
-    return this._chatModel;
+    const chatModel = Private.getChatModel();
+    if (chatModel === null) {
+      return null;
+    }
+    return {
+      stream: (input: any, options?: any) => chatModel.stream(input, options)
+    };
   }
 
   /**
@@ -214,29 +234,33 @@ export class AIProviderRegistry implements IAIProviderRegistry {
 
     if (this._currentProvider?.completer !== undefined) {
       try {
-        this._completer = new this._currentProvider.completer({
-          settings: fullSettings
-        });
+        Private.setCompleter(
+          new this._currentProvider.completer({
+            settings: fullSettings
+          })
+        );
         this._completerError = '';
       } catch (e: any) {
         this._completerError = e.message;
       }
     } else {
-      this._completer = null;
+      Private.setCompleter(null);
     }
 
     if (this._currentProvider?.chatModel !== undefined) {
       try {
-        this._chatModel = new this._currentProvider.chatModel({
-          ...fullSettings
-        });
+        Private.setChatModel(
+          new this._currentProvider.chatModel({
+            ...fullSettings
+          })
+        );
         this._chatError = '';
       } catch (e: any) {
         this._chatError = e.message;
-        this._chatModel = null;
+        Private.setChatModel(null);
       }
     } else {
-      this._chatModel = null;
+      Private.setChatModel(null);
     }
     this._name = name;
     this._providerChanged.emit();
@@ -251,8 +275,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
 
   private _secretsManager: ISecretsManager | null;
   private _currentProvider: IAIProvider | null = null;
-  private _completer: IBaseCompleter | null = null;
-  private _chatModel: BaseChatModel | null = null;
   private _name: string = 'None';
   private _providerChanged = new Signal<IAIProviderRegistry, void>(this);
   private _chatError: string = '';
@@ -331,21 +353,35 @@ export namespace AIProviderRegistry {
 
 namespace Private {
   /**
-   * The token to use with the secrets manager.
+   * The token to use with the secrets manager, setter and getter.
    */
   let secretsToken: symbol;
-
-  /**
-   * Set of the token.
-   */
   export function setToken(value: symbol): void {
     secretsToken = value;
   }
-
-  /**
-   * get the token.
-   */
   export function getToken(): symbol {
     return secretsToken;
+  }
+
+  /**
+   * The chat model setter and getter.
+   */
+  let chatModel: BaseChatModel | null = null;
+  export function setChatModel(model: BaseChatModel | null): void {
+    chatModel = model;
+  }
+  export function getChatModel(): BaseChatModel | null {
+    return chatModel;
+  }
+
+  /**
+   * The completer setter and getter.
+   */
+  let completer: IBaseCompleter | null = null;
+  export function setCompleter(model: IBaseCompleter | null): void {
+    completer = model;
+  }
+  export function getCompleter(): IBaseCompleter | null {
+    return completer;
   }
 }
