@@ -126,9 +126,6 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema",
-        "disabledExtensions": [
-            "@jupyterlab/apputils-extension:settings-connector"
-        ]
+        "schemaDir": "schema"
     }
 }

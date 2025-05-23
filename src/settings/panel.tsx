@@ -1,8 +1,5 @@
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import {
-  ISettingConnector,
-  ISettingRegistry
-} from '@jupyterlab/settingregistry';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import {
   Button,
   FormComponent,
@@ -16,7 +13,7 @@ import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React from 'react';
 
-import { getSecretId, SettingConnector } from '.';
+import { getSecretId, SECRETS_REPLACEMENT } from '.';
 import baseSettings from './base.json';
 import { IAIProviderRegistry, IDict, PLUGIN_IDS } from '../tokens';
 
@@ -30,7 +27,6 @@ export const aiSettingsRenderer = (options: {
   secretsToken?: symbol;
   rmRegistry?: IRenderMimeRegistry;
   secretsManager?: ISecretsManager;
-  settingConnector?: ISettingConnector;
 }): IFormRenderer => {
   const { secretsToken } = options;
   delete options.secretsToken;
@@ -69,7 +65,6 @@ export class AiSettings extends React.Component<
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
-    this._settingConnector = props.formContext.settingConnector ?? null;
     this._settings = props.formContext.settings;
 
     const useSecretsManagerSetting =
@@ -210,8 +205,14 @@ export class AiSettings extends React.Component<
    * Save the settings to the setting registry.
    */
   saveSettingsToRegistry(): void {
+    const sanitizedSettings = { ...this._currentSettings };
+    if (this._useSecretsManager) {
+      this._secretFields.forEach(field => {
+        sanitizedSettings[field] = SECRETS_REPLACEMENT;
+      });
+    }
     this._settings
-      .set('AIprovider', { provider: this._provider, ...this._currentSettings })
+      .set('AIprovider', { provider: this._provider, ...sanitizedSettings })
       .catch(console.error);
   }
 
@@ -305,14 +306,6 @@ export class AiSettings extends React.Component<
       });
     }
 
-    // Do not save secrets in settings if using the secrets manager.
-    if (this._settingConnector instanceof SettingConnector) {
-      if (this._useSecretsManager) {
-        this._settingConnector.doNotSave = this._secretFields;
-      } else {
-        this._settingConnector.doNotSave = [];
-      }
-    }
     return schema as JSONSchema7;
   }
 
@@ -483,7 +476,6 @@ export class AiSettings extends React.Component<
   private _useSecretsManager: boolean;
   private _rmRegistry: IRenderMimeRegistry | null;
   private _secretsManager: ISecretsManager | null;
-  private _settingConnector: ISettingConnector | null;
   private _currentSettings: IDict<any> = { provider: 'None' };
   private _uiSchema: IDict<any> = {};
   private _settings: ISettingRegistry.ISettings;
