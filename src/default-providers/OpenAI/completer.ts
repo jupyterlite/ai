@@ -2,7 +2,6 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -12,10 +11,6 @@ import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 export class OpenAICompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     this._completer = new ChatOpenAI({ ...options.settings });
-  }
-
-  get completer(): BaseChatModel {
-    return this._completer;
   }
 
   /**

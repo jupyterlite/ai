@@ -3,7 +3,6 @@ import {
   IInlineCompletionContext
 } from '@jupyterlab/completer';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
-import { LLM } from '@langchain/core/language_models/llms';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import { BaseCompleter, IBaseCompleter } from '../../base-completer';
@@ -43,10 +42,6 @@ export class ChromeCompleter implements IBaseCompleter {
   }
   set prompt(value: string) {
     this._prompt = value;
-  }
-
-  get completer(): LLM {
-    return this._completer;
   }
 
   async fetch(
