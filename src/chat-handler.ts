@@ -12,7 +12,6 @@ import {
   IInputModel,
   INewMessage
 } from '@jupyter/chat';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import {
   AIMessage,
   HumanMessage,
@@ -20,9 +19,11 @@ import {
   SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
-import { chatSystemPrompt } from './provider';
-import { IAIProviderRegistry } from './tokens';
+
 import { jupyternautLiteIcon } from './icons';
+import { chatSystemPrompt } from './provider';
+import { AIChatModel } from './types/ai-model';
+import { IAIProviderRegistry } from './tokens';
 
 /**
  * The base64 encoded SVG string of the jupyternaut lite icon.
@@ -52,7 +53,7 @@ export class ChatHandler extends ChatModel {
     });
   }
 
-  get provider(): BaseChatModel | null {
+  get provider(): AIChatModel | null {
     return this._providerRegistry.currentChatModel;
   }
 
@@ -194,10 +195,16 @@ export class ChatHandler extends ChatModel {
 }
 
 export namespace ChatHandler {
+  /**
+   * The options used to create a chat handler.
+   */
   export interface IOptions extends ChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
   }
 
+  /**
+   * The chat command provider for the chat.
+   */
   export class ClearCommandProvider implements IChatCommandProvider {
     public id: string = '@jupyterlite/ai:clear-commands';
     private _slash_commands: ChatCommand[] = [

@@ -11,7 +11,6 @@ import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 export class OllamaCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     this._completer = new ChatOllama({ ...options.settings });
-    console.log('Settings', options.settings);
   }
 
   /**
