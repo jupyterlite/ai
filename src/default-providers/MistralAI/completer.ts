@@ -2,52 +2,24 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import {
-  BaseMessage,
-  HumanMessage,
-  SystemMessage
-} from '@langchain/core/messages';
-import { ChatMistralAI } from '@langchain/mistralai';
-import { Throttler } from '@lumino/polling';
+import { BaseLanguageModel } from '@langchain/core/language_models/base';
+import { MistralAI } from '@langchain/mistralai';
 
 import { BaseCompleter, IBaseCompleter } from '../../base-completer';
 import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 
-/**
- * The Mistral API has a rate limit of 1 request per second
- */
-const INTERVAL = 1000;
+const CODE_BLOCK_START_REGEX = /^```(?:[a-zA-Z]+)?\n?/;
+const CODE_BLOCK_END_REGEX = /```$/;
 
+/**
+ * The completer for the MistralAI model.
+ */
 export class CodestralCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    this._completer = new ChatMistralAI({ ...options.settings });
-    this._throttler = new Throttler(
-      async (messages: BaseMessage[]) => {
-        const response = await this._completer.invoke(messages);
-        // Extract results of completion request.
-        const items = [];
-        if (typeof response.content === 'string') {
-          items.push({
-            insertText: response.content
-          });
-        } else {
-          response.content.forEach(content => {
-            if (content.type !== 'text') {
-              return;
-            }
-            items.push({
-              insertText: content.text
-            });
-          });
-        }
-        return { items };
-      },
-      { limit: INTERVAL }
-    );
+    this._completer = new MistralAI({ ...options.settings });
   }
 
-  get completer(): BaseChatModel {
+  get completer(): BaseLanguageModel {
     return this._completer;
   }
 
@@ -65,23 +37,38 @@ export class CodestralCompleter implements IBaseCompleter {
     request: CompletionHandler.IRequest,
     context: IInlineCompletionContext
   ) {
-    const { text, offset: cursorOffset } = request;
-    const prompt = text.slice(0, cursorOffset);
-
-    const messages: BaseMessage[] = [
-      new SystemMessage(this._prompt),
-      new HumanMessage(prompt)
-    ];
-
     try {
-      return await this._throttler.invoke(messages);
+      const { text, offset: cursorOffset } = request;
+      const prompt = text.slice(0, cursorOffset);
+      const suffix = text.slice(cursorOffset);
+      this._controller.abort();
+      this._controller = new AbortController();
+
+      const response = await this._completer.completionWithRetry(
+        {
+          prompt,
+          model: this._completer.model,
+          suffix
+        },
+        { signal: this._controller.signal },
+        false
+      );
+      const items = response.choices.map(choice => {
+        const content = choice.message.content
+          .replace(CODE_BLOCK_START_REGEX, '')
+          .replace(CODE_BLOCK_END_REGEX, '');
+        return {
+          insertText: content
+        };
+      });
+      return { items };
     } catch (error) {
-      console.error('Error fetching completions', error);
+      // the request may be aborted
       return { items: [] };
     }
   }
 
-  private _throttler: Throttler;
-  private _completer: ChatMistralAI;
+  private _controller = new AbortController();
+  private _completer: MistralAI;
   private _prompt: string = COMPLETION_SYSTEM_PROMPT;
 }
