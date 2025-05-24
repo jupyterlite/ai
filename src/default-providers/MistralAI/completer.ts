@@ -2,70 +2,54 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import {
-  BaseMessage,
-  HumanMessage,
-  SystemMessage
-} from '@langchain/core/messages';
-import { ChatMistralAI } from '@langchain/mistralai';
-import { Throttler } from '@lumino/polling';
+import { MistralAI } from '@langchain/mistralai';
 
 import { BaseCompleter } from '../../base-completer';
 
-/**
- * The Mistral API has a rate limit of 1 request per second
- */
-const INTERVAL = 1000;
+const CODE_BLOCK_START_REGEX = /^```(?:[a-zA-Z]+)?\n?/;
+const CODE_BLOCK_END_REGEX = /```$/;
 
 export class CodestralCompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     super(options);
-    this._completer = new ChatMistralAI({ ...options.settings });
-    this._throttler = new Throttler(
-      async (messages: BaseMessage[]) => {
-        const response = await this._completer.invoke(messages);
-        // Extract results of completion request.
-        const items = [];
-        if (typeof response.content === 'string') {
-          items.push({
-            insertText: response.content
-          });
-        } else {
-          response.content.forEach(content => {
-            if (content.type !== 'text') {
-              return;
-            }
-            items.push({
-              insertText: content.text
-            });
-          });
-        }
-        return { items };
-      },
-      { limit: INTERVAL }
-    );
+    this._completer = new MistralAI({ ...options.settings });
   }
 
   async fetch(
     request: CompletionHandler.IRequest,
     context: IInlineCompletionContext
   ) {
-    const { text, offset: cursorOffset } = request;
-    const prompt = text.slice(0, cursorOffset);
-
-    const messages: BaseMessage[] = [
-      new SystemMessage(this.systemPrompt),
-      new HumanMessage(prompt)
-    ];
-
     try {
-      return await this._throttler.invoke(messages);
+      const { text, offset: cursorOffset } = request;
+      const prompt = text.slice(0, cursorOffset);
+      const suffix = text.slice(cursorOffset);
+      this._controller.abort();
+      this._controller = new AbortController();
+
+      const response = await this._completer.completionWithRetry(
+        {
+          prompt,
+          model: this._completer.model,
+          suffix
+        },
+        { signal: this._controller.signal },
+        false
+      );
+      const items = response.choices.map(choice => {
+        const content = choice.message.content
+          .replace(CODE_BLOCK_START_REGEX, '')
+          .replace(CODE_BLOCK_END_REGEX, '');
+        return {
+          insertText: content
+        };
+      });
+      return { items };
     } catch (error) {
-      console.error('Error fetching completions', error);
+      // the request may be aborted
       return { items: [] };
     }
   }
 
-  private _throttler: Throttler;
-  protected _completer: ChatMistralAI;
+  private _controller = new AbortController();
+  protected _completer: MistralAI;
 }
