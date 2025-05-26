@@ -124,6 +124,15 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
+   * Get the compatibility check function of a given provider.
+   */
+  getCompatibilityCheck(
+    provider: string
+  ): (() => Promise<string | null>) | undefined {
+    return this._providers.get(provider)?.compatibilityCheck;
+  }
+
+  /**
    * Format an error message from the current provider.
    */
   formatErrorMessage(error: any): string {
@@ -144,7 +153,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * get the current completer error.
+   * Get the current completer error.
    */
   get completerError(): string {
     return this._completerError;
@@ -165,6 +174,24 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       this._deferredProvider = options;
     } else {
       this._deferredProvider = null;
+    }
+
+    const compatibilityCheck = this.getCompatibilityCheck(name);
+    if (compatibilityCheck !== undefined) {
+      const error = await compatibilityCheck();
+      if (error !== null) {
+        this._currentProvider = null;
+        this._chatError = error.trim();
+        this._completerError = error.trim();
+        this._name = 'None';
+        this._providerChanged.emit();
+        return;
+      }
+    }
+
+    if (name === 'None') {
+      this._chatError = '';
+      this._completerError = '';
     }
 
     // Build a new settings object containing the secrets.
