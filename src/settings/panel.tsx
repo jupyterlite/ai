@@ -20,6 +20,7 @@ import { IAIProviderRegistry, IDict, PLUGIN_IDS } from '../tokens';
 const MD_MIME_TYPE = 'text/markdown';
 const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
+const ERROR_CLASS = 'jp-AISettingsError';
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
 
 export const aiSettingsRenderer = (options: {
@@ -44,6 +45,7 @@ export const aiSettingsRenderer = (options: {
 export interface ISettingsFormStates {
   schema: JSONSchema7;
   instruction: HTMLElement | null;
+  compatibilityError: string | null;
   isModified?: boolean;
 }
 
@@ -113,8 +115,15 @@ export class AiSettings extends React.Component<
       this.getSettingsFromLocalStorage()
     );
 
-    this.state = { schema, instruction: null, isModified: isModified };
+    this.state = {
+      schema,
+      instruction: null,
+      compatibilityError: null,
+      isModified: isModified
+    };
     this._renderInstruction();
+
+    this._checkProviderCompatibility();
 
     // Update the setting registry.
     this.saveSettingsToRegistry();
@@ -337,6 +346,29 @@ export class AiSettings extends React.Component<
   }
 
   /**
+   * Check for compatibility of the provider with the current environment.
+   * If the provider is not compatible, display an error message.
+   */
+  private async _checkProviderCompatibility(): Promise<void> {
+    const compatibilityCheck = this._providerRegistry.getCompatibilityCheck(
+      this._provider
+    );
+    if (!compatibilityCheck) {
+      this.setState({ compatibilityError: null });
+      return;
+    }
+    const error = await compatibilityCheck();
+    if (!error) {
+      this.setState({ compatibilityError: null });
+      return;
+    }
+    const errorDiv = document.createElement('div');
+    errorDiv.className = ERROR_CLASS;
+    errorDiv.innerHTML = error;
+    this.setState({ compatibilityError: error });
+  }
+
+  /**
    * Triggered when the provider has changed, to update the schema and values.
    * Update the Jupyterlab settings accordingly.
    */
@@ -349,6 +381,7 @@ export class AiSettings extends React.Component<
     this.saveCurrentProvider();
     this._updateSchema();
     this._renderInstruction();
+    this._checkProviderCompatibility();
 
     // Initialize the current settings.
     const isModified = this._updatedFormData(
@@ -435,6 +468,12 @@ export class AiSettings extends React.Component<
           schema={this._providerSchema}
           onChange={this._onProviderChanged}
         />
+        {this.state.compatibilityError !== null && (
+          <div className={ERROR_CLASS}>
+            <i className={'fas fa-exclamation-triangle'}></i>
+            <span>{this.state.compatibilityError}</span>
+          </div>
+        )}
         {this.state.instruction !== null && (
           <details>
             <summary className={INSTRUCTION_CLASS}>Instructions</summary>

@@ -51,6 +51,11 @@ export interface IAIProvider {
    * Default to `(error) => error.message`.
    */
   errorMessage?: (error: any) => string;
+  /**
+   * Compatibility check function, to determine if the provider is compatible with the
+   * current environment.
+   */
+  compatibilityCheck?: () => Promise<string | null>;
 }
 
 /**
@@ -85,6 +90,12 @@ export interface IAIProviderRegistry {
    * Get the instructions of a given provider.
    */
   getInstructions(provider: string): string | undefined;
+  /**
+   * Get the compatibility check function of a given provider.
+   */
+  getCompatibilityCheck(
+    provider: string
+  ): (() => Promise<string | null>) | undefined;
   /**
    * Format an error message from the current provider.
    */

@@ -22,3 +22,22 @@ During the download, ChromeAI may not be available via the extension.
 
 <i class="fa fa-info-circle" aria-hidden="true"></i> For more information about Chrome Built-in AI: <https://developer.chrome.com/docs/ai/get-started>
 `;
+
+/**
+ * Check if the browser supports ChromeAI and the model is available.
+ */
+export async function compatibilityCheck(): Promise<string | null> {
+  // Check if the browser supports the ChromeAI model
+  if (typeof window === 'undefined' || !('LanguageModel' in window)) {
+    return 'Your browser does not support ChromeAI. Please use an updated chrome based browser like Google Chrome, and follow the instructions in settings to enable it.';
+  }
+  const languageModel = window.LanguageModel as any;
+  if (languageModel === undefined || languageModel.availability === undefined) {
+    return 'Your browser does not support ChromeAI. Please use a chrome based browser like Google Chrome, and follow the instructions in settings to enable it.';
+  }
+  if (!(await languageModel.availability())) {
+    return 'The ChromeAI model is not available in your browser. Please ensure you have enabled the necessary flags in Google Chrome as described in the instructions in settings.';
+  }
+  // If the model is available, return null to indicate compatibility
+  return null;
+}

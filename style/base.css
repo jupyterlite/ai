@@ -9,3 +9,8 @@
 .jp-AISettingsInstructions {
   font-size: var(--jp-content-font-size1);
 }
+
+.jp-AISettingsError {
+  color: var(--jp-error-color1);
+  font-size: var(--jp-content-font-size1);
+}

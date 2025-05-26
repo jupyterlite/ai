@@ -16,3 +16,18 @@ WebLLM enables running LLMs directly in your browser, making it possible to use 
 
 <i class="fas fa-exclamation-triangle"></i> Model performance depends on your device's hardware capabilities. More powerful devices will run models faster. Some larger models may not work well on devices with limited GPU memory or may experience slow response times.
 `;
+
+/**
+ * Check if the browser supports WebLLM.
+ */
+export async function compatibilityCheck(): Promise<string | null> {
+  // Check if the browser supports the ChromeAI model
+  if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
+    return 'Your browser does not support WebLLM, it does not support required WebGPU.';
+  }
+  if ((await navigator.gpu.requestAdapter()) === null) {
+    return 'You may need to enable WebGPU, `await navigator.gpu.requestAdapter()` is null.';
+  }
+  // If the model is available, return null to indicate compatibility
+  return null;
+}
