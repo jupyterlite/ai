@@ -14,7 +14,7 @@ AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite ✨
 > To enable more AI providers in JupyterLab and Jupyter Notebook, we recommend using the [Jupyter AI](https://github.com/jupyterlab/jupyter-ai) extension directly.
 > At the moment Jupyter AI is not compatible with JupyterLite, but might be to some extent in the future.
 
-- JupyterLab >= 4.4.0a0 or Notebook >= 7.4.0a0
+- JupyterLab >= 4.4.0 or Notebook >= 7.4.0
 
 ## ✨ Try it in your browser ✨
 
