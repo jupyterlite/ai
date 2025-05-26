@@ -2,7 +2,6 @@ import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import {
   BaseMessage,
   HumanMessage,
@@ -45,10 +44,6 @@ export class CodestralCompleter implements IBaseCompleter {
       },
       { limit: INTERVAL }
     );
-  }
-
-  get completer(): BaseChatModel {
-    return this._completer;
   }
 
   /**
