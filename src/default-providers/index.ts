@@ -28,7 +28,9 @@ import OpenAISettings from './OpenAI/settings-schema.json';
 import WebLLMSettings from './WebLLM/settings-schema.json';
 
 // Import instructions
-import ChromeAIInstructions from './ChromeAI/instructions';
+import ChromeAIInstructions, {
+  compatibilityCheck as chromeAICompatibilityCheck
+} from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
 import WebLLMInstructions from './WebLLM/instructions';
@@ -53,7 +55,8 @@ const AIProviders: IAIProvider[] = [
     chatModel: ChromeAI,
     completer: ChromeCompleter,
     instructions: ChromeAIInstructions,
-    settingsSchema: ChromeAISettings
+    settingsSchema: ChromeAISettings,
+    compatibilityCheck: chromeAICompatibilityCheck
   },
   {
     name: 'MistralAI',
