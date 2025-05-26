@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "jupyter-secrets-manager>=0.3.0"
+    "jupyter-secrets-manager >=0.4,<0.5"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
