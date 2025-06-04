@@ -28,10 +28,14 @@ import OpenAISettings from './OpenAI/settings-schema.json';
 import WebLLMSettings from './WebLLM/settings-schema.json';
 
 // Import instructions
-import ChromeAIInstructions from './ChromeAI/instructions';
+import ChromeAIInstructions, {
+  compatibilityCheck as chromeAICompatibilityCheck
+} from './ChromeAI/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
-import WebLLMInstructions from './WebLLM/instructions';
+import WebLLMInstructions, {
+  compatibilityCheck as webLLMCompatibilityCheck
+} from './WebLLM/instructions';
 
 import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 
@@ -53,7 +57,8 @@ const AIProviders: IAIProvider[] = [
     chatModel: ChromeAI,
     completer: ChromeCompleter,
     instructions: ChromeAIInstructions,
-    settingsSchema: ChromeAISettings
+    settingsSchema: ChromeAISettings,
+    compatibilityCheck: chromeAICompatibilityCheck
   },
   {
     name: 'MistralAI',
@@ -92,10 +97,11 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
       chatModel: ChatWebLLM,
       completer: WebLLMCompleter,
       settingsSchema: WebLLMSettings,
-      instructions: WebLLMInstructions
+      instructions: WebLLMInstructions,
+      compatibilityCheck: webLLMCompatibilityCheck
     });
 
-    registry.providerChanged.connect((sender, args) => {
+    registry.providerChanged.connect(async (sender, args) => {
       const { currentName, currentChatModel, chatError } = registry;
       if (currentChatModel === null) {
         Notification.emit(chatError, 'error', {
@@ -107,6 +113,16 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
       // TODO: implement a proper way to handle models that may need to be initialized before being used.
       // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
       if (currentName === 'WebLLM') {
+        const compatibilityError = await webLLMCompatibilityCheck();
+
+        if (compatibilityError) {
+          Notification.dismiss();
+          Notification.emit(compatibilityError, 'error', {
+            autoClose: 2000
+          });
+          return;
+        }
+
         const model = currentChatModel as ChatWebLLM;
         if (model === null || !model.model) {
           return;
