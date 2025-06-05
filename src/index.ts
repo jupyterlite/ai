@@ -20,7 +20,7 @@ import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { ChatHandler } from './chat-handler';
+import { ChatHandler, welcomeMessage } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
@@ -126,7 +126,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         themeManager,
         rmRegistry,
         chatCommandRegistry,
-        inputToolbarRegistry
+        inputToolbarRegistry,
+        welcomeMessage: welcomeMessage(providerRegistry.providers)
       });
       chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
