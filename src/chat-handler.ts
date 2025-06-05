@@ -36,9 +36,8 @@ const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
 const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
 export const welcomeMessage = (providers: string[]) => `
-### Welcome to Jupyterlite AI!
+#### Ask JupyterLite AI
 
-**This chat UI allows you to chat with a large language model (LLM).**
 
 The provider to use can be set in the settings editor, by selecting it from
 the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
