@@ -370,12 +370,14 @@ namespace Private {
   }
 
   /**
-   * The providers map.
+   * The providers map, in private namespace to prevent updating the 'exposeChatModel'
+   * flag.
    */
   export const providers = new Map<string, IAIProvider>();
 
   /**
    * The name of the current provider, setter and getter.
+   * It is in a private namespace to prevent updating it without updating the models.
    */
   let name: string = 'None';
   export function setName(value: string): void {
