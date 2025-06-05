@@ -841,9 +841,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/chat@npm:^0.9.0":
-  version: 0.9.0
-  resolution: "@jupyter/chat@npm:0.9.0"
+"@jupyter/chat@npm:^0.12.0":
+  version: 0.12.0
+  resolution: "@jupyter/chat@npm:0.12.0"
   dependencies:
     "@emotion/react": ^11.10.5
     "@emotion/styled": ^11.10.5
@@ -856,6 +856,7 @@ __metadata:
     "@jupyterlab/notebook": ^4.2.0
     "@jupyterlab/rendermime": ^4.2.0
     "@jupyterlab/ui-components": ^4.2.0
+    "@lumino/algorithm": ^2.0.0
     "@lumino/commands": ^2.0.0
     "@lumino/coreutils": ^2.0.0
     "@lumino/disposable": ^2.0.0
@@ -865,7 +866,7 @@ __metadata:
     clsx: ^2.1.0
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: dee9a9e02ea8a6d25e1caebf4e9bece42c82fa40baa84dc655540bb64a676b4b1890373390c291f35eb1fe8f821d15935ec21fdd0e12063a497e575f4ddbcd78
+  checksum: 4c36487123a5a176f2a865b7686b1f7d56930c3991d338be3a47286d7ebce5aac216ecd25e4f548e09e2592506a20e5756e489ed1a63ef93dec425b04295f9a9
   languageName: node
   linkType: hard
 
@@ -1558,7 +1559,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyterlite/ai@workspace:."
   dependencies:
-    "@jupyter/chat": ^0.9.0
+    "@jupyter/chat": ^0.12.0
     "@jupyterlab/application": ^4.4.0
     "@jupyterlab/apputils": ^4.5.0
     "@jupyterlab/builder": ^4.4.0

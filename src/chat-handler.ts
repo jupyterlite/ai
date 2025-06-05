@@ -5,10 +5,13 @@
 
 import {
   ChatCommand,
-  ChatModel,
+  AbstractChatContext,
+  AbstractChatModel,
   IChatCommandProvider,
+  IChatContext,
   IChatHistory,
   IChatMessage,
+  IChatModel,
   IInputModel,
   INewMessage
 } from '@jupyter/chat';
@@ -22,8 +25,8 @@ import { UUID } from '@lumino/coreutils';
 
 import { jupyternautLiteIcon } from './icons';
 import { chatSystemPrompt } from './provider';
-import { AIChatModel } from './types/ai-model';
 import { IAIProviderRegistry } from './tokens';
+import { AIChatModel } from './types/ai-model';
 
 /**
  * The base64 encoded SVG string of the jupyternaut lite icon.
@@ -32,12 +35,24 @@ import { IAIProviderRegistry } from './tokens';
 const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
 const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
+export const welcomeMessage = (providers: string[]) => `
+#### Ask JupyterLite AI
+
+
+The provider to use can be set in the settings editor, by selecting it from
+the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
+
+The current providers that are available are _${providers.sort().join('_, _')}_.
+
+To clear the chat, you can use the \`/clear\` command from the chat input.
+`;
+
 export type ConnectionMessage = {
   type: 'connection';
   client_id: string;
 };
 
-export class ChatHandler extends ChatModel {
+export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._providerRegistry = options.providerRegistry;
@@ -127,7 +142,7 @@ export class ChatHandler extends ChatModel {
     );
 
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
-    this.updateWriters([sender]);
+    this.updateWriters([{ user: sender }]);
 
     // create an empty message to be filled by the AI provider
     const botMsg: IChatMessage = {
@@ -185,6 +200,10 @@ export class ChatHandler extends ChatModel {
     this._controller?.abort();
   }
 
+  createChatContext(): IChatContext {
+    return new ChatHandler.ChatContext({ model: this });
+  }
+
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _prompt: string;
@@ -198,12 +217,19 @@ export namespace ChatHandler {
   /**
    * The options used to create a chat handler.
    */
-  export interface IOptions extends ChatModel.IOptions {
+  export interface IOptions extends IChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
   }
 
   /**
-   * The chat command provider for the chat.
+   * The minimal chat context.
+   */
+  export class ChatContext extends AbstractChatContext {
+    users = [];
+  }
+
+  /**
+   *  The chat command provider for the chat.
    */
   export class ClearCommandProvider implements IChatCommandProvider {
     public id: string = '@jupyterlite/ai:clear-commands';
