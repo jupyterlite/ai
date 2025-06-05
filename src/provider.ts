@@ -66,19 +66,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the list of provider names.
    */
   get providers(): string[] {
-    return Array.from(this._providers.keys());
+    return Array.from(Private.providers.keys());
   }
 
   /**
    * Add a new provider.
    */
   add(provider: IAIProvider): void {
-    if (this._providers.has(provider.name)) {
+    if (Private.providers.has(provider.name)) {
       throw new Error(
         `A AI provider named '${provider.name}' is already registered`
       );
     }
-    this._providers.set(provider.name, provider);
+    Private.providers.set(provider.name, provider);
 
     // Set the provider if the loading has been deferred.
     if (provider.name === this._deferredProvider?.name) {
@@ -90,14 +90,14 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the current provider name.
    */
   get currentName(): string {
-    return this._name;
+    return Private.getName();
   }
 
   /**
    * Get the current AICompleter.
    */
   get currentCompleter(): AICompleter | null {
-    if (this._name === 'None') {
+    if (Private.getName() === 'None') {
       return null;
     }
     const completer = Private.getCompleter();
@@ -116,14 +116,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the current AIChatModel.
    */
   get currentChatModel(): AIChatModel | null {
-    if (this._name === 'None') {
+    if (Private.getName() === 'None') {
       return null;
     }
+    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+
     const chatModel = Private.getChatModel();
     if (chatModel === null) {
       return null;
     }
-    if (this._currentProvider?.exposeChatModel ?? false) {
+    if (currentProvider?.exposeChatModel ?? false) {
       // Expose the full chat model if expected.
       return chatModel as AIChatModel;
     }
@@ -138,7 +140,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the settings schema of a given provider.
    */
   getSettingsSchema(provider: string): JSONSchema7 {
-    return (this._providers.get(provider)?.settingsSchema?.properties ||
+    return (Private.providers.get(provider)?.settingsSchema?.properties ||
       {}) as JSONSchema7;
   }
 
@@ -146,7 +148,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the instructions of a given provider.
    */
   getInstructions(provider: string): string | undefined {
-    return this._providers.get(provider)?.instructions;
+    return Private.providers.get(provider)?.instructions;
   }
 
   /**
@@ -155,15 +157,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   getCompatibilityCheck(
     provider: string
   ): (() => Promise<string | null>) | undefined {
-    return this._providers.get(provider)?.compatibilityCheck;
+    return Private.providers.get(provider)?.compatibilityCheck;
   }
 
   /**
    * Format an error message from the current provider.
    */
   formatErrorMessage(error: any): string {
-    if (this._currentProvider?.errorMessage) {
-      return this._currentProvider?.errorMessage(error);
+    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+    if (currentProvider?.errorMessage) {
+      return currentProvider?.errorMessage(error);
     }
     if (error.message) {
       return error.message;
@@ -193,8 +196,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    */
   async setProvider(options: ISetProviderOptions): Promise<void> {
     const { name, settings } = options;
-    this._currentProvider = this._providers.get(name) ?? null;
-    if (this._currentProvider === null) {
+    const currentProvider = Private.providers.get(name) ?? null;
+    if (currentProvider === null) {
       // The current provider may not be loaded when the settings are first loaded.
       // Let's defer the provider loading.
       this._deferredProvider = options;
@@ -206,10 +209,10 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        this._currentProvider = null;
+        // this._currentProvider = null;
         this._chatError = error.trim();
         this._completerError = error.trim();
-        this._name = 'None';
+        Private.setName('None');
         this._providerChanged.emit();
         return;
       }
@@ -238,10 +241,10 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       fullSettings[key] = settings[key];
     }
 
-    if (this._currentProvider?.completer !== undefined) {
+    if (currentProvider?.completer !== undefined) {
       try {
         Private.setCompleter(
-          new this._currentProvider.completer({
+          new currentProvider.completer({
             settings: fullSettings
           })
         );
@@ -253,10 +256,10 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       Private.setCompleter(null);
     }
 
-    if (this._currentProvider?.chatModel !== undefined) {
+    if (currentProvider?.chatModel !== undefined) {
       try {
         Private.setChatModel(
-          new this._currentProvider.chatModel({
+          new currentProvider.chatModel({
             ...fullSettings
           })
         );
@@ -268,7 +271,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     } else {
       Private.setChatModel(null);
     }
-    this._name = name;
+    Private.setName(name);
     this._providerChanged.emit();
   }
 
@@ -280,12 +283,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   private _secretsManager: ISecretsManager | null;
-  private _currentProvider: IAIProvider | null = null;
-  private _name: string = 'None';
   private _providerChanged = new Signal<IAIProviderRegistry, void>(this);
   private _chatError: string = '';
   private _completerError: string = '';
-  private _providers = new Map<string, IAIProvider>();
   private _deferredProvider: ISetProviderOptions | null = null;
 }
 
@@ -367,6 +367,22 @@ namespace Private {
   }
   export function getToken(): symbol {
     return secretsToken;
+  }
+
+  /**
+   * The providers map.
+   */
+  export const providers = new Map<string, IAIProvider>();
+
+  /**
+   * The name of the current provider, setter and getter.
+   */
+  let name: string = 'None';
+  export function setName(value: string): void {
+    name = value;
+  }
+  export function getName(): string {
+    return name;
   }
 
   /**
