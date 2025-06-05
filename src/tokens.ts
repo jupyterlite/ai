@@ -57,6 +57,15 @@ export interface IAIProvider {
    * current environment.
    */
   compatibilityCheck?: () => Promise<string | null>;
+  /**
+   * Whether to expose or not the chat model.
+   *
+   * ### CAUTION
+   * This flag will expose the whole chat model API, which may contain private keys.
+   * Be sure to use it with a model that does not expose sensitive information in the
+   * API.
+   */
+  exposeChatModel?: boolean;
 }
 
 /**

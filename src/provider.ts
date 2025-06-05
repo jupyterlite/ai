@@ -94,7 +94,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Get the current completer of the completion provider.
+   * Get the current AICompleter.
    */
   get currentCompleter(): AICompleter | null {
     if (this._name === 'None') {
@@ -113,7 +113,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Get the current llm chat model.
+   * Get the current AIChatModel.
    */
   get currentChatModel(): AIChatModel | null {
     if (this._name === 'None') {
@@ -123,6 +123,12 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (chatModel === null) {
       return null;
     }
+    if (this._currentProvider?.exposeChatModel ?? false) {
+      // Expose the full chat model if expected.
+      return chatModel as AIChatModel;
+    }
+
+    // Otherwise, we create a reduced AIChatModel interface.
     return {
       stream: (input: any, options?: any) => chatModel.stream(input, options)
     };

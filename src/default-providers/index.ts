@@ -98,7 +98,8 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
       completer: WebLLMCompleter,
       settingsSchema: WebLLMSettings,
       instructions: WebLLMInstructions,
-      compatibilityCheck: webLLMCompatibilityCheck
+      compatibilityCheck: webLLMCompatibilityCheck,
+      exposeChatModel: true
     });
 
     registry.providerChanged.connect(async (sender, args) => {
