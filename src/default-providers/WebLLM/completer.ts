@@ -4,9 +4,9 @@ import {
 } from '@jupyterlab/completer';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
+
 import { BaseCompleter, IBaseCompleter } from '../../base-completer';
 import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 /**
  * Regular expression to match the '```' string at the start of a string.
@@ -67,10 +67,6 @@ export class WebLLMCompleter implements IBaseCompleter {
       this._isInitializing = false;
       console.error('Failed to initialize WebLLM model:', error);
     }
-  }
-
-  get completer(): BaseChatModel {
-    return this._completer;
   }
 
   /**

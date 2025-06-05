@@ -4,6 +4,7 @@ import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
 
 import { IBaseCompleter } from './base-completer';
+import { AIChatModel, AICompleter } from './types/ai-model';
 
 export const PLUGIN_IDS = {
   chat: '@jupyterlite/ai:chat',
@@ -56,6 +57,15 @@ export interface IAIProvider {
    * current environment.
    */
   compatibilityCheck?: () => Promise<string | null>;
+  /**
+   * Whether to expose or not the chat model.
+   *
+   * ### CAUTION
+   * This flag will expose the whole chat model API, which may contain private keys.
+   * Be sure to use it with a model that does not expose sensitive information in the
+   * API.
+   */
+  exposeChatModel?: boolean;
 }
 
 /**
@@ -77,11 +87,11 @@ export interface IAIProviderRegistry {
   /**
    * Get the current completer of the completion provider.
    */
-  currentCompleter: IBaseCompleter | null;
+  currentCompleter: AICompleter | null;
   /**
    * Get the current llm chat model.
    */
-  currentChatModel: BaseChatModel | null;
+  currentChatModel: AIChatModel | null;
   /**
    * Get the settings schema of a given provider.
    */

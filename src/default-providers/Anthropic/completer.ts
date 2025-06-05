@@ -3,7 +3,6 @@ import {
   IInlineCompletionContext
 } from '@jupyterlab/completer';
 import { ChatAnthropic } from '@langchain/anthropic';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 
 import { BaseCompleter, IBaseCompleter } from '../../base-completer';
@@ -12,10 +11,6 @@ import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
 export class AnthropicCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
     this._completer = new ChatAnthropic({ ...options.settings });
-  }
-
-  get completer(): BaseChatModel {
-    return this._completer;
   }
 
   /**

@@ -1,3 +1,7 @@
+import {
+  CompletionHandler,
+  IInlineCompletionContext
+} from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -14,6 +18,7 @@ import {
   ISetProviderOptions,
   PLUGIN_IDS
 } from './tokens';
+import { AIChatModel, AICompleter } from './types/ai-model';
 
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
 
@@ -61,19 +66,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the list of provider names.
    */
   get providers(): string[] {
-    return Array.from(this._providers.keys());
+    return Array.from(Private.providers.keys());
   }
 
   /**
    * Add a new provider.
    */
   add(provider: IAIProvider): void {
-    if (this._providers.has(provider.name)) {
+    if (Private.providers.has(provider.name)) {
       throw new Error(
         `A AI provider named '${provider.name}' is already registered`
       );
     }
-    this._providers.set(provider.name, provider);
+    Private.providers.set(provider.name, provider);
 
     // Set the provider if the loading has been deferred.
     if (provider.name === this._deferredProvider?.name) {
@@ -85,34 +90,57 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the current provider name.
    */
   get currentName(): string {
-    return this._name;
+    return Private.getName();
   }
 
   /**
-   * Get the current completer of the completion provider.
+   * Get the current AICompleter.
    */
-  get currentCompleter(): IBaseCompleter | null {
-    if (this._name === 'None') {
+  get currentCompleter(): AICompleter | null {
+    if (Private.getName() === 'None') {
       return null;
     }
-    return this._completer;
+    const completer = Private.getCompleter();
+    if (completer === null) {
+      return null;
+    }
+    return {
+      fetch: (
+        request: CompletionHandler.IRequest,
+        context: IInlineCompletionContext
+      ) => completer.fetch(request, context)
+    };
   }
 
   /**
-   * Get the current llm chat model.
+   * Get the current AIChatModel.
    */
-  get currentChatModel(): BaseChatModel | null {
-    if (this._name === 'None') {
+  get currentChatModel(): AIChatModel | null {
+    if (Private.getName() === 'None') {
       return null;
     }
-    return this._chatModel;
+    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+
+    const chatModel = Private.getChatModel();
+    if (chatModel === null) {
+      return null;
+    }
+    if (currentProvider?.exposeChatModel ?? false) {
+      // Expose the full chat model if expected.
+      return chatModel as AIChatModel;
+    }
+
+    // Otherwise, we create a reduced AIChatModel interface.
+    return {
+      stream: (input: any, options?: any) => chatModel.stream(input, options)
+    };
   }
 
   /**
    * Get the settings schema of a given provider.
    */
   getSettingsSchema(provider: string): JSONSchema7 {
-    return (this._providers.get(provider)?.settingsSchema?.properties ||
+    return (Private.providers.get(provider)?.settingsSchema?.properties ||
       {}) as JSONSchema7;
   }
 
@@ -120,7 +148,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the instructions of a given provider.
    */
   getInstructions(provider: string): string | undefined {
-    return this._providers.get(provider)?.instructions;
+    return Private.providers.get(provider)?.instructions;
   }
 
   /**
@@ -129,15 +157,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   getCompatibilityCheck(
     provider: string
   ): (() => Promise<string | null>) | undefined {
-    return this._providers.get(provider)?.compatibilityCheck;
+    return Private.providers.get(provider)?.compatibilityCheck;
   }
 
   /**
    * Format an error message from the current provider.
    */
   formatErrorMessage(error: any): string {
-    if (this._currentProvider?.errorMessage) {
-      return this._currentProvider?.errorMessage(error);
+    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+    if (currentProvider?.errorMessage) {
+      return currentProvider?.errorMessage(error);
     }
     if (error.message) {
       return error.message;
@@ -167,8 +196,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    */
   async setProvider(options: ISetProviderOptions): Promise<void> {
     const { name, settings } = options;
-    this._currentProvider = this._providers.get(name) ?? null;
-    if (this._currentProvider === null) {
+    const currentProvider = Private.providers.get(name) ?? null;
+    if (currentProvider === null) {
       // The current provider may not be loaded when the settings are first loaded.
       // Let's defer the provider loading.
       this._deferredProvider = options;
@@ -180,10 +209,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        this._currentProvider = null;
         this._chatError = error.trim();
         this._completerError = error.trim();
-        this._name = 'None';
+        Private.setName('None');
         this._providerChanged.emit();
         return;
       }
@@ -212,33 +240,37 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       fullSettings[key] = settings[key];
     }
 
-    if (this._currentProvider?.completer !== undefined) {
+    if (currentProvider?.completer !== undefined) {
       try {
-        this._completer = new this._currentProvider.completer({
-          settings: fullSettings
-        });
+        Private.setCompleter(
+          new currentProvider.completer({
+            settings: fullSettings
+          })
+        );
         this._completerError = '';
       } catch (e: any) {
         this._completerError = e.message;
       }
     } else {
-      this._completer = null;
+      Private.setCompleter(null);
     }
 
-    if (this._currentProvider?.chatModel !== undefined) {
+    if (currentProvider?.chatModel !== undefined) {
       try {
-        this._chatModel = new this._currentProvider.chatModel({
-          ...fullSettings
-        });
+        Private.setChatModel(
+          new currentProvider.chatModel({
+            ...fullSettings
+          })
+        );
         this._chatError = '';
       } catch (e: any) {
         this._chatError = e.message;
-        this._chatModel = null;
+        Private.setChatModel(null);
       }
     } else {
-      this._chatModel = null;
+      Private.setChatModel(null);
     }
-    this._name = name;
+    Private.setName(name);
     this._providerChanged.emit();
   }
 
@@ -250,14 +282,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   private _secretsManager: ISecretsManager | null;
-  private _currentProvider: IAIProvider | null = null;
-  private _completer: IBaseCompleter | null = null;
-  private _chatModel: BaseChatModel | null = null;
-  private _name: string = 'None';
   private _providerChanged = new Signal<IAIProviderRegistry, void>(this);
   private _chatError: string = '';
   private _completerError: string = '';
-  private _providers = new Map<string, IAIProvider>();
   private _deferredProvider: ISetProviderOptions | null = null;
 }
 
@@ -331,21 +358,53 @@ export namespace AIProviderRegistry {
 
 namespace Private {
   /**
-   * The token to use with the secrets manager.
+   * The token to use with the secrets manager, setter and getter.
    */
   let secretsToken: symbol;
-
-  /**
-   * Set of the token.
-   */
   export function setToken(value: symbol): void {
     secretsToken = value;
   }
-
-  /**
-   * get the token.
-   */
   export function getToken(): symbol {
     return secretsToken;
+  }
+
+  /**
+   * The providers map, in private namespace to prevent updating the 'exposeChatModel'
+   * flag.
+   */
+  export const providers = new Map<string, IAIProvider>();
+
+  /**
+   * The name of the current provider, setter and getter.
+   * It is in a private namespace to prevent updating it without updating the models.
+   */
+  let name: string = 'None';
+  export function setName(value: string): void {
+    name = value;
+  }
+  export function getName(): string {
+    return name;
+  }
+
+  /**
+   * The chat model setter and getter.
+   */
+  let chatModel: BaseChatModel | null = null;
+  export function setChatModel(model: BaseChatModel | null): void {
+    chatModel = model;
+  }
+  export function getChatModel(): BaseChatModel | null {
+    return chatModel;
+  }
+
+  /**
+   * The completer setter and getter.
+   */
+  let completer: IBaseCompleter | null = null;
+  export function setCompleter(model: IBaseCompleter | null): void {
+    completer = model;
+  }
+  export function getCompleter(): IBaseCompleter | null {
+    return completer;
   }
 }
