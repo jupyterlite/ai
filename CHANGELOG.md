@@ -2,6 +2,44 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.7.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.2...317fedd438232fb3add50e28037adb637cbc0814))
+
+### Enhancements made
+
+- Add a welcome message [#89](https://github.com/jupyterlite/ai/pull/89) ([@brichet](https://github.com/brichet))
+- Handle compatibility with chromeAI and WebLLM [#87](https://github.com/jupyterlite/ai/pull/87) ([@brichet](https://github.com/brichet))
+- Do not expose providers api [#84](https://github.com/jupyterlite/ai/pull/84) ([@brichet](https://github.com/brichet))
+- Remove the custom settings connector [#81](https://github.com/jupyterlite/ai/pull/81) ([@brichet](https://github.com/brichet))
+- Upgrade secrets manager [#75](https://github.com/jupyterlite/ai/pull/75) ([@brichet](https://github.com/brichet))
+- Better handling of default values in settings [#73](https://github.com/jupyterlite/ai/pull/73) ([@brichet](https://github.com/brichet))
+- Add Ollama provider [#69](https://github.com/jupyterlite/ai/pull/69) ([@brichet](https://github.com/brichet))
+- WebLLM [#47](https://github.com/jupyterlite/ai/pull/47) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Export the IAIProviderRegistry token [#88](https://github.com/jupyterlite/ai/pull/88) ([@brichet](https://github.com/brichet))
+- Update `@langchain/community` to fix ChromeAI [#76](https://github.com/jupyterlite/ai/pull/76) ([@jtpio](https://github.com/jtpio))
+
+### Maintenance and upkeep improvements
+
+- Pin PyPI version of jupyter-secrets-manager [#86](https://github.com/jupyterlite/ai/pull/86) ([@brichet](https://github.com/brichet))
+- Install `ipywidgets` for the demo deployed on GitHub Pages [#79](https://github.com/jupyterlite/ai/pull/79) ([@jtpio](https://github.com/jtpio))
+
+### Documentation improvements
+
+- Mention JupyterLab 4.4 and Notebook 7.4 final in the README [#83](https://github.com/jupyterlite/ai/pull/83) ([@jtpio](https://github.com/jtpio))
+- Update Ollama instructions [#82](https://github.com/jupyterlite/ai/pull/82) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-05-13&to=2025-06-05&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-05-13..2025-06-05&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-05-13..2025-06-05&type=Issues) | [@trungleduc](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Atrungleduc+updated%3A2025-05-13..2025-06-05&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.6.2
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.1...8cf12919ab5922b2ec7ed8f284299725a493d349))
@@ -20,8 +58,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-05-02&to=2025-05-13&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-05-02..2025-05-13&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.6.1
 
