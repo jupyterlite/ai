@@ -209,7 +209,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        // this._currentProvider = null;
         this._chatError = error.trim();
         this._completerError = error.trim();
         Private.setName('None');
