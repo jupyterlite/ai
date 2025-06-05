@@ -106,9 +106,11 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     const stopButton = stopItem(() => chatHandler.stopStreaming());
     inputToolbarRegistry.addItem('stop', stopButton);
 
-    chatHandler.writersChanged.connect((_, users) => {
+    chatHandler.writersChanged.connect((_, writers) => {
       if (
-        users.filter(user => user.username === chatHandler.personaName).length
+        writers.filter(
+          writer => writer.user.username === chatHandler.personaName
+        ).length
       ) {
         inputToolbarRegistry.hide('send');
         inputToolbarRegistry.show('stop');
