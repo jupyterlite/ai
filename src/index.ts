@@ -221,3 +221,5 @@ export default [
   completerPlugin,
   ...defaultProviderPlugins
 ];
+
+export { IAIProviderRegistry } from './tokens';
