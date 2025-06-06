@@ -9,7 +9,8 @@ import {
 } from '@jupyter/chat';
 import {
   JupyterFrontEnd,
-  JupyterFrontEndPlugin
+  JupyterFrontEndPlugin,
+  ILayoutRestorer
 } from '@jupyterlab/application';
 import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
@@ -45,7 +46,12 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
   description: 'LLM chat extension',
   autoStart: true,
   requires: [IAIProviderRegistry, IRenderMimeRegistry, IChatCommandRegistry],
-  optional: [INotebookTracker, ISettingRegistry, IThemeManager],
+  optional: [
+    INotebookTracker,
+    ISettingRegistry,
+    IThemeManager,
+    ILayoutRestorer
+  ],
   activate: async (
     app: JupyterFrontEnd,
     providerRegistry: IAIProviderRegistry,
@@ -53,7 +59,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     chatCommandRegistry: IChatCommandRegistry,
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
-    themeManager: IThemeManager | null
+    themeManager: IThemeManager | null,
+    restorer: ILayoutRestorer | null
   ) => {
     let activeCellManager: IActiveCellManager | null = null;
     if (notebookTracker) {
@@ -129,14 +136,18 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         inputToolbarRegistry,
         welcomeMessage: welcomeMessage(providerRegistry.providers)
       });
-      chatWidget.title.caption = 'Jupyterlite AI Chat';
     } catch (e) {
       chatWidget = buildErrorWidget(themeManager);
     }
 
+    chatWidget.title.caption = 'Jupyterlite AI Chat';
+    chatWidget.id = '@jupyterlite/ai:chat-widget';
+
     app.shell.add(chatWidget as ReactWidget, 'left', { rank: 2000 });
 
-    console.log('Chat extension initialized');
+    if (restorer) {
+      restorer.add(chatWidget, chatWidget.id);
+    }
   }
 };
 
