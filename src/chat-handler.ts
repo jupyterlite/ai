@@ -112,7 +112,7 @@ export class ChatHandler extends AbstractChatModel {
       id: message.id,
       body,
       sender: { username: 'User' },
-      time: Date.now(),
+      time: Private.getTimestampMs(),
       type: 'msg'
     };
     this.messageAdded(msg);
@@ -122,7 +122,7 @@ export class ChatHandler extends AbstractChatModel {
         id: UUID.uuid4(),
         body: `**${this._errorMessage ? this._errorMessage : this._defaultErrorMessage}**`,
         sender: { username: 'ERROR' },
-        time: Date.now(),
+        time: Private.getTimestampMs(),
         type: 'msg'
       };
       this.messageAdded(errorMsg);
@@ -149,7 +149,7 @@ export class ChatHandler extends AbstractChatModel {
       id: UUID.uuid4(),
       body: '',
       sender,
-      time: Date.now(),
+      time: Private.getTimestampMs(),
       type: 'msg'
     };
 
@@ -173,7 +173,7 @@ export class ChatHandler extends AbstractChatModel {
         id: UUID.uuid4(),
         body: `**${error}**`,
         sender: { username: 'ERROR' },
-        time: Date.now(),
+        time: Private.getTimestampMs(),
         type: 'msg'
       };
       this.messageAdded(errorMsg);
@@ -260,5 +260,14 @@ export namespace ChatHandler {
       // no handling needed because `replaceWith` is set in each command.
       return;
     }
+  }
+}
+
+namespace Private {
+  /**
+   * Return the current timestamp in milliseconds.
+   */
+  export function getTimestampMs(): number {
+    return Date.now() / 1000;
   }
 }
