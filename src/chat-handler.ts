@@ -36,8 +36,6 @@ const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
 const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
 export const welcomeMessage = (providers: string[]) => `
-<div style="text-align: center; max-width: 350px; margin: 0 auto;">
-
 #### Ask JupyterLite AI
 
 
@@ -47,8 +45,6 @@ the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
 The current providers that are available are _${providers.sort().join('_, _')}_.
 
 To clear the chat, you can use the \`/clear\` command from the chat input.
-
-</div>
 `;
 
 export type ConnectionMessage = {
