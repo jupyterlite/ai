@@ -5,8 +5,7 @@ import {
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 
-import { BaseCompleter, IBaseCompleter } from '../../base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
+import { BaseCompleter } from '../../base-completer';
 
 /**
  * Regular expression to match the '```' string at the start of a string.
@@ -29,8 +28,9 @@ const CODE_BLOCK_START_REGEX = /^```(?:[a-zA-Z]+)?\n?/;
  */
 const CODE_BLOCK_END_REGEX = /```$/;
 
-export class WebLLMCompleter implements IBaseCompleter {
+export class WebLLMCompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    super(options);
     const model = options.settings.model as string;
     // provide model separately since ChatWebLLM expects it
     this._completer = new ChatWebLLM({
@@ -67,16 +67,6 @@ export class WebLLMCompleter implements IBaseCompleter {
       this._isInitializing = false;
       console.error('Failed to initialize WebLLM model:', error);
     }
-  }
-
-  /**
-   * Getter and setter for the initial prompt.
-   */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
   }
 
   get provider(): ChatWebLLM {
@@ -123,7 +113,7 @@ export class WebLLMCompleter implements IBaseCompleter {
     const trimmedPrompt = prompt.trim();
 
     const messages = [
-      new SystemMessage(this._prompt),
+      new SystemMessage(this.systemPrompt),
       new HumanMessage(trimmedPrompt)
     ];
 
@@ -153,8 +143,7 @@ export class WebLLMCompleter implements IBaseCompleter {
     }
   }
 
-  private _completer: ChatWebLLM;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _completer: ChatWebLLM;
   private _isInitialized: boolean = false;
   private _isInitializing: boolean = false;
   private _initError: Error | null = null;

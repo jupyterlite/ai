@@ -5,22 +5,12 @@ import {
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 
-import { BaseCompleter, IBaseCompleter } from '../../base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
+import { BaseCompleter } from '../../base-completer';
 
-export class OpenAICompleter implements IBaseCompleter {
+export class OpenAICompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    super(options);
     this._completer = new ChatOpenAI({ ...options.settings });
-  }
-
-  /**
-   * Getter and setter for the initial prompt.
-   */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
   }
 
   async fetch(
@@ -30,7 +20,10 @@ export class OpenAICompleter implements IBaseCompleter {
     const { text, offset: cursorOffset } = request;
     const prompt = text.slice(0, cursorOffset);
 
-    const messages = [new SystemMessage(this._prompt), new AIMessage(prompt)];
+    const messages = [
+      new SystemMessage(this.systemPrompt),
+      new AIMessage(prompt)
+    ];
 
     try {
       const response = await this._completer.invoke(messages);
@@ -57,6 +50,5 @@ export class OpenAICompleter implements IBaseCompleter {
     }
   }
 
-  private _completer: ChatOpenAI;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _completer: ChatOpenAI;
 }

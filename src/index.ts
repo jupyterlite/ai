@@ -237,3 +237,4 @@ export default [
 ];
 
 export { IAIProviderRegistry } from './tokens';
+export * from './base-completer';

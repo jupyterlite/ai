@@ -5,22 +5,12 @@ import {
 import { ChatAnthropic } from '@langchain/anthropic';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 
-import { BaseCompleter, IBaseCompleter } from '../../base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
+import { BaseCompleter } from '../../base-completer';
 
-export class AnthropicCompleter implements IBaseCompleter {
+export class AnthropicCompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    super(options);
     this._completer = new ChatAnthropic({ ...options.settings });
-  }
-
-  /**
-   * Getter and setter for the initial prompt.
-   */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
   }
 
   async fetch(
@@ -34,7 +24,7 @@ export class AnthropicCompleter implements IBaseCompleter {
     const trimmedPrompt = prompt.trim();
 
     const messages = [
-      new SystemMessage(this._prompt),
+      new SystemMessage(this.systemPrompt),
       new AIMessage(trimmedPrompt)
     ];
 
@@ -65,6 +55,5 @@ export class AnthropicCompleter implements IBaseCompleter {
     }
   }
 
-  private _completer: ChatAnthropic;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _completer: ChatAnthropic;
 }
