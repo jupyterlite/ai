@@ -28,6 +28,7 @@ jobs:
       - name: Install the extension
         run: |
           set -eux
+          pip install "jupyterlab>=4.4.0"
           pip install -e .
 
       - name: Install tests dependencies
