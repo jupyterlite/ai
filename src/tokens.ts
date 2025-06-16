@@ -11,7 +11,8 @@ export const PLUGIN_IDS = {
   chatCommandRegistry: '@jupyterlite/ai:autocompletion-registry',
   completer: '@jupyterlite/ai:completer',
   providerRegistry: '@jupyterlite/ai:provider-registry',
-  settingsConnector: '@jupyterlite/ai:settings-connector'
+  settingsConnector: '@jupyterlite/ai:settings-connector',
+  systemPrompts: '@jupyterlite/ai:system-prompts'
 };
 
 export interface IDict<T = any> {
@@ -89,9 +90,17 @@ export interface IAIProviderRegistry {
    */
   currentCompleter: AICompleter | null;
   /**
+   * Getter/setter for the completer system prompt.
+   */
+  completerSystemPrompt: string;
+  /**
    * Get the current llm chat model.
    */
   currentChatModel: AIChatModel | null;
+  /**
+   * Getter/setter for the chat system prompt.
+   */
+  chatSystemPrompt: string;
   /**
    * Get the settings schema of a given provider.
    */

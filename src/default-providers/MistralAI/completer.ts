@@ -10,16 +10,16 @@ import {
 import { ChatMistralAI } from '@langchain/mistralai';
 import { Throttler } from '@lumino/polling';
 
-import { BaseCompleter, IBaseCompleter } from '../../base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
+import { BaseCompleter } from '../../base-completer';
 
 /**
  * The Mistral API has a rate limit of 1 request per second
  */
 const INTERVAL = 1000;
 
-export class CodestralCompleter implements IBaseCompleter {
+export class CodestralCompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    super(options);
     this._completer = new ChatMistralAI({ ...options.settings });
     this._throttler = new Throttler(
       async (messages: BaseMessage[]) => {
@@ -46,16 +46,6 @@ export class CodestralCompleter implements IBaseCompleter {
     );
   }
 
-  /**
-   * Getter and setter for the initial prompt.
-   */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
-  }
-
   async fetch(
     request: CompletionHandler.IRequest,
     context: IInlineCompletionContext
@@ -64,7 +54,7 @@ export class CodestralCompleter implements IBaseCompleter {
     const prompt = text.slice(0, cursorOffset);
 
     const messages: BaseMessage[] = [
-      new SystemMessage(this._prompt),
+      new SystemMessage(this.systemPrompt),
       new HumanMessage(prompt)
     ];
 
@@ -77,6 +67,5 @@ export class CodestralCompleter implements IBaseCompleter {
   }
 
   private _throttler: Throttler;
-  private _completer: ChatMistralAI;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _completer: ChatMistralAI;
 }

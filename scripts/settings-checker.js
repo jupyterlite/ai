@@ -49,7 +49,8 @@ const providers = {
   },
   ChromeAI: {
     path: 'node_modules/@langchain/community/experimental/llms/chrome_ai.d.ts',
-    type: 'ChromeAIInputs'
+    type: 'ChromeAIInputs',
+    excludedProps: ['systemPrompt']
   },
   MistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',

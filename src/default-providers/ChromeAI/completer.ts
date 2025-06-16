@@ -5,8 +5,7 @@ import {
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
-import { BaseCompleter, IBaseCompleter } from '../../base-completer';
-import { COMPLETION_SYSTEM_PROMPT } from '../../provider';
+import { BaseCompleter } from '../../base-completer';
 
 /**
  * Regular expression to match the '```' string at the start of a string.
@@ -29,19 +28,10 @@ const CODE_BLOCK_START_REGEX = /^```(?:[a-zA-Z]+)?\n?/;
  */
 const CODE_BLOCK_END_REGEX = /```$/;
 
-export class ChromeCompleter implements IBaseCompleter {
+export class ChromeCompleter extends BaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
+    super(options);
     this._completer = new ChromeAI({ ...options.settings });
-  }
-
-  /**
-   * Getter and setter for the initial prompt.
-   */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
   }
 
   async fetch(
@@ -54,7 +44,7 @@ export class ChromeCompleter implements IBaseCompleter {
     const trimmedPrompt = prompt.trim();
 
     const messages = [
-      new SystemMessage(this._prompt),
+      new SystemMessage(this.systemPrompt),
       new HumanMessage(trimmedPrompt)
     ];
 
@@ -79,6 +69,5 @@ export class ChromeCompleter implements IBaseCompleter {
     }
   }
 
-  private _completer: ChromeAI;
-  private _prompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _completer: ChromeAI;
 }

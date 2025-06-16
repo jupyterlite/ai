@@ -25,7 +25,7 @@ import { ChatHandler, welcomeMessage } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
-import { aiSettingsRenderer } from './settings';
+import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
 import { stopItem } from './components/stop-button';
 
@@ -228,12 +228,68 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
     }
   }));
 
+const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
+  id: PLUGIN_IDS.systemPrompts,
+  autoStart: true,
+  requires: [IAIProviderRegistry, ISettingRegistry],
+  optional: [IFormRendererRegistry],
+  activate: (
+    app: JupyterFrontEnd,
+    providerRegistry: IAIProviderRegistry,
+    settingsRegistry: ISettingRegistry,
+    editorRegistry: IFormRendererRegistry | null
+  ): void => {
+    // Set textarea renderer for the prompt setting.
+    editorRegistry?.addRenderer(
+      `${PLUGIN_IDS.systemPrompts}.chatSystemPrompt`,
+      textArea
+    );
+    editorRegistry?.addRenderer(
+      `${PLUGIN_IDS.systemPrompts}.completionSystemPrompt`,
+      textArea
+    );
+
+    /**
+     * Update the prompts in the provider registry.
+     */
+    function loadSetting(setting: ISettingRegistry.ISettings): void {
+      providerRegistry.chatSystemPrompt = setting.get('chatSystemPrompt')
+        .composite as string;
+      providerRegistry.completerSystemPrompt = setting.get(
+        'completionSystemPrompt'
+      ).composite as string;
+    }
+
+    Promise.all([
+      app.restored,
+      settingsRegistry?.load(PLUGIN_IDS.systemPrompts)
+    ])
+      .then(([, settings]) => {
+        if (!settings) {
+          console.warn(
+            'The SettingsRegistry is not loaded for the chat extension'
+          );
+          return;
+        }
+        loadSetting(settings);
+        settings.changed.connect(loadSetting);
+      })
+      .catch(reason => {
+        console.error(
+          `Something went wrong when reading the settings.\n${reason}`
+        );
+      });
+  }
+};
+
 export default [
   providerRegistryPlugin,
   chatCommandRegistryPlugin,
   chatPlugin,
   completerPlugin,
+  systemPromptsPlugin,
   ...defaultProviderPlugins
 ];
 
 export { IAIProviderRegistry } from './tokens';
+export * from './base-completer';

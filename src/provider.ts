@@ -113,6 +113,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
+   * Getter/setter for the completer system prompt.
+   */
+  get completerSystemPrompt(): string {
+    return this._completerPrompt.replaceAll(
+      '$provider_name$',
+      this.currentName
+    );
+  }
+  set completerSystemPrompt(value: string) {
+    this._completerPrompt = value;
+  }
+
+  /**
    * Get the current AIChatModel.
    */
   get currentChatModel(): AIChatModel | null {
@@ -134,6 +147,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     return {
       stream: (input: any, options?: any) => chatModel.stream(input, options)
     };
+  }
+
+  /**
+   * Getter/setter for the chat system prompt.
+   */
+  get chatSystemPrompt(): string {
+    return this._chatPrompt.replaceAll('$provider_name$', this.currentName);
+  }
+  set chatSystemPrompt(value: string) {
+    this._chatPrompt = value;
   }
 
   /**
@@ -244,6 +267,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       try {
         Private.setCompleter(
           new currentProvider.completer({
+            providerRegistry: this,
             settings: fullSettings
           })
         );
@@ -286,6 +310,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   private _chatError: string = '';
   private _completerError: string = '';
   private _deferredProvider: ISetProviderOptions | null = null;
+  private _chatPrompt: string = '';
+  private _completerPrompt: string = '';
 }
 
 export namespace AIProviderRegistry {
