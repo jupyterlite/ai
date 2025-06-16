@@ -5,13 +5,14 @@ import {
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 
-import { COMPLETION_SYSTEM_PROMPT } from './provider';
+import { DEFAULT_COMPLETION_SYSTEM_PROMPT } from './default-prompts';
+import { IAIProviderRegistry } from './tokens';
 
 export interface IBaseCompleter {
   /**
    * The completion prompt.
    */
-  systemPrompt: string;
+  readonly systemPrompt: string;
 
   /**
    * The function to fetch a new completion.
@@ -29,19 +30,17 @@ export interface IBaseCompleter {
 
 export abstract class BaseCompleter implements IBaseCompleter {
   constructor(options: BaseCompleter.IOptions) {
-    if (
-      options.settings.completion_prompt &&
-      options.settings.completion_prompt !== this._systemPrompt
-    ) {
-      this._systemPrompt = options.settings.completion_prompt as string;
-    }
+    this._providerRegistry = options.providerRegistry;
   }
 
   /**
-   * Get the system prompt.
+   * Get the system prompt for the completion.
    */
   get systemPrompt(): string {
-    return this._systemPrompt;
+    return (
+      this._providerRegistry.completerSystemPrompt ??
+      DEFAULT_COMPLETION_SYSTEM_PROMPT
+    );
   }
 
   /**
@@ -52,7 +51,7 @@ export abstract class BaseCompleter implements IBaseCompleter {
     context: IInlineCompletionContext
   ): Promise<any>;
 
-  private _systemPrompt: string = COMPLETION_SYSTEM_PROMPT;
+  protected _providerRegistry: IAIProviderRegistry;
   protected abstract _completer: BaseLanguageModel<any, any>;
 }
 
@@ -64,6 +63,13 @@ export namespace BaseCompleter {
    * The options for the constructor of a completer.
    */
   export interface IOptions {
+    /**
+     * The provider registry.
+     */
+    providerRegistry: IAIProviderRegistry;
+    /**
+     * The settings of the provider.
+     */
     settings: ReadonlyPartialJSONObject;
   }
 }

@@ -23,8 +23,8 @@ import {
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
 
+import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
-import { chatSystemPrompt } from './provider';
 import { IAIProviderRegistry } from './tokens';
 import { AIChatModel } from './types/ai-model';
 
@@ -56,15 +56,9 @@ export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._providerRegistry = options.providerRegistry;
-    this._prompt = chatSystemPrompt({
-      provider_name: this._providerRegistry.currentName
-    });
 
     this._providerRegistry.providerChanged.connect(() => {
       this._errorMessage = this._providerRegistry.chatError;
-      this._prompt = chatSystemPrompt({
-        provider_name: this._providerRegistry.currentName
-      });
     });
   }
 
@@ -90,13 +84,12 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   /**
-   * Getter and setter for the initial prompt.
+   * Get/set the system prompt for the chat.
    */
-  get prompt(): string {
-    return this._prompt;
-  }
-  set prompt(value: string) {
-    this._prompt = value;
+  get systemPrompt(): string {
+    return (
+      this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT
+    );
   }
 
   async sendMessage(message: INewMessage): Promise<boolean> {
@@ -131,7 +124,7 @@ export class ChatHandler extends AbstractChatModel {
 
     this._history.messages.push(msg);
 
-    const messages = mergeMessageRuns([new SystemMessage(this._prompt)]);
+    const messages = mergeMessageRuns([new SystemMessage(this.systemPrompt)]);
     messages.push(
       ...this._history.messages.map(msg => {
         if (msg.sender.username === 'User') {
@@ -206,7 +199,6 @@ export class ChatHandler extends AbstractChatModel {
 
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
-  private _prompt: string;
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
   private _defaultErrorMessage = 'AI provider not configured';

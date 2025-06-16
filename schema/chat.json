@@ -1,5 +1,5 @@
 {
-  "title": "Chat configuration",
+  "title": "Chat Configuration",
   "description": "Configuration for the chat panel",
   "jupyter.lab.setting-icon": "jupyter-chat::chat",
   "jupyter.lab.setting-icon-label": "Jupyter Chat",
