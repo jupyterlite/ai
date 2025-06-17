@@ -21,7 +21,7 @@ export class CodestralCompleter extends BaseCompleter {
   ) {
     try {
       const { text, offset: cursorOffset } = request;
-      const prompt = text.slice(0, cursorOffset);
+      const prompt = this.systemPrompt.concat(text.slice(0, cursorOffset));
       const suffix = text.slice(cursorOffset);
       this._controller.abort();
       this._controller = new AbortController();
