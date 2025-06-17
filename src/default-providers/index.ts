@@ -7,6 +7,7 @@ import { Notification } from '@jupyterlab/apputils';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
 import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
@@ -14,6 +15,7 @@ import { ChatOpenAI } from '@langchain/openai';
 // Import completers
 import { AnthropicCompleter } from './Anthropic/completer';
 import { ChromeCompleter } from './ChromeAI/completer';
+import { GeminiCompleter } from './Gemini/completer';
 import { CodestralCompleter } from './MistralAI/completer';
 import { OllamaCompleter } from './Ollama/completer';
 import { OpenAICompleter } from './OpenAI/completer';
@@ -22,6 +24,7 @@ import { WebLLMCompleter } from './WebLLM/completer';
 // Import Settings
 import AnthropicSettings from './Anthropic/settings-schema.json';
 import ChromeAISettings from './ChromeAI/settings-schema.json';
+import GeminiSettings from './Gemini/settings-schema.json';
 import MistralAISettings from './MistralAI/settings-schema.json';
 import OllamaAISettings from './Ollama/settings-schema.json';
 import OpenAISettings from './OpenAI/settings-schema.json';
@@ -31,6 +34,7 @@ import WebLLMSettings from './WebLLM/settings-schema.json';
 import ChromeAIInstructions, {
   compatibilityCheck as chromeAICompatibilityCheck
 } from './ChromeAI/instructions';
+import GeminiInstructions from './Gemini/instructions';
 import MistralAIInstructions from './MistralAI/instructions';
 import OllamaInstructions from './Ollama/instructions';
 import WebLLMInstructions, {
@@ -73,6 +77,13 @@ const AIProviders: IAIProvider[] = [
     completer: OllamaCompleter,
     instructions: OllamaInstructions,
     settingsSchema: OllamaAISettings
+  },
+  {
+    name: 'Gemini',
+    chatModel: ChatGoogleGenerativeAI,
+    completer: GeminiCompleter,
+    instructions: GeminiInstructions,
+    settingsSchema: GeminiSettings
   },
   {
     name: 'OpenAI',
