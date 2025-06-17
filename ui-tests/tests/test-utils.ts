@@ -26,7 +26,10 @@ export const openSettings = async (
   return (await page.activity.getPanelLocator('Settings')) as Locator;
 };
 
-export const setUpOllama = async (page: IJupyterLabPageFixture, model: string='qwen2:0.5b'): Promise<void> => {
+export const setUpOllama = async (
+  page: IJupyterLabPageFixture,
+  model: string = 'qwen2:0.5b'
+): Promise<void> => {
   // Expose a function to get a plugin.
   await page.evaluate(exposeDepsJs({ getPlugin }));
 
@@ -51,14 +54,14 @@ export const setUpOllama = async (page: IJupyterLabPageFixture, model: string='q
       '@jupyterlite/ai:provider-registry'
     );
 
-    return new Promise<void>(function(resolve, reject) {
+    return new Promise<void>(function (resolve, reject) {
       registry.providerChanged.connect(() => resolve());
     });
   });
 
   await modelInput.fill(model);
   return promise;
-}
+};
 
 // Workaround to expose a function using 'window' in the browser context.
 // Copied from https://github.com/puppeteer/puppeteer/issues/724#issuecomment-896755822

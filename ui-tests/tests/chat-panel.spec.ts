@@ -76,6 +76,7 @@ test.describe('#withoutModel', () => {
 });
 
 test.describe('#withModel', () => {
+  // Set up Ollama with default model.
   test.beforeEach(async ({ page }) => {
     await setUpOllama(page);
   });
