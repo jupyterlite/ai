@@ -6,3 +6,4 @@ export default `
 2. Open the JupyterLab settings and go to the **Ai providers** section to select the \`Gemini\`
    provider and add your API key (required).
 3. Open the chat, or use the inline completer.
+`;
