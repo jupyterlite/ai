@@ -116,6 +116,9 @@
         "typescript": "~5.8.3",
         "yjs": "^13.5.0"
     },
+    "resolutions": {
+        "zod": "^3.25.56"
+    },
     "sideEffects": [
         "style/*.css",
         "style/index.js"
