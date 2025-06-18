@@ -39,7 +39,7 @@ export const welcomeMessage = (providers: string[]) => `
 #### Ask JupyterLite AI
 
 
-The provider to use can be set in the settings editor, by selecting it from
+The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI provider"}' href="#">settings editor</button>, by selecting it from
 the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
 
 The current providers that are available are _${providers.sort().join('_, _')}_.
