@@ -54,7 +54,7 @@ const providers = {
   },
   ChatGoogleGenerativeAI: {
     path: 'node_modules/@langchain/google-genai/dist/chat_models.d.ts',
-    type: 'ChatGoogleGenerativeAIInput'
+    type: 'ChatGoogleGenerativeAI'
   },
   MistralAI: {
     path: 'node_modules/@langchain/mistralai/dist/chat_models.d.ts',
