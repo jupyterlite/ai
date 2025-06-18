@@ -8804,9 +8804,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.25.32, zod@npm:^3.22.4, zod@npm:^3.25.32":
-  version: 3.25.32
-  resolution: "zod@npm:3.25.32"
-  checksum: 27528887ebb778c70ec753e19c8cde453d36cd2bf4682e2f19a441cd9418f87ea85f6da550ab9b157a625b4d19b9c65921e11bf88a76702051528ad4c5bcf2f0
+"zod@npm:^3.25.56":
+  version: 3.25.67
+  resolution: "zod@npm:3.25.67"
+  checksum: 56ab904d33b1cd00041ce64ae05b0628fcbfeb7e707fa31cd498a97b540135e4dfe685200c9c62aea307695ee132870b4bc34f035228ea728aa75cc96a4954cb
   languageName: node
   linkType: hard
