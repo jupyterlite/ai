@@ -15,13 +15,16 @@ import React from 'react';
 
 import { getSecretId, SECRETS_REPLACEMENT } from '.';
 import baseSettings from './base.json';
-import { IAIProviderRegistry, IDict, PLUGIN_IDS } from '../tokens';
+import { IAIProviderRegistry, IDict, modelUsage, PLUGIN_IDS } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
-const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
 const ERROR_CLASS = 'jp-AISettingsError';
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
+const STORAGE_KEYS = {
+  chat: '@jupyterlite/ai:chat-settings',
+  completer: '@jupyterlite/ai:completer-settings'
+};
 
 export const aiSettingsRenderer = (options: {
   providerRegistry: IAIProviderRegistry;
@@ -42,28 +45,106 @@ export const aiSettingsRenderer = (options: {
   };
 };
 
-export interface ISettingsFormStates {
-  schema: JSONSchema7;
-  instruction: HTMLElement | null;
-  compatibilityError: string | null;
-  isModified?: boolean;
-}
-
 const WrappedFormComponent = (props: any): JSX.Element => {
   return <FormComponent {...props} validator={validator} />;
 };
 
-export class AiSettings extends React.Component<
-  FieldProps,
-  ISettingsFormStates
-> {
+export class AiSettings extends React.Component<FieldProps, AiSettings.states> {
   constructor(props: FieldProps) {
+    super(props);
+    this._settings = props.formContext.settings;
+    const uniqueProvider =
+      (this._settings.get('UniqueProvider').composite as boolean) ?? true;
+
+    this.state = { uniqueProvider };
+
+    this._settings.changed.connect(() => {
+      const uniqueProvider =
+        (this._settings.get('UniqueProvider').composite as boolean) ?? true;
+      this.setState({ uniqueProvider });
+    });
+  }
+
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry = (usage: modelUsage, settings: IDict<any>): void => {
+    const fullSettings = this._settings.get('AIproviders')
+      .composite as IDict<any>;
+    fullSettings[usage] = { ...settings };
+    this._settings.set('AIproviders', { ...fullSettings }).catch(console.error);
+  };
+
+  render(): JSX.Element {
+    return (
+      <div>
+        <h3>
+          {this.state.uniqueProvider
+            ? 'Chat and completer provider'
+            : 'Chat provider'}
+        </h3>
+        <AiProviderSettings
+          {...this.props}
+          usage={'chat'}
+          saveSettings={this.saveSettingsToRegistry}
+        />
+        {!this.state.uniqueProvider && (
+          <>
+            <h3>Completer provider</h3>
+            <AiProviderSettings
+              {...this.props}
+              usage={'completer'}
+              saveSettings={this.saveSettingsToRegistry}
+            />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  private _settings: ISettingRegistry.ISettings;
+}
+
+/**
+ * The AI settings component namespace.
+ */
+namespace AiSettings {
+  /**
+   * The AI settings component states.
+   */
+  export type states = {
+    /**
+     * Whether there is only one provider for chat and completion.
+     */
+    uniqueProvider: boolean;
+  };
+  /**
+   * The provider names object.
+   */
+  export type providers = {
+    [key in modelUsage]: string;
+  };
+  /**
+   * The provider schemas object.
+   */
+  export type schemas = {
+    [key in modelUsage]: JSONSchema7;
+  };
+}
+
+export class AiProviderSettings extends React.Component<
+  AiProviderSettings.props,
+  AiProviderSettings.states
+> {
+  constructor(props: AiProviderSettings.props) {
     super(props);
     if (!props.formContext.providerRegistry) {
       throw new Error(
         'The provider registry is needed to enable the jupyterlite-ai settings panel'
       );
     }
+    this._usage = props.usage;
+    this._storageKey = STORAGE_KEYS[this._usage];
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
@@ -87,7 +168,7 @@ export class AiSettings extends React.Component<
 
     // Check if there is saved values in local storage, otherwise use the settings from
     // the setting registry (leads to default if there are no user settings).
-    const storageSettings = localStorage.getItem(STORAGE_NAME);
+    const storageSettings = localStorage.getItem(this._storageKey);
     if (storageSettings === null) {
       const labSettings = this._settings.get('AIprovider').composite;
       if (labSettings && Object.keys(labSettings).includes('provider')) {
@@ -100,7 +181,7 @@ export class AiSettings extends React.Component<
           _current: provider
         };
         settings[provider] = labSettings;
-        localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+        localStorage.setItem(this._storageKey, JSON.stringify(settings));
       }
     }
 
@@ -175,7 +256,7 @@ export class AiSettings extends React.Component<
    * Get the current provider from the local storage.
    */
   getCurrentProvider(): string {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
     return settings['_current'] ?? 'None';
   }
 
@@ -183,16 +264,16 @@ export class AiSettings extends React.Component<
    * Save the current provider to the local storage.
    */
   saveCurrentProvider(): void {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
     settings['_current'] = this._provider;
-    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+    localStorage.setItem(this._storageKey, JSON.stringify(settings));
   }
 
   /**
    * Get settings from local storage for a given provider.
    */
   getSettingsFromLocalStorage(): IDict<any> {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
     return settings[this._provider] ?? { provider: this._provider };
   }
 
@@ -201,13 +282,13 @@ export class AiSettings extends React.Component<
    */
   saveSettingsToLocalStorage() {
     const currentSettings = { ...this._currentSettings };
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
+    const settings = JSON.parse(localStorage.getItem(this._storageKey) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
     if (this._useSecretsManager) {
       this._secretFields.forEach(field => delete currentSettings[field]);
     }
     settings[this._provider] = currentSettings;
-    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+    localStorage.setItem(this._storageKey, JSON.stringify(settings));
   }
 
   /**
@@ -220,9 +301,10 @@ export class AiSettings extends React.Component<
         sanitizedSettings[field] = SECRETS_REPLACEMENT;
       });
     }
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...sanitizedSettings })
-      .catch(console.error);
+    this.props.saveSettings(this._usage, {
+      provider: this._provider,
+      ...sanitizedSettings
+    });
   }
 
   /**
@@ -265,7 +347,9 @@ export class AiSettings extends React.Component<
       this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     } else {
       // Remove all the keys stored locally.
-      const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+      const settings = JSON.parse(
+        localStorage.getItem(this._storageKey) || '{}'
+      );
       Object.keys(settings).forEach(provider => {
         Object.keys(settings[provider])
           .filter(key => key.toLowerCase().includes('key'))
@@ -273,7 +357,7 @@ export class AiSettings extends React.Component<
             delete settings[provider][key];
           });
       });
-      localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+      localStorage.setItem(this._storageKey, JSON.stringify(settings));
     }
     this._updateSchema();
     this.saveSettingsToLocalStorage();
@@ -510,6 +594,8 @@ export class AiSettings extends React.Component<
     );
   }
 
+  private _storageKey = '';
+  private _usage: modelUsage;
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
@@ -522,6 +608,46 @@ export class AiSettings extends React.Component<
   private _formRef = React.createRef<HTMLDivElement>();
   private _secretFields: string[] = [];
   private _defaultFormData: IDict<any> = {};
+}
+
+/**
+ * The AI provider settings component namespace.
+ */
+export namespace AiProviderSettings {
+  /**
+   * The AI provider settings component props.
+   */
+  export type props = FieldProps & {
+    /**
+     * Why this model is used for (chat or completion).
+     */
+    usage: modelUsage;
+    /**
+     * The function to save the settings, which must be done in the parent component.
+     */
+    saveSettings: (usage: modelUsage, settings: IDict<any>) => void;
+  };
+  /**
+   * The AI provider settings component states.
+   */
+  export type states = {
+    /**
+     * The schema of the settings.
+     */
+    schema: JSONSchema7;
+    /**
+     * The instructions for this provider.
+     */
+    instruction: HTMLElement | null;
+    /**
+     * An error if the model in not compatible with the current environment.
+     */
+    compatibilityError: string | null;
+    /**
+     * Whether the settings are modified from default or not.
+     */
+    isModified?: boolean;
+  };
 }
 
 namespace Private {
