@@ -28,7 +28,7 @@ export class CompletionProvider implements IInlineCompletionProvider {
    * Get the current completer name.
    */
   get name(): string {
-    return this._providerRegistry.currentName;
+    return this._providerRegistry.currentName('completer');
   }
 
   /**
