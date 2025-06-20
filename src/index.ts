@@ -204,9 +204,12 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
             delete settings.schema.properties?.['UseSecretsManager'];
           }
           const updateProvider = () => {
-            // get the Ai provider settings..
-            const providerSettings = (settings.get('AIproviders').composite ??
-              {}) as ReadonlyPartialJSONObject;
+            // Get the Ai provider settings.
+            const providerSettings = (settings.get('AIproviders').composite ?? {
+              chat: { provider: 'None' },
+              completer: { provider: 'None' }
+            }) as ReadonlyPartialJSONObject;
+
             // Update completer provider.
             if (Object.keys(providerSettings).includes('completer')) {
               providerRegistry.setCompleterProvider(
