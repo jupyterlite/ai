@@ -188,7 +188,7 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
       });
 
       editorRegistry.addRenderer(
-        `${PLUGIN_IDS.providerRegistry}.AIprovider`,
+        `${PLUGIN_IDS.providerRegistry}.AIproviders`,
         aiSettingsRenderer({
           providerRegistry,
           secretsToken: token,
@@ -204,14 +204,26 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
             delete settings.schema.properties?.['UseSecretsManager'];
           }
           const updateProvider = () => {
-            // Update the settings to the AI providers.
-            const providerSettings = (settings.get('AIprovider').composite ?? {
-              provider: 'None'
-            }) as ReadonlyPartialJSONObject;
-            providerRegistry.setProvider({
-              name: providerSettings.provider as string,
-              settings: providerSettings
-            });
+            // get the Ai provider settings..
+            const providerSettings = (settings.get('AIproviders').composite ??
+              {}) as ReadonlyPartialJSONObject;
+            // Update completer provider.
+            if (Object.keys(providerSettings).includes('completer')) {
+              providerRegistry.setCompleterProvider(
+                providerSettings['completer'] as ReadonlyPartialJSONObject
+              );
+            } else {
+              providerRegistry.setCompleterProvider({});
+            }
+
+            // Update chat provider.
+            if (Object.keys(providerSettings).includes('chat')) {
+              providerRegistry.setChatProvider(
+                providerSettings['chat'] as ReadonlyPartialJSONObject
+              );
+            } else {
+              providerRegistry.setChatProvider({});
+            }
           };
 
           settings.changed.connect(() => updateProvider());

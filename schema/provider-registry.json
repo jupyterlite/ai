@@ -11,10 +11,16 @@
       "description": "Whether to use or not the secrets manager. If not, secrets will be stored in the browser (local storage)",
       "default": true
     },
-    "AIprovider": {
+    "UniqueProvider": {
+      "type": "boolean",
+      "title": "One provider for chat and completer",
+      "description": "Whether to use only one provider for the chat and the completer",
+      "default": true
+    },
+    "AIproviders": {
       "type": "object",
-      "title": "AI provider",
-      "description": "The AI provider configuration",
+      "title": "AI providers",
+      "description": "The AI providers configuration",
       "default": {},
       "additionalProperties": true
     }
