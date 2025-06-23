@@ -1,5 +1,5 @@
 {
-  "title": "AI provider",
+  "title": "AI providers",
   "description": "Provider registry settings",
   "jupyter.lab.setting-icon": "@jupyterlite/ai:jupyternaut-lite",
   "jupyter.lab.setting-icon-label": "JupyterLite AI provider",
@@ -14,7 +14,7 @@
     "UniqueProvider": {
       "type": "boolean",
       "title": "One provider for chat and completer",
-      "description": "Whether to use only one provider for the chat and the completer",
+      "description": "Whether to use only one provider for the chat and the completer.\nThis will overwrite all the settings for the completer, and copy the ones from the chat.",
       "default": true
     },
     "AIproviders": {

@@ -234,7 +234,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       Private.setCompleter(null);
       this._completerError =
         'The provider is missing from the completer settings';
-      console.error(this._completerError);
       return;
     }
     const provider = settings['provider'] as string;
@@ -294,7 +293,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       Private.setName('completer', 'None');
       Private.setCompleter(null);
       this._chatError = 'The provider is missing from the chat settings';
-      console.error(this._chatError);
       return;
     }
     const provider = settings['provider'] as string;

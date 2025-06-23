@@ -205,10 +205,8 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
           }
           const updateProvider = () => {
             // Get the Ai provider settings.
-            const providerSettings = (settings.get('AIproviders').composite ?? {
-              chat: { provider: 'None' },
-              completer: { provider: 'None' }
-            }) as ReadonlyPartialJSONObject;
+            const providerSettings = settings.get('AIproviders')
+              .composite as ReadonlyPartialJSONObject;
 
             // Update completer provider.
             if (Object.keys(providerSettings).includes('completer')) {

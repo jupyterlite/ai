@@ -5,7 +5,7 @@ import {
   FormComponent,
   IFormRenderer
 } from '@jupyterlab/ui-components';
-import { JSONExt } from '@lumino/coreutils';
+import { JSONExt, ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
@@ -49,7 +49,31 @@ const WrappedFormComponent = (props: any): JSX.Element => {
   return <FormComponent {...props} validator={validator} />;
 };
 
-export class AiSettings extends React.Component<FieldProps, AiSettings.states> {
+export interface IAiSettings {
+  /**
+   * Get the local storage settings for a specific usage (chat or completer).
+   */
+  getLocalStorage(usage: modelUsage): IDict<any>;
+  /**
+   * Set the local storage item for a specific usage (chat or completer).
+   * If the key is not provider (null) we assume the value should replace the whole
+   * local storage for this usage.
+   */
+  setLocalStorageItem(usage: modelUsage, key: string | null, value: any): void;
+  /**
+   * Get the settings from the registry (jupyterlab settings system) for a given usage.
+   */
+  getSettingsFromRegistry(usage: modelUsage): IDict<any>;
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry(usage: modelUsage, settings: IDict<any>): void;
+}
+
+export class AiSettings
+  extends React.Component<FieldProps, AiSettings.states>
+  implements IAiSettings
+{
   constructor(props: FieldProps) {
     super(props);
     this._settings = props.formContext.settings;
@@ -58,12 +82,76 @@ export class AiSettings extends React.Component<FieldProps, AiSettings.states> {
 
     this.state = { uniqueProvider };
 
-    this._settings.changed.connect(() => {
-      const uniqueProvider =
-        (this._settings.get('UniqueProvider').composite as boolean) ?? true;
-      this.setState({ uniqueProvider });
-    });
+    this._settings.changed.connect(this._settingsChanged);
   }
+
+  private _settingsChanged = () => {
+    const uniqueProvider =
+      (this._settings.get('UniqueProvider').composite as boolean) ?? true;
+    if (this.state.uniqueProvider === uniqueProvider) {
+      return;
+    }
+    if (uniqueProvider) {
+      // Copy chat settings to the completer settings if there should be a unique
+      // provider for both.
+      this.setLocalStorageItem('completer', null, this.getLocalStorage('chat'));
+      this.saveSettingsToRegistry(
+        'completer',
+        this.getSettingsFromRegistry('chat')
+      );
+    }
+    this.setState({ uniqueProvider });
+  };
+
+  /**
+   * Get the local storage settings for a specific usage (chat or completer).
+   */
+  getLocalStorage = (usage: modelUsage): IDict<any> => {
+    const storageKey = STORAGE_KEYS[usage];
+    return JSON.parse(localStorage.getItem(storageKey) ?? '{}');
+  };
+
+  /**
+   * Set the local storage item for a specific usage (chat or completer).
+   * If the key is not provider (null) we assume the value should replace the whole
+   * local storage for this usage.
+   */
+  setLocalStorageItem = (
+    usage: modelUsage,
+    key: string | null,
+    value: any
+  ): void => {
+    const storageKey = STORAGE_KEYS[usage];
+    let settings: IDict<any>;
+
+    if (key !== null) {
+      settings = JSON.parse(localStorage.getItem(storageKey) ?? '{}');
+      settings[key] = value;
+    } else {
+      settings = value;
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(settings));
+
+    // If both chat and completer use the same settings, only the chat settings should
+    // be editable for user, so we should duplicate its values to the completer
+    // local storage.
+    if (this.state.uniqueProvider && usage === 'chat') {
+      const storageKeyCompleter = STORAGE_KEYS['completer'];
+      localStorage.setItem(storageKeyCompleter, JSON.stringify(settings));
+    }
+  };
+
+  /**
+   * Get the settings from the registry (jupyterlab settings system) for a given usage.
+   */
+  getSettingsFromRegistry = (usage: modelUsage): IDict<any> => {
+    const settings = this._settings.get('AIproviders')
+      .composite as ReadonlyPartialJSONObject;
+    return settings && Object.keys(settings).includes(usage)
+      ? (settings[usage] as IDict<any>)
+      : { provider: 'None' };
+  };
 
   /**
    * Save the settings to the setting registry.
@@ -72,6 +160,13 @@ export class AiSettings extends React.Component<FieldProps, AiSettings.states> {
     const fullSettings = this._settings.get('AIproviders')
       .composite as IDict<any>;
     fullSettings[usage] = { ...settings };
+
+    // If both chat and completer use the same settings, only the chat settings should
+    // be editable for user, so we should duplicate its values to the completer
+    // settings.
+    if (this.state.uniqueProvider && usage === 'chat') {
+      fullSettings['completer'] = { ...settings };
+    }
     this._settings.set('AIproviders', { ...fullSettings }).catch(console.error);
   };
 
@@ -83,18 +178,14 @@ export class AiSettings extends React.Component<FieldProps, AiSettings.states> {
             ? 'Chat and completer provider'
             : 'Chat provider'}
         </h3>
-        <AiProviderSettings
-          {...this.props}
-          usage={'chat'}
-          saveSettings={this.saveSettingsToRegistry}
-        />
+        <AiProviderSettings {...this.props} usage={'chat'} aiSettings={this} />
         {!this.state.uniqueProvider && (
           <>
             <h3>Completer provider</h3>
             <AiProviderSettings
               {...this.props}
               usage={'completer'}
-              saveSettings={this.saveSettingsToRegistry}
+              aiSettings={this}
             />
           </>
         )}
@@ -144,7 +235,6 @@ export class AiProviderSettings extends React.Component<
       );
     }
     this._usage = props.usage;
-    this._storageKey = STORAGE_KEYS[this._usage];
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
@@ -168,10 +258,13 @@ export class AiProviderSettings extends React.Component<
 
     // Check if there is saved values in local storage, otherwise use the settings from
     // the setting registry (leads to default if there are no user settings).
-    const storageSettings = localStorage.getItem(this._storageKey);
+    const storageKey = STORAGE_KEYS[this._usage];
+    const storageSettings = localStorage.getItem(storageKey);
     if (storageSettings === null) {
-      const labSettings = this._settings.get('AIprovider').composite;
-      if (labSettings && Object.keys(labSettings).includes('provider')) {
+      const labSettings = this.props.aiSettings.getSettingsFromRegistry(
+        this._usage
+      );
+      if (Object.keys(labSettings).includes('provider')) {
         // Get the provider name.
         const provider = Object.entries(labSettings).find(
           v => v[0] === 'provider'
@@ -181,7 +274,7 @@ export class AiProviderSettings extends React.Component<
           _current: provider
         };
         settings[provider] = labSettings;
-        localStorage.setItem(this._storageKey, JSON.stringify(settings));
+        this.props.aiSettings.setLocalStorageItem(this._usage, null, settings);
       }
     }
 
@@ -256,7 +349,7 @@ export class AiProviderSettings extends React.Component<
    * Get the current provider from the local storage.
    */
   getCurrentProvider(): string {
-    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
+    const settings = this.props.aiSettings.getLocalStorage(this._usage);
     return settings['_current'] ?? 'None';
   }
 
@@ -264,16 +357,18 @@ export class AiProviderSettings extends React.Component<
    * Save the current provider to the local storage.
    */
   saveCurrentProvider(): void {
-    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
-    settings['_current'] = this._provider;
-    localStorage.setItem(this._storageKey, JSON.stringify(settings));
+    this.props.aiSettings.setLocalStorageItem(
+      this._usage,
+      '_current',
+      this._provider
+    );
   }
 
   /**
-   * Get settings from local storage for a given provider.
+   * Get settings from local storage for the current provider provider.
    */
   getSettingsFromLocalStorage(): IDict<any> {
-    const settings = JSON.parse(localStorage.getItem(this._storageKey) || '{}');
+    const settings = this.props.aiSettings.getLocalStorage(this._usage);
     return settings[this._provider] ?? { provider: this._provider };
   }
 
@@ -282,13 +377,15 @@ export class AiProviderSettings extends React.Component<
    */
   saveSettingsToLocalStorage() {
     const currentSettings = { ...this._currentSettings };
-    const settings = JSON.parse(localStorage.getItem(this._storageKey) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
     if (this._useSecretsManager) {
       this._secretFields.forEach(field => delete currentSettings[field]);
     }
-    settings[this._provider] = currentSettings;
-    localStorage.setItem(this._storageKey, JSON.stringify(settings));
+    this.props.aiSettings.setLocalStorageItem(
+      this._usage,
+      this._provider,
+      currentSettings
+    );
   }
 
   /**
@@ -301,7 +398,7 @@ export class AiProviderSettings extends React.Component<
         sanitizedSettings[field] = SECRETS_REPLACEMENT;
       });
     }
-    this.props.saveSettings(this._usage, {
+    this.props.aiSettings.saveSettingsToRegistry(this._usage, {
       provider: this._provider,
       ...sanitizedSettings
     });
@@ -347,9 +444,7 @@ export class AiProviderSettings extends React.Component<
       this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     } else {
       // Remove all the keys stored locally.
-      const settings = JSON.parse(
-        localStorage.getItem(this._storageKey) || '{}'
-      );
+      const settings = this.props.aiSettings.getLocalStorage(this._usage);
       Object.keys(settings).forEach(provider => {
         Object.keys(settings[provider])
           .filter(key => key.toLowerCase().includes('key'))
@@ -357,7 +452,7 @@ export class AiProviderSettings extends React.Component<
             delete settings[provider][key];
           });
       });
-      localStorage.setItem(this._storageKey, JSON.stringify(settings));
+      this.props.aiSettings.setLocalStorageItem(this._usage, null, settings);
     }
     this._updateSchema();
     this.saveSettingsToLocalStorage();
@@ -594,7 +689,6 @@ export class AiProviderSettings extends React.Component<
     );
   }
 
-  private _storageKey = '';
   private _usage: modelUsage;
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
@@ -623,9 +717,11 @@ export namespace AiProviderSettings {
      */
     usage: modelUsage;
     /**
-     * The function to save the settings, which must be done in the parent component.
+     * The parent component which should handle:
+     * - the get/set functions for local storage
+     * - save settings using jupyter settings system
      */
-    saveSettings: (usage: modelUsage, settings: IDict<any>) => void;
+    aiSettings: IAiSettings;
   };
   /**
    * The AI provider settings component states.
