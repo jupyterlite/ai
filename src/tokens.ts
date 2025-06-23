@@ -15,7 +15,7 @@ export const PLUGIN_IDS = {
   systemPrompts: '@jupyterlite/ai:system-prompts'
 };
 
-export type modelUsage = 'chat' | 'completer';
+export type ModelUsage = 'chat' | 'completer';
 
 export interface IDict<T = any> {
   [key: string]: T;
@@ -86,7 +86,7 @@ export interface IAIProviderRegistry {
   /**
    * Get the current provider name.
    */
-  currentName(usage: modelUsage): string;
+  currentName(usage: ModelUsage): string;
   /**
    * Get the current completer of the completion provider.
    */
@@ -138,7 +138,7 @@ export interface IAIProviderRegistry {
   /**
    * A signal emitting when the provider or its settings has changed.
    */
-  readonly providerChanged: ISignal<IAIProviderRegistry, modelUsage>;
+  readonly providerChanged: ISignal<IAIProviderRegistry, ModelUsage>;
   /**
    * Get the current chat error;
    */

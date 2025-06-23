@@ -15,7 +15,7 @@ import {
   IAIProvider,
   IAIProviderRegistry,
   IDict,
-  modelUsage,
+  ModelUsage,
   PLUGIN_IDS
 } from './tokens';
 import { AIChatModel, AICompleter } from './types/ai-model';
@@ -92,7 +92,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Get the current provider name.
    */
-  currentName(usage: modelUsage): string {
+  currentName(usage: ModelUsage): string {
     return Private.getName(usage);
   }
 
@@ -343,7 +343,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * A signal emitting when the provider or its settings has changed.
    */
-  get providerChanged(): ISignal<IAIProviderRegistry, modelUsage> {
+  get providerChanged(): ISignal<IAIProviderRegistry, ModelUsage> {
     return this._providerChanged;
   }
 
@@ -375,11 +375,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   private _secretsManager: ISecretsManager | null;
-  private _providerChanged = new Signal<IAIProviderRegistry, modelUsage>(this);
+  private _providerChanged = new Signal<IAIProviderRegistry, ModelUsage>(this);
   private _chatError: string = '';
   private _completerError: string = '';
   private _deferredProvider: {
-    [key in modelUsage]: ReadonlyPartialJSONObject | null;
+    [key in ModelUsage]: ReadonlyPartialJSONObject | null;
   } = {
     chat: null,
     completer: null
@@ -478,14 +478,14 @@ namespace Private {
    * The name of the current provider, setter and getter.
    * It is in a private namespace to prevent updating it without updating the models.
    */
-  const names: { [key in modelUsage]: string } = {
+  const names: { [key in ModelUsage]: string } = {
     chat: 'None',
     completer: 'None'
   };
-  export function setName(usage: modelUsage, value: string): void {
+  export function setName(usage: ModelUsage, value: string): void {
     names[usage] = value;
   }
-  export function getName(usage: modelUsage): string {
+  export function getName(usage: ModelUsage): string {
     return names[usage];
   }
 

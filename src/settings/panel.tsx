@@ -15,7 +15,7 @@ import React from 'react';
 
 import { getSecretId, SECRETS_REPLACEMENT } from '.';
 import baseSettings from './base.json';
-import { IAIProviderRegistry, IDict, modelUsage, PLUGIN_IDS } from '../tokens';
+import { IAIProviderRegistry, IDict, ModelUsage, PLUGIN_IDS } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
@@ -53,21 +53,21 @@ export interface IAiSettings {
   /**
    * Get the local storage settings for a specific usage (chat or completer).
    */
-  getLocalStorage(usage: modelUsage): IDict<any>;
+  getLocalStorage(usage: ModelUsage): IDict<any>;
   /**
    * Set the local storage item for a specific usage (chat or completer).
    * If the key is not provider (null) we assume the value should replace the whole
    * local storage for this usage.
    */
-  setLocalStorageItem(usage: modelUsage, key: string | null, value: any): void;
+  setLocalStorageItem(usage: ModelUsage, key: string | null, value: any): void;
   /**
    * Get the settings from the registry (jupyterlab settings system) for a given usage.
    */
-  getSettingsFromRegistry(usage: modelUsage): IDict<any>;
+  getSettingsFromRegistry(usage: ModelUsage): IDict<any>;
   /**
    * Save the settings to the setting registry.
    */
-  saveSettingsToRegistry(usage: modelUsage, settings: IDict<any>): void;
+  saveSettingsToRegistry(usage: ModelUsage, settings: IDict<any>): void;
 }
 
 export class AiSettings
@@ -106,7 +106,7 @@ export class AiSettings
   /**
    * Get the local storage settings for a specific usage (chat or completer).
    */
-  getLocalStorage = (usage: modelUsage): IDict<any> => {
+  getLocalStorage = (usage: ModelUsage): IDict<any> => {
     const storageKey = STORAGE_KEYS[usage];
     return JSON.parse(localStorage.getItem(storageKey) ?? '{}');
   };
@@ -117,7 +117,7 @@ export class AiSettings
    * local storage for this usage.
    */
   setLocalStorageItem = (
-    usage: modelUsage,
+    usage: ModelUsage,
     key: string | null,
     value: any
   ): void => {
@@ -145,7 +145,7 @@ export class AiSettings
   /**
    * Get the settings from the registry (jupyterlab settings system) for a given usage.
    */
-  getSettingsFromRegistry = (usage: modelUsage): IDict<any> => {
+  getSettingsFromRegistry = (usage: ModelUsage): IDict<any> => {
     const settings = this._settings.get('AIproviders')
       .composite as ReadonlyPartialJSONObject;
     return settings && Object.keys(settings).includes(usage)
@@ -156,7 +156,7 @@ export class AiSettings
   /**
    * Save the settings to the setting registry.
    */
-  saveSettingsToRegistry = (usage: modelUsage, settings: IDict<any>): void => {
+  saveSettingsToRegistry = (usage: ModelUsage, settings: IDict<any>): void => {
     const fullSettings = this._settings.get('AIproviders')
       .composite as IDict<any>;
     fullSettings[usage] = { ...settings };
@@ -213,13 +213,13 @@ namespace AiSettings {
    * The provider names object.
    */
   export type providers = {
-    [key in modelUsage]: string;
+    [key in ModelUsage]: string;
   };
   /**
    * The provider schemas object.
    */
   export type schemas = {
-    [key in modelUsage]: JSONSchema7;
+    [key in ModelUsage]: JSONSchema7;
   };
 }
 
@@ -689,7 +689,7 @@ export class AiProviderSettings extends React.Component<
     );
   }
 
-  private _usage: modelUsage;
+  private _usage: ModelUsage;
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
@@ -715,7 +715,7 @@ export namespace AiProviderSettings {
     /**
      * Why this model is used for (chat or completion).
      */
-    usage: modelUsage;
+    usage: ModelUsage;
     /**
      * The parent component which should handle:
      * - the get/set functions for local storage

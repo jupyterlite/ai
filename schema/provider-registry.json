@@ -13,7 +13,7 @@
     },
     "UniqueProvider": {
       "type": "boolean",
-      "title": "One provider for chat and completer",
+      "title": "Use the same provider for chat and completer",
       "description": "Whether to use only one provider for the chat and the completer.\nThis will overwrite all the settings for the completer, and copy the ones from the chat.",
       "default": true
     },
