@@ -233,7 +233,7 @@ export namespace ChatHandler {
         description: 'Clear the chat'
       }
     ];
-    async getChatCommands(inputModel: IInputModel) {
+    async listCommandCompletions(inputModel: IInputModel) {
       const match = inputModel.currentWord?.match(/^\/\w*/)?.[0];
       if (!match) {
         return [];
@@ -245,10 +245,7 @@ export namespace ChatHandler {
       return commands;
     }
 
-    async handleChatCommand(
-      command: ChatCommand,
-      inputModel: IInputModel
-    ): Promise<void> {
+    async onSubmit(inputModel: IInputModel): Promise<void> {
       // no handling needed because `replaceWith` is set in each command.
       return;
     }
