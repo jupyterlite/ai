@@ -36,9 +36,23 @@ export class CodestralCompleter extends BaseCompleter {
         false
       );
       const items = response.choices.map(choice => {
-        const content = choice.message.content
-          .replace(CODE_BLOCK_START_REGEX, '')
-          .replace(CODE_BLOCK_END_REGEX, '');
+        const messageContent = choice.message.content;
+        let content = '';
+
+        if (typeof messageContent === 'string') {
+          content = messageContent
+            .replace(CODE_BLOCK_START_REGEX, '')
+            .replace(CODE_BLOCK_END_REGEX, '');
+        } else if (Array.isArray(messageContent)) {
+          // Handle ContentChunk[] case - extract text content
+          content = messageContent
+            .filter(chunk => chunk.type === 'text')
+            .map(chunk => chunk.text || '')
+            .join('')
+            .replace(CODE_BLOCK_START_REGEX, '')
+            .replace(CODE_BLOCK_END_REGEX, '');
+        }
+
         return {
           insertText: content
         };
