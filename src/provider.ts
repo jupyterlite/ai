@@ -15,7 +15,7 @@ import {
   IAIProvider,
   IAIProviderRegistry,
   IDict,
-  ModelUsage,
+  ModelRole,
   PLUGIN_IDS
 } from './tokens';
 import { AIChatModel, AICompleter } from './types/ai-model';
@@ -92,8 +92,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Get the current provider name.
    */
-  currentName(usage: ModelUsage): string {
-    return Private.getName(usage);
+  currentName(role: ModelRole): string {
+    return Private.getName(role);
   }
 
   /**
@@ -343,7 +343,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * A signal emitting when the provider or its settings has changed.
    */
-  get providerChanged(): ISignal<IAIProviderRegistry, ModelUsage> {
+  get providerChanged(): ISignal<IAIProviderRegistry, ModelRole> {
     return this._providerChanged;
   }
 
@@ -375,11 +375,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   private _secretsManager: ISecretsManager | null;
-  private _providerChanged = new Signal<IAIProviderRegistry, ModelUsage>(this);
+  private _providerChanged = new Signal<IAIProviderRegistry, ModelRole>(this);
   private _chatError: string = '';
   private _completerError: string = '';
   private _deferredProvider: {
-    [key in ModelUsage]: ReadonlyPartialJSONObject | null;
+    [key in ModelRole]: ReadonlyPartialJSONObject | null;
   } = {
     chat: null,
     completer: null
@@ -478,15 +478,15 @@ namespace Private {
    * The name of the current provider, setter and getter.
    * It is in a private namespace to prevent updating it without updating the models.
    */
-  const names: { [key in ModelUsage]: string } = {
+  const names: { [key in ModelRole]: string } = {
     chat: 'None',
     completer: 'None'
   };
-  export function setName(usage: ModelUsage, value: string): void {
-    names[usage] = value;
+  export function setName(role: ModelRole, value: string): void {
+    names[role] = value;
   }
-  export function getName(usage: ModelUsage): string {
-    return names[usage];
+  export function getName(role: ModelRole): string {
+    return names[role];
   }
 
   /**

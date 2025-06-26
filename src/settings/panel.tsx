@@ -15,7 +15,7 @@ import React from 'react';
 
 import { getSecretId, SECRETS_REPLACEMENT } from '.';
 import baseSettings from './base.json';
-import { IAIProviderRegistry, IDict, ModelUsage, PLUGIN_IDS } from '../tokens';
+import { IAIProviderRegistry, IDict, ModelRole, PLUGIN_IDS } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
@@ -51,23 +51,23 @@ const WrappedFormComponent = (props: any): JSX.Element => {
 
 export interface IAiSettings {
   /**
-   * Get the local storage settings for a specific usage (chat or completer).
+   * Get the local storage settings for a specific role (chat or completer).
    */
-  getLocalStorage(usage: ModelUsage): IDict<any>;
+  getLocalStorage(role: ModelRole): IDict<any>;
   /**
-   * Set the local storage item for a specific usage (chat or completer).
+   * Set the local storage item for a specific role (chat or completer).
    * If the key is not provider (null) we assume the value should replace the whole
-   * local storage for this usage.
+   * local storage for this role.
    */
-  setLocalStorageItem(usage: ModelUsage, key: string | null, value: any): void;
+  setLocalStorageItem(role: ModelRole, key: string | null, value: any): void;
   /**
-   * Get the settings from the registry (jupyterlab settings system) for a given usage.
+   * Get the settings from the registry (jupyterlab settings system) for a given role.
    */
-  getSettingsFromRegistry(usage: ModelUsage): IDict<any>;
+  getSettingsFromRegistry(role: ModelRole): IDict<any>;
   /**
    * Save the settings to the setting registry.
    */
-  saveSettingsToRegistry(usage: ModelUsage, settings: IDict<any>): void;
+  saveSettingsToRegistry(role: ModelRole, settings: IDict<any>): void;
 }
 
 export class AiSettings
@@ -104,24 +104,24 @@ export class AiSettings
   };
 
   /**
-   * Get the local storage settings for a specific usage (chat or completer).
+   * Get the local storage settings for a specific role (chat or completer).
    */
-  getLocalStorage = (usage: ModelUsage): IDict<any> => {
-    const storageKey = STORAGE_KEYS[usage];
+  getLocalStorage = (role: ModelRole): IDict<any> => {
+    const storageKey = STORAGE_KEYS[role];
     return JSON.parse(localStorage.getItem(storageKey) ?? '{}');
   };
 
   /**
-   * Set the local storage item for a specific usage (chat or completer).
+   * Set the local storage item for a specific role (chat or completer).
    * If the key is not provider (null) we assume the value should replace the whole
-   * local storage for this usage.
+   * local storage for this role.
    */
   setLocalStorageItem = (
-    usage: ModelUsage,
+    role: ModelRole,
     key: string | null,
     value: any
   ): void => {
-    const storageKey = STORAGE_KEYS[usage];
+    const storageKey = STORAGE_KEYS[role];
     let settings: IDict<any>;
 
     if (key !== null) {
@@ -136,35 +136,35 @@ export class AiSettings
     // If both chat and completer use the same settings, only the chat settings should
     // be editable for user, so we should duplicate its values to the completer
     // local storage.
-    if (this.state.uniqueProvider && usage === 'chat') {
+    if (this.state.uniqueProvider && role === 'chat') {
       const storageKeyCompleter = STORAGE_KEYS['completer'];
       localStorage.setItem(storageKeyCompleter, JSON.stringify(settings));
     }
   };
 
   /**
-   * Get the settings from the registry (jupyterlab settings system) for a given usage.
+   * Get the settings from the registry (jupyterlab settings system) for a given role.
    */
-  getSettingsFromRegistry = (usage: ModelUsage): IDict<any> => {
+  getSettingsFromRegistry = (role: ModelRole): IDict<any> => {
     const settings = this._settings.get('AIproviders')
       .composite as ReadonlyPartialJSONObject;
-    return settings && Object.keys(settings).includes(usage)
-      ? (settings[usage] as IDict<any>)
+    return settings && Object.keys(settings).includes(role)
+      ? (settings[role] as IDict<any>)
       : { provider: 'None' };
   };
 
   /**
    * Save the settings to the setting registry.
    */
-  saveSettingsToRegistry = (usage: ModelUsage, settings: IDict<any>): void => {
+  saveSettingsToRegistry = (role: ModelRole, settings: IDict<any>): void => {
     const fullSettings = this._settings.get('AIproviders')
       .composite as IDict<any>;
-    fullSettings[usage] = { ...settings };
+    fullSettings[role] = { ...settings };
 
     // If both chat and completer use the same settings, only the chat settings should
     // be editable for user, so we should duplicate its values to the completer
     // settings.
-    if (this.state.uniqueProvider && usage === 'chat') {
+    if (this.state.uniqueProvider && role === 'chat') {
       fullSettings['completer'] = { ...settings };
     }
     this._settings.set('AIproviders', { ...fullSettings }).catch(console.error);
@@ -178,13 +178,13 @@ export class AiSettings
             ? 'Chat and completer provider'
             : 'Chat provider'}
         </h3>
-        <AiProviderSettings {...this.props} usage={'chat'} aiSettings={this} />
+        <AiProviderSettings {...this.props} role={'chat'} aiSettings={this} />
         {!this.state.uniqueProvider && (
           <>
             <h3>Completer provider</h3>
             <AiProviderSettings
               {...this.props}
-              usage={'completer'}
+              role={'completer'}
               aiSettings={this}
             />
           </>
@@ -213,13 +213,13 @@ namespace AiSettings {
    * The provider names object.
    */
   export type providers = {
-    [key in ModelUsage]: string;
+    [key in ModelRole]: string;
   };
   /**
    * The provider schemas object.
    */
   export type schemas = {
-    [key in ModelUsage]: JSONSchema7;
+    [key in ModelRole]: JSONSchema7;
   };
 }
 
@@ -234,7 +234,7 @@ export class AiProviderSettings extends React.Component<
         'The provider registry is needed to enable the jupyterlite-ai settings panel'
       );
     }
-    this._usage = props.usage;
+    this._role = props.role;
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
@@ -258,11 +258,11 @@ export class AiProviderSettings extends React.Component<
 
     // Check if there is saved values in local storage, otherwise use the settings from
     // the setting registry (leads to default if there are no user settings).
-    const storageKey = STORAGE_KEYS[this._usage];
+    const storageKey = STORAGE_KEYS[this._role];
     const storageSettings = localStorage.getItem(storageKey);
     if (storageSettings === null) {
       const labSettings = this.props.aiSettings.getSettingsFromRegistry(
-        this._usage
+        this._role
       );
       if (Object.keys(labSettings).includes('provider')) {
         // Get the provider name.
@@ -274,7 +274,7 @@ export class AiProviderSettings extends React.Component<
           _current: provider
         };
         settings[provider] = labSettings;
-        this.props.aiSettings.setLocalStorageItem(this._usage, null, settings);
+        this.props.aiSettings.setLocalStorageItem(this._role, null, settings);
       }
     }
 
@@ -349,7 +349,7 @@ export class AiProviderSettings extends React.Component<
    * Get the current provider from the local storage.
    */
   getCurrentProvider(): string {
-    const settings = this.props.aiSettings.getLocalStorage(this._usage);
+    const settings = this.props.aiSettings.getLocalStorage(this._role);
     return settings['_current'] ?? 'None';
   }
 
@@ -358,7 +358,7 @@ export class AiProviderSettings extends React.Component<
    */
   saveCurrentProvider(): void {
     this.props.aiSettings.setLocalStorageItem(
-      this._usage,
+      this._role,
       '_current',
       this._provider
     );
@@ -368,7 +368,7 @@ export class AiProviderSettings extends React.Component<
    * Get settings from local storage for the current provider provider.
    */
   getSettingsFromLocalStorage(): IDict<any> {
-    const settings = this.props.aiSettings.getLocalStorage(this._usage);
+    const settings = this.props.aiSettings.getLocalStorage(this._role);
     return settings[this._provider] ?? { provider: this._provider };
   }
 
@@ -382,7 +382,7 @@ export class AiProviderSettings extends React.Component<
       this._secretFields.forEach(field => delete currentSettings[field]);
     }
     this.props.aiSettings.setLocalStorageItem(
-      this._usage,
+      this._role,
       this._provider,
       currentSettings
     );
@@ -398,7 +398,7 @@ export class AiProviderSettings extends React.Component<
         sanitizedSettings[field] = SECRETS_REPLACEMENT;
       });
     }
-    this.props.aiSettings.saveSettingsToRegistry(this._usage, {
+    this.props.aiSettings.saveSettingsToRegistry(this._role, {
       provider: this._provider,
       ...sanitizedSettings
     });
@@ -444,7 +444,7 @@ export class AiProviderSettings extends React.Component<
       this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     } else {
       // Remove all the keys stored locally.
-      const settings = this.props.aiSettings.getLocalStorage(this._usage);
+      const settings = this.props.aiSettings.getLocalStorage(this._role);
       Object.keys(settings).forEach(provider => {
         Object.keys(settings[provider])
           .filter(key => key.toLowerCase().includes('key'))
@@ -452,7 +452,7 @@ export class AiProviderSettings extends React.Component<
             delete settings[provider][key];
           });
       });
-      this.props.aiSettings.setLocalStorageItem(this._usage, null, settings);
+      this.props.aiSettings.setLocalStorageItem(this._role, null, settings);
     }
     this._updateSchema();
     this.saveSettingsToLocalStorage();
@@ -689,7 +689,7 @@ export class AiProviderSettings extends React.Component<
     );
   }
 
-  private _usage: ModelUsage;
+  private _role: ModelRole;
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
@@ -715,7 +715,7 @@ export namespace AiProviderSettings {
     /**
      * Why this model is used for (chat or completion).
      */
-    usage: ModelUsage;
+    role: ModelRole;
     /**
      * The parent component which should handle:
      * - the get/set functions for local storage

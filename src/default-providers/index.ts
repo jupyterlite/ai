@@ -102,7 +102,7 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
       exposeChatModel: true
     });
 
-    registry.providerChanged.connect(async (sender, usage) => {
+    registry.providerChanged.connect(async (sender, role) => {
       const { currentChatModel, chatError } = registry;
       if (currentChatModel === null) {
         Notification.emit(chatError, 'error', {
@@ -113,7 +113,7 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
 
       // TODO: implement a proper way to handle models that may need to be initialized before being used.
       // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
-      if (registry.currentName(usage) === 'WebLLM') {
+      if (registry.currentName(role) === 'WebLLM') {
         const compatibilityError = await webLLMCompatibilityCheck();
 
         if (compatibilityError) {
