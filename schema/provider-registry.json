@@ -1,5 +1,5 @@
 {
-  "title": "AI provider",
+  "title": "AI providers",
   "description": "Provider registry settings",
   "jupyter.lab.setting-icon": "@jupyterlite/ai:jupyternaut-lite",
   "jupyter.lab.setting-icon-label": "JupyterLite AI provider",
@@ -11,10 +11,16 @@
       "description": "Whether to use or not the secrets manager. If not, secrets will be stored in the browser (local storage)",
       "default": true
     },
-    "AIprovider": {
+    "UniqueProvider": {
+      "type": "boolean",
+      "title": "Use the same provider for chat and completer",
+      "description": "Whether to use only one provider for the chat and the completer.\nThis will overwrite all the settings for the completer, and copy the ones from the chat.",
+      "default": true
+    },
+    "AIproviders": {
       "type": "object",
-      "title": "AI provider",
-      "description": "The AI provider configuration",
+      "title": "AI providers",
+      "description": "The AI providers configuration",
       "default": {},
       "additionalProperties": true
     }

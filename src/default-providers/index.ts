@@ -45,7 +45,7 @@ import { IAIProvider, IAIProviderRegistry } from '../tokens';
 const AIProviders: IAIProvider[] = [
   {
     name: 'Anthropic',
-    chatModel: ChatAnthropic,
+    chat: ChatAnthropic,
     completer: AnthropicCompleter,
     settingsSchema: AnthropicSettings,
     errorMessage: (error: any) => error.error.error.message
@@ -54,7 +54,7 @@ const AIProviders: IAIProvider[] = [
     name: 'ChromeAI',
     // TODO: fix
     // @ts-expect-error: missing properties
-    chatModel: ChromeAI,
+    chat: ChromeAI,
     completer: ChromeCompleter,
     instructions: ChromeAIInstructions,
     settingsSchema: ChromeAISettings,
@@ -62,21 +62,21 @@ const AIProviders: IAIProvider[] = [
   },
   {
     name: 'MistralAI',
-    chatModel: ChatMistralAI,
+    chat: ChatMistralAI,
     completer: CodestralCompleter,
     instructions: MistralAIInstructions,
     settingsSchema: MistralAISettings
   },
   {
     name: 'Ollama',
-    chatModel: ChatOllama,
+    chat: ChatOllama,
     completer: OllamaCompleter,
     instructions: OllamaInstructions,
     settingsSchema: OllamaAISettings
   },
   {
     name: 'OpenAI',
-    chatModel: ChatOpenAI,
+    chat: ChatOpenAI,
     completer: OpenAICompleter,
     settingsSchema: OpenAISettings
   }
@@ -94,7 +94,7 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
   activate: (app: JupyterFrontEnd, registry: IAIProviderRegistry) => {
     registry.add({
       name: 'WebLLM',
-      chatModel: ChatWebLLM,
+      chat: ChatWebLLM,
       completer: WebLLMCompleter,
       settingsSchema: WebLLMSettings,
       instructions: WebLLMInstructions,
@@ -102,8 +102,8 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
       exposeChatModel: true
     });
 
-    registry.providerChanged.connect(async (sender, args) => {
-      const { currentName, currentChatModel, chatError } = registry;
+    registry.providerChanged.connect(async (sender, role) => {
+      const { currentChatModel, chatError } = registry;
       if (currentChatModel === null) {
         Notification.emit(chatError, 'error', {
           autoClose: 2000
@@ -113,7 +113,7 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
 
       // TODO: implement a proper way to handle models that may need to be initialized before being used.
       // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
-      if (currentName === 'WebLLM') {
+      if (registry.currentName(role) === 'WebLLM') {
         const compatibilityError = await webLLMCompatibilityCheck();
 
         if (compatibilityError) {

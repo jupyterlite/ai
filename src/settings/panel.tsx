@@ -5,7 +5,7 @@ import {
   FormComponent,
   IFormRenderer
 } from '@jupyterlab/ui-components';
-import { JSONExt } from '@lumino/coreutils';
+import { JSONExt, ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { IChangeEvent } from '@rjsf/core';
 import type { FieldProps } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
@@ -15,13 +15,16 @@ import React from 'react';
 
 import { getSecretId, SECRETS_REPLACEMENT } from '.';
 import baseSettings from './base.json';
-import { IAIProviderRegistry, IDict, PLUGIN_IDS } from '../tokens';
+import { IAIProviderRegistry, IDict, ModelRole, PLUGIN_IDS } from '../tokens';
 
 const MD_MIME_TYPE = 'text/markdown';
-const STORAGE_NAME = '@jupyterlite/ai:settings';
 const INSTRUCTION_CLASS = 'jp-AISettingsInstructions';
 const ERROR_CLASS = 'jp-AISettingsError';
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
+const STORAGE_KEYS = {
+  chat: '@jupyterlite/ai:chat-settings',
+  completer: '@jupyterlite/ai:completer-settings'
+};
 
 export const aiSettingsRenderer = (options: {
   providerRegistry: IAIProviderRegistry;
@@ -42,28 +45,196 @@ export const aiSettingsRenderer = (options: {
   };
 };
 
-export interface ISettingsFormStates {
-  schema: JSONSchema7;
-  instruction: HTMLElement | null;
-  compatibilityError: string | null;
-  isModified?: boolean;
-}
-
 const WrappedFormComponent = (props: any): JSX.Element => {
   return <FormComponent {...props} validator={validator} />;
 };
 
-export class AiSettings extends React.Component<
-  FieldProps,
-  ISettingsFormStates
-> {
+export interface IAiSettings {
+  /**
+   * Get the local storage settings for a specific role (chat or completer).
+   */
+  getLocalStorage(role: ModelRole): IDict<any>;
+  /**
+   * Set the local storage item for a specific role (chat or completer).
+   * If the key is not provider (null) we assume the value should replace the whole
+   * local storage for this role.
+   */
+  setLocalStorageItem(role: ModelRole, key: string | null, value: any): void;
+  /**
+   * Get the settings from the registry (jupyterlab settings system) for a given role.
+   */
+  getSettingsFromRegistry(role: ModelRole): IDict<any>;
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry(role: ModelRole, settings: IDict<any>): void;
+}
+
+export class AiSettings
+  extends React.Component<FieldProps, AiSettings.states>
+  implements IAiSettings
+{
   constructor(props: FieldProps) {
+    super(props);
+    this._settings = props.formContext.settings;
+    const uniqueProvider =
+      (this._settings.get('UniqueProvider').composite as boolean) ?? true;
+
+    this.state = { uniqueProvider };
+
+    this._settings.changed.connect(this._settingsChanged);
+  }
+
+  private _settingsChanged = () => {
+    const uniqueProvider =
+      (this._settings.get('UniqueProvider').composite as boolean) ?? true;
+    if (this.state.uniqueProvider === uniqueProvider) {
+      return;
+    }
+    if (uniqueProvider) {
+      // Copy chat settings to the completer settings if there should be a unique
+      // provider for both.
+      this.setLocalStorageItem('completer', null, this.getLocalStorage('chat'));
+      this.saveSettingsToRegistry(
+        'completer',
+        this.getSettingsFromRegistry('chat')
+      );
+    }
+    this.setState({ uniqueProvider });
+  };
+
+  /**
+   * Get the local storage settings for a specific role (chat or completer).
+   */
+  getLocalStorage = (role: ModelRole): IDict<any> => {
+    const storageKey = STORAGE_KEYS[role];
+    return JSON.parse(localStorage.getItem(storageKey) ?? '{}');
+  };
+
+  /**
+   * Set the local storage item for a specific role (chat or completer).
+   * If the key is not provider (null) we assume the value should replace the whole
+   * local storage for this role.
+   */
+  setLocalStorageItem = (
+    role: ModelRole,
+    key: string | null,
+    value: any
+  ): void => {
+    const storageKey = STORAGE_KEYS[role];
+    let settings: IDict<any>;
+
+    if (key !== null) {
+      settings = JSON.parse(localStorage.getItem(storageKey) ?? '{}');
+      settings[key] = value;
+    } else {
+      settings = value;
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(settings));
+
+    // If both chat and completer use the same settings, only the chat settings should
+    // be editable for user, so we should duplicate its values to the completer
+    // local storage.
+    if (this.state.uniqueProvider && role === 'chat') {
+      const storageKeyCompleter = STORAGE_KEYS['completer'];
+      localStorage.setItem(storageKeyCompleter, JSON.stringify(settings));
+    }
+  };
+
+  /**
+   * Get the settings from the registry (jupyterlab settings system) for a given role.
+   */
+  getSettingsFromRegistry = (role: ModelRole): IDict<any> => {
+    const settings = this._settings.get('AIproviders')
+      .composite as ReadonlyPartialJSONObject;
+    return settings && Object.keys(settings).includes(role)
+      ? (settings[role] as IDict<any>)
+      : { provider: 'None' };
+  };
+
+  /**
+   * Save the settings to the setting registry.
+   */
+  saveSettingsToRegistry = (role: ModelRole, settings: IDict<any>): void => {
+    const fullSettings = this._settings.get('AIproviders')
+      .composite as IDict<any>;
+    fullSettings[role] = { ...settings };
+
+    // If both chat and completer use the same settings, only the chat settings should
+    // be editable for user, so we should duplicate its values to the completer
+    // settings.
+    if (this.state.uniqueProvider && role === 'chat') {
+      fullSettings['completer'] = { ...settings };
+    }
+    this._settings.set('AIproviders', { ...fullSettings }).catch(console.error);
+  };
+
+  render(): JSX.Element {
+    return (
+      <div>
+        <h3>
+          {this.state.uniqueProvider
+            ? 'Chat and completer provider'
+            : 'Chat provider'}
+        </h3>
+        <AiProviderSettings {...this.props} role={'chat'} aiSettings={this} />
+        {!this.state.uniqueProvider && (
+          <>
+            <h3>Completer provider</h3>
+            <AiProviderSettings
+              {...this.props}
+              role={'completer'}
+              aiSettings={this}
+            />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  private _settings: ISettingRegistry.ISettings;
+}
+
+/**
+ * The AI settings component namespace.
+ */
+namespace AiSettings {
+  /**
+   * The AI settings component states.
+   */
+  export type states = {
+    /**
+     * Whether there is only one provider for chat and completion.
+     */
+    uniqueProvider: boolean;
+  };
+  /**
+   * The provider names object.
+   */
+  export type providers = {
+    [key in ModelRole]: string;
+  };
+  /**
+   * The provider schemas object.
+   */
+  export type schemas = {
+    [key in ModelRole]: JSONSchema7;
+  };
+}
+
+export class AiProviderSettings extends React.Component<
+  AiProviderSettings.props,
+  AiProviderSettings.states
+> {
+  constructor(props: AiProviderSettings.props) {
     super(props);
     if (!props.formContext.providerRegistry) {
       throw new Error(
         'The provider registry is needed to enable the jupyterlite-ai settings panel'
       );
     }
+    this._role = props.role;
     this._providerRegistry = props.formContext.providerRegistry;
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
@@ -87,10 +258,13 @@ export class AiSettings extends React.Component<
 
     // Check if there is saved values in local storage, otherwise use the settings from
     // the setting registry (leads to default if there are no user settings).
-    const storageSettings = localStorage.getItem(STORAGE_NAME);
+    const storageKey = STORAGE_KEYS[this._role];
+    const storageSettings = localStorage.getItem(storageKey);
     if (storageSettings === null) {
-      const labSettings = this._settings.get('AIprovider').composite;
-      if (labSettings && Object.keys(labSettings).includes('provider')) {
+      const labSettings = this.props.aiSettings.getSettingsFromRegistry(
+        this._role
+      );
+      if (Object.keys(labSettings).includes('provider')) {
         // Get the provider name.
         const provider = Object.entries(labSettings).find(
           v => v[0] === 'provider'
@@ -100,7 +274,7 @@ export class AiSettings extends React.Component<
           _current: provider
         };
         settings[provider] = labSettings;
-        localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+        this.props.aiSettings.setLocalStorageItem(this._role, null, settings);
       }
     }
 
@@ -175,7 +349,7 @@ export class AiSettings extends React.Component<
    * Get the current provider from the local storage.
    */
   getCurrentProvider(): string {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    const settings = this.props.aiSettings.getLocalStorage(this._role);
     return settings['_current'] ?? 'None';
   }
 
@@ -183,16 +357,18 @@ export class AiSettings extends React.Component<
    * Save the current provider to the local storage.
    */
   saveCurrentProvider(): void {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
-    settings['_current'] = this._provider;
-    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+    this.props.aiSettings.setLocalStorageItem(
+      this._role,
+      '_current',
+      this._provider
+    );
   }
 
   /**
-   * Get settings from local storage for a given provider.
+   * Get settings from local storage for the current provider provider.
    */
   getSettingsFromLocalStorage(): IDict<any> {
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+    const settings = this.props.aiSettings.getLocalStorage(this._role);
     return settings[this._provider] ?? { provider: this._provider };
   }
 
@@ -201,13 +377,15 @@ export class AiSettings extends React.Component<
    */
   saveSettingsToLocalStorage() {
     const currentSettings = { ...this._currentSettings };
-    const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) ?? '{}');
     // Do not save secrets in local storage if using the secrets manager.
     if (this._useSecretsManager) {
       this._secretFields.forEach(field => delete currentSettings[field]);
     }
-    settings[this._provider] = currentSettings;
-    localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+    this.props.aiSettings.setLocalStorageItem(
+      this._role,
+      this._provider,
+      currentSettings
+    );
   }
 
   /**
@@ -220,9 +398,10 @@ export class AiSettings extends React.Component<
         sanitizedSettings[field] = SECRETS_REPLACEMENT;
       });
     }
-    this._settings
-      .set('AIprovider', { provider: this._provider, ...sanitizedSettings })
-      .catch(console.error);
+    this.props.aiSettings.saveSettingsToRegistry(this._role, {
+      provider: this._provider,
+      ...sanitizedSettings
+    });
   }
 
   /**
@@ -265,7 +444,7 @@ export class AiSettings extends React.Component<
       this._secretsManager.detachAll(Private.getToken(), SECRETS_NAMESPACE);
     } else {
       // Remove all the keys stored locally.
-      const settings = JSON.parse(localStorage.getItem(STORAGE_NAME) || '{}');
+      const settings = this.props.aiSettings.getLocalStorage(this._role);
       Object.keys(settings).forEach(provider => {
         Object.keys(settings[provider])
           .filter(key => key.toLowerCase().includes('key'))
@@ -273,7 +452,7 @@ export class AiSettings extends React.Component<
             delete settings[provider][key];
           });
       });
-      localStorage.setItem(STORAGE_NAME, JSON.stringify(settings));
+      this.props.aiSettings.setLocalStorageItem(this._role, null, settings);
     }
     this._updateSchema();
     this.saveSettingsToLocalStorage();
@@ -510,6 +689,7 @@ export class AiSettings extends React.Component<
     );
   }
 
+  private _role: ModelRole;
   private _providerRegistry: IAIProviderRegistry;
   private _provider: string;
   private _providerSchema: JSONSchema7;
@@ -522,6 +702,48 @@ export class AiSettings extends React.Component<
   private _formRef = React.createRef<HTMLDivElement>();
   private _secretFields: string[] = [];
   private _defaultFormData: IDict<any> = {};
+}
+
+/**
+ * The AI provider settings component namespace.
+ */
+export namespace AiProviderSettings {
+  /**
+   * The AI provider settings component props.
+   */
+  export type props = FieldProps & {
+    /**
+     * Why this model is used for (chat or completion).
+     */
+    role: ModelRole;
+    /**
+     * The parent component which should handle:
+     * - the get/set functions for local storage
+     * - save settings using jupyter settings system
+     */
+    aiSettings: IAiSettings;
+  };
+  /**
+   * The AI provider settings component states.
+   */
+  export type states = {
+    /**
+     * The schema of the settings.
+     */
+    schema: JSONSchema7;
+    /**
+     * The instructions for this provider.
+     */
+    instruction: HTMLElement | null;
+    /**
+     * An error if the model in not compatible with the current environment.
+     */
+    compatibilityError: string | null;
+    /**
+     * Whether the settings are modified from default or not.
+     */
+    isModified?: boolean;
+  };
 }
 
 namespace Private {

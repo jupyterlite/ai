@@ -15,6 +15,8 @@ export const PLUGIN_IDS = {
   systemPrompts: '@jupyterlite/ai:system-prompts'
 };
 
+export type ModelRole = 'chat' | 'completer';
+
 export interface IDict<T = any> {
   [key: string]: T;
 }
@@ -34,7 +36,7 @@ export interface IAIProvider {
   /**
    * The chat model class to use.
    */
-  chatModel?: IType<BaseChatModel>;
+  chat?: IType<BaseChatModel>;
   /**
    * The completer class to use.
    */
@@ -84,7 +86,7 @@ export interface IAIProviderRegistry {
   /**
    * Get the current provider name.
    */
-  currentName: string;
+  currentName(role: ModelRole): string;
   /**
    * Get the current completer of the completion provider.
    */
@@ -120,16 +122,23 @@ export interface IAIProviderRegistry {
    */
   formatErrorMessage(error: any): string;
   /**
-   * Set the providers (chat model and completer).
-   * Creates the providers if the name has changed, otherwise only updates their config.
+   * Set the completer provider.
+   * Creates the provider if the name has changed, otherwise only updates its config.
    *
-   * @param options - an object with the name and the settings of the provider to use.
+   * @param options - An object with the name and the settings of the provider to use.
    */
-  setProvider(options: ISetProviderOptions): void;
+  setCompleterProvider(settings: ReadonlyPartialJSONObject): void;
+  /**
+   * Set the chat provider.
+   * Creates the provider if the name has changed, otherwise only updates its config.
+   *
+   * @param options - An object with the name and the settings of the provider to use.
+   */
+  setChatProvider(settings: ReadonlyPartialJSONObject): void;
   /**
    * A signal emitting when the provider or its settings has changed.
    */
-  readonly providerChanged: ISignal<IAIProviderRegistry, void>;
+  readonly providerChanged: ISignal<IAIProviderRegistry, ModelRole>;
   /**
    * Get the current chat error;
    */
@@ -138,20 +147,6 @@ export interface IAIProviderRegistry {
    * get the current completer error.
    */
   readonly completerError: string;
-}
-
-/**
- * The set provider options.
- */
-export interface ISetProviderOptions {
-  /**
-   * The name of the provider.
-   */
-  name: string;
-  /**
-   * The settings of the provider.
-   */
-  settings: ReadonlyPartialJSONObject;
 }
 
 /**

@@ -15,7 +15,7 @@ import {
   IAIProvider,
   IAIProviderRegistry,
   IDict,
-  ISetProviderOptions,
+  ModelRole,
   PLUGIN_IDS
 } from './tokens';
 import { AIChatModel, AICompleter } from './types/ai-model';
@@ -80,24 +80,27 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     }
     Private.providers.set(provider.name, provider);
 
-    // Set the provider if the loading has been deferred.
-    if (provider.name === this._deferredProvider?.name) {
-      this.setProvider(this._deferredProvider);
+    // Set the providers if the loading has been deferred.
+    if (provider.name === this._deferredProvider.completer?.name) {
+      this.setCompleterProvider(this._deferredProvider.completer);
+    }
+    if (provider.name === this._deferredProvider.chat?.name) {
+      this.setChatProvider(this._deferredProvider.chat);
     }
   }
 
   /**
    * Get the current provider name.
    */
-  get currentName(): string {
-    return Private.getName();
+  currentName(role: ModelRole): string {
+    return Private.getName(role);
   }
 
   /**
    * Get the current AICompleter.
    */
   get currentCompleter(): AICompleter | null {
-    if (Private.getName() === 'None') {
+    if (Private.getName('completer') === 'None') {
       return null;
     }
     const completer = Private.getCompleter();
@@ -118,7 +121,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   get completerSystemPrompt(): string {
     return this._completerPrompt.replaceAll(
       '$provider_name$',
-      this.currentName
+      this.currentName('completer')
     );
   }
   set completerSystemPrompt(value: string) {
@@ -129,10 +132,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Get the current AIChatModel.
    */
   get currentChatModel(): AIChatModel | null {
-    if (Private.getName() === 'None') {
+    if (Private.getName('chat') === 'None') {
       return null;
     }
-    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+    const currentProvider =
+      Private.providers.get(Private.getName('chat')) ?? null;
 
     const chatModel = Private.getChatModel();
     if (chatModel === null) {
@@ -153,7 +157,10 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Getter/setter for the chat system prompt.
    */
   get chatSystemPrompt(): string {
-    return this._chatPrompt.replaceAll('$provider_name$', this.currentName);
+    return this._chatPrompt.replaceAll(
+      '$provider_name$',
+      this.currentName('chat')
+    );
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
@@ -187,7 +194,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Format an error message from the current provider.
    */
   formatErrorMessage(error: any): string {
-    const currentProvider = Private.providers.get(Private.getName()) ?? null;
+    const currentProvider =
+      Private.providers.get(Private.getName('chat')) ?? null;
     if (currentProvider?.errorMessage) {
       return currentProvider?.errorMessage(error);
     }
@@ -212,39 +220,140 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Set the providers (chat model and completer).
-   * Creates the providers if the name has changed, otherwise only updates their config.
+   * Set the completer provider.
+   * Creates the provider if the name has changed, otherwise only updates its config.
    *
    * @param options - An object with the name and the settings of the provider to use.
    */
-  async setProvider(options: ISetProviderOptions): Promise<void> {
-    const { name, settings } = options;
-    const currentProvider = Private.providers.get(name) ?? null;
+  async setCompleterProvider(
+    settings: ReadonlyPartialJSONObject
+  ): Promise<void> {
+    this._completerError = '';
+    if (!Object.keys(settings).includes('provider')) {
+      Private.setName('completer', 'None');
+      Private.setCompleter(null);
+      this._completerError =
+        'The provider is missing from the completer settings';
+      return;
+    }
+    const provider = settings['provider'] as string;
+    const currentProvider = Private.providers.get(provider) ?? null;
     if (currentProvider === null) {
       // The current provider may not be loaded when the settings are first loaded.
       // Let's defer the provider loading.
-      this._deferredProvider = options;
+      this._deferredProvider.completer = settings;
+      Private.setName('completer', provider);
+      Private.setCompleter(null);
+      return;
     } else {
-      this._deferredProvider = null;
+      this._deferredProvider.completer = null;
     }
 
-    const compatibilityCheck = this.getCompatibilityCheck(name);
+    const compatibilityCheck = this.getCompatibilityCheck(provider);
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        this._chatError = error.trim();
         this._completerError = error.trim();
-        Private.setName('None');
-        this._providerChanged.emit();
+        Private.setName('completer', 'None');
+        this._providerChanged.emit('completer');
         return;
       }
     }
 
-    if (name === 'None') {
-      this._chatError = '';
-      this._completerError = '';
+    // Get the settings including the secrets.
+    const fullSettings = await this._buildFullSettings(provider, settings);
+
+    if (currentProvider?.completer !== undefined) {
+      try {
+        Private.setCompleter(
+          new currentProvider.completer({
+            providerRegistry: this,
+            settings: fullSettings
+          })
+        );
+      } catch (e: any) {
+        this._completerError = e.message;
+      }
+    } else {
+      Private.setCompleter(null);
+    }
+    Private.setName('completer', provider);
+    this._providerChanged.emit('completer');
+  }
+
+  /**
+   * Set the chat provider.
+   * Creates the provider if the name has changed, otherwise only updates its config.
+   *
+   * @param options - An object with the name and the settings of the provider to use.
+   */
+  async setChatProvider(settings: ReadonlyPartialJSONObject): Promise<void> {
+    this._chatError = '';
+    if (!Object.keys(settings).includes('provider')) {
+      Private.setName('completer', 'None');
+      Private.setCompleter(null);
+      this._chatError = 'The provider is missing from the chat settings';
+      return;
+    }
+    const provider = settings['provider'] as string;
+    const currentProvider = Private.providers.get(provider) ?? null;
+    if (currentProvider === null) {
+      // The current provider may not be loaded when the settings are first loaded.
+      // Let's defer the provider loading.
+      this._deferredProvider.chat = settings;
+      Private.setName('chat', provider);
+      Private.setChatModel(null);
+      return;
+    } else {
+      this._deferredProvider.chat = null;
     }
 
+    const compatibilityCheck = this.getCompatibilityCheck(provider);
+    if (compatibilityCheck !== undefined) {
+      const error = await compatibilityCheck();
+      if (error !== null) {
+        this._chatError = error.trim();
+        Private.setName('chat', 'None');
+        this._providerChanged.emit('chat');
+        return;
+      }
+    }
+
+    // Get the settings including the secrets.
+    const fullSettings = await this._buildFullSettings(provider, settings);
+
+    if (currentProvider?.chat !== undefined) {
+      try {
+        Private.setChatModel(
+          new currentProvider.chat({
+            ...fullSettings
+          })
+        );
+      } catch (e: any) {
+        this._chatError = e.message;
+        Private.setChatModel(null);
+      }
+    } else {
+      Private.setChatModel(null);
+    }
+    Private.setName('chat', provider);
+    this._providerChanged.emit('chat');
+  }
+
+  /**
+   * A signal emitting when the provider or its settings has changed.
+   */
+  get providerChanged(): ISignal<IAIProviderRegistry, ModelRole> {
+    return this._providerChanged;
+  }
+
+  /**
+   * Build a new settings object containing the secrets.
+   */
+  private async _buildFullSettings(
+    name: string,
+    settings: IDict<any>
+  ): Promise<IDict<any>> {
     // Build a new settings object containing the secrets.
     const fullSettings: IDict = {};
     for (const key of Object.keys(settings)) {
@@ -262,54 +371,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
       }
       fullSettings[key] = settings[key];
     }
-
-    if (currentProvider?.completer !== undefined) {
-      try {
-        Private.setCompleter(
-          new currentProvider.completer({
-            providerRegistry: this,
-            settings: fullSettings
-          })
-        );
-        this._completerError = '';
-      } catch (e: any) {
-        this._completerError = e.message;
-      }
-    } else {
-      Private.setCompleter(null);
-    }
-
-    if (currentProvider?.chatModel !== undefined) {
-      try {
-        Private.setChatModel(
-          new currentProvider.chatModel({
-            ...fullSettings
-          })
-        );
-        this._chatError = '';
-      } catch (e: any) {
-        this._chatError = e.message;
-        Private.setChatModel(null);
-      }
-    } else {
-      Private.setChatModel(null);
-    }
-    Private.setName(name);
-    this._providerChanged.emit();
-  }
-
-  /**
-   * A signal emitting when the provider or its settings has changed.
-   */
-  get providerChanged(): ISignal<IAIProviderRegistry, void> {
-    return this._providerChanged;
+    return fullSettings;
   }
 
   private _secretsManager: ISecretsManager | null;
-  private _providerChanged = new Signal<IAIProviderRegistry, void>(this);
+  private _providerChanged = new Signal<IAIProviderRegistry, ModelRole>(this);
   private _chatError: string = '';
   private _completerError: string = '';
-  private _deferredProvider: ISetProviderOptions | null = null;
+  private _deferredProvider: {
+    [key in ModelRole]: ReadonlyPartialJSONObject | null;
+  } = {
+    chat: null,
+    completer: null
+  };
   private _chatPrompt: string = '';
   private _completerPrompt: string = '';
 }
@@ -404,12 +478,15 @@ namespace Private {
    * The name of the current provider, setter and getter.
    * It is in a private namespace to prevent updating it without updating the models.
    */
-  let name: string = 'None';
-  export function setName(value: string): void {
-    name = value;
+  const names: { [key in ModelRole]: string } = {
+    chat: 'None',
+    completer: 'None'
+  };
+  export function setName(role: ModelRole, value: string): void {
+    names[role] = value;
   }
-  export function getName(): string {
-    return name;
+  export function getName(role: ModelRole): string {
+    return names[role];
   }
 
   /**
