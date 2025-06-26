@@ -13,14 +13,17 @@ import {
   IChatMessage,
   IChatModel,
   IInputModel,
-  INewMessage
+  INewMessage,
+  IUser
 } from '@jupyter/chat';
 import {
   AIMessage,
+  BaseMessage,
   HumanMessage,
   mergeMessageRuns,
   SystemMessage
 } from '@langchain/core/messages';
+import { CompiledStateGraph } from '@langchain/langgraph';
 import { UUID } from '@lumino/coreutils';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
@@ -67,7 +70,11 @@ export class ChatHandler extends AbstractChatModel {
     this._history.messages = [];
   }
 
-  get provider(): AIChatModel | null {
+  get agent(): CompiledStateGraph<any, any> | null {
+    return this._providerRegistry.currentAgent;
+  }
+
+  get chatModel(): AIChatModel | null {
     return this._providerRegistry.currentChatModel;
   }
 
@@ -115,7 +122,9 @@ export class ChatHandler extends AbstractChatModel {
     };
     this.messageAdded(msg);
 
-    if (this._providerRegistry.currentChatModel === null) {
+    const chatModel = this.chatModel;
+
+    if (chatModel === null) {
       const errorMsg: IChatMessage = {
         id: UUID.uuid4(),
         body: `**${this._errorMessage ? this._errorMessage : this._defaultErrorMessage}**`,
@@ -142,7 +151,39 @@ export class ChatHandler extends AbstractChatModel {
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([{ user: sender }]);
 
-    // create an empty message to be filled by the AI provider
+    if (this._providerRegistry.useAgent && this.agent !== null) {
+      return this._sendAgentMessage(this.agent, messages, sender);
+    }
+
+    return this._sentChatMessage(chatModel, messages, sender);
+  }
+
+  async getHistory(): Promise<IChatHistory> {
+    return this._history;
+  }
+
+  dispose(): void {
+    super.dispose();
+  }
+
+  messageAdded(message: IChatMessage): void {
+    super.messageAdded(message);
+  }
+
+  stopStreaming(): void {
+    this._controller?.abort();
+  }
+
+  createChatContext(): IChatContext {
+    return new ChatHandler.ChatContext({ model: this });
+  }
+
+  private async _sentChatMessage(
+    chatModel: AIChatModel,
+    messages: BaseMessage[],
+    sender: IUser
+  ): Promise<boolean> {
+    // Create an empty message to be filled by the AI provider
     const botMsg: IChatMessage = {
       id: UUID.uuid4(),
       body: '',
@@ -150,15 +191,12 @@ export class ChatHandler extends AbstractChatModel {
       time: Private.getTimestampMs(),
       type: 'msg'
     };
-
     let content = '';
-
     this._controller = new AbortController();
     try {
-      for await (const chunk of await this._providerRegistry.currentChatModel.stream(
-        messages,
-        { signal: this._controller.signal }
-      )) {
+      for await (const chunk of await chatModel.stream(messages, {
+        signal: this._controller.signal
+      })) {
         content += chunk.content ?? chunk;
         botMsg.body = content;
         this.messageAdded(botMsg);
@@ -182,26 +220,73 @@ export class ChatHandler extends AbstractChatModel {
     }
   }
 
-  async getHistory(): Promise<IChatHistory> {
-    return this._history;
+  private async _sendAgentMessage(
+    agent: CompiledStateGraph<any, any>,
+    messages: BaseMessage[],
+    sender: IUser
+  ): Promise<boolean> {
+    this._controller = new AbortController();
+    try {
+      for await (const chunk of await agent.stream(
+        { messages },
+        {
+          streamMode: 'updates',
+          signal: this._controller.signal
+        }
+      )) {
+        if ((chunk as any).agent) {
+          messages = (chunk as any).agent.messages;
+          messages.forEach(message => {
+            const contents: string[] = [];
+            if (typeof message.content === 'string') {
+              contents.push(message.content);
+            } else if (Array.isArray(message.content)) {
+              message.content.forEach(content => {
+                if (content.type === 'text') {
+                  contents.push(content.text);
+                }
+              });
+            }
+            contents.forEach(content => {
+              this.messageAdded({
+                id: UUID.uuid4(),
+                body: content,
+                sender,
+                time: Private.getTimestampMs(),
+                type: 'msg'
+              });
+            });
+          });
+        } else if ((chunk as any).tools) {
+          messages = (chunk as any).tools.messages;
+          messages.forEach(message => {
+            this.messageAdded({
+              id: UUID.uuid4(),
+              body: message.content as string,
+              sender: { username: `Tool "${message.name}"` },
+              time: Private.getTimestampMs(),
+              type: 'msg'
+            });
+          });
+        }
+      }
+      return true;
+    } catch (reason) {
+      const error = this._providerRegistry.formatErrorMessage(reason);
+      const errorMsg: IChatMessage = {
+        id: UUID.uuid4(),
+        body: `**${error}**`,
+        sender: { username: 'ERROR' },
+        time: Private.getTimestampMs(),
+        type: 'msg'
+      };
+      this.messageAdded(errorMsg);
+      return false;
+    } finally {
+      this.updateWriters([]);
+      this._controller = null;
+    }
   }
-
-  dispose(): void {
-    super.dispose();
-  }
-
-  messageAdded(message: IChatMessage): void {
-    super.messageAdded(message);
-  }
-
-  stopStreaming(): void {
-    this._controller?.abort();
-  }
-
-  createChatContext(): IChatContext {
-    return new ChatHandler.ChatContext({ model: this });
-  }
-
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _errorMessage: string = '';

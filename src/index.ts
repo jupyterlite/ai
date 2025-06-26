@@ -218,7 +218,13 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
           if (!secretsManager) {
             delete settings.schema.properties?.['UseSecretsManager'];
           }
+
           const updateProvider = () => {
+            // Update agent usage if necessary.
+            const useAgent =
+              (settings.get('UseAgent').composite as boolean) ?? false;
+            providerRegistry.useAgent = useAgent;
+
             // Get the Ai provider settings.
             const providerSettings = settings.get('AIproviders')
               .composite as ReadonlyPartialJSONObject;
