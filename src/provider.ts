@@ -4,6 +4,8 @@ import {
   IInlineCompletionContext
 } from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
+import { CompiledStateGraph } from '@langchain/langgraph';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { Debouncer } from '@lumino/polling';
@@ -20,6 +22,7 @@ import {
   ModelRole,
   PLUGIN_IDS
 } from './tokens';
+import { testTool } from './tools/test_tool';
 import { AIChatModel, AICompleter } from './types/ai-model';
 
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
@@ -131,6 +134,17 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
+   * Get the current agent.
+   */
+  get currentAgent(): CompiledStateGraph<any, any> | null {
+    const agent = Private.getAgent();
+    if (agent === null) {
+      return null;
+    }
+    return agent;
+  }
+
+  /**
    * Getter/setter for the chat system prompt.
    */
   get chatSystemPrompt(): string {
@@ -141,6 +155,20 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
+  }
+
+  /**
+   * Getter/setter for the use of agent in chat.
+   */
+  get useAgent(): boolean {
+    return this._useAgentInChat;
+  }
+  set useAgent(value: boolean) {
+    if (value === this._useAgentInChat) {
+      return;
+    }
+    this._useAgentInChat = value;
+    this._buildAgent();
   }
 
   /**
@@ -327,6 +355,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
             ...fullSettings
           })
         );
+        if (this._useAgentInChat) {
+          this._buildAgent();
+        }
       } catch (e: any) {
         this.chatError = e.message;
         Private.setChatModel(null);
@@ -372,6 +403,29 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     return fullSettings;
   }
 
+  /**
+   * Build an agent.
+   */
+  private _buildAgent() {
+    if (this._useAgentInChat) {
+      const chatModel = Private.getChatModel();
+      if (chatModel === null) {
+        Private.setAgent(null);
+        return;
+      }
+      chatModel.bindTools?.([testTool]);
+      Private.setChatModel(chatModel);
+      Private.setAgent(
+        createReactAgent({
+          llm: chatModel,
+          tools: [testTool]
+        })
+      );
+    } else {
+      Private.setAgent(null);
+    }
+  }
+
   private _secretsManager: ISecretsManager | null;
   private _providerChanged = new Signal<IAIProviderRegistry, ModelRole>(this);
   private _chatError: string = '';
@@ -387,6 +441,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   };
   private _chatPrompt: string = '';
   private _completerPrompt: string = '';
+  private _useAgentInChat = false;
 }
 
 export namespace AIProviderRegistry {
@@ -510,5 +565,16 @@ namespace Private {
   }
   export function getCompleter(): IBaseCompleter | null {
     return completer;
+  }
+
+  /**
+   * The agent getter and setter.
+   */
+  let agent: CompiledStateGraph<any, any> | null = null;
+  export function setAgent(value: CompiledStateGraph<any, any> | null): void {
+    agent = value;
+  }
+  export function getAgent(): CompiledStateGraph<any, any> | null {
+    return agent;
   }
 }
