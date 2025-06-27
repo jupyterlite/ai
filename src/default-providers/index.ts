@@ -80,7 +80,7 @@ const AIProviders: IAIProvider[] = [
   },
   {
     name: 'Gemini',
-    chatModel: ChatGoogleGenerativeAI,
+    chat: ChatGoogleGenerativeAI,
     completer: GeminiCompleter,
     instructions: GeminiInstructions,
     settingsSchema: GeminiSettings
