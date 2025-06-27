@@ -148,10 +148,14 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Getter/setter for the chat system prompt.
    */
   get chatSystemPrompt(): string {
-    return this._chatPrompt.replaceAll(
+    let prompt = this._chatPrompt.replaceAll(
       '$provider_name$',
       this.currentName('chat')
     );
+    if (this.useAgent && this.currentAgent !== null) {
+      prompt = prompt.concat('\nPlease use the tool that is provided');
+    }
+    return prompt;
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
@@ -413,7 +417,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
         Private.setAgent(null);
         return;
       }
-      chatModel.bindTools?.([testTool]);
+      chatModel.bindTools?.([testTool], { tool_choice: 'testTool' });
       Private.setChatModel(chatModel);
       Private.setAgent(
         createReactAgent({
