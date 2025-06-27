@@ -11,10 +11,6 @@ jupyterlite_ai/labextension
 # Version file is handled by hatchling
 jupyterlite_ai/_version.py
 
-# Schema and module built at build time
-src/settings/schemas/index.ts
-src/settings/schemas/_generated
-
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python
 

@@ -13,9 +13,7 @@
       "type": "string"
     }
   },
-  "required": [
-    "model"
-  ],
+  "required": ["model"],
   "additionalProperties": false,
   "definitions": {}
 }
