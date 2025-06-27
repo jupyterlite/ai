@@ -90,10 +90,7 @@
       "type": "boolean"
     },
     "keepAlive": {
-      "type": [
-        "string",
-        "number"
-      ],
+      "type": ["string", "number"],
       "default": "5m"
     },
     "stop": {
