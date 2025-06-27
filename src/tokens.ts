@@ -90,7 +90,7 @@ export interface IAIProviderRegistry {
   /**
    * Get the current completer of the completion provider.
    */
-  currentCompleter: AICompleter | null;
+  readonly currentCompleter: AICompleter | null;
   /**
    * Getter/setter for the completer system prompt.
    */
@@ -98,11 +98,19 @@ export interface IAIProviderRegistry {
   /**
    * Get the current llm chat model.
    */
-  currentChatModel: AIChatModel | null;
+  readonly currentChatModel: AIChatModel | null;
+  /**
+   * Get the current agent.
+   */
+  readonly currentAgent: AIChatModel | null;
   /**
    * Getter/setter for the chat system prompt.
    */
   chatSystemPrompt: string;
+  /**
+   * Getter/setter for the use of agent in chat.
+   */
+  useAgent: boolean;
   /**
    * Get the settings schema of a given provider.
    */

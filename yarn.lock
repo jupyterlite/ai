@@ -1574,7 +1574,8 @@ __metadata:
     "@jupyterlab/ui-components": ^4.4.0
     "@langchain/anthropic": ^0.3.9
     "@langchain/community": ^0.3.44
-    "@langchain/core": ^0.3.57
+    "@langchain/core": ^0.3.61
+    "@langchain/langgraph": ^0.3.5
     "@langchain/mistralai": ^0.1.1
     "@langchain/ollama": ^0.2.0
     "@langchain/openai": ^0.4.4
@@ -2032,23 +2033,72 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@langchain/core@npm:^0.3.57":
-  version: 0.3.57
-  resolution: "@langchain/core@npm:0.3.57"
+"@langchain/core@npm:^0.3.61":
+  version: 0.3.61
+  resolution: "@langchain/core@npm:0.3.61"
   dependencies:
     "@cfworker/json-schema": ^4.0.2
     ansi-styles: ^5.0.0
     camelcase: 6
     decamelize: 1.2.0
     js-tiktoken: ^1.0.12
-    langsmith: ^0.3.29
+    langsmith: ^0.3.33
     mustache: ^4.2.0
     p-queue: ^6.6.2
     p-retry: 4
     uuid: ^10.0.0
-    zod: ^3.22.4
+    zod: ^3.25.32
     zod-to-json-schema: ^3.22.3
-  checksum: 5a497553209a3fe0c2a31b23c9586f586ea8b0785cb437a0b7140c308be80f0caa4397c45a4d7f0a1b7056f3509b03663f6c714217b75c20cce0a2df4fb3c105
+  checksum: be80fe6cb9a5171839d2936bbc81bf32faaa208b47984f5c27b6f2461eb9d04e618a744ac7253b710b3636a005a034a7e1ca6c0ba77f7b1d634bc8cd40352096
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-checkpoint@npm:~0.0.18":
+  version: 0.0.18
+  resolution: "@langchain/langgraph-checkpoint@npm:0.0.18"
+  dependencies:
+    uuid: ^10.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+  checksum: bd7ba56696bbfde0be8f2cef2f0dadf30826732cbb1d9bf92439f314a01219053c50ff6b624ef58a9d6723d6e1a8b872e725abc4d95e4ea9610a41c5f1e41047
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-sdk@npm:~0.0.32":
+  version: 0.0.84
+  resolution: "@langchain/langgraph-sdk@npm:0.0.84"
+  dependencies:
+    "@types/json-schema": ^7.0.15
+    p-queue: ^6.6.2
+    p-retry: 4
+    uuid: ^9.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+    react: ^18 || ^19
+  peerDependenciesMeta:
+    "@langchain/core":
+      optional: true
+    react:
+      optional: true
+  checksum: c10c816e6b562199e1d584e3586979cdc9bc996814b2ac47b0a5fc848c85deaa718ec5c1ae5015bca561d28d020ffb108e6e28a22d1c6b773ded71b7d16eaa64
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph@npm:^0.3.5":
+  version: 0.3.5
+  resolution: "@langchain/langgraph@npm:0.3.5"
+  dependencies:
+    "@langchain/langgraph-checkpoint": ~0.0.18
+    "@langchain/langgraph-sdk": ~0.0.32
+    uuid: ^10.0.0
+    zod: ^3.25.32
+  peerDependencies:
+    "@langchain/core": ">=0.3.58 < 0.4.0"
+    zod-to-json-schema: ^3.x
+  peerDependenciesMeta:
+    zod-to-json-schema:
+      optional: true
+  checksum: 74f6af866f8c16d83c9856979b9c758b8f73b26ba35ea6dd963f3163520dfa85e9bed394a0f31b81e66e6ca55517c68136952c6abefd8006c2291a04c3eb2e60
   languageName: node
   linkType: hard
 
@@ -5942,9 +5992,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"langsmith@npm:>=0.2.8 <0.4.0, langsmith@npm:^0.3.29":
-  version: 0.3.29
-  resolution: "langsmith@npm:0.3.29"
+"langsmith@npm:>=0.2.8 <0.4.0, langsmith@npm:^0.3.29, langsmith@npm:^0.3.33":
+  version: 0.3.33
+  resolution: "langsmith@npm:0.3.33"
   dependencies:
     "@types/uuid": ^10.0.0
     chalk: ^4.1.2
@@ -5958,7 +6008,7 @@ __metadata:
   peerDependenciesMeta:
     openai:
       optional: true
-  checksum: 5e714752d40bd90525436d2d977ed0e750031f946dbc6c5549a1d7ceb5546b48dfcc23a1fb1b758f18d954fe53e6089b7ca600c60f2f72d854aa24d5ff0a41fa
+  checksum: 45970dbc711d3c84b1603d26291b9164ca6daf6d802f151af6c3ccdbfb84068be390366dbb15319a158ccf50e7e9f161c55abe84bce2730f93962888b33e6269
   languageName: node
   linkType: hard
 
@@ -8273,7 +8323,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^9.0.1":
+"uuid@npm:^9.0.0, uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
   bin:
@@ -8781,9 +8831,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.22.3, zod@npm:^3.22.4, zod@npm:^3.24.1":
-  version: 3.24.4
-  resolution: "zod@npm:3.24.4"
-  checksum: 62829789765a9187bd72bed3972a7c1a39fdfe6c59bc752eedabec5f99af701658471b8577d22e0fee2081e6e35d4efc93c02c90e13350755a36feadbf72bbbc
+"zod@npm:^3.22.3, zod@npm:^3.22.4, zod@npm:^3.24.1, zod@npm:^3.25.32":
+  version: 3.25.67
+  resolution: "zod@npm:3.25.67"
+  checksum: 56ab904d33b1cd00041ce64ae05b0628fcbfeb7e707fa31cd498a97b540135e4dfe685200c9c62aea307695ee132870b4bc34f035228ea728aa75cc96a4954cb
   languageName: node
   linkType: hard
