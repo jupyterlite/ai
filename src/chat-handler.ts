@@ -23,7 +23,6 @@ import {
   mergeMessageRuns,
   SystemMessage
 } from '@langchain/core/messages';
-import { CompiledStateGraph } from '@langchain/langgraph';
 import { UUID } from '@lumino/coreutils';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
@@ -70,7 +69,7 @@ export class ChatHandler extends AbstractChatModel {
     this._history.messages = [];
   }
 
-  get agent(): CompiledStateGraph<any, any> | null {
+  get agent(): AIChatModel | null {
     return this._providerRegistry.currentAgent;
   }
 
@@ -221,7 +220,7 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   private async _sendAgentMessage(
-    agent: CompiledStateGraph<any, any>,
+    agent: AIChatModel,
     messages: BaseMessage[],
     sender: IUser
   ): Promise<boolean> {

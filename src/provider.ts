@@ -136,12 +136,14 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Get the current agent.
    */
-  get currentAgent(): CompiledStateGraph<any, any> | null {
+  get currentAgent(): AIChatModel | null {
     const agent = Private.getAgent();
     if (agent === null) {
       return null;
     }
-    return agent;
+    return {
+      stream: (input: any, options?: any) => agent.stream(input, options)
+    };
   }
 
   /**

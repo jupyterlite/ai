@@ -1,4 +1,3 @@
-import { CompiledStateGraph } from '@langchain/langgraph';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
@@ -103,7 +102,7 @@ export interface IAIProviderRegistry {
   /**
    * Get the current agent.
    */
-  readonly currentAgent: CompiledStateGraph<any, any> | null;
+  readonly currentAgent: AIChatModel | null;
   /**
    * Getter/setter for the chat system prompt.
    */
