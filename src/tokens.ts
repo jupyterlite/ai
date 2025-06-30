@@ -110,10 +110,6 @@ export interface IAIProviderRegistry {
    */
   chatSystemPrompt: string;
   /**
-   * Getter/setter for the use of agent in chat.
-   */
-  useAgent: boolean;
-  /**
    * Get the settings schema of a given provider.
    */
   getSettingsSchema(provider: string): JSONSchema7;
@@ -146,6 +142,10 @@ export interface IAIProviderRegistry {
    */
   setChatProvider(settings: ReadonlyPartialJSONObject): void;
   /**
+   * Build an agent with a given tool.
+   */
+  buildAgent(tool: Tool | null): void;
+  /**
    * A signal emitting when the provider or its settings has changed.
    */
   readonly providerChanged: ISignal<IAIProviderRegistry, ModelRole>;
@@ -169,7 +169,7 @@ export type Tool = StructuredToolInterface;
  */
 export interface IToolRegistry {
   /**
-   * Get the registered tool names.
+   * The registered tool names.
    */
   readonly toolNames: string[];
   /**
@@ -177,9 +177,15 @@ export interface IToolRegistry {
    */
   readonly toolsChanged: ISignal<IToolRegistry, void>;
   /**
-   * Add a new tool.
+   * Add a new tool to the registry.
    */
   add(provider: Tool): void;
+  /**
+   * Get a tool for a given name.
+   * Return null if the name is not provided or if there is no registered tool with the
+   * given name.
+   */
+  get(name: string | null): Tool | null;
 }
 
 /**

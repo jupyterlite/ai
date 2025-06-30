@@ -24,10 +24,11 @@ import {
   SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
+import { ISignal, Signal } from '@lumino/signaling';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
-import { IAIProviderRegistry } from './tokens';
+import { IAIProviderRegistry, IToolRegistry, Tool } from './tokens';
 import { AIChatModel } from './types/ai-model';
 
 /**
@@ -58,6 +59,7 @@ export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._providerRegistry = options.providerRegistry;
+    this._toolRegistry = options.toolRegistry;
 
     this._providerRegistry.providerChanged.connect(() => {
       this._errorMessage = this._providerRegistry.chatError;
@@ -69,10 +71,23 @@ export class ChatHandler extends AbstractChatModel {
     this._history.messages = [];
   }
 
+  /**
+   * Get the tool registry.
+   */
+  get toolRegistry(): IToolRegistry | undefined {
+    return this._toolRegistry;
+  }
+
+  /**
+   * Get the agent from the provider registry.
+   */
   get agent(): AIChatModel | null {
     return this._providerRegistry.currentAgent;
   }
 
+  /**
+   * Get the chat model from the provider registry.
+   */
   get chatModel(): AIChatModel | null {
     return this._providerRegistry.currentChatModel;
   }
@@ -95,12 +110,46 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   /**
-   * Get/set the system prompt for the chat.
+   * Getter/setter for the use of tools.
+   */
+  get useTool(): boolean {
+    return this._useTool;
+  }
+  set useTool(value: boolean) {
+    if (this._useTool !== value) {
+      this._useTool = value;
+      this._useToolChanged.emit(this._useTool);
+    }
+  }
+
+  /**
+   * Get/set a tool, which will build an agent.
+   */
+  get tool(): Tool | null {
+    return this._tool;
+  }
+  set tool(value: Tool | null) {
+    this._tool = value;
+    this._providerRegistry.buildAgent(this._tool);
+  }
+
+  /**
+   * A signal triggered when the setting on tool usage has changed.
+   */
+  get useToolChanged(): ISignal<ChatHandler, boolean> {
+    return this._useToolChanged;
+  }
+
+  /**
+   * Get the system prompt for the chat.
    */
   get systemPrompt(): string {
-    return (
-      this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT
-    );
+    let prompt =
+      this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT;
+    if (this.useTool && this.agent !== null) {
+      prompt = prompt.concat('\nPlease use the tool that is provided');
+    }
+    return prompt;
   }
 
   async sendMessage(message: INewMessage): Promise<boolean> {
@@ -150,7 +199,7 @@ export class ChatHandler extends AbstractChatModel {
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([{ user: sender }]);
 
-    if (this._providerRegistry.useAgent && this.agent !== null) {
+    if (this._useTool && this.agent !== null) {
       return this._sendAgentMessage(this.agent, messages, sender);
     }
 
@@ -286,12 +335,17 @@ export class ChatHandler extends AbstractChatModel {
       this._controller = null;
     }
   }
+
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
   private _defaultErrorMessage = 'AI provider not configured';
   private _controller: AbortController | null = null;
+  private _useTool: boolean = false;
+  private _tool: Tool | null = null;
+  private _toolRegistry?: IToolRegistry;
+  private _useToolChanged = new Signal<ChatHandler, boolean>(this);
 }
 
 export namespace ChatHandler {
@@ -300,13 +354,45 @@ export namespace ChatHandler {
    */
   export interface IOptions extends IChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
+    toolRegistry?: IToolRegistry;
   }
 
   /**
-   * The minimal chat context.
+   * The chat context.
    */
   export class ChatContext extends AbstractChatContext {
     users = [];
+
+    /**
+     * The tool registry.
+     */
+    get toolsRegistry(): IToolRegistry | undefined {
+      return (this._model as ChatHandler).toolRegistry;
+    }
+
+    /**
+     * Whether to use or not the tool.
+     */
+    get useTool(): boolean {
+      return (this._model as ChatHandler).useTool;
+    }
+
+    /**
+     * A signal triggered when the setting on tool usage has changed.
+     */
+    get useToolChanged(): ISignal<ChatHandler, boolean> {
+      return (this._model as ChatHandler).useToolChanged;
+    }
+
+    /**
+     * Getter/setter of the tool to use.
+     */
+    get tool(): Tool | null {
+      return (this._model as ChatHandler).tool;
+    }
+    set tool(value: Tool | null) {
+      (this._model as ChatHandler).tool = value;
+    }
   }
 
   /**

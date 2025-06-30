@@ -17,12 +17,6 @@
       "description": "Whether to use only one provider for the chat and the completer.\nThis will overwrite all the settings for the completer, and copy the ones from the chat.",
       "default": true
     },
-    "UseAgent": {
-      "type": "boolean",
-      "title": "Use agent in chat",
-      "description": "Whether to use or not an agent in chat",
-      "default": false
-    },
     "AIproviders": {
       "type": "object",
       "title": "AI providers",

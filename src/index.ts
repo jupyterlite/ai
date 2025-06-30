@@ -28,6 +28,8 @@ import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, IToolRegistry, PLUGIN_IDS } from './tokens';
+import { ToolsRegistry } from './tool-registry';
+import { testTool } from './tools/test-tool';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -50,7 +52,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     INotebookTracker,
     ISettingRegistry,
     IThemeManager,
-    ILayoutRestorer
+    ILayoutRestorer,
+    IToolRegistry
   ],
   activate: async (
     app: JupyterFrontEnd,
@@ -60,7 +63,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null,
-    restorer: ILayoutRestorer | null
+    restorer: ILayoutRestorer | null,
+    toolRegistry?: IToolRegistry
   ) => {
     let activeCellManager: IActiveCellManager | null = null;
     if (notebookTracker) {
@@ -72,22 +76,26 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const chatHandler = new ChatHandler({
       providerRegistry,
-      activeCellManager
+      activeCellManager,
+      toolRegistry
     });
 
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
     let personaName = 'AI';
+    let useTool = false;
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
         .composite as boolean;
       enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
       personaName = setting.get('personaName').composite as string;
+      useTool = (setting.get('UseTool').composite as boolean) ?? false;
 
       // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
       chatHandler.personaName = personaName;
+      chatHandler.useTool = useTool;
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
@@ -118,6 +126,9 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     inputToolbarRegistry.addItem('clear', clearButton);
     inputToolbarRegistry.hide('clear');
     inputToolbarRegistry.addItem('stop', stopButton);
+
+    // Add the tool select item.
+    inputToolbarRegistry.addItem('tools', { element: toolSelect, position: 1 });
 
     chatHandler.writersChanged.connect((_, writers) => {
       if (
@@ -219,11 +230,6 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
           }
 
           const updateProvider = () => {
-            // Update agent usage if necessary.
-            const useAgent =
-              (settings.get('UseAgent').composite as boolean) ?? false;
-            providerRegistry.useAgent = useAgent;
-
             // Get the Ai provider settings.
             const providerSettings = settings.get('AIproviders')
               .composite as ReadonlyPartialJSONObject;
