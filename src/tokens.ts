@@ -1,4 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { StructuredToolInterface } from '@langchain/core/tools';
 import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
@@ -12,7 +13,8 @@ export const PLUGIN_IDS = {
   completer: '@jupyterlite/ai:completer',
   providerRegistry: '@jupyterlite/ai:provider-registry',
   settingsConnector: '@jupyterlite/ai:settings-connector',
-  systemPrompts: '@jupyterlite/ai:system-prompts'
+  systemPrompts: '@jupyterlite/ai:system-prompts',
+  toolRegistry: '@jupyterlite/ai:tool-registry'
 };
 
 export type ModelRole = 'chat' | 'completer';
@@ -158,9 +160,40 @@ export interface IAIProviderRegistry {
 }
 
 /**
+ * The type describing a tool used in langgraph.
+ */
+export type Tool = StructuredToolInterface;
+
+/**
+ * The tool registry interface.
+ */
+export interface IToolRegistry {
+  /**
+   * Get the registered tool names.
+   */
+  readonly toolNames: string[];
+  /**
+   * A signal triggered when the tools has changed;
+   */
+  readonly toolsChanged: ISignal<IToolRegistry, void>;
+  /**
+   * Add a new tool.
+   */
+  add(provider: Tool): void;
+}
+
+/**
  * The provider registry token.
  */
 export const IAIProviderRegistry = new Token<IAIProviderRegistry>(
   '@jupyterlite/ai:provider-registry',
   'Provider for chat and completion LLM provider'
+);
+
+/**
+ * The tool registry token.
+ */
+export const IToolRegistry = new Token<IToolRegistry>(
+  '@jupyterlite/ai:tool-registry',
+  'Tool registry for AI agent'
 );

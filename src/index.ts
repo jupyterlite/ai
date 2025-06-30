@@ -23,12 +23,11 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { ChatHandler, welcomeMessage } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
+import { clearItem, stopItem, toolSelect } from './components';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
-import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
-import { stopItem } from './components/stop-button';
-import { clearItem } from './components/clear-button';
+import { IAIProviderRegistry, IToolRegistry, PLUGIN_IDS } from './tokens';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -316,12 +315,24 @@ const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+const toolRegistryPlugin: JupyterFrontEndPlugin<IToolRegistry> = {
+  id: PLUGIN_IDS.toolRegistry,
+  autoStart: true,
+  provides: IToolRegistry,
+  activate: (app: JupyterFrontEnd): IToolRegistry => {
+    const registry = new ToolsRegistry();
+    registry.add(testTool);
+    return registry;
+  }
+};
+
 export default [
   providerRegistryPlugin,
   chatCommandRegistryPlugin,
   chatPlugin,
   completerPlugin,
   systemPromptsPlugin,
+  toolRegistryPlugin,
   ...defaultProviderPlugins
 ];
 
