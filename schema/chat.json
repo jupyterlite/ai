@@ -22,6 +22,12 @@
       "title": "AI persona name",
       "description": "The name of the AI persona",
       "default": "Jupyternaut"
+    },
+    "UseTool": {
+      "type": "boolean",
+      "title": "Use tool",
+      "description": "Whether to be able to use or not a tool in chat",
+      "default": false
     }
   },
   "additionalProperties": false

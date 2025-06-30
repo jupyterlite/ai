@@ -20,9 +20,9 @@ import {
   IAIProviderRegistry,
   IDict,
   ModelRole,
-  PLUGIN_IDS
+  PLUGIN_IDS,
+  Tool
 } from './tokens';
-import { testTool } from './tools/test_tool';
 import { AIChatModel, AICompleter } from './types/ai-model';
 
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
@@ -150,31 +150,13 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * Getter/setter for the chat system prompt.
    */
   get chatSystemPrompt(): string {
-    let prompt = this._chatPrompt.replaceAll(
+    return this._chatPrompt.replaceAll(
       '$provider_name$',
       this.currentName('chat')
     );
-    if (this.useAgent && this.currentAgent !== null) {
-      prompt = prompt.concat('\nPlease use the tool that is provided');
-    }
-    return prompt;
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
-  }
-
-  /**
-   * Getter/setter for the use of agent in chat.
-   */
-  get useAgent(): boolean {
-    return this._useAgentInChat;
-  }
-  set useAgent(value: boolean) {
-    if (value === this._useAgentInChat) {
-      return;
-    }
-    this._useAgentInChat = value;
-    this._buildAgent();
   }
 
   /**
@@ -361,9 +343,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
             ...fullSettings
           })
         );
-        if (this._useAgentInChat) {
-          this._buildAgent();
-        }
       } catch (e: any) {
         this.chatError = e.message;
         Private.setChatModel(null);
@@ -410,21 +389,21 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Build an agent.
+   * Build an agent with a given tool.
    */
-  private _buildAgent() {
-    if (this._useAgentInChat) {
+  buildAgent(tool: Tool | null) {
+    if (tool !== null) {
       const chatModel = Private.getChatModel();
       if (chatModel === null) {
         Private.setAgent(null);
         return;
       }
-      chatModel.bindTools?.([testTool], { tool_choice: 'testTool' });
+      chatModel.bindTools?.([tool], { tool_choice: tool.name });
       Private.setChatModel(chatModel);
       Private.setAgent(
         createReactAgent({
           llm: chatModel,
-          tools: [testTool]
+          tools: [tool]
         })
       );
     } else {
@@ -447,7 +426,6 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   };
   private _chatPrompt: string = '';
   private _completerPrompt: string = '';
-  private _useAgentInChat = false;
 }
 
 export namespace AIProviderRegistry {

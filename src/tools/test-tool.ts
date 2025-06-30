@@ -1,10 +1,9 @@
 import { showDialog } from '@jupyterlab/apputils';
-import { tool } from '@langchain/core/tools';
+import { StructuredToolInterface, tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-export const testTool = tool(
+export const testTool: StructuredToolInterface = tool(
   async ({ query }) => {
-    console.log('QUERY', query);
     showDialog({ title: 'Answer', body: query });
     return 'The test tool has been called';
   },
