@@ -391,19 +391,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   /**
    * Build an agent with a given tool.
    */
-  buildAgent(tool: Tool | null) {
-    if (tool !== null) {
+  buildAgent(tools: Tool[]) {
+    if (tools.length) {
       const chatModel = Private.getChatModel();
       if (chatModel === null) {
         Private.setAgent(null);
         return;
       }
-      chatModel.bindTools?.([tool], { tool_choice: tool.name });
+      chatModel.bindTools?.(tools);
       Private.setChatModel(chatModel);
       Private.setAgent(
         createReactAgent({
           llm: chatModel,
-          tools: [tool]
+          tools
         })
       );
     } else {
