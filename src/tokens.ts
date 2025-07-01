@@ -169,9 +169,9 @@ export type Tool = StructuredToolInterface;
  */
 export interface IToolRegistry {
   /**
-   * The registered tool names.
+   * The registered tools.
    */
-  readonly toolNames: string[];
+  readonly tools: Tool[];
   /**
    * A signal triggered when the tools has changed;
    */

@@ -6,10 +6,11 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import { checkIcon } from '@jupyterlab/ui-components';
 import BuildIcon from '@mui/icons-material/Build';
-import { Menu, MenuItem, Typography } from '@mui/material';
+import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { ChatHandler } from '../chat-handler';
+import { Tool } from '../tokens';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -23,10 +24,8 @@ export function toolSelect(
   const toolRegistry = chatContext.toolsRegistry;
 
   const [useTool, setUseTool] = useState<boolean>(chatContext.useTool);
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [toolNames, setToolNames] = useState<string[]>(
-    toolRegistry?.toolNames || []
-  );
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [tools, setTools] = useState<Tool[]>(toolRegistry?.tools || []);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,15 +39,15 @@ export function toolSelect(
   }, []);
 
   const onClick = useCallback(
-    (tool: string | null) => {
+    (tool: Tool | null) => {
       setSelectedTool(tool);
-      chatContext.tool = toolRegistry?.get(tool) || null;
+      chatContext.tool = tool;
     },
     [props.model]
   );
 
   useEffect(() => {
-    const updateTools = () => setToolNames(toolRegistry?.toolNames || []);
+    const updateTools = () => setTools(toolRegistry?.tools || []);
     toolRegistry?.toolsChanged.connect(updateTools);
     return () => {
       toolRegistry?.toolsChanged.disconnect(updateTools);
@@ -63,13 +62,13 @@ export function toolSelect(
     };
   }, [chatContext]);
 
-  return useTool && toolNames.length ? (
+  return useTool && tools.length ? (
     <>
       <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        disabled={!toolNames.length}
+        disabled={!tools.length}
         tooltip="Tool"
         buttonProps={{
           variant: 'contained',
@@ -105,42 +104,46 @@ export function toolSelect(
         }}
         sx={{
           '& .MuiMenuItem-root': {
-            gap: '4px',
-            padding: '6px'
+            padding: '0.5em',
+            paddingRight: '2em'
           }
         }}
       >
-        <MenuItem
-          className={SELECT_ITEM_CLASS}
-          onClick={e => {
-            onClick(null);
-            // prevent sending second message with no selection
-            e.stopPropagation();
-          }}
-        >
-          {selectedTool === null ? (
-            <checkIcon.react className={'lm-Menu-itemIcon'} />
-          ) : (
-            <div className={'lm-Menu-itemIcon'} />
-          )}
-          <Typography display="block">No tool</Typography>
-        </MenuItem>
-        {toolNames.map(tool => (
+        <Tooltip title={'Do not use a tool'}>
           <MenuItem
             className={SELECT_ITEM_CLASS}
             onClick={e => {
-              onClick(tool);
+              onClick(null);
               // prevent sending second message with no selection
               e.stopPropagation();
             }}
           >
-            {selectedTool === tool ? (
+            {selectedTool === null ? (
               <checkIcon.react className={'lm-Menu-itemIcon'} />
             ) : (
               <div className={'lm-Menu-itemIcon'} />
             )}
-            <Typography display="block">{tool}</Typography>
+            <Typography display="block">No tool</Typography>
           </MenuItem>
+        </Tooltip>
+        {tools.map(tool => (
+          <Tooltip title={tool.description}>
+            <MenuItem
+              className={SELECT_ITEM_CLASS}
+              onClick={e => {
+                onClick(tool);
+                // prevent sending second message with no selection
+                e.stopPropagation();
+              }}
+            >
+              {selectedTool === tool ? (
+                <checkIcon.react className={'lm-Menu-itemIcon'} />
+              ) : (
+                <div className={'lm-Menu-itemIcon'} />
+              )}
+              <Typography display="block">{tool.name}</Typography>
+            </MenuItem>
+          </Tooltip>
         ))}
       </Menu>
     </>
