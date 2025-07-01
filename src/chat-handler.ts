@@ -125,12 +125,12 @@ export class ChatHandler extends AbstractChatModel {
   /**
    * Get/set a tool, which will build an agent.
    */
-  get tool(): Tool | null {
-    return this._tool;
+  get tools(): Tool[] {
+    return this._tools;
   }
-  set tool(value: Tool | null) {
-    this._tool = value;
-    this._providerRegistry.buildAgent(this._tool);
+  set tools(value: Tool[]) {
+    this._tools = value;
+    this._providerRegistry.buildAgent(this._tools);
   }
 
   /**
@@ -343,7 +343,7 @@ export class ChatHandler extends AbstractChatModel {
   private _defaultErrorMessage = 'AI provider not configured';
   private _controller: AbortController | null = null;
   private _useTool: boolean = false;
-  private _tool: Tool | null = null;
+  private _tools: Tool[] = [];
   private _toolRegistry?: IToolRegistry;
   private _useToolChanged = new Signal<ChatHandler, boolean>(this);
 }
@@ -387,11 +387,11 @@ export namespace ChatHandler {
     /**
      * Getter/setter of the tool to use.
      */
-    get tool(): Tool | null {
-      return (this._model as ChatHandler).tool;
+    get tools(): Tool[] {
+      return (this._model as ChatHandler).tools;
     }
-    set tool(value: Tool | null) {
-      (this._model as ChatHandler).tool = value;
+    set tools(value: Tool[]) {
+      (this._model as ChatHandler).tools = value;
     }
   }
 

@@ -144,7 +144,7 @@ export interface IAIProviderRegistry {
   /**
    * Build an agent with a given tool.
    */
-  buildAgent(tool: Tool | null): void;
+  buildAgent(tools: Tool[]): void;
   /**
    * A signal emitting when the provider or its settings has changed.
    */

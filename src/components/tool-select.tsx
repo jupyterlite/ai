@@ -24,7 +24,7 @@ export function toolSelect(
   const toolRegistry = chatContext.toolsRegistry;
 
   const [useTool, setUseTool] = useState<boolean>(chatContext.useTool);
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
   const [tools, setTools] = useState<Tool[]>(toolRegistry?.tools || []);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,13 +38,17 @@ export function toolSelect(
     setMenuOpen(false);
   }, []);
 
-  const onClick = useCallback(
-    (tool: Tool | null) => {
-      setSelectedTool(tool);
-      chatContext.tool = tool;
-    },
-    [props.model]
-  );
+  const onClick = (tool: Tool) => {
+    const currentTools = [...selectedTools];
+    const index = currentTools.indexOf(tool);
+    if (index !== -1) {
+      currentTools.splice(index, 1);
+    } else {
+      currentTools.push(tool);
+    }
+    setSelectedTools(currentTools);
+    chatContext.tools = currentTools;
+  };
 
   useEffect(() => {
     const updateTools = () => setTools(toolRegistry?.tools || []);
@@ -83,7 +87,7 @@ export function toolSelect(
           }
         }}
         sx={
-          selectedTool === null
+          selectedTools.length === 0
             ? { backgroundColor: 'var(--jp-layout-color3)' }
             : {}
         }
@@ -109,23 +113,6 @@ export function toolSelect(
           }
         }}
       >
-        <Tooltip title={'Do not use a tool'}>
-          <MenuItem
-            className={SELECT_ITEM_CLASS}
-            onClick={e => {
-              onClick(null);
-              // prevent sending second message with no selection
-              e.stopPropagation();
-            }}
-          >
-            {selectedTool === null ? (
-              <checkIcon.react className={'lm-Menu-itemIcon'} />
-            ) : (
-              <div className={'lm-Menu-itemIcon'} />
-            )}
-            <Typography display="block">No tool</Typography>
-          </MenuItem>
-        </Tooltip>
         {tools.map(tool => (
           <Tooltip title={tool.description}>
             <MenuItem
@@ -136,7 +123,7 @@ export function toolSelect(
                 e.stopPropagation();
               }}
             >
-              {selectedTool === tool ? (
+              {selectedTools.includes(tool) ? (
                 <checkIcon.react className={'lm-Menu-itemIcon'} />
               ) : (
                 <div className={'lm-Menu-itemIcon'} />
