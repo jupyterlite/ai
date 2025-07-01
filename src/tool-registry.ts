@@ -3,10 +3,10 @@ import { IToolRegistry, Tool } from './tokens';
 
 export class ToolsRegistry implements IToolRegistry {
   /**
-   * The registered tool names.
+   * The registered tools.
    */
-  get toolNames(): string[] {
-    return this._tools.map(tool => tool.name);
+  get tools(): Tool[] {
+    return this._tools;
   }
 
   /**

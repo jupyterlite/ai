@@ -26,7 +26,7 @@
     "UseTool": {
       "type": "boolean",
       "title": "Use tool",
-      "description": "Whether to be able to use or not a tool in chat",
+      "description": "Whether tools are available in chat or not",
       "default": false
     }
   },
