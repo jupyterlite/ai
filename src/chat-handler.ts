@@ -27,6 +27,7 @@ import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
 import { IAIProviderRegistry } from './tokens';
 import { AIChatModel } from './types/ai-model';
+import { ContentsManager } from '@jupyterlab/services';
 
 /**
  * The base64 encoded SVG string of the jupyternaut lite icon.
@@ -39,12 +40,14 @@ export const welcomeMessage = (providers: string[]) => `
 #### Ask JupyterLite AI
 
 
-The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI provider"}' href="#">settings editor</button>, by selecting it from
-the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
+The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI providers"}' href="#">settings editor</button>, by selecting it from
+the <img src="${AI_AVATAR}" width="16" height="16"> _AI providers_ settings.
 
 The current providers that are available are _${providers.sort().join('_, _')}_.
 
-To clear the chat, you can use the \`/clear\` command from the chat input.
+- To clear the chat, you can use the \`/clear\` command from the chat input.
+
+- To insert file contents into the chat, use the \`/file\` command.
 `;
 
 export type ConnectionMessage = {
@@ -249,6 +252,137 @@ export namespace ChatHandler {
       // no handling needed because `replaceWith` is set in each command.
       return;
     }
+  }
+}
+
+export class FileCommandProvider implements IChatCommandProvider {
+  public id: string = '@jupyterlite/ai:file-commands';
+  private _contents = new ContentsManager();
+
+  private _slash_commands: ChatCommand[] = [
+    {
+      name: '/file',
+      providerId: this.id,
+      replaceWith: '/file',
+      description: 'Include contents of a selected file'
+    }
+  ];
+
+  async listCommandCompletions(inputModel: IInputModel) {
+    const match = inputModel.currentWord?.match(/^\/\w*/)?.[0];
+    return match
+      ? this._slash_commands.filter(cmd => cmd.name.startsWith(match))
+      : [];
+  }
+
+  async onSubmit(inputModel: IInputModel): Promise<void> {
+    const inputText = inputModel.value?.trim() ?? '';
+
+    const fileMentioned = inputText.match(/\/file\s+`[^`]+`/);
+    const hasFollowUp = inputText.replace(fileMentioned?.[0] || '', '').trim();
+
+    if (inputText.startsWith('/file') && !fileMentioned) {
+      await this._showFileBrowser(inputModel);
+    } else {
+      return;
+    }
+
+    if (fileMentioned && hasFollowUp) {
+      console.log(inputText);
+    } else {
+      console.log('Waiting for follow-up text.');
+      throw new Error('Incomplete /file command');
+    }
+  }
+
+  private async _showFileBrowser(inputModel: IInputModel): Promise<void> {
+    return new Promise(resolve => {
+      const modal = document.createElement('div');
+      modal.className = 'file-browser-modal';
+      modal.innerHTML = `
+        <div class="file-browser-panel">
+          <h3>Select a File</h3>
+          <ul class="file-list"></ul>
+          <div class="button-row">
+            <button class="back-btn">Back</button>
+            <button class="close-btn">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const fileList = modal.querySelector('.file-list')!;
+      const closeBtn = modal.querySelector('.close-btn') as HTMLButtonElement;
+      const backBtn = modal.querySelector('.back-btn') as HTMLButtonElement;
+      let currentPath = '';
+
+      const listDir = async (path = '') => {
+        try {
+          const dir = await this._contents.get(path, { content: true });
+
+          fileList.innerHTML = '';
+
+          for (const item of dir.content) {
+            const li = document.createElement('li');
+            if (item.type === 'directory') {
+              li.textContent = `${item.name}/`;
+              li.className = 'directory';
+            } else if (item.type === 'file' || item.type === 'notebook') {
+              li.textContent = item.name;
+              li.className = 'file';
+            }
+
+            fileList.appendChild(li);
+
+            li.onclick = async () => {
+              try {
+                if (item.type === 'directory') {
+                  currentPath = item.path;
+                  await listDir(item.path);
+                } else if (item.type === 'file' || item.type === 'notebook') {
+                  const existingText = inputModel.value?.trim();
+                  const updatedText =
+                    existingText === '/file'
+                      ? `/file \`${item.path}\` `
+                      : `${existingText} \`${item.path}\``;
+
+                  inputModel.value = updatedText.trim();
+                  li.style.backgroundColor = '#d2f8d2';
+
+                  document.body.removeChild(modal);
+                  resolve();
+                }
+              } catch (error) {
+                console.error(error);
+                document.body.removeChild(modal);
+                resolve();
+              }
+            };
+
+            fileList.appendChild(li);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      closeBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve();
+      };
+      backBtn.onclick = () => {
+        if (!currentPath || currentPath === '') {
+          return;
+        }
+
+        const parts = currentPath.split('/');
+        parts.pop();
+        currentPath = parts.join('/');
+        listDir(currentPath);
+      };
+
+      listDir();
+    });
   }
 }
 
