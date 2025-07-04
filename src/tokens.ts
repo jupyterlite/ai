@@ -1,4 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { StructuredToolInterface } from '@langchain/core/tools';
 import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
@@ -12,7 +13,8 @@ export const PLUGIN_IDS = {
   completer: '@jupyterlite/ai:completer',
   providerRegistry: '@jupyterlite/ai:provider-registry',
   settingsConnector: '@jupyterlite/ai:settings-connector',
-  systemPrompts: '@jupyterlite/ai:system-prompts'
+  systemPrompts: '@jupyterlite/ai:system-prompts',
+  toolRegistry: '@jupyterlite/ai:tool-registry'
 };
 
 export type ModelRole = 'chat' | 'completer';
@@ -90,7 +92,7 @@ export interface IAIProviderRegistry {
   /**
    * Get the current completer of the completion provider.
    */
-  currentCompleter: AICompleter | null;
+  readonly currentCompleter: AICompleter | null;
   /**
    * Getter/setter for the completer system prompt.
    */
@@ -98,11 +100,19 @@ export interface IAIProviderRegistry {
   /**
    * Get the current llm chat model.
    */
-  currentChatModel: AIChatModel | null;
+  readonly currentChatModel: AIChatModel | null;
+  /**
+   * Get the current agent.
+   */
+  readonly currentAgent: AIChatModel | null;
   /**
    * Getter/setter for the chat system prompt.
    */
   chatSystemPrompt: string;
+  /**
+   * Check if tools can be added to the chat model, to build an agent.
+   */
+  isAgentAvailable(): boolean | undefined;
   /**
    * Get the settings schema of a given provider.
    */
@@ -136,6 +146,18 @@ export interface IAIProviderRegistry {
    */
   setChatProvider(settings: ReadonlyPartialJSONObject): void;
   /**
+   * Allowing the usage of tools from settings.
+   */
+  allowTools: boolean;
+  /**
+   * Set the tools to use with the chat.
+   */
+  setTools(tools: Tool[]): boolean;
+  /**
+   * A signal triggered when the ability to use tools changed.
+   */
+  readonly allowToolsChanged: ISignal<IAIProviderRegistry, boolean>;
+  /**
    * A signal emitting when the provider or its settings has changed.
    */
   readonly providerChanged: ISignal<IAIProviderRegistry, ModelRole>;
@@ -150,9 +172,46 @@ export interface IAIProviderRegistry {
 }
 
 /**
+ * The type describing a tool used in langgraph.
+ */
+export type Tool = StructuredToolInterface;
+
+/**
+ * The tool registry interface.
+ */
+export interface IToolRegistry {
+  /**
+   * The registered tools.
+   */
+  readonly tools: Tool[];
+  /**
+   * A signal triggered when the tools has changed;
+   */
+  readonly toolsChanged: ISignal<IToolRegistry, void>;
+  /**
+   * Add a new tool to the registry.
+   */
+  add(provider: Tool): void;
+  /**
+   * Get a tool for a given name.
+   * Return null if the name is not provided or if there is no registered tool with the
+   * given name.
+   */
+  get(name: string | null): Tool | null;
+}
+
+/**
  * The provider registry token.
  */
 export const IAIProviderRegistry = new Token<IAIProviderRegistry>(
   '@jupyterlite/ai:provider-registry',
   'Provider for chat and completion LLM provider'
+);
+
+/**
+ * The tool registry token.
+ */
+export const IToolRegistry = new Token<IToolRegistry>(
+  '@jupyterlite/ai:tool-registry',
+  'Tool registry for AI agent'
 );

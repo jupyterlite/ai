@@ -1583,6 +1583,7 @@ __metadata:
     "@langchain/community": ^0.3.46
     "@langchain/core": ^0.3.58
     "@langchain/google-genai": ^0.2.12
+    "@langchain/langgraph": ^0.3.5
     "@langchain/mistralai": ^0.2.1
     "@langchain/ollama": ^0.2.2
     "@langchain/openai": ^0.5.13
@@ -2066,6 +2067,55 @@ __metadata:
   peerDependencies:
     "@langchain/core": ">=0.3.58 <0.4.0"
   checksum: 9adecdacbd69403615292c90e06ee0ec439dd2a6ea518fd93660b06eb20fef18fc0c671936014db57366beb15785dccc3529daacd8b8c4c4dacf5715e5d25512
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-checkpoint@npm:~0.0.18":
+  version: 0.0.18
+  resolution: "@langchain/langgraph-checkpoint@npm:0.0.18"
+  dependencies:
+    uuid: ^10.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+  checksum: bd7ba56696bbfde0be8f2cef2f0dadf30826732cbb1d9bf92439f314a01219053c50ff6b624ef58a9d6723d6e1a8b872e725abc4d95e4ea9610a41c5f1e41047
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-sdk@npm:~0.0.32":
+  version: 0.0.89
+  resolution: "@langchain/langgraph-sdk@npm:0.0.89"
+  dependencies:
+    "@types/json-schema": ^7.0.15
+    p-queue: ^6.6.2
+    p-retry: 4
+    uuid: ^9.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+    react: ^18 || ^19
+  peerDependenciesMeta:
+    "@langchain/core":
+      optional: true
+    react:
+      optional: true
+  checksum: 2bcbeb8f293a0be7be15a29af7d68583c5cbbf96d54095fa7e0e1c9a16a962d062691c6d95e44a2e96ae0a7968ecc0305b8be3e57c21b38949e88a3ef237cc03
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph@npm:^0.3.5":
+  version: 0.3.6
+  resolution: "@langchain/langgraph@npm:0.3.6"
+  dependencies:
+    "@langchain/langgraph-checkpoint": ~0.0.18
+    "@langchain/langgraph-sdk": ~0.0.32
+    uuid: ^10.0.0
+    zod: ^3.25.32
+  peerDependencies:
+    "@langchain/core": ">=0.3.58 < 0.4.0"
+    zod-to-json-schema: ^3.x
+  peerDependenciesMeta:
+    zod-to-json-schema:
+      optional: true
+  checksum: 80a5846090a9ba16ecd52dd51f917c7dd2728c555fced47dadda695728fa2e43de3b6f5b8c10fd5cf98eafa7f047769fbc1ef75e61b4b173ff5892c0838c59e0
   languageName: node
   linkType: hard
 
@@ -8296,7 +8346,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^9.0.1":
+"uuid@npm:^9.0.0, uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
   bin:
