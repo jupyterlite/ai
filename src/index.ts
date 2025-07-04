@@ -21,7 +21,11 @@ import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { ChatHandler, welcomeMessage } from './chat-handler';
+import {
+  ChatHandler,
+  welcomeMessage,
+  FileCommandProvider
+} from './chat-handler';
 import { CompletionProvider } from './completion-provider';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
@@ -37,6 +41,7 @@ const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   activate: () => {
     const registry = new ChatCommandRegistry();
     registry.addProvider(new ChatHandler.ClearCommandProvider());
+    registry.addProvider(new FileCommandProvider());
     return registry;
   }
 };
