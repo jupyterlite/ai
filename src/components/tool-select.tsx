@@ -10,7 +10,7 @@ import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { ChatHandler } from '../chat-handler';
-import { Tool } from '../tokens';
+import { IAIProviderRegistry, Tool } from '../tokens';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -22,8 +22,10 @@ export function toolSelect(
 ): JSX.Element {
   const chatContext = props.model.chatContext as ChatHandler.ChatContext;
   const toolRegistry = chatContext.toolsRegistry;
+  const providerRegistry = chatContext.providerRegistry;
 
-  const [useTool, setUseTool] = useState<boolean>(chatContext.useTool);
+  const [allowTools, setAllowTools] = useState<boolean>(true);
+  const [agentAvailable, setAgentAvailable] = useState<boolean | undefined>();
   const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
   const [tools, setTools] = useState<Tool[]>(toolRegistry?.tools || []);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
@@ -47,7 +49,9 @@ export function toolSelect(
       currentTools.push(tool);
     }
     setSelectedTools(currentTools);
-    chatContext.tools = currentTools;
+    if (!providerRegistry.setTools(currentTools)) {
+      setSelectedTools([]);
+    }
   };
 
   useEffect(() => {
@@ -59,21 +63,37 @@ export function toolSelect(
   }, [toolRegistry]);
 
   useEffect(() => {
-    const updateUseTool = (_: ChatHandler, value: boolean) => setUseTool(value);
-    chatContext.useToolChanged.connect(updateUseTool);
-    return () => {
-      chatContext.useToolChanged.disconnect(updateUseTool);
-    };
-  }, [chatContext]);
+    const updateAllowTools = (_: IAIProviderRegistry, value: boolean) =>
+      setAllowTools(value);
 
-  return useTool && tools.length ? (
+    const updateAgentAvailable = () =>
+      setAgentAvailable(providerRegistry.isAgentAvailable());
+
+    providerRegistry.allowToolsChanged.connect(updateAllowTools);
+    providerRegistry.providerChanged.connect(updateAgentAvailable);
+
+    setAllowTools(providerRegistry.allowTools);
+    setAgentAvailable(providerRegistry.isAgentAvailable());
+    return () => {
+      providerRegistry.allowToolsChanged.disconnect(updateAllowTools);
+      providerRegistry.providerChanged.disconnect(updateAgentAvailable);
+    };
+  }, [providerRegistry]);
+
+  return allowTools && tools.length ? (
     <>
       <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        disabled={!tools.length}
-        tooltip="Tool"
+        disabled={!agentAvailable}
+        tooltip={
+          agentAvailable === undefined
+            ? 'The provider is not set'
+            : agentAvailable
+              ? 'Tools'
+              : 'The provider or model cannot use tools'
+        }
         buttonProps={{
           variant: 'contained',
           onKeyDown: e => {

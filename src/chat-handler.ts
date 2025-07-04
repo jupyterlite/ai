@@ -24,11 +24,10 @@ import {
   SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
-import { ISignal, Signal } from '@lumino/signaling';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
-import { IAIProviderRegistry, IToolRegistry, Tool } from './tokens';
+import { IAIProviderRegistry, IToolRegistry } from './tokens';
 import { AIChatModel } from './types/ai-model';
 
 /**
@@ -72,6 +71,13 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   /**
+   * The provider registry.
+   */
+  get providerRegistry(): IAIProviderRegistry {
+    return this._providerRegistry;
+  }
+
+  /**
    * Get the tool registry.
    */
   get toolRegistry(): IToolRegistry | undefined {
@@ -110,43 +116,12 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   /**
-   * Getter/setter for the use of tools.
-   */
-  get useTool(): boolean {
-    return this._useTool;
-  }
-  set useTool(value: boolean) {
-    if (this._useTool !== value) {
-      this._useTool = value;
-      this._useToolChanged.emit(this._useTool);
-    }
-  }
-
-  /**
-   * Get/set a tool, which will build an agent.
-   */
-  get tools(): Tool[] {
-    return this._tools;
-  }
-  set tools(value: Tool[]) {
-    this._tools = value;
-    this._providerRegistry.buildAgent(this._tools);
-  }
-
-  /**
-   * A signal triggered when the setting on tool usage has changed.
-   */
-  get useToolChanged(): ISignal<ChatHandler, boolean> {
-    return this._useToolChanged;
-  }
-
-  /**
    * Get the system prompt for the chat.
    */
   get systemPrompt(): string {
     let prompt =
       this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT;
-    if (this.useTool && this.agent !== null) {
+    if (this.agent !== null) {
       prompt = prompt.concat('\nPlease use the tool that is provided');
     }
     return prompt;
@@ -199,7 +174,7 @@ export class ChatHandler extends AbstractChatModel {
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([{ user: sender }]);
 
-    if (this._useTool && this.agent !== null) {
+    if (this.agent !== null) {
       return this._sendAgentMessage(this.agent, messages, sender);
     }
 
@@ -342,10 +317,7 @@ export class ChatHandler extends AbstractChatModel {
   private _history: IChatHistory = { messages: [] };
   private _defaultErrorMessage = 'AI provider not configured';
   private _controller: AbortController | null = null;
-  private _useTool: boolean = false;
-  private _tools: Tool[] = [];
   private _toolRegistry?: IToolRegistry;
-  private _useToolChanged = new Signal<ChatHandler, boolean>(this);
 }
 
 export namespace ChatHandler {
@@ -364,34 +336,17 @@ export namespace ChatHandler {
     users = [];
 
     /**
+     * The provider registry.
+     */
+    get providerRegistry(): IAIProviderRegistry {
+      return (this._model as ChatHandler).providerRegistry;
+    }
+
+    /**
      * The tool registry.
      */
     get toolsRegistry(): IToolRegistry | undefined {
       return (this._model as ChatHandler).toolRegistry;
-    }
-
-    /**
-     * Whether to use or not the tool.
-     */
-    get useTool(): boolean {
-      return (this._model as ChatHandler).useTool;
-    }
-
-    /**
-     * A signal triggered when the setting on tool usage has changed.
-     */
-    get useToolChanged(): ISignal<ChatHandler, boolean> {
-      return (this._model as ChatHandler).useToolChanged;
-    }
-
-    /**
-     * Getter/setter of the tool to use.
-     */
-    get tools(): Tool[] {
-      return (this._model as ChatHandler).tools;
-    }
-    set tools(value: Tool[]) {
-      (this._model as ChatHandler).tools = value;
     }
   }
 

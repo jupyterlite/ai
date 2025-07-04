@@ -83,19 +83,16 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
     let personaName = 'AI';
-    let useTool = false;
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
         .composite as boolean;
       enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
       personaName = setting.get('personaName').composite as string;
-      useTool = (setting.get('UseTool').composite as boolean) ?? false;
 
       // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
       chatHandler.personaName = personaName;
-      chatHandler.useTool = useTool;
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
@@ -222,6 +219,8 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
         })
       );
 
+      let allowToolsUsage = true;
+
       settingRegistry
         .load(providerRegistryPlugin.id)
         .then(settings => {
@@ -229,9 +228,14 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
             delete settings.schema.properties?.['UseSecretsManager'];
           }
 
-          const updateProvider = () => {
+          const loadSetting = (setting: ISettingRegistry.ISettings) => {
+            // Allowing usage of tools in the chat.
+            allowToolsUsage =
+              (setting.get('AllowToolsUsage').composite as boolean) ?? false;
+            providerRegistry.allowTools = allowToolsUsage;
+
             // Get the Ai provider settings.
-            const providerSettings = settings.get('AIproviders')
+            const providerSettings = setting.get('AIproviders')
               .composite as ReadonlyPartialJSONObject;
 
             // Update completer provider.
@@ -253,8 +257,8 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
             }
           };
 
-          settings.changed.connect(() => updateProvider());
-          updateProvider();
+          settings.changed.connect(loadSetting);
+          loadSetting(settings);
         })
         .catch(reason => {
           console.error(
