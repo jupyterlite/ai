@@ -110,6 +110,10 @@ export interface IAIProviderRegistry {
    */
   chatSystemPrompt: string;
   /**
+   * Check if tools can be added to the chat model, to build an agent.
+   */
+  isAgentAvailable(): boolean | undefined;
+  /**
    * Get the settings schema of a given provider.
    */
   getSettingsSchema(provider: string): JSONSchema7;
@@ -142,9 +146,17 @@ export interface IAIProviderRegistry {
    */
   setChatProvider(settings: ReadonlyPartialJSONObject): void;
   /**
-   * Build an agent with a given tool.
+   * Allowing the usage of tools from settings.
    */
-  buildAgent(tools: Tool[]): void;
+  allowTools: boolean;
+  /**
+   * Set the tools to use with the chat.
+   */
+  setTools(tools: Tool[]): boolean;
+  /**
+   * A signal triggered when the ability to use tools changed.
+   */
+  readonly allowToolsChanged: ISignal<IAIProviderRegistry, boolean>;
   /**
    * A signal emitting when the provider or its settings has changed.
    */

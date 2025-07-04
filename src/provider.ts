@@ -34,6 +34,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    */
   constructor(options: AIProviderRegistry.IOptions) {
     this._secretsManager = options.secretsManager || null;
+    this._allowTools = true;
     Private.setToken(options.token);
 
     this._notifications = {
@@ -157,6 +158,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
+  }
+
+  /**
+   * Check if we can add tools to the chat model to build an agent.
+   */
+  isAgentAvailable(): boolean | undefined {
+    if (Private.getChatModel() === null) {
+      return;
+    }
+    return Private.getChatModel()?.bindTools !== undefined;
   }
 
   /**
@@ -343,6 +354,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
             ...fullSettings
           })
         );
+        if (this.isAgentAvailable() && this._allowTools) {
+          if (this._tools.length) {
+            this._buildAgent();
+          }
+        }
       } catch (e: any) {
         this.chatError = e.message;
         Private.setChatModel(null);
@@ -352,6 +368,38 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     }
     Private.setName('chat', provider);
     this._providerChanged.emit('chat');
+  }
+
+  /**
+   * Allowing the usage of tools from settings.
+   */
+  get allowTools(): boolean {
+    return this._allowTools;
+  }
+  set allowTools(value: boolean) {
+    if (this._allowTools !== value) {
+      this._allowTools = value;
+      this._allowToolsChanged.emit(value);
+    }
+  }
+
+  /**
+   * Set the tools to use with the chat.
+   */
+  setTools(tools: Tool[]): boolean {
+    if (!this.isAgentAvailable()) {
+      this._tools = [];
+      return false;
+    }
+    this._tools = tools;
+    return this._buildAgent();
+  }
+
+  /**
+   * A signal triggered when the setting on tool usage has changed.
+   */
+  get allowToolsChanged(): ISignal<IAIProviderRegistry, boolean> {
+    return this._allowToolsChanged;
   }
 
   /**
@@ -389,26 +437,29 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Build an agent with a given tool.
+   * Build an agent with given tools.
    */
-  buildAgent(tools: Tool[]) {
-    if (tools.length) {
+  private _buildAgent(): boolean {
+    console.log('Build Agent');
+    if (this._tools.length) {
       const chatModel = Private.getChatModel();
-      if (chatModel === null) {
+      if (chatModel === null || chatModel.bindTools === undefined) {
         Private.setAgent(null);
-        return;
+        this._tools = [];
+        return false;
       }
-      chatModel.bindTools?.(tools);
+      chatModel.bindTools?.(this._tools);
       Private.setChatModel(chatModel);
       Private.setAgent(
         createReactAgent({
           llm: chatModel,
-          tools
+          tools: this._tools
         })
       );
     } else {
       Private.setAgent(null);
     }
+    return true;
   }
 
   private _secretsManager: ISecretsManager | null;
@@ -426,6 +477,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   };
   private _chatPrompt: string = '';
   private _completerPrompt: string = '';
+  private _allowTools: boolean;
+  private _allowToolsChanged = new Signal<IAIProviderRegistry, boolean>(this);
+  private _tools: Tool[] = [];
 }
 
 export namespace AIProviderRegistry {
