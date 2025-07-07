@@ -49,11 +49,11 @@
   top: 20%;
   left: 30%;
   width: 40%;
-  background: rgb(255, 255, 255);
+  background: #fff;
   border: 1px solid #414040;
   padding: 1em;
   z-index: 9999;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  box-shadow: 0 0 10px #0003;
   border-radius: 8px;
   font-family: sans-serif;
 }
@@ -97,11 +97,9 @@
   cursor: pointer;
   font-size: 14px;
   color: #333;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.back-btn:hover,
-.close-btn:hover {
+.back-btn:hover {
   background-color: #e6e6e6;
   color: #111;
   border-color: #666;
@@ -125,7 +123,7 @@
 }
 
 .file::after {
-  content: " —— File";
+  content: ' —— File';
   font-weight: normal;
   color: #867f7fda;
 }
@@ -137,7 +135,7 @@
 }
 
 .directory::after {
-  content: " —— Directory";
+  content: ' —— Directory';
   font-weight: normal;
   color: #867f7fda;
 }
