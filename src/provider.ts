@@ -1,11 +1,13 @@
+import { Notification } from '@jupyterlab/apputils';
 import {
   CompletionHandler,
   IInlineCompletionContext
 } from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { ISignal, Signal } from '@lumino/signaling';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+import { Throttler } from '@lumino/polling';
+import { ISignal, Signal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -21,7 +23,7 @@ import {
 import { AIChatModel, AICompleter } from './types/ai-model';
 
 const SECRETS_NAMESPACE = PLUGIN_IDS.providerRegistry;
-
+const NOTIFICATION_DELAY = 2000;
 export const chatSystemPrompt = (
   options: AIProviderRegistry.IPromptOptions
 ) => `
@@ -60,6 +62,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   constructor(options: AIProviderRegistry.IOptions) {
     this._secretsManager = options.secretsManager || null;
     Private.setToken(options.token);
+
+    this._notifications = {
+      chat: new Throttler(this._emitErrorNotification, NOTIFICATION_DELAY),
+      completer: new Throttler(this._emitErrorNotification, NOTIFICATION_DELAY)
+    };
   }
 
   /**
@@ -206,17 +213,38 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
-   * Get the current chat error;
+   * Get/set the current chat error;
    */
   get chatError(): string {
     return this._chatError;
   }
+  private set chatError(error: string) {
+    this._chatError = error;
+    if (error !== '') {
+      this._notifications.chat.invoke(`Chat: ${error}`);
+    }
+  }
 
   /**
-   * Get the current completer error.
+   * Get/set the current completer error.
    */
   get completerError(): string {
     return this._completerError;
+  }
+  private set completerError(error: string) {
+    this._completerError = error;
+    if (error !== '') {
+      this._notifications.completer.invoke(`Completer: ${error}`);
+    }
+  }
+
+  /**
+   * A function to emit a notification error.
+   */
+  private _emitErrorNotification(error: string) {
+    Notification.emit(error, 'error', {
+      autoClose: NOTIFICATION_DELAY
+    });
   }
 
   /**
@@ -228,11 +256,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   async setCompleterProvider(
     settings: ReadonlyPartialJSONObject
   ): Promise<void> {
-    this._completerError = '';
+    this.completerError = '';
     if (!Object.keys(settings).includes('provider')) {
       Private.setName('completer', 'None');
       Private.setCompleter(null);
-      this._completerError =
+      this.completerError =
         'The provider is missing from the completer settings';
       return;
     }
@@ -253,7 +281,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        this._completerError = error.trim();
+        this.completerError = error.trim();
         Private.setName('completer', 'None');
         this._providerChanged.emit('completer');
         return;
@@ -272,7 +300,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
           })
         );
       } catch (e: any) {
-        this._completerError = e.message;
+        this.completerError = e.message;
       }
     } else {
       Private.setCompleter(null);
@@ -288,11 +316,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    * @param options - An object with the name and the settings of the provider to use.
    */
   async setChatProvider(settings: ReadonlyPartialJSONObject): Promise<void> {
-    this._chatError = '';
+    this.chatError = '';
     if (!Object.keys(settings).includes('provider')) {
       Private.setName('completer', 'None');
       Private.setCompleter(null);
-      this._chatError = 'The provider is missing from the chat settings';
+      this.chatError = 'The provider is missing from the chat settings';
       return;
     }
     const provider = settings['provider'] as string;
@@ -312,7 +340,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     if (compatibilityCheck !== undefined) {
       const error = await compatibilityCheck();
       if (error !== null) {
-        this._chatError = error.trim();
+        this.chatError = error.trim();
         Private.setName('chat', 'None');
         this._providerChanged.emit('chat');
         return;
@@ -330,7 +358,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
           })
         );
       } catch (e: any) {
-        this._chatError = e.message;
+        this.chatError = e.message;
         Private.setChatModel(null);
       }
     } else {
@@ -378,6 +406,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   private _providerChanged = new Signal<IAIProviderRegistry, ModelRole>(this);
   private _chatError: string = '';
   private _completerError: string = '';
+  private _notifications: {
+    [key in ModelRole]: Throttler;
+  };
   private _deferredProvider: {
     [key in ModelRole]: ReadonlyPartialJSONObject | null;
   } = {
