@@ -13,7 +13,14 @@ import { Locator } from '@playwright/test';
 import { setUpOllama } from './test-utils';
 
 test.use({
-  mockSettings: { ...galata.DEFAULT_SETTINGS }
+  mockSettings: {
+    ...galata.DEFAULT_SETTINGS,
+    '@jupyterlab/apputils-extension:notification': {
+      checkForUpdates: false,
+      fetchNews: 'false',
+      doNotDisturbMode: true
+    }
+  }
 });
 
 async function openChatPanel(page: IJupyterLabPageFixture): Promise<Locator> {

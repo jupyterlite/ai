@@ -646,7 +646,7 @@ export class AiProviderSettings extends React.Component<
           formData={{ provider: this._provider }}
           schema={this._providerSchema}
           onChange={this._onProviderChanged}
-          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
+          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}-${this._role}`}
         />
         {this.state.compatibilityError !== null && (
           <div className={ERROR_CLASS}>
