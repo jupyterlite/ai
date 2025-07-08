@@ -128,6 +128,7 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "webpackConfig": "./webpack.config.js"
     }
 }
