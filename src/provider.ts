@@ -6,7 +6,7 @@ import {
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
-import { Throttler } from '@lumino/polling';
+import { Debouncer } from '@lumino/polling';
 import { ISignal, Signal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
 import { ISecretsManager } from 'jupyter-secrets-manager';
@@ -34,8 +34,8 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     Private.setToken(options.token);
 
     this._notifications = {
-      chat: new Throttler(this._emitErrorNotification, NOTIFICATION_DELAY),
-      completer: new Throttler(this._emitErrorNotification, NOTIFICATION_DELAY)
+      chat: new Debouncer(this._emitErrorNotification, NOTIFICATION_DELAY),
+      completer: new Debouncer(this._emitErrorNotification, NOTIFICATION_DELAY)
     };
   }
 
@@ -377,7 +377,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   private _chatError: string = '';
   private _completerError: string = '';
   private _notifications: {
-    [key in ModelRole]: Throttler;
+    [key in ModelRole]: Debouncer;
   };
   private _deferredProvider: {
     [key in ModelRole]: ReadonlyPartialJSONObject | null;
