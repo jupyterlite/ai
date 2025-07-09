@@ -67,3 +67,24 @@ jobs:
           path: |
             ui-tests/test-results
             ui-tests/playwright-report
+
+  js:
+    name: js
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Base Setup
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+      - name: Install nodejs dependencies
+        run: |
+          set -eux
+          pip install "jupyterlab>=4.4.0"
+          jlpm install
+
+      - name: Execute tests
+        run: |
+          jlpm test
