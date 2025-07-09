@@ -11,7 +11,7 @@ const esModules = [
   'exenv-es6',
   'lib0',
   'nanoid',
-  'vscode-ws-jsonrpc',
+  'vscode-ws-jsonrpc'
 ].join('|');
 
 const baseConfig = jestJupyterLab(__dirname);

@@ -23,7 +23,10 @@ import OllamaAISettings from '../default-providers/Ollama/settings-schema.json';
 import OpenAISettings from '../default-providers/OpenAI/settings-schema.json';
 // import WebLLMSettings from '../default-providers/WebLLM/settings-schema.json';
 import { IAIProvider, IType } from '../tokens';
-import { BaseChatModel, BaseChatModelCallOptions } from '@langchain/core/language_models/chat_models';
+import {
+  BaseChatModel,
+  BaseChatModelCallOptions
+} from '@langchain/core/language_models/chat_models';
 import { AIMessageChunk } from '@langchain/core/messages';
 
 interface IAIProviderWithChat extends IAIProvider {
@@ -33,14 +36,14 @@ const AIProviders: IAIProviderWithChat[] = [
   {
     name: 'Anthropic',
     chat: ChatAnthropic,
-    settingsSchema: AnthropicSettings,
+    settingsSchema: AnthropicSettings
   },
   {
     name: 'ChromeAI',
     // TODO: fix
     // @ts-expect-error: missing properties
     chat: ChromeAI,
-    settingsSchema: ChromeAISettings,
+    settingsSchema: ChromeAISettings
   },
   {
     name: 'MistralAI',
@@ -61,7 +64,7 @@ const AIProviders: IAIProviderWithChat[] = [
     name: 'OpenAI',
     chat: ChatOpenAI,
     settingsSchema: OpenAISettings
-  },
+  }
   // {
   //   name: 'WebLLM',
   //   chat: ChatWebLLM,
@@ -73,13 +76,14 @@ it('test provider settings', () => {
   AIProviders.forEach(provider => {
     console.log(`PROVIDER: ${provider.name}`);
     const schema: SchemaNode = compileSchema(provider.settingsSchema);
-    const defaultSettings = schema.getData(undefined, { addOptionalProps: true });
+    const defaultSettings = schema.getData(undefined, {
+      addOptionalProps: true
+    });
 
     // Set a value for apiKey to avoid errors at instantiation.
     if (defaultSettings.apiKey !== undefined) {
       defaultSettings.apiKey = 'abc';
     }
-    defaultSettings.bnla = 'ble';
     const model = new provider.chat(defaultSettings);
 
     Object.entries(defaultSettings).forEach(([key, value]) => {
@@ -89,9 +93,8 @@ it('test provider settings', () => {
       } catch (err) {
         // @ts-expect-error
         err.message = `${err.message}\nproperty: ${key}\n`;
-        throw err;  // throw the error so test fails as expected
+        throw err; // throw the error so test fails as expected
       }
-
     });
   });
 });
