@@ -2,6 +2,41 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.8.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.7.0...c736eca4e55cf491105aee04c01de8e9f7982b4a))
+
+### Enhancements made
+
+- Update to `@jupyter/chat` 0.14.0 [#108](https://github.com/jupyterlite/ai/pull/108) ([@jtpio](https://github.com/jtpio))
+- Allow different providers for the chat and the completer [#105](https://github.com/jupyterlite/ai/pull/105) ([@brichet](https://github.com/brichet))
+- Open the settings from the chat panel [#101](https://github.com/jupyterlite/ai/pull/101) ([@jtpio](https://github.com/jtpio))
+- Gemini [#100](https://github.com/jupyterlite/ai/pull/100) ([@jtpio](https://github.com/jtpio))
+- System prompt configurable [#96](https://github.com/jupyterlite/ai/pull/96) ([@brichet](https://github.com/brichet))
+- Chat panel tweaks [#92](https://github.com/jupyterlite/ai/pull/92) ([@jtpio](https://github.com/jtpio))
+- Improve Mistral completions [#85](https://github.com/jupyterlite/ai/pull/85) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Fix secret fields initialization when using the secrets manager [#120](https://github.com/jupyterlite/ai/pull/120) ([@brichet](https://github.com/brichet))
+- Fix the notification in settings [#119](https://github.com/jupyterlite/ai/pull/119) ([@brichet](https://github.com/brichet))
+- Fix the messages datetime [#94](https://github.com/jupyterlite/ai/pull/94) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update langchain packages [#117](https://github.com/jupyterlite/ai/pull/117) ([@jtpio](https://github.com/jtpio))
+- Remove provider settings check/generation [#113](https://github.com/jupyterlite/ai/pull/113) ([@brichet](https://github.com/brichet))
+- Deduplicate npm dependencies [#109](https://github.com/jupyterlite/ai/pull/109) ([@brichet](https://github.com/brichet))
+- Add UI tests [#97](https://github.com/jupyterlite/ai/pull/97) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-06-05&to=2025-07-09&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-06-05..2025-07-09&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-06-05..2025-07-09&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.7.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.6.2...317fedd438232fb3add50e28037adb637cbc0814))
@@ -37,8 +72,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-05-13&to=2025-06-05&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-05-13..2025-06-05&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-05-13..2025-06-05&type=Issues) | [@trungleduc](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Atrungleduc+updated%3A2025-05-13..2025-06-05&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.6.2
 
