@@ -35,11 +35,11 @@ export const setUpOllama = async (
 
   const settingsPanel = await openSettings(page, 'AI provider');
   const providerSelect = settingsPanel.locator(
-    'select[name="jp-SettingsEditor-@jupyterlite/ai:provider-registry_provider"]'
+    'select[name="jp-SettingsEditor-@jupyterlite/ai:provider-registry-chat_provider"]'
   );
   await providerSelect.selectOption('Ollama');
   const modelInput = settingsPanel.locator(
-    'input[name="jp-SettingsEditor-@jupyterlite/ai:provider-registry_model"]'
+    'input[name="jp-SettingsEditor-@jupyterlite/ai:provider-registry-chat_model"]'
   );
 
   await modelInput.scrollIntoViewIfNeeded();

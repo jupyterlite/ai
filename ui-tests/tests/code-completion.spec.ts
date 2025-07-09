@@ -13,7 +13,14 @@ import { Locator, Request } from '@playwright/test';
 import { openSettings, setUpOllama } from './test-utils';
 
 test.use({
-  mockSettings: { ...galata.DEFAULT_SETTINGS }
+  mockSettings: {
+    ...galata.DEFAULT_SETTINGS,
+    '@jupyterlab/apputils-extension:notification': {
+      checkForUpdates: false,
+      fetchNews: 'false',
+      doNotDisturbMode: true
+    }
+  }
 });
 
 // Set up Ollama with default model.

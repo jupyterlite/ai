@@ -114,24 +114,16 @@ const webLLMProviderPlugin: JupyterFrontEndPlugin<void> = {
     });
 
     registry.providerChanged.connect(async (sender, role) => {
-      const { currentChatModel, chatError } = registry;
-      if (currentChatModel === null) {
-        Notification.emit(chatError, 'error', {
-          autoClose: 2000
-        });
-        return;
-      }
+      const { currentChatModel } = registry;
 
       // TODO: implement a proper way to handle models that may need to be initialized before being used.
       // Mostly applies to WebLLM and ChromeAI as they may need to download the model in the browser first.
       if (registry.currentName(role) === 'WebLLM') {
+        // Leaving this check here, but it should never happen, this check is done in
+        // the provider registry, and the current name is set to 'None' if there is a
+        // compatibility error.
         const compatibilityError = await webLLMCompatibilityCheck();
-
         if (compatibilityError) {
-          Notification.dismiss();
-          Notification.emit(compatibilityError, 'error', {
-            autoClose: 2000
-          });
           return;
         }
 
