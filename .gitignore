@@ -130,3 +130,6 @@ Untitled*.ipynb
 # Integration tests
 ui-tests/test-results/
 ui-tests/playwright-report/
+
+# jest test reports
+junit.xml
