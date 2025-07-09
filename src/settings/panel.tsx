@@ -309,6 +309,10 @@ export class AiProviderSettings extends React.Component<
     this._settings.changed.connect(this._settingsChanged);
   }
 
+  componentDidMount(): void {
+    this.componentDidUpdate();
+  }
+
   async componentDidUpdate(): Promise<void> {
     if (!this._secretsManager || !this._useSecretsManager) {
       return;
@@ -398,6 +402,7 @@ export class AiProviderSettings extends React.Component<
         sanitizedSettings[field] = SECRETS_REPLACEMENT;
       });
     }
+
     this.props.aiSettings.saveSettingsToRegistry(this._role, {
       provider: this._provider,
       ...sanitizedSettings
