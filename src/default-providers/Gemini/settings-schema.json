@@ -38,10 +38,6 @@
       "description": "Model name to use (e.g., gemini-pro, gemini-2.0-flash, etc.)",
       "default": "gemini-pro"
     },
-    "baseURL": {
-      "type": "string",
-      "description": "Base URL for the Google AI API"
-    },
     "safetySettings": {
       "type": "array",
       "description": "Safety settings for content filtering",

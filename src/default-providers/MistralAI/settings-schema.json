@@ -16,19 +16,14 @@
       "description": "The API key to use.",
       "default": ""
     },
-    "modelName": {
-      "type": "string",
-      "description": "The name of the model to use. Alias for `model`",
-      "default": "mistral-small-latest"
-    },
     "model": {
       "type": "string",
       "description": "The name of the model to use.",
       "default": "mistral-small-latest"
     },
-    "endpoint": {
+    "serverURL": {
       "type": "string",
-      "description": "Override the default endpoint."
+      "description": "Override the default server URL used by the Mistral SDK."
     },
     "temperature": {
       "type": "number",

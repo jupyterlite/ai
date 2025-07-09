@@ -93,12 +93,6 @@
       "type": ["string", "number"],
       "default": "5m"
     },
-    "stop": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "disableStreaming": {
       "type": "boolean",
       "description": "Whether to disable streaming.\n\nIf streaming is bypassed, then `stream()` will defer to `invoke()`.\n\n- If true, will always bypass streaming case.\n- If false (default), will always use streaming case if available."
@@ -112,11 +106,6 @@
       "type": "string",
       "description": "The host URL of the Ollama server.",
       "default": ""
-    },
-    "headers": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Optional HTTP Headers to include in the request."
     },
     "checkOrPullModel": {
       "type": "boolean",
