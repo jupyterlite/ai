@@ -481,7 +481,7 @@ export class AiProviderSettings extends React.Component<
         if (key.toLowerCase().includes('key')) {
           this._secretFields.push(key);
 
-          // If the secrets manager is not used, do not show the secrets fields.
+          // If the secrets manager is not used, show the secrets fields.
           // If the secrets manager is used, check if the fields should be visible.
           const showSecretFields =
             !this._useSecretsManager ||
@@ -651,7 +651,7 @@ export class AiProviderSettings extends React.Component<
           formData={{ provider: this._provider }}
           schema={this._providerSchema}
           onChange={this._onProviderChanged}
-          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
+          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}-${this._role}`}
         />
         {this.state.compatibilityError !== null && (
           <div className={ERROR_CLASS}>
@@ -684,7 +684,7 @@ export class AiProviderSettings extends React.Component<
           schema={this.state.schema}
           onChange={this._onFormChanged}
           uiSchema={this._uiSchema}
-          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}`}
+          idPrefix={`jp-SettingsEditor-${PLUGIN_IDS.providerRegistry}-${this._role}`}
           formContext={{
             ...this.props.formContext,
             defaultFormData: this._defaultFormData
