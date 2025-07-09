@@ -43,3 +43,28 @@
   border-color: var(--jp-brand-color1);
   color: var(--jp-brand-color1);
 }
+
+body[data-jp-theme-light="false"] textarea::placeholder {
+  color: #fff0f0 !important;
+}
+
+body[data-jp-theme-light="false"] .MuiOutlinedInput-notchedOutline {
+  border-color: #f1f1f1 !important;
+}
+
+body[data-jp-theme-light="false"] .MuiButton-containedPrimary.Mui-disabled {
+  background-color: #424040 !important;
+  color: #00c3ff !important;
+}
+
+body[data-jp-theme-light="false"] textarea {
+  color: #fff !important;
+}
+
+body[data-jp-theme-light="false"] .MuiInputBase-root {
+  background-color: #141414 !important;
+}
+
+body[data-jp-theme-light="false"] .MuiFormHelperText-root {
+  color: #ececec !important;
+}
