@@ -4,6 +4,8 @@ import {
   IInlineCompletionContext
 } from '@jupyterlab/completer';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
+import { CompiledStateGraph } from '@langchain/langgraph';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { Debouncer } from '@lumino/polling';
@@ -18,7 +20,8 @@ import {
   IAIProviderRegistry,
   IDict,
   ModelRole,
-  PLUGIN_IDS
+  PLUGIN_IDS,
+  Tool
 } from './tokens';
 import { AIChatModel, AICompleter } from './types/ai-model';
 
@@ -31,6 +34,7 @@ export class AIProviderRegistry implements IAIProviderRegistry {
    */
   constructor(options: AIProviderRegistry.IOptions) {
     this._secretsManager = options.secretsManager || null;
+    this._allowTools = true;
     Private.setToken(options.token);
 
     this._notifications = {
@@ -131,6 +135,19 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
 
   /**
+   * Get the current agent.
+   */
+  get currentAgent(): AIChatModel | null {
+    const agent = Private.getAgent();
+    if (agent === null) {
+      return null;
+    }
+    return {
+      stream: (input: any, options?: any) => agent.stream(input, options)
+    };
+  }
+
+  /**
    * Getter/setter for the chat system prompt.
    */
   get chatSystemPrompt(): string {
@@ -141,6 +158,16 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   }
   set chatSystemPrompt(value: string) {
     this._chatPrompt = value;
+  }
+
+  /**
+   * Check if we can add tools to the chat model to build an agent.
+   */
+  isAgentAvailable(): boolean | undefined {
+    if (Private.getChatModel() === null) {
+      return;
+    }
+    return Private.getChatModel()?.bindTools !== undefined;
   }
 
   /**
@@ -327,6 +354,11 @@ export class AIProviderRegistry implements IAIProviderRegistry {
             ...fullSettings
           })
         );
+        if (this.isAgentAvailable() && this._allowTools) {
+          if (this._tools.length) {
+            this._buildAgent();
+          }
+        }
       } catch (e: any) {
         this.chatError = e.message;
         Private.setChatModel(null);
@@ -336,6 +368,38 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     }
     Private.setName('chat', provider);
     this._providerChanged.emit('chat');
+  }
+
+  /**
+   * Allowing the usage of tools from settings.
+   */
+  get allowTools(): boolean {
+    return this._allowTools;
+  }
+  set allowTools(value: boolean) {
+    if (this._allowTools !== value) {
+      this._allowTools = value;
+      this._allowToolsChanged.emit(value);
+    }
+  }
+
+  /**
+   * Set the tools to use with the chat.
+   */
+  setTools(tools: Tool[]): boolean {
+    if (!this.isAgentAvailable()) {
+      this._tools = [];
+      return false;
+    }
+    this._tools = tools;
+    return this._buildAgent();
+  }
+
+  /**
+   * A signal triggered when the setting on tool usage has changed.
+   */
+  get allowToolsChanged(): ISignal<IAIProviderRegistry, boolean> {
+    return this._allowToolsChanged;
   }
 
   /**
@@ -372,6 +436,32 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     return fullSettings;
   }
 
+  /**
+   * Build an agent with given tools.
+   */
+  private _buildAgent(): boolean {
+    console.log('Build Agent');
+    if (this._tools.length) {
+      const chatModel = Private.getChatModel();
+      if (chatModel === null || chatModel.bindTools === undefined) {
+        Private.setAgent(null);
+        this._tools = [];
+        return false;
+      }
+      chatModel.bindTools?.(this._tools);
+      Private.setChatModel(chatModel);
+      Private.setAgent(
+        createReactAgent({
+          llm: chatModel,
+          tools: this._tools
+        })
+      );
+    } else {
+      Private.setAgent(null);
+    }
+    return true;
+  }
+
   private _secretsManager: ISecretsManager | null;
   private _providerChanged = new Signal<IAIProviderRegistry, ModelRole>(this);
   private _chatError: string = '';
@@ -387,6 +477,9 @@ export class AIProviderRegistry implements IAIProviderRegistry {
   };
   private _chatPrompt: string = '';
   private _completerPrompt: string = '';
+  private _allowTools: boolean;
+  private _allowToolsChanged = new Signal<IAIProviderRegistry, boolean>(this);
+  private _tools: Tool[] = [];
 }
 
 export namespace AIProviderRegistry {
@@ -510,5 +603,16 @@ namespace Private {
   }
   export function getCompleter(): IBaseCompleter | null {
     return completer;
+  }
+
+  /**
+   * The agent getter and setter.
+   */
+  let agent: CompiledStateGraph<any, any> | null = null;
+  export function setAgent(value: CompiledStateGraph<any, any> | null): void {
+    agent = value;
+  }
+  export function getAgent(): CompiledStateGraph<any, any> | null {
+    return agent;
   }
 }

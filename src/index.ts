@@ -23,11 +23,13 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { ChatHandler, welcomeMessage } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
+import { stopItem, toolSelect } from './components';
 import { defaultProviderPlugins } from './default-providers';
 import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
-import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
-import { stopItem } from './components/stop-button';
+import { IAIProviderRegistry, IToolRegistry, PLUGIN_IDS } from './tokens';
+import { ToolsRegistry } from './tool-registry';
+import { createNotebook } from './tools/create-notebook';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -50,7 +52,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     INotebookTracker,
     ISettingRegistry,
     IThemeManager,
-    ILayoutRestorer
+    ILayoutRestorer,
+    IToolRegistry
   ],
   activate: async (
     app: JupyterFrontEnd,
@@ -60,7 +63,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null,
-    restorer: ILayoutRestorer | null
+    restorer: ILayoutRestorer | null,
+    toolRegistry?: IToolRegistry
   ) => {
     let activeCellManager: IActiveCellManager | null = null;
     if (notebookTracker) {
@@ -72,7 +76,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const chatHandler = new ChatHandler({
       providerRegistry,
-      activeCellManager
+      activeCellManager,
+      toolRegistry
     });
 
     let sendWithShiftEnter = false;
@@ -112,6 +117,9 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
     const stopButton = stopItem(() => chatHandler.stopStreaming());
     inputToolbarRegistry.addItem('stop', stopButton);
+
+    // Add the tool select item.
+    inputToolbarRegistry.addItem('tools', { element: toolSelect, position: 1 });
 
     chatHandler.writersChanged.connect((_, writers) => {
       if (
@@ -197,15 +205,23 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
         })
       );
 
+      let allowToolsUsage = true;
+
       settingRegistry
         .load(providerRegistryPlugin.id)
         .then(settings => {
           if (!secretsManager) {
             delete settings.schema.properties?.['UseSecretsManager'];
           }
-          const updateProvider = () => {
+
+          const loadSetting = (setting: ISettingRegistry.ISettings) => {
+            // Allowing usage of tools in the chat.
+            allowToolsUsage =
+              (setting.get('AllowToolsUsage').composite as boolean) ?? false;
+            providerRegistry.allowTools = allowToolsUsage;
+
             // Get the Ai provider settings.
-            const providerSettings = settings.get('AIproviders')
+            const providerSettings = setting.get('AIproviders')
               .composite as ReadonlyPartialJSONObject;
 
             // Update completer provider.
@@ -227,8 +243,8 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
             }
           };
 
-          settings.changed.connect(() => updateProvider());
-          updateProvider();
+          settings.changed.connect(loadSetting);
+          loadSetting(settings);
         })
         .catch(reason => {
           console.error(
@@ -295,12 +311,24 @@ const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+const toolRegistryPlugin: JupyterFrontEndPlugin<IToolRegistry> = {
+  id: PLUGIN_IDS.toolRegistry,
+  autoStart: true,
+  provides: IToolRegistry,
+  activate: (app: JupyterFrontEnd): IToolRegistry => {
+    const registry = new ToolsRegistry();
+    registry.add(createNotebook(app.commands));
+    return registry;
+  }
+};
+
 export default [
   providerRegistryPlugin,
   chatCommandRegistryPlugin,
   chatPlugin,
   completerPlugin,
   systemPromptsPlugin,
+  toolRegistryPlugin,
   ...defaultProviderPlugins
 ];
 
