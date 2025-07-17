@@ -28,6 +28,7 @@
     "src/*",
     "src/**/*",
     "src/settings/base.json",
-    "src/default-providers/**/*.json"
+    "src/default-providers/**/*.json",
+    "locale/*.json"
   ]
 }

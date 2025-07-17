@@ -17,7 +17,8 @@
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf,md}",
         "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
         "src/**/*.{ts,tsx}",
-        "schema/*.json"
+        "schema/*.json",
+        "locale/*.json"
     ],
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -27,13 +28,14 @@
         "url": "https://github.com/jupyterlite/ai.git"
     },
     "scripts": {
-        "build": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:dev": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:prod": "jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
+        "build": "jlpm build:lib && jlpm build:labextension:dev && jlpm copy:locale",
+        "build:dev": "jlpm build:lib && jlpm build:labextension:dev && jlpm copy:locale",
+        "build:prod": "jlpm clean && jlpm build:lib:prod && jlpm build:labextension && jlpm copy:locale",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
         "build:lib": "tsc --sourceMap",
         "build:lib:prod": "tsc",
+        "copy:locale": "node scripts/copy-locale.js",
         "clean": "jlpm clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
@@ -64,6 +66,7 @@
         "@jupyterlab/notebook": "^4.4.0",
         "@jupyterlab/rendermime": "^4.4.0",
         "@jupyterlab/settingregistry": "^4.4.0",
+        "@jupyterlab/translation": "^4.4.3",
         "@jupyterlab/ui-components": "^4.4.0",
         "@langchain/anthropic": "^0.3.24",
         "@langchain/community": "^0.3.48",

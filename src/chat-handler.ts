@@ -22,6 +22,7 @@ import {
   SystemMessage
 } from '@langchain/core/messages';
 import { UUID } from '@lumino/coreutils';
+import { TranslationBundle } from '@jupyterlab/translation';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
@@ -35,16 +36,19 @@ import { AIChatModel } from './types/ai-model';
 const AI_AVATAR_BASE64 = btoa(jupyternautLiteIcon.svgstr);
 const AI_AVATAR = `data:image/svg+xml;base64,${AI_AVATAR_BASE64}`;
 
-export const welcomeMessage = (providers: string[]) => `
-#### Ask JupyterLite AI
+export const welcomeMessage = (
+  providers: string[],
+  trans: TranslationBundle
+) => `
+${trans.__('#### Ask JupyterLite AI')}
 
 
-The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI provider"}' href="#">settings editor</button>, by selecting it from
-the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
+${trans.__('The provider to use can be set in the')} <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI provider"}' href="#">${trans.__('settings editor')}</button>, ${trans.__('by selecting it from the')}
+<img src="${AI_AVATAR}" width="16" height="16"> _${trans.__('AI provider')}_ ${trans.__('settings')}.
 
-The current providers that are available are _${providers.sort().join('_, _')}_.
+${trans.__('The current providers that are available are')} _${providers.sort().join('_, _')}_.
 
-To clear the chat, you can use the \`/clear\` command from the chat input.
+${trans.__('To clear the chat, you can use the')} \`${trans.__('/clear')}\` ${trans.__('command from the chat input')}.
 `;
 
 export type ConnectionMessage = {
@@ -56,6 +60,7 @@ export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._providerRegistry = options.providerRegistry;
+    this._translator = options.translator;
 
     this._providerRegistry.providerChanged.connect(() => {
       this._errorMessage = this._providerRegistry.chatError;
@@ -94,7 +99,7 @@ export class ChatHandler extends AbstractChatModel {
 
   async sendMessage(message: INewMessage): Promise<boolean> {
     const body = message.body;
-    if (body.startsWith('/clear')) {
+    if (body.startsWith(this._translator.__('/clear'))) {
       // TODO: do we need a clear method?
       this.messagesDeleted(0, this.messages.length);
       this._history.messages = [];
@@ -201,8 +206,12 @@ export class ChatHandler extends AbstractChatModel {
   private _personaName = 'AI';
   private _errorMessage: string = '';
   private _history: IChatHistory = { messages: [] };
-  private _defaultErrorMessage = 'AI provider not configured';
+  private _translator: TranslationBundle;
   private _controller: AbortController | null = null;
+
+  get _defaultErrorMessage(): string {
+    return this._translator.__('AI provider not configured');
+  }
 }
 
 export namespace ChatHandler {
@@ -211,6 +220,7 @@ export namespace ChatHandler {
    */
   export interface IOptions extends IChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
+    translator: TranslationBundle;
   }
 
   /**
@@ -225,14 +235,22 @@ export namespace ChatHandler {
    */
   export class ClearCommandProvider implements IChatCommandProvider {
     public id: string = '@jupyterlite/ai:clear-commands';
-    private _slash_commands: ChatCommand[] = [
-      {
-        name: '/clear',
-        providerId: this.id,
-        replaceWith: '/clear',
-        description: 'Clear the chat'
-      }
-    ];
+    private _translator: TranslationBundle;
+
+    constructor(translator: TranslationBundle) {
+      this._translator = translator;
+    }
+
+    private get _slash_commands(): ChatCommand[] {
+      return [
+        {
+          name: this._translator.__('/clear'),
+          providerId: this.id,
+          replaceWith: this._translator.__('/clear'),
+          description: this._translator.__('Clear the chat')
+        }
+      ];
+    }
     async listCommandCompletions(inputModel: IInputModel) {
       const match = inputModel.currentWord?.match(/^\/\w*/)?.[0];
       if (!match) {
