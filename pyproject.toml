@@ -70,6 +70,9 @@ npm = ["jlpm"]
 source_dir = "src"
 build_dir = "jupyterlite_ai/labextension"
 
+[tool.hatch.build.hooks.custom]
+path = "scripts/copy-locale.js"
+
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"
 

@@ -1,5 +1,6 @@
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { ITranslator, TranslationBundle } from '@jupyterlab/translation';
 import {
   Button,
   FormComponent,
@@ -31,6 +32,7 @@ export const aiSettingsRenderer = (options: {
   secretsToken?: symbol;
   rmRegistry?: IRenderMimeRegistry;
   secretsManager?: ISecretsManager;
+  translator?: ITranslator;
 }): IFormRenderer => {
   const { secretsToken } = options;
   delete options.secretsToken;
@@ -77,6 +79,10 @@ export class AiSettings
   constructor(props: FieldProps) {
     super(props);
     this._settings = props.formContext.settings;
+    this._translator = props.formContext.translator;
+    this._trans = this._translator
+      ? this._translator.load('jupyterlite_ai')
+      : null;
     const uniqueProvider =
       (this._settings.get('UniqueProvider').composite as boolean) ?? true;
 
@@ -175,13 +181,21 @@ export class AiSettings
       <div>
         <h3>
           {this.state.uniqueProvider
-            ? 'Chat and completer provider'
-            : 'Chat provider'}
+            ? this._trans
+              ? this._trans.__('Chat and completer provider')
+              : 'Chat and completer provider'
+            : this._trans
+              ? this._trans.__('Chat provider')
+              : 'Chat provider'}
         </h3>
         <AiProviderSettings {...this.props} role={'chat'} aiSettings={this} />
         {!this.state.uniqueProvider && (
           <>
-            <h3>Completer provider</h3>
+            <h3>
+              {this._trans
+                ? this._trans.__('Completer provider')
+                : 'Completer provider'}
+            </h3>
             <AiProviderSettings
               {...this.props}
               role={'completer'}
@@ -194,6 +208,8 @@ export class AiSettings
   }
 
   private _settings: ISettingRegistry.ISettings;
+  private _translator: ITranslator | undefined;
+  private _trans: TranslationBundle | null;
 }
 
 /**
@@ -230,8 +246,14 @@ export class AiProviderSettings extends React.Component<
   constructor(props: AiProviderSettings.props) {
     super(props);
     if (!props.formContext.providerRegistry) {
+      const translator = props.formContext.translator;
+      const trans = translator ? translator.load('jupyterlite_ai') : null;
       throw new Error(
-        'The provider registry is needed to enable the jupyterlite-ai settings panel'
+        trans
+          ? trans.__(
+              'The provider registry is needed to enable the jupyterlite-ai settings panel'
+            )
+          : 'The provider registry is needed to enable the jupyterlite-ai settings panel'
       );
     }
     this._role = props.role;
@@ -239,6 +261,10 @@ export class AiProviderSettings extends React.Component<
     this._rmRegistry = props.formContext.rmRegistry ?? null;
     this._secretsManager = props.formContext.secretsManager ?? null;
     this._settings = props.formContext.settings;
+    this._translator = props.formContext.translator;
+    this._trans = this._translator
+      ? this._translator.load('jupyterlite_ai')
+      : null;
 
     const useSecretsManagerSetting =
       (this._settings.get('UseSecretsManager').composite as boolean) ?? true;
@@ -250,7 +276,9 @@ export class AiProviderSettings extends React.Component<
     providerSchema.properties.provider = {
       type: 'string',
       title: 'Provider',
-      description: 'The AI provider to use for chat and completion',
+      description: this._trans
+        ? this._trans.__('The AI provider to use for chat and completion')
+        : 'The AI provider to use for chat and completion',
       default: 'None',
       enum: ['None'].concat(this._providerRegistry.providers)
     };
@@ -661,7 +689,9 @@ export class AiProviderSettings extends React.Component<
         )}
         {this.state.instruction !== null && (
           <details>
-            <summary className={INSTRUCTION_CLASS}>Instructions</summary>
+            <summary className={INSTRUCTION_CLASS}>
+              {this._trans ? this._trans.__('Instructions') : 'Instructions'}
+            </summary>
             <span
               ref={node =>
                 node && node.replaceChildren(this.state.instruction!)
@@ -674,7 +704,9 @@ export class AiProviderSettings extends React.Component<
           <div className="jp-SettingsHeader-buttonbar">
             {this.state.isModified && (
               <Button className="jp-RestoreButton" onClick={this._reset}>
-                Restore to Defaults
+                {this._trans
+                  ? this._trans.__('Restore to Defaults')
+                  : 'Restore to Defaults'}
               </Button>
             )}
           </div>
@@ -707,6 +739,8 @@ export class AiProviderSettings extends React.Component<
   private _formRef = React.createRef<HTMLDivElement>();
   private _secretFields: string[] = [];
   private _defaultFormData: IDict<any> = {};
+  private _translator: ITranslator | undefined;
+  private _trans: TranslationBundle | null;
 }
 
 /**
