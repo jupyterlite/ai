@@ -20,6 +20,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
+import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { ChatHandler, welcomeMessage } from './chat-handler';
 import { CompletionProvider } from './completion-provider';
@@ -50,7 +51,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     INotebookTracker,
     ISettingRegistry,
     IThemeManager,
-    ILayoutRestorer
+    ILayoutRestorer,
+    IDocumentManager
   ],
   activate: async (
     app: JupyterFrontEnd,
@@ -60,7 +62,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null,
-    restorer: ILayoutRestorer | null
+    restorer: ILayoutRestorer | null,
+    docManager: IDocumentManager | null
   ) => {
     let activeCellManager: IActiveCellManager | null = null;
     if (notebookTracker) {
@@ -72,7 +75,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const chatHandler = new ChatHandler({
       providerRegistry,
-      activeCellManager
+      activeCellManager,
+      documentManager: docManager ?? undefined
     });
 
     let sendWithShiftEnter = false;
