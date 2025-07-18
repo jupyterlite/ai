@@ -11,6 +11,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
+import { ChatXAI } from '@langchain/xai';
 
 // Import completers
 import { AnthropicCompleter } from './Anthropic/completer';
@@ -20,6 +21,7 @@ import { CodestralCompleter } from './MistralAI/completer';
 import { OllamaCompleter } from './Ollama/completer';
 import { OpenAICompleter } from './OpenAI/completer';
 import { WebLLMCompleter } from './WebLLM/completer';
+import { GrokCompleter } from './Grok/completer';
 
 // Import Settings
 import AnthropicSettings from './Anthropic/settings-schema.json';
@@ -29,6 +31,7 @@ import MistralAISettings from './MistralAI/settings-schema.json';
 import OllamaAISettings from './Ollama/settings-schema.json';
 import OpenAISettings from './OpenAI/settings-schema.json';
 import WebLLMSettings from './WebLLM/settings-schema.json';
+import GrokSettings from './Grok/settings-schema.json';
 
 // Import instructions
 import ChromeAIInstructions, {
@@ -40,6 +43,7 @@ import OllamaInstructions from './Ollama/instructions';
 import WebLLMInstructions, {
   compatibilityCheck as webLLMCompatibilityCheck
 } from './WebLLM/instructions';
+import GrokInstructions from './Grok/instructions';
 
 import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 
@@ -90,6 +94,13 @@ const AIProviders: IAIProvider[] = [
     chat: ChatOpenAI,
     completer: OpenAICompleter,
     settingsSchema: OpenAISettings
+  },
+  {
+    name: 'Grok',
+    chat: ChatXAI,
+    completer: GrokCompleter,
+    settingsSchema: GrokSettings,
+    instructions: GrokInstructions
   }
 ];
 

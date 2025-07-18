@@ -69,6 +69,10 @@ const providers = {
     type: 'ChatOpenAIFields',
     excludedProps: ['configuration']
   },
+  Grok: {
+    path: 'node_modules/@langchain/xai/dist/chat_models.d.ts',
+    type: 'ChatXAIInput'
+  },
   WebLLM: {
     path: 'node_modules/@langchain/community/chat_models/webllm.d.ts',
     type: 'WebLLMInputs',
