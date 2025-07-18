@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "Your xAI Grok API Key"
+      },
+      "model": {
+        "type": "string",
+        "description": "Model name to use (e.g. grok-4)",
+        "default": "grok-4"
+      },
+      "temperature": {
+        "type": "number",
+        "description": "Sampling temperature",
+        "default": 0.7
+      },
+      "maxTokens": {
+        "type": "number",
+        "description": "Maximum number of tokens to generate"
+      }
+    },
+    "additionalProperties": false
+  }
+  
