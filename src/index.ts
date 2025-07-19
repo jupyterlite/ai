@@ -1,10 +1,12 @@
 import {
+  AbstractChatModel,
   ActiveCellManager,
   buildChatSidebar,
   buildErrorWidget,
   ChatCommandRegistry,
   IActiveCellManager,
   IChatCommandRegistry,
+  IChatMessage,
   InputToolbarRegistry
 } from '@jupyter/chat';
 import {
@@ -28,6 +30,7 @@ import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
 import { stopItem } from './components/stop-button';
+import { clearItem } from './components/clear-button';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -111,6 +114,12 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
     const stopButton = stopItem(() => chatHandler.stopStreaming());
+    const clearButton = clearItem(() => {
+      chatHandler.clearChat();
+      inputToolbarRegistry.hide('clear');
+    });
+    inputToolbarRegistry.addItem('clear', clearButton);
+    inputToolbarRegistry.hide('clear');
     inputToolbarRegistry.addItem('stop', stopButton);
 
     chatHandler.writersChanged.connect((_, writers) => {
@@ -126,6 +135,14 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         inputToolbarRegistry.show('send');
       }
     });
+
+    chatHandler.messageAdded = (message: IChatMessage): void => {
+      AbstractChatModel.prototype.messageAdded.call(chatHandler, message);
+
+      if (chatHandler.messages.length > 0) {
+        inputToolbarRegistry.show('clear');
+      }
+    };
 
     try {
       chatWidget = buildChatSidebar({
