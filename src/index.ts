@@ -12,7 +12,11 @@ import {
   JupyterFrontEndPlugin,
   ILayoutRestorer
 } from '@jupyterlab/application';
-import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ReactWidget,
+  IThemeManager,
+  MainAreaWidget
+} from '@jupyterlab/apputils';
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
@@ -28,6 +32,12 @@ import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
 import { stopItem } from './components/stop-button';
+import { buildSidebarWithHeader } from './components/chat-header';
+
+namespace Private {
+  // eslint-disable-next-line prefer-const
+  export let id = 0;
+}
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -127,15 +137,43 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
+    let chatCount = 0;
+
     try {
-      chatWidget = buildChatSidebar({
-        model: chatHandler,
-        themeManager,
-        rmRegistry,
-        chatCommandRegistry,
-        inputToolbarRegistry,
-        welcomeMessage: welcomeMessage(providerRegistry.providers)
-      });
+      chatWidget = buildSidebarWithHeader(
+        {
+          model: chatHandler,
+          themeManager,
+          rmRegistry,
+          chatCommandRegistry,
+          inputToolbarRegistry,
+          welcomeMessage: welcomeMessage(providerRegistry.providers)
+        },
+        () => {
+          const handler = new ChatHandler({ providerRegistry });
+          const content = buildChatSidebar({
+            model: handler,
+            themeManager,
+            rmRegistry,
+            chatCommandRegistry,
+            inputToolbarRegistry,
+            welcomeMessage: welcomeMessage(providerRegistry.providers)
+          });
+
+          const label = chatCount === 0 ? 'New Chat' : `New Chat-${chatCount}`;
+          chatCount++;
+
+          content.title.label = label;
+          content.title.closable = true;
+
+          const widget = new MainAreaWidget({ content });
+          widget.id = `chat-panel-${Private.id++}`;
+
+          app.shell.add(widget, 'main');
+          app.shell.activateById(widget.id);
+        },
+        chatHandler
+      );
     } catch (e) {
       chatWidget = buildErrorWidget(themeManager);
     }
