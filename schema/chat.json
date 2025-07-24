@@ -22,6 +22,12 @@
       "title": "AI persona name",
       "description": "The name of the AI persona",
       "default": "Jupyternaut"
+    },
+    "enableFileAttachment": {
+      "type": "boolean",
+      "title": "Enable file attachment support",
+      "default": false,
+      "description": "This allow you to sending attached files along with your message. ⚠️ This may send large content to the LLM, consuming many tokens."
     }
   },
   "additionalProperties": false
