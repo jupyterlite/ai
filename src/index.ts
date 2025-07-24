@@ -17,6 +17,7 @@ import { ICompletionProviderManager } from '@jupyterlab/completer';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { ITranslator } from '@jupyterlab/translation';
 import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
@@ -34,9 +35,11 @@ const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   description: 'Autocompletion registry',
   autoStart: true,
   provides: IChatCommandRegistry,
-  activate: () => {
+  requires: [ITranslator],
+  activate: (app: JupyterFrontEnd, translator: ITranslator) => {
+    const trans = translator.load('jupyterlite_ai');
     const registry = new ChatCommandRegistry();
-    registry.addProvider(new ChatHandler.ClearCommandProvider());
+    registry.addProvider(new ChatHandler.ClearCommandProvider(trans));
     return registry;
   }
 };
@@ -45,7 +48,12 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_IDS.chat,
   description: 'LLM chat extension',
   autoStart: true,
-  requires: [IAIProviderRegistry, IRenderMimeRegistry, IChatCommandRegistry],
+  requires: [
+    IAIProviderRegistry,
+    IRenderMimeRegistry,
+    IChatCommandRegistry,
+    ITranslator
+  ],
   optional: [
     INotebookTracker,
     ISettingRegistry,
@@ -57,11 +65,13 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     providerRegistry: IAIProviderRegistry,
     rmRegistry: IRenderMimeRegistry,
     chatCommandRegistry: IChatCommandRegistry,
+    translator: ITranslator,
     notebookTracker: INotebookTracker | null,
     settingsRegistry: ISettingRegistry | null,
     themeManager: IThemeManager | null,
     restorer: ILayoutRestorer | null
   ) => {
+    const trans = translator.load('jupyterlite_ai');
     let activeCellManager: IActiveCellManager | null = null;
     if (notebookTracker) {
       activeCellManager = new ActiveCellManager({
@@ -72,7 +82,8 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const chatHandler = new ChatHandler({
       providerRegistry,
-      activeCellManager
+      activeCellManager,
+      translator: trans
     });
 
     let sendWithShiftEnter = false;
@@ -94,7 +105,9 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       .then(([, settings]) => {
         if (!settings) {
           console.warn(
-            'The SettingsRegistry is not loaded for the chat extension'
+            trans.__(
+              'The SettingsRegistry is not loaded for the chat extension'
+            )
           );
           return;
         }
@@ -103,14 +116,17 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       })
       .catch(reason => {
         console.error(
-          `Something went wrong when reading the settings.\n${reason}`
+          trans.__(
+            'Something went wrong when reading the settings.\n%1',
+            reason
+          )
         );
       });
 
     let chatWidget: ReactWidget | null = null;
 
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
-    const stopButton = stopItem(() => chatHandler.stopStreaming());
+    const stopButton = stopItem(() => chatHandler.stopStreaming(), trans);
     inputToolbarRegistry.addItem('stop', stopButton);
 
     chatHandler.writersChanged.connect((_, writers) => {
@@ -134,13 +150,13 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         rmRegistry,
         chatCommandRegistry,
         inputToolbarRegistry,
-        welcomeMessage: welcomeMessage(providerRegistry.providers)
+        welcomeMessage: welcomeMessage(providerRegistry.providers, trans)
       });
     } catch (e) {
       chatWidget = buildErrorWidget(themeManager);
     }
 
-    chatWidget.title.caption = 'Jupyterlite AI Chat';
+    chatWidget.title.caption = trans.__('Jupyterlite AI Chat');
     chatWidget.id = '@jupyterlite/ai:chat-widget';
 
     app.shell.add(chatWidget as ReactWidget, 'left', { rank: 2000 });
@@ -172,16 +188,18 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
   SecretsManager.sign(PLUGIN_IDS.providerRegistry, token => ({
     id: PLUGIN_IDS.providerRegistry,
     autoStart: true,
-    requires: [IFormRendererRegistry, ISettingRegistry],
+    requires: [IFormRendererRegistry, ISettingRegistry, ITranslator],
     optional: [IRenderMimeRegistry, ISecretsManager],
     provides: IAIProviderRegistry,
     activate: (
       app: JupyterFrontEnd,
       editorRegistry: IFormRendererRegistry,
       settingRegistry: ISettingRegistry,
+      translator: ITranslator,
       rmRegistry?: IRenderMimeRegistry,
       secretsManager?: ISecretsManager
     ): IAIProviderRegistry => {
+      const trans = translator.load('jupyterlite_ai');
       const providerRegistry = new AIProviderRegistry({
         token,
         secretsManager
@@ -193,7 +211,8 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
           providerRegistry,
           secretsToken: token,
           rmRegistry,
-          secretsManager
+          secretsManager,
+          translator
         })
       );
 
@@ -232,7 +251,10 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
         })
         .catch(reason => {
           console.error(
-            `Failed to load settings for ${providerRegistryPlugin.id}`,
+            trans.__(
+              'Failed to load settings for %1',
+              providerRegistryPlugin.id
+            ),
             reason
           );
         });
@@ -244,14 +266,16 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
 const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_IDS.systemPrompts,
   autoStart: true,
-  requires: [IAIProviderRegistry, ISettingRegistry],
+  requires: [IAIProviderRegistry, ISettingRegistry, ITranslator],
   optional: [IFormRendererRegistry],
   activate: (
     app: JupyterFrontEnd,
     providerRegistry: IAIProviderRegistry,
     settingsRegistry: ISettingRegistry,
+    translator: ITranslator,
     editorRegistry: IFormRendererRegistry | null
   ): void => {
+    const trans = translator.load('jupyterlite_ai');
     // Set textarea renderer for the prompt setting.
     editorRegistry?.addRenderer(
       `${PLUGIN_IDS.systemPrompts}.chatSystemPrompt`,
@@ -280,7 +304,9 @@ const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
       .then(([, settings]) => {
         if (!settings) {
           console.warn(
-            'The SettingsRegistry is not loaded for the chat extension'
+            trans.__(
+              'The SettingsRegistry is not loaded for the chat extension'
+            )
           );
           return;
         }
@@ -289,7 +315,10 @@ const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
       })
       .catch(reason => {
         console.error(
-          `Something went wrong when reading the settings.\n${reason}`
+          trans.__(
+            'Something went wrong when reading the settings.\n%1',
+            reason
+          )
         );
       });
   }
