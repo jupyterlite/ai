@@ -81,17 +81,27 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
+    let enableFileAttachment = false;
     let personaName = 'AI';
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
-        .composite as boolean;
-      enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
-      personaName = setting.get('personaName').composite as string;
+        ?.composite as boolean;
+      enableCodeToolbar = setting.get('enableCodeToolbar')
+        ?.composite as boolean;
+      personaName = setting.get('personaName')?.composite as string;
+      enableFileAttachment = setting.get('enableFileAttachment')
+        ?.composite as boolean;
 
       // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
       chatHandler.personaName = personaName;
+
+      if (enableFileAttachment) {
+        inputToolbarRegistry.show('attach');
+      } else {
+        inputToolbarRegistry.hide('attach');
+      }
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
