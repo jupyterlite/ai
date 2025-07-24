@@ -58,10 +58,10 @@ export class AIProviderRegistry implements IAIProviderRegistry {
     Private.providers.set(provider.name, provider);
 
     // Set the providers if the loading has been deferred.
-    if (provider.name === this._deferredProvider.completer?.name) {
+    if (provider.name === this._deferredProvider.completer?.provider) {
       this.setCompleterProvider(this._deferredProvider.completer);
     }
-    if (provider.name === this._deferredProvider.chat?.name) {
+    if (provider.name === this._deferredProvider.chat?.provider) {
       this.setChatProvider(this._deferredProvider.chat);
     }
   }
