@@ -72,6 +72,7 @@
         "@langchain/mistralai": "^0.2.1",
         "@langchain/ollama": "^0.2.3",
         "@langchain/openai": "^0.5.16",
+        "@langchain/xai": "^0.0.3",
         "@lumino/coreutils": "^2.1.2",
         "@lumino/polling": "^2.1.2",
         "@lumino/signaling": "^2.1.2",
