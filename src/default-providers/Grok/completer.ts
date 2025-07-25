@@ -31,13 +31,24 @@ export class GrokCompleter extends BaseCompleter {
 
     try {
       const response = await this._completer.invoke(messages);
-      return {
-        items: [
-          {
-            insertText: response.content,
-            filterText: prompt
+      const items = [];
+      if (typeof response.content === 'string') {
+        items.push({
+          insertText: response.content
+        });
+      } else {
+        response.content.forEach(content => {
+          if (content.type !== 'text') {
+            return;
           }
-        ]
+          items.push({
+            insertText: content.text,
+            filterText: prompt.substring(prompt.length)
+          });
+        });
+      }
+      return {
+        items
       };
     } catch (error) {
       console.error('Error fetching Grok completions', error);
