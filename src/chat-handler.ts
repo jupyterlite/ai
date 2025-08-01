@@ -119,12 +119,9 @@ export class ChatHandler extends AbstractChatModel {
    * Get the system prompt for the chat.
    */
   get systemPrompt(): string {
-    let prompt =
-      this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT;
-    if (this.agent !== null) {
-      prompt = prompt.concat('\nPlease use the tool that is provided');
-    }
-    return prompt;
+    return (
+      this._providerRegistry.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT
+    );
   }
 
   async sendMessage(message: INewMessage): Promise<boolean> {
@@ -283,9 +280,15 @@ export class ChatHandler extends AbstractChatModel {
         } else if ((chunk as any).tools) {
           messages = (chunk as any).tools.messages;
           messages.forEach(message => {
+            const content = message.content as string;
+            const contentData = JSON.parse(content);
+            const title = contentData.command
+              ? contentData.command
+              : 'Show details';
+            const body = `<details><summary>${title}</summary><pre>${content}</pre></details>`;
             this.messageAdded({
               id: UUID.uuid4(),
-              body: message.content as string,
+              body,
               sender: { username: `Tool "${message.name}"` },
               time: Private.getTimestampMs(),
               type: 'msg'

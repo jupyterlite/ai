@@ -29,7 +29,7 @@ import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, IToolRegistry, PLUGIN_IDS } from './tokens';
 import { ToolsRegistry } from './tool-registry';
-import { createNotebook } from './tools/create-notebook';
+import { notebook } from './tools/notebook';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -331,7 +331,7 @@ const toolRegistryPlugin: JupyterFrontEndPlugin<IToolRegistry> = {
   provides: IToolRegistry,
   activate: (app: JupyterFrontEnd): IToolRegistry => {
     const registry = new ToolsRegistry();
-    registry.add(createNotebook(app.commands));
+    registry.add(notebook(app.commands));
     return registry;
   }
 };
