@@ -69,6 +69,7 @@
         "@langchain/community": "^0.3.48",
         "@langchain/core": "^0.3.62",
         "@langchain/google-genai": "^0.2.14",
+        "@langchain/langgraph": "^0.4.1",
         "@langchain/mistralai": "^0.2.1",
         "@langchain/ollama": "^0.2.3",
         "@langchain/openai": "^0.5.16",
@@ -87,6 +88,9 @@
         "jupyter-secrets-manager": "^0.4.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
+    },
+    "resolutions": {
+        "zod": "3.25.67"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.4.0",
@@ -127,6 +131,7 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "webpackConfig": "./webpack.config.js"
     }
 }
