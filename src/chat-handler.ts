@@ -9,7 +9,6 @@ import {
   AbstractChatModel,
   IChatCommandProvider,
   IChatContext,
-  IChatHistory,
   IChatMessage,
   IChatModel,
   IInputModel,
@@ -48,11 +47,6 @@ The current providers that are available are _${providers.sort().join('_, _')}_.
 
 To clear the chat, you can use the \`/clear\` command from the chat input.
 `;
-
-export type ConnectionMessage = {
-  type: 'connection';
-  client_id: string;
-};
 
 export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
@@ -129,7 +123,7 @@ export class ChatHandler extends AbstractChatModel {
     if (body.startsWith('/clear')) {
       // TODO: do we need a clear method?
       this.messagesDeleted(0, this.messages.length);
-      this._history.messages = [];
+      this._history = [];
       return false;
     }
     message.id = UUID.uuid4();
@@ -156,17 +150,14 @@ export class ChatHandler extends AbstractChatModel {
       return false;
     }
 
-    this._history.messages.push(msg);
+    const messages = mergeMessageRuns([
+      new SystemMessage(this.systemPrompt),
+      ...this._history
+    ]);
 
-    const messages = mergeMessageRuns([new SystemMessage(this.systemPrompt)]);
-    messages.push(
-      ...this._history.messages.map(msg => {
-        if (msg.sender.username === 'User') {
-          return new HumanMessage(msg.body);
-        }
-        return new AIMessage(msg.body);
-      })
-    );
+    const newMessage = new HumanMessage(msg.body);
+    messages.push(newMessage);
+    this._history.push(newMessage);
 
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([{ user: sender }]);
@@ -176,10 +167,6 @@ export class ChatHandler extends AbstractChatModel {
     }
 
     return this._sentChatMessage(chatModel, messages, sender);
-  }
-
-  async getHistory(): Promise<IChatHistory> {
-    return this._history;
   }
 
   dispose(): void {
@@ -221,7 +208,7 @@ export class ChatHandler extends AbstractChatModel {
         botMsg.body = content;
         this.messageAdded(botMsg);
       }
-      this._history.messages.push(botMsg);
+      this._history.push(new AIMessage(content));
       return true;
     } catch (reason) {
       const error = this._providerRegistry.formatErrorMessage(reason);
@@ -257,6 +244,7 @@ export class ChatHandler extends AbstractChatModel {
         if ((chunk as any).agent) {
           messages = (chunk as any).agent.messages;
           messages.forEach(message => {
+            this._history.push(message);
             const contents: string[] = [];
             if (typeof message.content === 'string') {
               contents.push(message.content);
@@ -280,6 +268,7 @@ export class ChatHandler extends AbstractChatModel {
         } else if ((chunk as any).tools) {
           messages = (chunk as any).tools.messages;
           messages.forEach(message => {
+            this._history.push(message);
             const content = message.content as string;
             const contentData = JSON.parse(content);
             const title = contentData.command
@@ -317,7 +306,7 @@ export class ChatHandler extends AbstractChatModel {
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _errorMessage: string = '';
-  private _history: IChatHistory = { messages: [] };
+  private _history: BaseMessage[] = [];
   private _defaultErrorMessage = 'AI provider not configured';
   private _controller: AbortController | null = null;
   private _toolRegistry?: IToolRegistry;
