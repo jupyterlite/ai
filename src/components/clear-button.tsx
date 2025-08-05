@@ -2,8 +2,7 @@
  * Copyright (c) Jupyter Development Team.
  * Distributed under the terms of the Modified BSD License.
  */
-
-import BackspaceIcon from '@mui/icons-material/Backspace';
+import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRounded';
 import React from 'react';
 
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
@@ -35,7 +34,7 @@ export function ClearButton(props: IClearButtonProps): JSX.Element {
         title: tooltip
       }}
     >
-      <BackspaceIcon />
+      <CleaningServicesRoundedIcon />
     </TooltippedButton>
   );
 }

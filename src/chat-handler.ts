@@ -63,7 +63,7 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   clearChat(): void {
-    this.messagesDeleted(0, this.messages.length);
+    this.clearMessages();
     this._history.messages = [];
   }
 

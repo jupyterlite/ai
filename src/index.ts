@@ -1,12 +1,10 @@
 import {
-  AbstractChatModel,
   ActiveCellManager,
   buildChatSidebar,
   buildErrorWidget,
   ChatCommandRegistry,
   IActiveCellManager,
   IChatCommandRegistry,
-  IChatMessage,
   InputToolbarRegistry
 } from '@jupyter/chat';
 import {
@@ -136,13 +134,13 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    chatHandler.messageAdded = (message: IChatMessage): void => {
-      AbstractChatModel.prototype.messageAdded.call(chatHandler, message);
-
+    chatHandler.messagesUpdated.connect(() => {
       if (chatHandler.messages.length > 0) {
         inputToolbarRegistry.show('clear');
+      } else {
+        inputToolbarRegistry.hide('clear');
       }
-    };
+    });
 
     try {
       chatWidget = buildChatSidebar({
