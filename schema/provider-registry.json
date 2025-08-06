@@ -13,9 +13,9 @@
     },
     "AllowToolsUsage": {
       "type": "boolean",
-      "title": "Allow tools usage",
+      "title": "Allow tools usage (EXPERIMENTAL)",
       "description": "Whether tools are available in chat or not",
-      "default": true
+      "default": false
     },
     "UniqueProvider": {
       "type": "boolean",
