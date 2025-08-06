@@ -39,12 +39,12 @@ export const welcomeMessage = (providers: string[]) => `
 #### Ask JupyterLite AI
 
 
-The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI provider"}' href="#">settings editor</button>, by selecting it from
-the <img src="${AI_AVATAR}" width="16" height="16"> _AI provider_ settings.
+The provider to use can be set in the <button data-commandLinker-command="settingeditor:open" data-commandLinker-args='{"query": "AI providers"}' href="#">settings editor</button>, by selecting it from
+the <img src="${AI_AVATAR}" width="16" height="16"> _AI providers_ settings.
 
 The current providers that are available are _${providers.sort().join('_, _')}_.
 
-To clear the chat, you can use the \`/clear\` command from the chat input.
+- To clear the chat, you can use the \`/clear\` command from the chat input.
 `;
 
 export type ConnectionMessage = {
