@@ -113,7 +113,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
     const stopButton = stopItem(() => chatHandler.stopStreaming());
     const clearButton = clearItem(() => {
-      chatHandler.clearChat();
+      chatHandler.clearMessages();
       inputToolbarRegistry.hide('clear');
     });
     inputToolbarRegistry.addItem('clear', clearButton);

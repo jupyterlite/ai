@@ -50,6 +50,6 @@ export function clearItem(
       const clearProps: IClearButtonProps = { ...props, clearChat };
       return <ClearButton {...clearProps} />;
     },
-    position: 60
+    position: 100
   };
 }
