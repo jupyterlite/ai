@@ -28,6 +28,7 @@ import { AIProviderRegistry } from './provider';
 import { aiSettingsRenderer, textArea } from './settings';
 import { IAIProviderRegistry, PLUGIN_IDS } from './tokens';
 import { stopItem } from './components/stop-button';
+import { clearItem } from './components/clear-button';
 
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
   id: PLUGIN_IDS.chatCommandRegistry,
@@ -78,16 +79,25 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
     let personaName = 'AI';
+    let enableClearChatButton = false;
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
         .composite as boolean;
       enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
-      personaName = setting.get('personaName').composite as string;
+      personaName = setting.get('personaName')?.composite as string;
+      enableClearChatButton = setting.get('enableClearChatButton')
+        .composite as boolean;
 
       // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
       chatHandler.personaName = personaName;
+
+      if (enableClearChatButton && chatHandler.messages.length > 0) {
+        inputToolbarRegistry.show('clear');
+      } else {
+        inputToolbarRegistry.hide('clear');
+      }
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
@@ -111,6 +121,12 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
 
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
     const stopButton = stopItem(() => chatHandler.stopStreaming());
+    const clearButton = clearItem(() => {
+      chatHandler.clearMessages();
+      inputToolbarRegistry.hide('clear');
+    });
+    inputToolbarRegistry.addItem('clear', clearButton);
+    inputToolbarRegistry.hide('clear');
     inputToolbarRegistry.addItem('stop', stopButton);
 
     chatHandler.writersChanged.connect((_, writers) => {
@@ -124,6 +140,18 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       } else {
         inputToolbarRegistry.hide('stop');
         inputToolbarRegistry.show('send');
+      }
+    });
+
+    chatHandler.messagesUpdated.connect(() => {
+      if (!enableClearChatButton) {
+        inputToolbarRegistry.hide('clear');
+        return;
+      }
+      if (chatHandler.messages.length > 0) {
+        inputToolbarRegistry.show('clear');
+      } else {
+        inputToolbarRegistry.hide('clear');
       }
     });
 

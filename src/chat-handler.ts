@@ -62,6 +62,11 @@ export class ChatHandler extends AbstractChatModel {
     });
   }
 
+  clearMessages(): void {
+    super.clearMessages();
+    this._history.messages = [];
+  }
+
   get provider(): AIChatModel | null {
     return this._providerRegistry.currentChatModel;
   }
