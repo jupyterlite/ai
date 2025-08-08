@@ -5,3 +5,4 @@ coverage
 tests
 **/__tests__
 ui-tests
+webpack.config.js

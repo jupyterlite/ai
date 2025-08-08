@@ -20,6 +20,11 @@
   min-height: 300px;
 }
 
+.jp-AIToolSelect-item .lm-Menu-itemIcon {
+  display: flex;
+  align-items: center;
+}
+
 .jp-chat-welcome-message {
   text-align: center;
   max-width: 350px;

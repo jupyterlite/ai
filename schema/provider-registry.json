@@ -11,6 +11,12 @@
       "description": "Whether to use or not the secrets manager. If not, secrets will be stored in the browser (local storage)",
       "default": true
     },
+    "AllowToolsUsage": {
+      "type": "boolean",
+      "title": "Allow tools usage (EXPERIMENTAL)",
+      "description": "Whether tools are available in chat or not",
+      "default": false
+    },
     "UniqueProvider": {
       "type": "boolean",
       "title": "Use the same provider for chat and completer",
