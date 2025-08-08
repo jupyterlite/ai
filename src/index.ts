@@ -79,16 +79,25 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     let sendWithShiftEnter = false;
     let enableCodeToolbar = true;
     let personaName = 'AI';
+    let enableClearChatButton = false;
 
     function loadSetting(setting: ISettingRegistry.ISettings): void {
       sendWithShiftEnter = setting.get('sendWithShiftEnter')
         .composite as boolean;
       enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
-      personaName = setting.get('personaName').composite as string;
+      personaName = setting.get('personaName')?.composite as string;
+      enableClearChatButton = setting.get('enableClearChatButton')
+        .composite as boolean;
 
       // set the properties
       chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
       chatHandler.personaName = personaName;
+
+      if (enableClearChatButton && chatHandler.messages.length > 0) {
+        inputToolbarRegistry.show('clear');
+      } else {
+        inputToolbarRegistry.hide('clear');
+      }
     }
 
     Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
@@ -135,6 +144,10 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
     });
 
     chatHandler.messagesUpdated.connect(() => {
+      if (!enableClearChatButton) {
+        inputToolbarRegistry.hide('clear');
+        return;
+      }
       if (chatHandler.messages.length > 0) {
         inputToolbarRegistry.show('clear');
       } else {
