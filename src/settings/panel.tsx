@@ -256,26 +256,20 @@ export class AiProviderSettings extends React.Component<
     };
     this._providerSchema = providerSchema as JSONSchema7;
 
-    // Check if there is saved values in local storage, otherwise use the settings from
-    // the setting registry (leads to default if there are no user settings).
-    const storageKey = STORAGE_KEYS[this._role];
-    const storageSettings = localStorage.getItem(storageKey);
-    if (storageSettings === null) {
-      const labSettings = this.props.aiSettings.getSettingsFromRegistry(
-        this._role
-      );
-      if (Object.keys(labSettings).includes('provider')) {
-        // Get the provider name.
-        const provider = Object.entries(labSettings).find(
-          v => v[0] === 'provider'
-        )?.[1] as string;
-        // Save the settings.
-        const settings: any = {
-          _current: provider
-        };
-        settings[provider] = labSettings;
-        this.props.aiSettings.setLocalStorageItem(this._role, null, settings);
-      }
+    // Check if there are saved values in the setting registry, and update the local
+    // storage with it.
+    const labSettings = this.props.aiSettings.getSettingsFromRegistry(
+      this._role
+    );
+    if (
+      Object.keys(labSettings).includes('provider') &&
+      labSettings.provider !== null
+    ) {
+      const provider = labSettings.provider;
+      const localStorage = this.props.aiSettings.getLocalStorage(this._role);
+      localStorage._current = provider;
+      localStorage[provider] = labSettings;
+      this.props.aiSettings.setLocalStorageItem(this._role, null, localStorage);
     }
 
     // Initialize the settings from the saved ones.
