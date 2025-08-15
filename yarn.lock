@@ -1526,6 +1526,7 @@ __metadata:
     "@langchain/community": ^0.3.48
     "@langchain/core": ^0.3.62
     "@langchain/google-genai": ^0.2.14
+    "@langchain/langgraph": ^0.4.1
     "@langchain/mistralai": ^0.2.1
     "@langchain/ollama": ^0.2.3
     "@langchain/openai": ^0.5.16
@@ -2010,6 +2011,58 @@ __metadata:
   peerDependencies:
     "@langchain/core": ">=0.3.58 <0.4.0"
   checksum: 5c326f89dca004cae7211024a743dfe28bdfb25c1ebef8e5293d8798bff1536d14e13bf021e70d831ea3e2f9f7e88a890181ea93d6867648b538ff0acabaa6b1
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-checkpoint@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@langchain/langgraph-checkpoint@npm:0.1.0"
+  dependencies:
+    uuid: ^10.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+  checksum: 1a2427fde5b1e0372603d25d749279fee4648b230d4258674ac0771f10d3e7ba79554c7ee9e1acdae2b08190a1dc7505a31f3f807c7a20572cb7fa5572875619
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph-sdk@npm:~0.0.105":
+  version: 0.0.105
+  resolution: "@langchain/langgraph-sdk@npm:0.0.105"
+  dependencies:
+    "@types/json-schema": ^7.0.15
+    p-queue: ^6.6.2
+    p-retry: 4
+    uuid: ^9.0.0
+  peerDependencies:
+    "@langchain/core": ">=0.2.31 <0.4.0"
+    react: ^18 || ^19
+    react-dom: ^18 || ^19
+  peerDependenciesMeta:
+    "@langchain/core":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 092d9df70116c3e8d9a499677b072db81da482a1264e48dc52f858f5bbf5ac82ae8e662b52068527a114d79cc8594a845f2e4c1424691d347a90a76536797148
+  languageName: node
+  linkType: hard
+
+"@langchain/langgraph@npm:^0.4.1":
+  version: 0.4.1
+  resolution: "@langchain/langgraph@npm:0.4.1"
+  dependencies:
+    "@langchain/langgraph-checkpoint": ^0.1.0
+    "@langchain/langgraph-sdk": ~0.0.105
+    uuid: ^10.0.0
+    zod: ^3.25.32
+  peerDependencies:
+    "@langchain/core": ">=0.3.58 < 0.4.0"
+    zod-to-json-schema: ^3.x
+  peerDependenciesMeta:
+    zod-to-json-schema:
+      optional: true
+  checksum: 2c2bbeb651cb5550bec8222704ba292d34e9798fd2f1d89d8695964ad4d10c54030bda5239e5e898807d53beb5b7bdf03ec5e1a9e022b4825dd13876d9a09d69
   languageName: node
   linkType: hard
 
@@ -8457,7 +8510,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^9.0.1":
+"uuid@npm:^9.0.0, uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
   bin:
@@ -9000,10 +9053,10 @@ __metadata:
   checksum: 5f4d29597cfd88d8fb8a539f0169affb8705d67ee9cbe478aa01bb1d2554e0540ca713fa4ddeb2fd834e87e7cdff61fa396f6d1925a9006de70afe6cd68bf7d2
   languageName: node
   linkType: hard
-
 "zod@npm:^3.25.32":
   version: 3.25.76
   resolution: "zod@npm:3.25.76"
   checksum: c9a403a62b329188a5f6bd24d5d935d2bba345f7ab8151d1baa1505b5da9f227fb139354b043711490c798e91f3df75991395e40142e6510a4b16409f302b849
+
   languageName: node
   linkType: hard
