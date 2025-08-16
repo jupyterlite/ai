@@ -56,8 +56,6 @@ const AIProviders: IAIProvider[] = [
   },
   {
     name: 'ChromeAI',
-    // TODO: fix
-    // @ts-expect-error: missing properties
     chat: ChromeAI,
     completer: ChromeCompleter,
     instructions: ChromeAIInstructions,
