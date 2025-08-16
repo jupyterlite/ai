@@ -6,7 +6,7 @@ import { Notification } from '@jupyterlab/apputils';
 
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatWebLLM } from '@langchain/community/chat_models/webllm';
-import { ChromeAI } from '@langchain/community/experimental/llms/chrome_ai';
+import { ChromeChatModel } from '../default-providers/ChromeAI/chat';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { ChatOllama } from '@langchain/ollama';
@@ -56,7 +56,7 @@ const AIProviders: IAIProvider[] = [
   },
   {
     name: 'ChromeAI',
-    chat: ChromeAI,
+    chat: ChromeChatModel,
     completer: ChromeCompleter,
     instructions: ChromeAIInstructions,
     settingsSchema: ChromeAISettings,

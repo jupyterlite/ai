@@ -3,7 +3,6 @@ import { StructuredToolInterface } from '@langchain/core/tools';
 import { ReadonlyPartialJSONObject, Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { JSONSchema7 } from 'json-schema';
-import { BaseLLM } from '@langchain/core/language_models/llms';
 
 import { IBaseCompleter } from './base-completer';
 import { AIChatModel, AICompleter } from './types/ai-model';
@@ -39,7 +38,7 @@ export interface IAIProvider {
   /**
    * The chat model class to use.
    */
-  chat?: IType<BaseChatModel> | IType<BaseLLM>;
+  chat?: IType<BaseChatModel>;
   /**
    * The completer class to use.
    */
