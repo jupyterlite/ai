@@ -160,7 +160,7 @@ const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
  * Initialization data for the labai extension.
  */
 const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
-  id: 'labai:plugin',
+  id: '@jupyterlite/ai:plugin',
   description: 'AI in JupyterLab',
   autoStart: true,
   provides: ILabAISettingsModel,

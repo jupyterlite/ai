@@ -1,7 +1,7 @@
 {
   "jupyter.lab.shortcuts": [],
-  "title": "LabAI Settings",
-  "description": "Configuration for LabAI extension providers, models, and behavior",
+  "title": "JupyterLite AI Settings",
+  "description": "Configuration for JupyterLite AI extension providers, models, and behavior",
   "type": "object",
   "properties": {
     "providers": {
