@@ -1,7 +1,0 @@
-{
-  "title": "AI provider",
-  "description": "Provider settings",
-  "type": "object",
-  "properties": {},
-  "additionalProperties": false
-}
