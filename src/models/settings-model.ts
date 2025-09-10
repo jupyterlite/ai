@@ -1,6 +1,8 @@
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+const PLUGIN_ID = '@jupyterlite/ai:plugin';
+
 export interface IProviderConfig {
   id: string;
   name: string;
@@ -161,7 +163,7 @@ Ready to help you build something great! What are you working on?`
 
   private async initializeSettings(): Promise<void> {
     try {
-      this._settings = await this._settingRegistry.load('labai:plugin');
+      this._settings = await this._settingRegistry.load(PLUGIN_ID);
       this.loadFromSettings();
 
       // Listen for settings changes
