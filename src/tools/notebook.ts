@@ -428,6 +428,7 @@ export function createGetCellInfoTool(
 
         return JSON.stringify({
           success: true,
+          cellId: cell.id,
           cellIndex,
           cellType,
           source,
@@ -455,7 +456,7 @@ export function createSetCellContentTool(
   return tool({
     name: 'set_cell_content',
     description:
-      'Set the content and optionally the type of a specific cell or the active cell',
+      'Set the content of a specific cell and return both the previous and new content',
     parameters: z.object({
       notebookPath: z
         .string()
@@ -464,27 +465,29 @@ export function createSetCellContentTool(
         .describe(
           'Path to the notebook file. If not provided, uses the currently active notebook'
         ),
+      cellId: z
+        .string()
+        .optional()
+        .nullable()
+        .describe(
+          'ID of the cell to modify. If provided, takes precedence over cellIndex'
+        ),
       cellIndex: z
         .number()
         .optional()
         .nullable()
         .describe(
-          'Index of the cell to modify (0-based). If not provided, targets the active cell'
+          'Index of the cell to modify (0-based). Used if cellId is not provided. If neither is provided, targets the active cell'
         ),
-      content: z.string().describe('New content for the cell'),
-      cellType: z
-        .enum(['code', 'markdown', 'raw'])
-        .optional()
-        .nullable()
-        .describe('Optional: change the cell type')
+      content: z.string().describe('New content for the cell')
     }),
     execute: async (input: {
       notebookPath?: string | null;
+      cellId?: string | null;
       cellIndex?: number | null;
       content: string;
-      cellType?: 'code' | 'markdown' | 'raw' | null;
     }) => {
-      const { notebookPath, cellIndex, content, cellType } = input;
+      const { notebookPath, cellId, cellIndex, content } = input;
 
       try {
         const currentWidget = await getNotebookWidget(
@@ -513,7 +516,22 @@ export function createSetCellContentTool(
 
         // Determine target cell index
         let targetCellIndex: number;
-        if (cellIndex !== undefined && cellIndex !== null) {
+        if (cellId !== undefined && cellId !== null) {
+          // Find cell by ID
+          targetCellIndex = -1;
+          for (let i = 0; i < model.cells.length; i++) {
+            if (model.cells.get(i).id === cellId) {
+              targetCellIndex = i;
+              break;
+            }
+          }
+          if (targetCellIndex === -1) {
+            return JSON.stringify({
+              success: false,
+              error: `Cell with ID '${cellId}' not found in notebook`
+            });
+          }
+        } else if (cellIndex !== undefined && cellIndex !== null) {
           // Use provided cell index
           if (cellIndex < 0 || cellIndex >= model.cells.length) {
             return JSON.stringify({
@@ -543,30 +561,34 @@ export function createSetCellContentTool(
         }
 
         const sharedModel = targetCell.sharedModel;
-        sharedModel.transact(() => {
-          if (cellType) {
-            sharedModel.cell_type = cellType;
-          }
-          if (content) {
-            sharedModel.setSource(content);
-          }
-        }, false);
+
+        // Get previous content and type
+        const previousContent = sharedModel.getSource();
+        const previousCellType = targetCell.type;
+        const retrievedCellId = targetCell.id;
+
+        sharedModel.setSource(content);
 
         return JSON.stringify({
           success: true,
           message:
-            cellIndex !== undefined && cellIndex !== null
-              ? `Cell ${targetCellIndex} content updated successfully`
-              : 'Active cell content updated successfully',
+            cellId !== undefined && cellId !== null
+              ? `Cell with ID '${cellId}' content replaced successfully`
+              : cellIndex !== undefined && cellIndex !== null
+                ? `Cell ${targetCellIndex} content replaced successfully`
+                : 'Active cell content replaced successfully',
+          notebookPath: currentWidget.context.path,
+          cellId: retrievedCellId,
           cellIndex: targetCellIndex,
-          content,
-          cellType: cellType || targetCell.type,
-          wasActiveCell: cellIndex === undefined || cellIndex === null
+          previousContent,
+          previousCellType,
+          newContent: content,
+          wasActiveCell: cellId === undefined && cellIndex === undefined
         });
       } catch (error) {
         return JSON.stringify({
           success: false,
-          error: `Failed to set cell content: ${(error as Error).message}`
+          error: `Failed to replace cell content: ${(error as Error).message}`
         });
       }
     }
