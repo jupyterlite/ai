@@ -1,72 +1,263 @@
 import {
+  ILabShell,
+  ILayoutRestorer,
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+
+import {
   ActiveCellManager,
-  buildChatSidebar,
-  buildErrorWidget,
-  ChatCommandRegistry,
-  IActiveCellManager,
-  IChatCommandRegistry,
+  AttachmentOpenerRegistry,
+  ChatWidget,
   InputToolbarRegistry
 } from '@jupyter/chat';
-import {
-  JupyterFrontEnd,
-  JupyterFrontEndPlugin,
-  ILayoutRestorer
-} from '@jupyterlab/application';
-import { ReactWidget, IThemeManager } from '@jupyterlab/apputils';
+
+import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+
 import { ICompletionProviderManager } from '@jupyterlab/completer';
+
+import { IDocumentManager } from '@jupyterlab/docmanager';
+
 import { INotebookTracker } from '@jupyterlab/notebook';
+
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+
+import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
+
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { IFormRendererRegistry } from '@jupyterlab/ui-components';
-import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
-import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { ChatHandler, welcomeMessage } from './chat-handler';
-import { CompletionProvider } from './completion-provider';
-import { clearItem, stopItem, toolSelect } from './components';
-import { defaultProviderPlugins } from './default-providers';
-import { AIProviderRegistry } from './provider';
-import { aiSettingsRenderer, textArea } from './settings';
-import { IAIProviderRegistry, IToolRegistry, PLUGIN_IDS } from './tokens';
-import { ToolsRegistry } from './tool-registry';
-import { notebook } from './tools/notebook';
+import { settingsIcon } from '@jupyterlab/ui-components';
 
-const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
-  id: PLUGIN_IDS.chatCommandRegistry,
-  description: 'Autocompletion registry',
+import { AgentManager } from './agent';
+import { AIChatModel } from './chat-model';
+
+import {
+  ChatProviderRegistry,
+  CompletionProviderRegistry
+} from './providers/provider-registry';
+
+import {
+  IChatProviderRegistry,
+  ICompletionProviderRegistry,
+  ILabAISettingsModel
+} from './tokens';
+
+import {
+  registerBuiltInChatProviders,
+  registerBuiltInCompletionProviders
+} from './providers/built-in-providers';
+
+import { AICompletionProvider } from './completion';
+
+import { clearItem } from './components/clear-button';
+
+import { createModelSelectItem } from './components/model-select';
+
+import { stopItem } from './components/stop-button';
+
+import { createToolSelectItem } from './components/tool-select';
+
+import { AISettingsModel } from './models/settings-model';
+
+import { ToolRegistry } from './tools/tool-registry';
+
+import {
+  createAddCellTool,
+  createDeleteCellTool,
+  createExecuteActiveCellTool,
+  createGetCellInfoTool,
+  createGetNotebookInfoTool,
+  createNotebookCreationTool,
+  createRunCellTool,
+  createSaveNotebookTool,
+  createSetCellContentTool
+} from './tools/notebook';
+
+import {
+  createCopyFileTool,
+  createDeleteFileTool,
+  createNavigateToDirectoryTool,
+  createNewFileTool,
+  createOpenFileTool,
+  createRenameFileTool
+} from './tools/file';
+
+import {
+  createDiscoverCommandsTool,
+  createExecuteCommandTool
+} from './tools/commands';
+
+import { AISettingsWidget } from './widgets/ai-settings';
+
+import { ChatWrapperWidget } from './widgets/chat-wrapper';
+
+/**
+ * Command IDs namespace
+ */
+namespace CommandIds {
+  export const openSettings = 'labai:open-settings';
+  export const reposition = 'labai:reposition';
+}
+
+/**
+ * Chat provider registry plugin
+ */
+const chatProviderRegistryPlugin: JupyterFrontEndPlugin<IChatProviderRegistry> =
+  {
+    id: 'labai:chat-provider-registry',
+    description: 'Chat AI provider registry',
+    autoStart: true,
+    provides: IChatProviderRegistry,
+    activate: () => {
+      return new ChatProviderRegistry();
+    }
+  };
+
+/**
+ * Completion provider registry plugin
+ */
+const completionProviderRegistryPlugin: JupyterFrontEndPlugin<ICompletionProviderRegistry> =
+  {
+    id: 'labai:completion-provider-registry',
+    description: 'Completion provider registry',
+    autoStart: true,
+    provides: ICompletionProviderRegistry,
+    activate: () => {
+      return new CompletionProviderRegistry();
+    }
+  };
+
+/**
+ * Built-in chat providers plugin
+ */
+const builtInChatProvidersPlugin: JupyterFrontEndPlugin<void> = {
+  id: 'labai:built-in-chat-providers',
+  description: 'Register built-in chat AI providers',
   autoStart: true,
-  provides: IChatCommandRegistry,
-  activate: () => {
-    const registry = new ChatCommandRegistry();
-    registry.addProvider(new ChatHandler.ClearCommandProvider());
-    return registry;
+  requires: [IChatProviderRegistry],
+  activate: (app: JupyterFrontEnd, chatRegistry: IChatProviderRegistry) => {
+    registerBuiltInChatProviders(chatRegistry);
   }
 };
 
-const chatPlugin: JupyterFrontEndPlugin<void> = {
-  id: PLUGIN_IDS.chat,
-  description: 'LLM chat extension',
+/**
+ * Built-in completion providers plugin
+ */
+const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
+  id: 'labai:built-in-completion-providers',
+  description: 'Register built-in completion providers',
   autoStart: true,
-  requires: [IAIProviderRegistry, IRenderMimeRegistry, IChatCommandRegistry],
-  optional: [
-    INotebookTracker,
-    ISettingRegistry,
-    IThemeManager,
-    ILayoutRestorer,
-    IToolRegistry
-  ],
-  activate: async (
+  requires: [ICompletionProviderRegistry],
+  activate: (
     app: JupyterFrontEnd,
-    providerRegistry: IAIProviderRegistry,
-    rmRegistry: IRenderMimeRegistry,
-    chatCommandRegistry: IChatCommandRegistry,
-    notebookTracker: INotebookTracker | null,
-    settingsRegistry: ISettingRegistry | null,
-    themeManager: IThemeManager | null,
-    restorer: ILayoutRestorer | null,
-    toolRegistry?: IToolRegistry
+    completionRegistry: ICompletionProviderRegistry
   ) => {
-    let activeCellManager: IActiveCellManager | null = null;
+    registerBuiltInCompletionProviders(completionRegistry);
+  }
+};
+
+/**
+ * Initialization data for the labai extension.
+ */
+const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
+  id: '@jupyterlite/ai:plugin',
+  description: 'AI in JupyterLab',
+  autoStart: true,
+  provides: ILabAISettingsModel,
+  requires: [
+    IRenderMimeRegistry,
+    IDocumentManager,
+    IKernelSpecManager,
+    IChatProviderRegistry,
+    ISettingRegistry
+  ],
+  optional: [
+    IThemeManager,
+    ICommandPalette,
+    INotebookTracker,
+    ILayoutRestorer,
+    ILabShell
+  ],
+  activate: (
+    app: JupyterFrontEnd,
+    rmRegistry: IRenderMimeRegistry,
+    docManager: IDocumentManager,
+    kernelSpecManager: KernelSpec.IManager,
+    chatProviderRegistry: IChatProviderRegistry,
+    settingRegistry: ISettingRegistry,
+    themeManager?: IThemeManager,
+    palette?: ICommandPalette,
+    notebookTracker?: INotebookTracker,
+    restorer?: ILayoutRestorer,
+    labShell?: ILabShell
+  ): AISettingsModel => {
+    const settingsModel = new AISettingsModel({ settingRegistry });
+    const toolRegistry = new ToolRegistry();
+
+    const notebookCreationTool = createNotebookCreationTool(
+      docManager,
+      kernelSpecManager
+    );
+    toolRegistry.add('create_notebook', notebookCreationTool);
+
+    // Add high-level notebook operation tools
+    const addCellTool = createAddCellTool(docManager, notebookTracker);
+    const getNotebookInfoTool = createGetNotebookInfoTool(
+      docManager,
+      notebookTracker
+    );
+    const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
+    const setCellContentTool = createSetCellContentTool(
+      docManager,
+      notebookTracker
+    );
+    const runCellTool = createRunCellTool(docManager, notebookTracker);
+    const deleteCellTool = createDeleteCellTool(docManager, notebookTracker);
+    const saveNotebookTool = createSaveNotebookTool(
+      docManager,
+      notebookTracker
+    );
+    const executeActiveCellTool = createExecuteActiveCellTool(
+      docManager,
+      notebookTracker
+    );
+
+    toolRegistry.add('add_cell', addCellTool);
+    toolRegistry.add('get_notebook_info', getNotebookInfoTool);
+    toolRegistry.add('get_cell_info', getCellInfoTool);
+    toolRegistry.add('set_cell_content', setCellContentTool);
+    toolRegistry.add('run_cell', runCellTool);
+    toolRegistry.add('delete_cell', deleteCellTool);
+    toolRegistry.add('save_notebook', saveNotebookTool);
+    toolRegistry.add('execute_active_cell', executeActiveCellTool);
+
+    // Add file operation tools
+    const newFileTool = createNewFileTool(docManager);
+    const openFileTool = createOpenFileTool(docManager);
+    const deleteFileTool = createDeleteFileTool(docManager);
+    const renameFileTool = createRenameFileTool(docManager);
+    const copyFileTool = createCopyFileTool(docManager);
+    const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
+
+    toolRegistry.add('create_file', newFileTool);
+    toolRegistry.add('open_file', openFileTool);
+    toolRegistry.add('delete_file', deleteFileTool);
+    toolRegistry.add('rename_file', renameFileTool);
+    toolRegistry.add('copy_file', copyFileTool);
+    toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
+
+    // Add command operation tools
+    const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
+    const executeCommandTool = createExecuteCommandTool(
+      app.commands,
+      settingsModel
+    );
+
+    toolRegistry.add('discover_commands', discoverCommandsTool);
+    toolRegistry.add('execute_command', executeCommandTool);
+
+    // Create ActiveCellManager if notebook tracker is available
+    let activeCellManager: ActiveCellManager | undefined;
     if (notebookTracker) {
       activeCellManager = new ActiveCellManager({
         tracker: notebookTracker,
@@ -74,74 +265,48 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       });
     }
 
-    const chatHandler = new ChatHandler({
-      providerRegistry,
+    // Create Agent Manager first so it can be shared
+    const agentManager = new AgentManager({
+      settingsModel,
+      toolRegistry,
+      chatProviderRegistry: chatProviderRegistry
+    });
+
+    // Create AI chat model
+    const chatModel = new AIChatModel({
+      user: { username: 'user', display_name: 'User' },
+      settingsModel,
+      agentManager,
       activeCellManager,
-      toolRegistry
+      documentManager: docManager
     });
 
-    let sendWithShiftEnter = false;
-    let enableCodeToolbar = true;
-    let personaName = 'AI';
-    let enableClearChatButton = false;
-
-    function loadSetting(setting: ISettingRegistry.ISettings): void {
-      sendWithShiftEnter = setting.get('sendWithShiftEnter')
-        .composite as boolean;
-      enableCodeToolbar = setting.get('enableCodeToolbar').composite as boolean;
-      personaName = setting.get('personaName')?.composite as string;
-      enableClearChatButton = setting.get('enableClearChatButton')
-        .composite as boolean;
-
-      // set the properties
-      chatHandler.config = { sendWithShiftEnter, enableCodeToolbar };
-      chatHandler.personaName = personaName;
-
-      if (enableClearChatButton && chatHandler.messages.length > 0) {
-        inputToolbarRegistry.show('clear');
-      } else {
-        inputToolbarRegistry.hide('clear');
-      }
-    }
-
-    Promise.all([app.restored, settingsRegistry?.load(chatPlugin.id)])
-      .then(([, settings]) => {
-        if (!settings) {
-          console.warn(
-            'The SettingsRegistry is not loaded for the chat extension'
-          );
-          return;
-        }
-        loadSetting(settings);
-        settings.changed.connect(loadSetting);
-      })
-      .catch(reason => {
-        console.error(
-          `Something went wrong when reading the settings.\n${reason}`
-        );
-      });
-
-    let chatWidget: ReactWidget | null = null;
-
+    // Create input toolbar registry with all buttons
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
-    const stopButton = stopItem(() => chatHandler.stopStreaming());
-    const clearButton = clearItem(() => {
-      chatHandler.clearMessages();
-      inputToolbarRegistry.hide('clear');
-    });
-    inputToolbarRegistry.addItem('clear', clearButton);
-    inputToolbarRegistry.hide('clear');
+    const stopButton = stopItem(() => chatModel.stopStreaming());
+    const clearButton = clearItem(() => chatModel.clearMessages());
+    const toolSelectButton = createToolSelectItem(
+      toolRegistry,
+      tools => {
+        agentManager.setSelectedTools(tools);
+      },
+      settingsModel.config.toolsEnabled
+    );
+    const modelSelectButton = createModelSelectItem(settingsModel);
+
     inputToolbarRegistry.addItem('stop', stopButton);
+    inputToolbarRegistry.addItem('clear', clearButton);
+    inputToolbarRegistry.addItem('model', modelSelectButton);
+    inputToolbarRegistry.addItem('tools', toolSelectButton);
 
-    // Add the tool select item.
-    inputToolbarRegistry.addItem('tools', { element: toolSelect, position: 1 });
+    // Listen to writers changes to show/hide stop button
+    chatModel.writersChanged.connect((_, writers) => {
+      // Check if AI is currently writing (streaming)
+      const aiWriting = writers.some(
+        writer => writer.user.username === 'ai-assistant'
+      );
 
-    chatHandler.writersChanged.connect((_, writers) => {
-      if (
-        writers.filter(
-          writer => writer.user.username === chatHandler.personaName
-        ).length
-      ) {
+      if (aiWriting) {
         inputToolbarRegistry.hide('send');
         inputToolbarRegistry.show('stop');
       } else {
@@ -150,214 +315,193 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    chatHandler.messagesUpdated.connect(() => {
-      if (!enableClearChatButton) {
-        inputToolbarRegistry.hide('clear');
-        return;
-      }
-      if (chatHandler.messages.length > 0) {
-        inputToolbarRegistry.show('clear');
+    // Listen for settings changes to update tool availability
+    settingsModel.stateChanged.connect(() => {
+      const config = settingsModel.config;
+      if (!config.toolsEnabled) {
+        inputToolbarRegistry.hide('tools');
       } else {
-        inputToolbarRegistry.hide('clear');
+        inputToolbarRegistry.show('tools');
       }
     });
 
-    try {
-      chatWidget = buildChatSidebar({
-        model: chatHandler,
-        themeManager,
-        rmRegistry,
-        chatCommandRegistry,
-        inputToolbarRegistry,
-        welcomeMessage: welcomeMessage(providerRegistry.providers)
-      });
-    } catch (e) {
-      chatWidget = buildErrorWidget(themeManager);
-    }
+    // Create attachment opener registry to handle file attachments
+    const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
+    attachmentOpenerRegistry.set('file', attachment => {
+      app.commands.execute('docmanager:open', { path: attachment.value });
+    });
 
-    chatWidget.title.caption = 'Jupyterlite AI Chat';
-    chatWidget.id = '@jupyterlite/ai:chat-widget';
+    attachmentOpenerRegistry.set('notebook', attachment => {
+      app.commands.execute('docmanager:open', { path: attachment.value });
+    });
 
-    app.shell.add(chatWidget as ReactWidget, 'left', { rank: 2000 });
+    // Create chat panel with drag/drop functionality
+    const chatPanel = new ChatWidget({
+      model: chatModel,
+      rmRegistry,
+      themeManager,
+      inputToolbarRegistry,
+      attachmentOpenerRegistry
+    });
+
+    // Create wrapper widget with a toolbar
+    const chatWrapper = new ChatWrapperWidget({
+      chatPanel,
+      commands: app.commands,
+      chatModel,
+      settingsModel
+    });
+
+    app.shell.add(chatWrapper, 'left', { rank: 1000 });
+
+    const settingsWidget = new AISettingsWidget({
+      settingsModel,
+      agentManager,
+      themeManager,
+      chatProviderRegistry
+    });
+    settingsWidget.id = 'labai-settings';
+    settingsWidget.title.icon = settingsIcon;
 
     if (restorer) {
-      restorer.add(chatWidget, chatWidget.id);
+      restorer.add(chatWrapper, chatWrapper.id);
+      restorer.add(settingsWidget, settingsWidget.id);
     }
+
+    registerCommands(app, palette, settingsWidget, labShell);
+
+    return settingsModel;
   }
 };
 
-const completerPlugin: JupyterFrontEndPlugin<void> = {
-  id: PLUGIN_IDS.completer,
-  autoStart: true,
-  requires: [IAIProviderRegistry, ICompletionProviderManager],
-  activate: (
-    app: JupyterFrontEnd,
-    providerRegistry: IAIProviderRegistry,
-    manager: ICompletionProviderManager
-  ): void => {
-    const completer = new CompletionProvider({
-      providerRegistry,
-      requestCompletion: () => app.commands.execute('inline-completer:invoke')
-    });
-    manager.registerInlineProvider(completer);
-  }
-};
+function registerCommands(
+  app: JupyterFrontEnd,
+  palette?: ICommandPalette,
+  settingsWidget?: AISettingsWidget,
+  labShell?: ILabShell
+) {
+  const { commands } = app;
 
-const providerRegistryPlugin: JupyterFrontEndPlugin<IAIProviderRegistry> =
-  SecretsManager.sign(PLUGIN_IDS.providerRegistry, token => ({
-    id: PLUGIN_IDS.providerRegistry,
-    autoStart: true,
-    requires: [IFormRendererRegistry, ISettingRegistry],
-    optional: [IRenderMimeRegistry, ISecretsManager],
-    provides: IAIProviderRegistry,
-    activate: (
-      app: JupyterFrontEnd,
-      editorRegistry: IFormRendererRegistry,
-      settingRegistry: ISettingRegistry,
-      rmRegistry?: IRenderMimeRegistry,
-      secretsManager?: ISecretsManager
-    ): IAIProviderRegistry => {
-      const providerRegistry = new AIProviderRegistry({
-        token,
-        secretsManager
-      });
+  commands.addCommand(CommandIds.openSettings, {
+    label: 'AI Settings',
+    caption: 'Configure AI providers and behavior',
+    icon: settingsIcon,
+    execute: () => {
+      // Check if the widget already exists in shell
+      let widget = Array.from(app.shell.widgets('main')).find(
+        w => w.id === 'labai-settings'
+      ) as AISettingsWidget;
 
-      editorRegistry.addRenderer(
-        `${PLUGIN_IDS.providerRegistry}.AIproviders`,
-        aiSettingsRenderer({
-          providerRegistry,
-          secretsToken: token,
-          rmRegistry,
-          secretsManager
-        })
-      );
+      if (!widget && settingsWidget) {
+        // Use the pre-created widget
+        widget = settingsWidget;
+        app.shell.add(widget, 'main');
+      }
 
-      let allowToolsUsage = true;
-
-      settingRegistry
-        .load(providerRegistryPlugin.id)
-        .then(settings => {
-          if (!secretsManager) {
-            delete settings.schema.properties?.['UseSecretsManager'];
-          }
-
-          const loadSetting = (setting: ISettingRegistry.ISettings) => {
-            // Allowing usage of tools in the chat.
-            allowToolsUsage =
-              (setting.get('AllowToolsUsage').composite as boolean) ?? false;
-            providerRegistry.allowTools = allowToolsUsage;
-
-            // Get the Ai provider settings.
-            const providerSettings = setting.get('AIproviders')
-              .composite as ReadonlyPartialJSONObject;
-
-            // Update completer provider.
-            if (Object.keys(providerSettings).includes('completer')) {
-              providerRegistry.setCompleterProvider(
-                providerSettings['completer'] as ReadonlyPartialJSONObject
-              );
-            } else {
-              providerRegistry.setCompleterProvider({});
-            }
-
-            // Update chat provider.
-            if (Object.keys(providerSettings).includes('chat')) {
-              providerRegistry.setChatProvider(
-                providerSettings['chat'] as ReadonlyPartialJSONObject
-              );
-            } else {
-              providerRegistry.setChatProvider({});
-            }
-          };
-
-          settings.changed.connect(loadSetting);
-          loadSetting(settings);
-        })
-        .catch(reason => {
-          console.error(
-            `Failed to load settings for ${providerRegistryPlugin.id}`,
-            reason
-          );
-        });
-
-      return providerRegistry;
+      if (widget) {
+        app.shell.activateById(widget.id);
+      }
+    },
+    describedBy: {
+      args: {}
     }
-  }));
+  });
 
-const systemPromptsPlugin: JupyterFrontEndPlugin<void> = {
-  id: PLUGIN_IDS.systemPrompts,
-  autoStart: true,
-  requires: [IAIProviderRegistry, ISettingRegistry],
-  optional: [IFormRendererRegistry],
-  activate: (
-    app: JupyterFrontEnd,
-    providerRegistry: IAIProviderRegistry,
-    settingsRegistry: ISettingRegistry,
-    editorRegistry: IFormRendererRegistry | null
-  ): void => {
-    // Set textarea renderer for the prompt setting.
-    editorRegistry?.addRenderer(
-      `${PLUGIN_IDS.systemPrompts}.chatSystemPrompt`,
-      textArea
-    );
-    editorRegistry?.addRenderer(
-      `${PLUGIN_IDS.systemPrompts}.completionSystemPrompt`,
-      textArea
-    );
+  if (labShell) {
+    commands.addCommand(CommandIds.reposition, {
+      label: 'Reposition Widget',
+      execute: (args: any) => {
+        const { widgetId, area, mode } = args;
+        const widget = widgetId
+          ? Array.from(labShell.widgets('main')).find(w => w.id === widgetId) ||
+            labShell.currentWidget
+          : labShell.currentWidget;
 
-    /**
-     * Update the prompts in the provider registry.
-     */
-    function loadSetting(setting: ISettingRegistry.ISettings): void {
-      providerRegistry.chatSystemPrompt = setting.get('chatSystemPrompt')
-        .composite as string;
-      providerRegistry.completerSystemPrompt = setting.get(
-        'completionSystemPrompt'
-      ).composite as string;
-    }
-
-    Promise.all([
-      app.restored,
-      settingsRegistry?.load(PLUGIN_IDS.systemPrompts)
-    ])
-      .then(([, settings]) => {
-        if (!settings) {
-          console.warn(
-            'The SettingsRegistry is not loaded for the chat extension'
-          );
+        if (!widget) {
           return;
         }
-        loadSetting(settings);
-        settings.changed.connect(loadSetting);
-      })
-      .catch(reason => {
-        console.error(
-          `Something went wrong when reading the settings.\n${reason}`
-        );
-      });
-  }
-};
 
-const toolRegistryPlugin: JupyterFrontEndPlugin<IToolRegistry> = {
-  id: PLUGIN_IDS.toolRegistry,
+        if (area && area !== 'main') {
+          // Move to different area
+          labShell.move(widget, area);
+          labShell.activateById(widget.id);
+        } else if (mode) {
+          // Reposition within main area using split mode
+          labShell.add(widget, 'main', { mode, activate: true });
+        }
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            widgetId: {
+              type: 'string',
+              description:
+                'The widget ID to reposition in the application shell'
+            },
+            area: {
+              type: 'string',
+              description: 'The name of the area to reposition the widget to'
+            },
+            mode: {
+              type: 'string',
+              enum: ['split-left', 'split-right', 'split-top', 'split-bottom'],
+              description: 'The mode to use when repositioning the widget'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Add to command palette if available
+  if (palette) {
+    palette.addItem({
+      command: CommandIds.openSettings,
+      category: 'AI Assistant'
+    });
+  }
+}
+
+/**
+ * A plugin to provide AI-powered code completion.
+ */
+const completionPlugin: JupyterFrontEndPlugin<void> = {
+  id: 'labai:completion',
+  description: 'AI-powered code completion',
   autoStart: true,
-  provides: IToolRegistry,
-  activate: (app: JupyterFrontEnd): IToolRegistry => {
-    const registry = new ToolsRegistry();
-    registry.add(notebook(app.commands));
-    return registry;
+  requires: [ILabAISettingsModel, ICompletionProviderRegistry],
+  optional: [ICompletionProviderManager],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    completionProviderRegistry: ICompletionProviderRegistry,
+    manager?: ICompletionProviderManager
+  ) => {
+    if (!manager) {
+      console.info(
+        'Completion provider manager not available, skipping AI completion setup'
+      );
+      return;
+    }
+
+    const completionProvider = new AICompletionProvider({
+      settingsModel,
+      completionProviderRegistry: completionProviderRegistry
+    });
+
+    manager.registerInlineProvider(completionProvider);
   }
 };
 
 export default [
-  providerRegistryPlugin,
-  chatCommandRegistryPlugin,
-  chatPlugin,
-  completerPlugin,
-  systemPromptsPlugin,
-  toolRegistryPlugin,
-  ...defaultProviderPlugins
+  chatProviderRegistryPlugin,
+  completionProviderRegistryPlugin,
+  builtInChatProvidersPlugin,
+  builtInCompletionProvidersPlugin,
+  plugin,
+  completionPlugin
 ];
 
-export { IAIProviderRegistry } from './tokens';
-export * from './base-completer';
+// Export extension points for other extensions to use
+export * from './tokens';

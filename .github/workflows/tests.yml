@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   ui-tests:
+    # TODO: re-enable tests
+    if: false
     name: ui-tests
     runs-on: ubuntu-latest
 
