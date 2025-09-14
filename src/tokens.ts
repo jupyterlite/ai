@@ -80,7 +80,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  'labai:tool-registry',
+  '@jupyterlite/ai:tool-registry',
   'Tool registry for AI agent functionality'
 );
 
@@ -88,7 +88,7 @@ export const IToolRegistry = new Token<IToolRegistry>(
  * Token for the chat provider registry.
  */
 export const IChatProviderRegistry = new Token<IChatProviderRegistry>(
-  'labai:chat-provider-registry',
+  '@jupyterlite/ai:chat-provider-registry',
   'Registry for chat AI providers'
 );
 
@@ -97,7 +97,7 @@ export const IChatProviderRegistry = new Token<IChatProviderRegistry>(
  */
 export const ICompletionProviderRegistry =
   new Token<ICompletionProviderRegistry>(
-    'labai:completion-provider-registry',
+    '@jupyterlite/ai:completion-provider-registry',
     'Registry for completion providers'
   );
 
@@ -261,6 +261,6 @@ export interface ICompletionProviderRegistry {
 /**
  * Token for the AI settings model.
  */
-export const ILabAISettingsModel = new Token<AISettingsModel>(
-  'labai:ILabAISettingsModel'
+export const IAISettingsModel = new Token<AISettingsModel>(
+  '@jupyterlite/ai:IAISettingsModel'
 );

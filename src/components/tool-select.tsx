@@ -10,7 +10,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { INamedTool, IToolRegistry } from '../tokens';
 
-const SELECT_ITEM_CLASS = 'jp-LabAIToolSelect-item';
+const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
 /**
  * Properties for the tool select component.

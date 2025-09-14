@@ -39,7 +39,7 @@ import {
 import {
   IChatProviderRegistry,
   ICompletionProviderRegistry,
-  ILabAISettingsModel
+  IAISettingsModel
 } from './tokens';
 
 import {
@@ -95,8 +95,8 @@ import { ChatWrapperWidget } from './widgets/chat-wrapper';
  * Command IDs namespace
  */
 namespace CommandIds {
-  export const openSettings = 'labai:open-settings';
-  export const reposition = 'labai:reposition';
+  export const openSettings = '@jupyterlite/ai:open-settings';
+  export const reposition = '@jupyterlite/ai:reposition';
 }
 
 /**
@@ -104,7 +104,7 @@ namespace CommandIds {
  */
 const chatProviderRegistryPlugin: JupyterFrontEndPlugin<IChatProviderRegistry> =
   {
-    id: 'labai:chat-provider-registry',
+    id: '@jupyterlite/ai:chat-provider-registry',
     description: 'Chat AI provider registry',
     autoStart: true,
     provides: IChatProviderRegistry,
@@ -118,7 +118,7 @@ const chatProviderRegistryPlugin: JupyterFrontEndPlugin<IChatProviderRegistry> =
  */
 const completionProviderRegistryPlugin: JupyterFrontEndPlugin<ICompletionProviderRegistry> =
   {
-    id: 'labai:completion-provider-registry',
+    id: '@jupyterlite/ai:completion-provider-registry',
     description: 'Completion provider registry',
     autoStart: true,
     provides: ICompletionProviderRegistry,
@@ -131,7 +131,7 @@ const completionProviderRegistryPlugin: JupyterFrontEndPlugin<ICompletionProvide
  * Built-in chat providers plugin
  */
 const builtInChatProvidersPlugin: JupyterFrontEndPlugin<void> = {
-  id: 'labai:built-in-chat-providers',
+  id: '@jupyterlite/ai:built-in-chat-providers',
   description: 'Register built-in chat AI providers',
   autoStart: true,
   requires: [IChatProviderRegistry],
@@ -144,7 +144,7 @@ const builtInChatProvidersPlugin: JupyterFrontEndPlugin<void> = {
  * Built-in completion providers plugin
  */
 const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
-  id: 'labai:built-in-completion-providers',
+  id: '@jupyterlite/ai:built-in-completion-providers',
   description: 'Register built-in completion providers',
   autoStart: true,
   requires: [ICompletionProviderRegistry],
@@ -157,13 +157,13 @@ const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * Initialization data for the labai extension.
+ * Initialization data for the extension.
  */
 const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
   id: '@jupyterlite/ai:plugin',
   description: 'AI in JupyterLab',
   autoStart: true,
-  provides: ILabAISettingsModel,
+  provides: IAISettingsModel,
   requires: [
     IRenderMimeRegistry,
     IDocumentManager,
@@ -360,7 +360,7 @@ const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
       themeManager,
       chatProviderRegistry
     });
-    settingsWidget.id = 'labai-settings';
+    settingsWidget.id = 'jupyterlite-ai-settings';
     settingsWidget.title.icon = settingsIcon;
 
     if (restorer) {
@@ -389,7 +389,7 @@ function registerCommands(
     execute: () => {
       // Check if the widget already exists in shell
       let widget = Array.from(app.shell.widgets('main')).find(
-        w => w.id === 'labai-settings'
+        w => w.id === 'jupyterlite-ai-settings'
       ) as AISettingsWidget;
 
       if (!widget && settingsWidget) {
@@ -467,10 +467,10 @@ function registerCommands(
  * A plugin to provide AI-powered code completion.
  */
 const completionPlugin: JupyterFrontEndPlugin<void> = {
-  id: 'labai:completion',
+  id: '@jupyterlite/ai:completion',
   description: 'AI-powered code completion',
   autoStart: true,
-  requires: [ILabAISettingsModel, ICompletionProviderRegistry],
+  requires: [IAISettingsModel, ICompletionProviderRegistry],
   optional: [ICompletionProviderManager],
   activate: (
     app: JupyterFrontEnd,
