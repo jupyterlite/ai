@@ -31,7 +31,6 @@
 }
 
 /* Tool Select Component Styles - Enhanced */
-.jp-AIToolSelect-item,
 .jp-AIToolSelect-item {
   display: flex;
   align-items: center;
@@ -40,12 +39,10 @@
   transition: background-color 0.2s ease;
 }
 
-.jp-AIToolSelect-item:hover,
 .jp-AIToolSelect-item:hover {
   background: var(--jp-layout-color2);
 }
 
-.jp-AIToolSelect-item .lm-Menu-itemIcon,
 .jp-AIToolSelect-item .lm-Menu-itemIcon {
   display: flex;
   align-items: center;
