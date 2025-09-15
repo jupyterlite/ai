@@ -85,7 +85,7 @@ export class AISettingsWidget extends ReactWidget {
     this._agentManager = options.agentManager;
     this._themeManager = options.themeManager;
     this._chatProviderRegistry = options.chatProviderRegistry;
-    this.id = 'labai-settings';
+    this.id = 'jupyterlite-ai-settings';
     this.title.label = 'AI Settings';
     this.title.caption = 'Configure AI providers and behavior';
     this.title.closable = true;

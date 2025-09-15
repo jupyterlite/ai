@@ -12,12 +12,12 @@ import { AISettingsModel } from '../models/settings-model';
 /**
  * CSS class for the chat toolbar
  */
-const CHAT_TOOLBAR_CLASS = 'jp-LabAIChatToolbar';
+const CHAT_TOOLBAR_CLASS = 'jp-AIChatToolbar';
 
 /**
  * CSS class for the chat panel
  */
-const CHAT_PANEL_CLASS = 'jp-LabAIChatPanel';
+const CHAT_PANEL_CLASS = 'jp-AIChatPanel';
 
 /**
  * A widget wrapper for the chat panel that provides toolbar functionality
@@ -37,11 +37,11 @@ export class ChatWrapperWidget extends Panel {
     this._commands = options.commands;
     this._toolbar = this._createToolbar();
 
-    this.id = 'labai:chat-wrapper';
+    this.id = '@jupyterlite/ai:chat-wrapper';
     this.title.caption = 'Chat with AI assistant';
     this.title.icon = this._chatPanel.title.icon;
 
-    this.addClass('jp-LabAIChatWrapper');
+    this.addClass('jp-AIChatWrapper');
 
     this._toolbar.addClass(CHAT_TOOLBAR_CLASS);
     this._chatPanel.addClass(CHAT_PANEL_CLASS);
@@ -82,7 +82,7 @@ export class ChatWrapperWidget extends Panel {
       new ToolbarButton({
         icon: settingsIcon,
         onClick: () => {
-          this._commands.execute('labai:open-settings');
+          this._commands.execute('@jupyterlite/ai:open-settings');
         },
         tooltip: 'Open AI Settings'
       })

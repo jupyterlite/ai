@@ -50,7 +50,6 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
 
               return (
                 <div
-                  className="jp-LabAI-TokenUsage"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -111,7 +110,6 @@ export class TokenUsageWidget extends ReactWidget {
     super();
     this._tokenUsageChanged = options.tokenUsageChanged;
     this._settingsModel = options.settingsModel;
-    this.addClass('jp-LabAI-TokenUsageWidget');
   }
 
   /**

@@ -3,12 +3,12 @@ import { LabIcon } from '@jupyterlab/ui-components';
 import labaiIconSvg from '../style/icons/jupyternaut-lite.svg';
 
 export const labaiIcon = new LabIcon({
-  name: 'labai:icon',
+  name: '@jupyterlite/ai:icon',
   svgstr: labaiIconSvg
 });
 
 export const jupyternautIcon = new LabIcon({
-  name: 'labai:jupyternaut',
+  name: '@jupyterlite/ai:jupyternaut',
   svgstr: labaiIconSvg
 });
 
