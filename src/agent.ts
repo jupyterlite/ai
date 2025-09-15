@@ -110,7 +110,7 @@ export class AgentManager {
     this._chatProviderRegistry = options.chatProviderRegistry;
     this._selectedToolNames = [];
     this._agent = null;
-    this._runner = new Runner();
+    this._runner = new Runner({ tracingDisabled: true });
     this._history = [];
     this._mcpServers = [];
     this._isInitializing = false;
