@@ -358,7 +358,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     setMcpMenuServerId('');
   };
 
-  const isValidConfig = model.hasValidConfig();
+  const isValidConfig = agentManager?.hasValidConfig() ?? false;
 
   return (
     <ThemeProvider theme={theme}>

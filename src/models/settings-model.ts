@@ -387,20 +387,6 @@ Ready to help you build something great! What are you working on?`
     return '';
   }
 
-  hasValidConfig(): boolean {
-    const activeProvider = this.getActiveProvider();
-    if (!activeProvider) {
-      return false;
-    }
-
-    // Check if the active provider requires an API key
-    if (activeProvider.provider === 'ollama') {
-      return !!activeProvider.model;
-    }
-
-    return !!(activeProvider.apiKey && activeProvider.model);
-  }
-
   private async saveSetting(key: keyof IAIConfig, value: any): Promise<void> {
     try {
       if (this._settings) {
