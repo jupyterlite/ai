@@ -150,6 +150,11 @@ export interface IBaseProviderInfo {
   supportsHeaders?: boolean;
 
   /**
+   * Whether this provider supports tool calling
+   */
+  supportsToolCalling?: boolean;
+
+  /**
    * Additional provider-specific configuration schema
    */
   customSettings?: Record<string, any>;
