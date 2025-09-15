@@ -102,7 +102,7 @@ export class AIChatModel extends AbstractChatModel {
     this.messageAdded(userMessage);
 
     // Check if we have valid configuration
-    if (!this._settingsModel.hasValidConfig()) {
+    if (!this._agentManager.hasValidConfig()) {
       const errorMessage: IChatMessage = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
         sender: this._getAIUser(),

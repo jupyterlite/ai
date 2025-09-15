@@ -205,6 +205,33 @@ export class AgentManager {
   }
 
   /**
+   * Checks if the current configuration is valid for agent operations.
+   * Uses the provider registry to determine if an API key is required.
+   * @returns True if the configuration is valid, false otherwise
+   */
+  hasValidConfig(): boolean {
+    const activeProvider = this._settingsModel.getActiveProvider();
+    if (!activeProvider) {
+      return false;
+    }
+
+    if (!activeProvider.model) {
+      return false;
+    }
+
+    if (this._chatProviderRegistry) {
+      const providerInfo = this._chatProviderRegistry.getProviderInfo(
+        activeProvider.provider
+      );
+      if (providerInfo?.requiresApiKey) {
+        return !!activeProvider.apiKey;
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Clears conversation history and resets agent state.
    * Removes all conversation history, pending approvals, and interrupted state.
    */
