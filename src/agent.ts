@@ -275,7 +275,8 @@ export class AgentManager {
         config.toolsEnabled &&
         this._selectedToolNames.length > 0 &&
         this._toolRegistry &&
-        Object.keys(this._toolRegistry.tools).length > 0;
+        Object.keys(this._toolRegistry.tools).length > 0 &&
+        this._supportsToolCalling();
 
       // Add user message to history
       this._history.push(user(message));
@@ -443,7 +444,8 @@ export class AgentManager {
         config.toolsEnabled &&
         this._selectedToolNames.length > 0 &&
         this._toolRegistry &&
-        Object.keys(this._toolRegistry.tools).length > 0;
+        Object.keys(this._toolRegistry.tools).length > 0 &&
+        this._supportsToolCalling();
 
       await this._initializeMCPServers();
 
@@ -684,6 +686,24 @@ export class AgentManager {
         approvals
       }
     });
+  }
+
+  /**
+   * Checks if the current provider supports tool calling.
+   * @returns True if the provider supports tool calling, false otherwise
+   */
+  private _supportsToolCalling(): boolean {
+    const activeProvider = this._settingsModel.getActiveProvider();
+    if (!activeProvider || !this._chatProviderRegistry) {
+      return false;
+    }
+
+    const providerInfo = this._chatProviderRegistry.getProviderInfo(
+      activeProvider.provider
+    );
+
+    // Default to true if supportsToolCalling is not specified
+    return providerInfo?.supportsToolCalling !== false;
   }
 
   /**
