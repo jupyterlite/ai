@@ -80,7 +80,7 @@ export class AISettingsModel extends VDomModel {
       'kernelmenu:restart-and-run-all',
       'runmenu:run-all'
     ],
-    systemPrompt: `You are LabAI, an AI coding assistant built specifically for the JupyterLab environment.
+    systemPrompt: `You are Jupyternaut, an AI coding assistant built specifically for the JupyterLab environment.
 
 ## Your Core Mission
 You're designed to be a capable partner for data science, research, and development work in Jupyter notebooks. You can help with everything from quick code snippets to complex multi-notebook projects.

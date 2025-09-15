@@ -73,7 +73,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   /**
    * The unique identifier of the provider.
    */
-  readonly identifier = '@labai/completer';
+  readonly identifier = '@jupyterlite/ai:completer';
 
   /**
    * Get the current completer name based on settings.

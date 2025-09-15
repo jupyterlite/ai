@@ -31,7 +31,6 @@
 }
 
 /* Tool Select Component Styles - Enhanced */
-.jp-LabAIToolSelect-item,
 .jp-AIToolSelect-item {
   display: flex;
   align-items: center;
@@ -40,12 +39,10 @@
   transition: background-color 0.2s ease;
 }
 
-.jp-LabAIToolSelect-item:hover,
 .jp-AIToolSelect-item:hover {
   background: var(--jp-layout-color2);
 }
 
-.jp-LabAIToolSelect-item .lm-Menu-itemIcon,
 .jp-AIToolSelect-item .lm-Menu-itemIcon {
   display: flex;
   align-items: center;
@@ -56,7 +53,7 @@
 }
 
 /* Enhanced tool select button styles */
-.jp-LabAIToolSelect-button {
+.jp-AIToolSelect-button {
   min-width: 36px;
   padding: 6px 8px;
   background: var(--jp-layout-color2) !important;
@@ -64,30 +61,30 @@
   transition: all 0.2s ease;
 }
 
-.jp-LabAIToolSelect-button:hover {
+.jp-AIToolSelect-button:hover {
   background: var(--jp-layout-color3) !important;
   border-color: var(--jp-brand-color1) !important;
 }
 
-.jp-LabAIToolSelect-button[aria-expanded='true'] {
+.jp-AIToolSelect-button[aria-expanded='true'] {
   background: var(--jp-brand-color1) !important;
   color: white !important;
 }
 
 /* Enhanced tool select menu styles */
-.jp-LabAIToolSelect-menu {
+.jp-AIToolSelect-menu {
   max-width: 300px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   border: 1px solid var(--jp-border-color2);
 }
 
-.jp-LabAIToolSelect-menu .MuiMenuItem-root {
+.jp-AIToolSelect-menu .MuiMenuItem-root {
   padding: 8px 16px;
   min-height: 40px;
   border-bottom: 1px solid var(--jp-border-color3);
 }
 
-.jp-LabAIToolSelect-menu .MuiMenuItem-root:last-child {
+.jp-AIToolSelect-menu .MuiMenuItem-root:last-child {
   border-bottom: none;
 }
 
@@ -233,18 +230,18 @@
   border-left: 4px solid var(--jp-error-color1);
 }
 
-.jp-LabAIChatToolbar {
+.jp-AIChatToolbar {
   display: flex;
   flex-shrink: 0;
 }
 
-.jp-LabAIChatWrapper {
+.jp-AIChatWrapper {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.jp-LabAIChatPanel {
+.jp-AIChatPanel {
   flex: 1;
   min-height: 0;
 }
