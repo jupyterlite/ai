@@ -171,7 +171,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
     const provider = activeProvider.provider;
     const model = activeProvider.model;
-    const apiKey = this._settingsModel.getApiKey(provider);
+    const apiKey = this._settingsModel.getApiKey(activeProvider.id);
 
     try {
       this._model = createCompletionModel(

@@ -368,19 +368,16 @@ Ready to help you build something great! What are you working on?`
     await Promise.all(promises);
   }
 
-  getApiKey(provider: string): string {
+  getApiKey(id: string): string {
     // First check the active completer provider
     const activeCompleterProvider = this.getCompleterProvider();
-    if (
-      activeCompleterProvider &&
-      activeCompleterProvider.provider === provider
-    ) {
+    if (activeCompleterProvider && activeCompleterProvider.id === id) {
       return activeCompleterProvider.apiKey || '';
     }
 
     // Fallback to active chat provider
     const activeProvider = this.getActiveProvider();
-    if (activeProvider && activeProvider.provider === provider) {
+    if (activeProvider && activeProvider.id === id) {
       return activeProvider.apiKey || '';
     }
 
