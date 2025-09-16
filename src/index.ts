@@ -39,7 +39,8 @@ import {
 import {
   IChatProviderRegistry,
   ICompletionProviderRegistry,
-  IAISettingsModel
+  IAISettingsModel,
+  IToolRegistry
 } from './tokens';
 
 import {
@@ -159,17 +160,16 @@ const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
 /**
  * Initialization data for the extension.
  */
-const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
+const plugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:plugin',
   description: 'AI in JupyterLab',
   autoStart: true,
-  provides: IAISettingsModel,
   requires: [
+    IAISettingsModel,
+    IToolRegistry,
     IRenderMimeRegistry,
     IDocumentManager,
-    IKernelSpecManager,
-    IChatProviderRegistry,
-    ISettingRegistry
+    IChatProviderRegistry
   ],
   optional: [
     IThemeManager,
@@ -180,82 +180,17 @@ const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
   ],
   activate: (
     app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    toolRegistry: IToolRegistry,
     rmRegistry: IRenderMimeRegistry,
     docManager: IDocumentManager,
-    kernelSpecManager: KernelSpec.IManager,
     chatProviderRegistry: IChatProviderRegistry,
-    settingRegistry: ISettingRegistry,
     themeManager?: IThemeManager,
     palette?: ICommandPalette,
     notebookTracker?: INotebookTracker,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell
-  ): AISettingsModel => {
-    const settingsModel = new AISettingsModel({ settingRegistry });
-    const toolRegistry = new ToolRegistry();
-
-    const notebookCreationTool = createNotebookCreationTool(
-      docManager,
-      kernelSpecManager
-    );
-    toolRegistry.add('create_notebook', notebookCreationTool);
-
-    // Add high-level notebook operation tools
-    const addCellTool = createAddCellTool(docManager, notebookTracker);
-    const getNotebookInfoTool = createGetNotebookInfoTool(
-      docManager,
-      notebookTracker
-    );
-    const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
-    const setCellContentTool = createSetCellContentTool(
-      docManager,
-      notebookTracker
-    );
-    const runCellTool = createRunCellTool(docManager, notebookTracker);
-    const deleteCellTool = createDeleteCellTool(docManager, notebookTracker);
-    const saveNotebookTool = createSaveNotebookTool(
-      docManager,
-      notebookTracker
-    );
-    const executeActiveCellTool = createExecuteActiveCellTool(
-      docManager,
-      notebookTracker
-    );
-
-    toolRegistry.add('add_cell', addCellTool);
-    toolRegistry.add('get_notebook_info', getNotebookInfoTool);
-    toolRegistry.add('get_cell_info', getCellInfoTool);
-    toolRegistry.add('set_cell_content', setCellContentTool);
-    toolRegistry.add('run_cell', runCellTool);
-    toolRegistry.add('delete_cell', deleteCellTool);
-    toolRegistry.add('save_notebook', saveNotebookTool);
-    toolRegistry.add('execute_active_cell', executeActiveCellTool);
-
-    // Add file operation tools
-    const newFileTool = createNewFileTool(docManager);
-    const openFileTool = createOpenFileTool(docManager);
-    const deleteFileTool = createDeleteFileTool(docManager);
-    const renameFileTool = createRenameFileTool(docManager);
-    const copyFileTool = createCopyFileTool(docManager);
-    const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
-
-    toolRegistry.add('create_file', newFileTool);
-    toolRegistry.add('open_file', openFileTool);
-    toolRegistry.add('delete_file', deleteFileTool);
-    toolRegistry.add('rename_file', renameFileTool);
-    toolRegistry.add('copy_file', copyFileTool);
-    toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
-
-    // Add command operation tools
-    const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
-    const executeCommandTool = createExecuteCommandTool(
-      app.commands,
-      settingsModel
-    );
-
-    toolRegistry.add('discover_commands', discoverCommandsTool);
-    toolRegistry.add('execute_command', executeCommandTool);
-
+  ): void => {
     // Create ActiveCellManager if notebook tracker is available
     let activeCellManager: ActiveCellManager | undefined;
     if (notebookTracker) {
@@ -369,8 +304,6 @@ const plugin: JupyterFrontEndPlugin<AISettingsModel> = {
     }
 
     registerCommands(app, palette, settingsWidget, labShell);
-
-    return settingsModel;
   }
 };
 
@@ -494,13 +427,114 @@ const completionPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * A plugin to provide the settings model.
+ */
+const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
+  id: '@jupyterlite/ai:settings-model',
+  description: 'Register built-in completion providers',
+  autoStart: true,
+  provides: IAISettingsModel,
+  requires: [ISettingRegistry],
+  activate: (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
+    return new AISettingsModel({ settingRegistry });
+  }
+};
+
+/**
+ * A plugin to provide the tool registry.
+ */
+const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
+  id: '@jupyterlite/ai:tool-registry',
+  description: 'the tool registry',
+  autoStart: true,
+  requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
+  optional: [INotebookTracker],
+  provides: IToolRegistry,
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    docManager: IDocumentManager,
+    kernelSpecManager: KernelSpec.IManager,
+    notebookTracker?: INotebookTracker
+  ) => {
+    const toolRegistry = new ToolRegistry();
+
+    const notebookCreationTool = createNotebookCreationTool(
+      docManager,
+      kernelSpecManager
+    );
+    toolRegistry.add('create_notebook', notebookCreationTool);
+
+    // Add high-level notebook operation tools
+    const addCellTool = createAddCellTool(docManager, notebookTracker);
+    const getNotebookInfoTool = createGetNotebookInfoTool(
+      docManager,
+      notebookTracker
+    );
+    const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
+    const setCellContentTool = createSetCellContentTool(
+      docManager,
+      notebookTracker
+    );
+    const runCellTool = createRunCellTool(docManager, notebookTracker);
+    const deleteCellTool = createDeleteCellTool(docManager, notebookTracker);
+    const saveNotebookTool = createSaveNotebookTool(
+      docManager,
+      notebookTracker
+    );
+    const executeActiveCellTool = createExecuteActiveCellTool(
+      docManager,
+      notebookTracker
+    );
+
+    toolRegistry.add('add_cell', addCellTool);
+    toolRegistry.add('get_notebook_info', getNotebookInfoTool);
+    toolRegistry.add('get_cell_info', getCellInfoTool);
+    toolRegistry.add('set_cell_content', setCellContentTool);
+    toolRegistry.add('run_cell', runCellTool);
+    toolRegistry.add('delete_cell', deleteCellTool);
+    toolRegistry.add('save_notebook', saveNotebookTool);
+    toolRegistry.add('execute_active_cell', executeActiveCellTool);
+
+    // Add file operation tools
+    const newFileTool = createNewFileTool(docManager);
+    const openFileTool = createOpenFileTool(docManager);
+    const deleteFileTool = createDeleteFileTool(docManager);
+    const renameFileTool = createRenameFileTool(docManager);
+    const copyFileTool = createCopyFileTool(docManager);
+    const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
+
+    toolRegistry.add('create_file', newFileTool);
+    toolRegistry.add('open_file', openFileTool);
+    toolRegistry.add('delete_file', deleteFileTool);
+    toolRegistry.add('rename_file', renameFileTool);
+    toolRegistry.add('copy_file', copyFileTool);
+    toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
+
+    // Add command operation tools
+    const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
+    const executeCommandTool = createExecuteCommandTool(
+      app.commands,
+      settingsModel
+    );
+
+    toolRegistry.add('discover_commands', discoverCommandsTool);
+    toolRegistry.add('execute_command', executeCommandTool);
+
+    return toolRegistry;
+  }
+};
+
 export default [
   chatProviderRegistryPlugin,
   completionProviderRegistryPlugin,
   builtInChatProvidersPlugin,
   builtInCompletionProvidersPlugin,
   plugin,
-  completionPlugin
+  completionPlugin,
+  settingsModel,
+  toolRegistry
 ];
 
 // Export extension points for other extensions to use
