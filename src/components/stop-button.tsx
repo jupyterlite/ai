@@ -4,6 +4,8 @@ import StopIcon from '@mui/icons-material/Stop';
 
 import React from 'react';
 
+import { AIChatModel } from '../chat-model';
+
 /**
  * Properties of the stop button.
  */
@@ -39,11 +41,12 @@ export function StopButton(props: IStopButtonProps): JSX.Element {
 /**
  * Factory returning the stop button toolbar item.
  */
-export function stopItem(
-  stopStreaming: () => void
-): InputToolbarRegistry.IToolbarItem {
+export function stopItem(): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const { model } = props;
+      const stopStreaming = () =>
+        (model.chatContext as AIChatModel.IAIChatContext).stopStreaming();
       const stopProps: IStopButtonProps = { ...props, stopStreaming };
       return StopButton(stopProps);
     },

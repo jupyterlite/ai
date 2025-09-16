@@ -218,13 +218,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     // Create input toolbar registry with all buttons
     const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
-    const stopButton = stopItem(() => chatModel.stopStreaming());
-    const clearButton = clearItem(() => chatModel.clearMessages());
+    const stopButton = stopItem();
+    const clearButton = clearItem();
     const toolSelectButton = createToolSelectItem(
       toolRegistry,
-      tools => {
-        agentManager.setSelectedTools(tools);
-      },
       settingsModel.config.toolsEnabled
     );
     const modelSelectButton = createModelSelectItem(settingsModel);
