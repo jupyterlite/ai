@@ -1,7 +1,7 @@
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-const PLUGIN_ID = '@jupyterlite/ai:plugin';
+const PLUGIN_ID = '@jupyterlite/ai:settings-model';
 
 export interface IProviderConfig {
   id: string;
