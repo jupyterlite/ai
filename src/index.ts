@@ -429,7 +429,7 @@ const completionPlugin: JupyterFrontEndPlugin<void> = {
  */
 const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   id: '@jupyterlite/ai:settings-model',
-  description: 'Register built-in completion providers',
+  description: 'Provide the AI settings model',
   autoStart: true,
   provides: IAISettingsModel,
   requires: [ISettingRegistry],
@@ -443,7 +443,7 @@ const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
  */
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
-  description: 'the tool registry',
+  description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
   optional: [INotebookTracker],
