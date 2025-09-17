@@ -4,6 +4,8 @@ import ClearIcon from '@mui/icons-material/Clear';
 
 import React from 'react';
 
+import { AIChatModel } from '../chat-model';
+
 /**
  * Properties of the clear button.
  */
@@ -39,11 +41,12 @@ export function ClearButton(props: IClearButtonProps): JSX.Element {
 /**
  * Factory returning the clear button toolbar item.
  */
-export function clearItem(
-  clearMessages: () => void
-): InputToolbarRegistry.IToolbarItem {
+export function clearItem(): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const { model } = props;
+      const clearMessages = () =>
+        (model.chatContext as AIChatModel.IAIChatContext).clearMessages();
       const clearProps: IClearButtonProps = { ...props, clearMessages };
       return ClearButton(clearProps);
     },

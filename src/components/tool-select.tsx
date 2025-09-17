@@ -9,6 +9,7 @@ import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { INamedTool, IToolRegistry } from '../tokens';
+import { AIChatModel } from '../chat-model';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -191,11 +192,19 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
  */
 export function createToolSelectItem(
   toolRegistry: IToolRegistry,
-  onToolSelectionChange: (selectedToolNames: string[]) => void,
   toolsEnabled: boolean = true
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const onToolSelectionChange = (tools: string[]) => {
+        const chatContext = props.model
+          .chatContext as AIChatModel.IAIChatContext;
+        if (!chatContext.agentManager) {
+          return;
+        }
+        chatContext.agentManager.setSelectedTools(tools);
+      };
+
       const toolSelectProps: IToolSelectProps = {
         ...props,
         toolRegistry,

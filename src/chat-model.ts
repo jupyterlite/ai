@@ -63,26 +63,33 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Creates a chat context for the current conversation.
    */
-  createChatContext(): IChatContext {
-    // Simple implementation for now
-    return {} as IChatContext;
+  createChatContext(): AIChatModel.IAIChatContext {
+    return {
+      name: this.name,
+      user: { username: 'me' },
+      users: [],
+      messages: this.messages,
+      stopStreaming: () => this.stopStreaming(),
+      clearMessages: () => this.clearMessages(),
+      agentManager: this._agentManager
+    };
   }
 
   /**
    * Stops the current streaming response by aborting the request.
    */
-  stopStreaming(): void {
+  stopStreaming = (): void => {
     this._agentManager.stopStreaming();
-  }
+  };
 
   /**
    * Clears all messages from the chat and resets conversation state.
    */
-  clearMessages(): void {
+  clearMessages = (): void => {
     this.messagesDeleted(0, this.messages.length);
     this._pendingToolCalls.clear();
     this._agentManager.clearHistory();
-  }
+  };
 
   /**
    * Sends a message to the AI and generates a response.
@@ -741,5 +748,23 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
+  }
+
+  /**
+   * The chat context for toolbar buttons.
+   */
+  export interface IAIChatContext extends IChatContext {
+    /**
+     * The stop streaming callback.
+     */
+    stopStreaming: () => void;
+    /**
+     * The clear messages callback.
+     */
+    clearMessages: () => void;
+    /**
+     * The agent manager of the chat.
+     */
+    agentManager: AgentManager;
   }
 }
