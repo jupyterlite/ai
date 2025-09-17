@@ -588,13 +588,19 @@ export class AgentManager {
     const toolCallId = modelEvent.toolCallId;
     const toolName = modelEvent.toolName;
     const toolInput = modelEvent.input;
+    let parsedToolInput;
+    try {
+      parsedToolInput = JSON.parse(toolInput);
+    } catch (error) {
+      parsedToolInput = {};
+    }
 
     this._agentEvent.emit({
       type: 'tool_call_start',
       data: {
         callId: toolCallId,
         toolName,
-        input: JSON.parse(toolInput)
+        input: parsedToolInput
       }
     });
   }

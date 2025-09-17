@@ -12,7 +12,14 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
     name: 'discover_commands',
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
-    parameters: z.object({}),
+    parameters: z.object({
+      // currently unused, but could be used to filter commands by a search term
+      query: z
+        .string()
+        .optional()
+        .nullable()
+        .describe('Optional search query to filter commands')
+    }),
     execute: async () => {
       try {
         const commandList: Array<{
