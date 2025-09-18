@@ -42,6 +42,7 @@ import {
   Typography,
   createTheme
 } from '@mui/material';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 import React, { useEffect, useState } from 'react';
 import { AgentManager } from '../agent';
 import {
@@ -50,7 +51,11 @@ import {
   IMCPServerConfig,
   IProviderConfig
 } from '../models/settings-model';
-import type { IChatProviderRegistry } from '../tokens';
+import {
+  SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT,
+  type IChatProviderRegistry
+} from '../tokens';
 import { ProviderConfigDialog } from './provider-config-dialog';
 
 /**
@@ -81,10 +86,12 @@ export class AISettingsWidget extends ReactWidget {
    */
   constructor(options: AISettingsWidget.IOptions) {
     super();
+    Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._agentManager = options.agentManager;
     this._themeManager = options.themeManager;
     this._chatProviderRegistry = options.chatProviderRegistry;
+    this._secretsManager = options.secretsManager;
     this.id = 'jupyterlite-ai-settings';
     this.title.label = 'AI Settings';
     this.title.caption = 'Configure AI providers and behavior';
@@ -102,6 +109,7 @@ export class AISettingsWidget extends ReactWidget {
         agentManager={this._agentManager}
         themeManager={this._themeManager}
         chatProviderRegistry={this._chatProviderRegistry}
+        secretsManager={this._secretsManager}
       />
     );
   }
@@ -110,6 +118,7 @@ export class AISettingsWidget extends ReactWidget {
   private _agentManager?: AgentManager;
   private _themeManager?: IThemeManager;
   private _chatProviderRegistry: IChatProviderRegistry;
+  private _secretsManager?: ISecretsManager;
 }
 
 /**
@@ -120,6 +129,7 @@ interface IAISettingsComponentProps {
   agentManager?: AgentManager;
   themeManager?: IThemeManager;
   chatProviderRegistry: IChatProviderRegistry;
+  secretsManager?: ISecretsManager;
 }
 
 /**
@@ -131,7 +141,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   model,
   agentManager,
   themeManager,
-  chatProviderRegistry
+  chatProviderRegistry,
+  secretsManager
 }) => {
   if (!model) {
     return <div>Settings model not available</div>;
@@ -209,12 +220,41 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   }, [agentManager]);
 
   /**
+   * Attach a secrets field to the secrets manager.
+   * @param input - the DOm element to attach.
+   * @param provider - the name of the provider.
+   * @param fieldName - the name of the field.
+   */
+  const handleSecretField = async (
+    input: HTMLInputElement,
+    provider: string,
+    fieldName: string
+  ): Promise<void> => {
+    if (!(model.config.useSecretsManager && secretsManager)) {
+      return;
+    }
+    await secretsManager?.attach(
+      Private.getToken(),
+      SECRETS_NAMESPACE,
+      `${provider}:${fieldName}`,
+      input
+    );
+  };
+
+  /**
    * Handle adding a new AI provider
    * @param providerConfig - The provider configuration to add
    */
   const handleAddProvider = async (
     providerConfig: Omit<IProviderConfig, 'id'>
   ) => {
+    if (
+      model.config.useSecretsManager &&
+      secretsManager &&
+      providerConfig.apiKey
+    ) {
+      providerConfig.apiKey = SECRETS_REPLACEMENT;
+    }
     await model.addProvider(providerConfig);
   };
 
@@ -226,6 +266,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     providerConfig: Omit<IProviderConfig, 'id'>
   ) => {
     if (editingProvider) {
+      if (
+        model.config.useSecretsManager &&
+        secretsManager &&
+        providerConfig.apiKey
+      ) {
+        providerConfig.apiKey = SECRETS_REPLACEMENT;
+      }
       await model.updateProvider(editingProvider.id, providerConfig);
       setEditingProvider(undefined);
     }
@@ -244,7 +291,20 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
    * Open the provider edit dialog
    * @param provider - The provider to edit
    */
-  const openEditDialog = (provider: IProviderConfig) => {
+  const openEditDialog = async (provider: IProviderConfig) => {
+    // Retrieve the API key from the secrets manager if necessary.
+    if (model.config.useSecretsManager && secretsManager) {
+      provider.apiKey =
+        (
+          await secretsManager.get(
+            Private.getToken(),
+            SECRETS_NAMESPACE,
+            `${provider.name}:apiKey`
+          )
+        )?.value ??
+        provider.apiKey ??
+        '';
+    }
     setEditingProvider(provider);
     setDialogOpen(true);
     setMenuAnchor(null);
@@ -895,6 +955,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           initialConfig={editingProvider}
           mode={editingProvider ? 'edit' : 'add'}
           chatProviderRegistry={chatProviderRegistry}
+          handleSecretField={handleSecretField}
         />
 
         {/* Provider Menu */}
@@ -1096,5 +1157,26 @@ export namespace AISettingsWidget {
     agentManager?: AgentManager;
     themeManager?: IThemeManager;
     chatProviderRegistry: IChatProviderRegistry;
+    /**
+     * The secrets manager.
+     */
+    secretsManager?: ISecretsManager;
+    /**
+     * The token used to request the secrets manager.
+     */
+    token: symbol;
+  }
+}
+
+namespace Private {
+  /**
+   * The token to use with the secrets manager, setter and getter.
+   */
+  let secretsToken: symbol;
+  export function setToken(value: symbol): void {
+    secretsToken = value;
+  }
+  export function getToken(): symbol {
+    return secretsToken;
   }
 }

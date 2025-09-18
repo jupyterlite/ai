@@ -29,6 +29,11 @@ interface IProviderConfigDialogProps {
   initialConfig?: IProviderConfig;
   mode: 'add' | 'edit';
   chatProviderRegistry: IChatProviderRegistry;
+  handleSecretField: (
+    input: HTMLInputElement,
+    provider: string,
+    fieldName: string
+  ) => Promise<void>;
 }
 
 export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
@@ -37,8 +42,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   onSave,
   initialConfig,
   mode,
-  chatProviderRegistry
+  chatProviderRegistry,
+  handleSecretField
 }) => {
+  const apiKeyRef = React.useRef<HTMLInputElement>();
   const [name, setName] = React.useState(initialConfig?.name || '');
   const [provider, setProvider] = React.useState(
     initialConfig?.provider || 'anthropic'
@@ -83,6 +90,14 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       setModel(selectedProvider.models[0]);
     }
   }, [provider, selectedProvider, model]);
+
+  React.useEffect(() => {
+    // Attach the API key field to the secrets manager, to automatically save the value
+    // when it is updated.
+    if (open && apiKeyRef.current) {
+      handleSecretField(apiKeyRef.current, provider, 'apiKey');
+    }
+  }, [open, provider, apiKeyRef.current]);
 
   const handleSave = () => {
     if (!name.trim() || !provider || !model) {
@@ -198,6 +213,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
           {selectedProvider?.requiresApiKey && (
             <TextField
               fullWidth
+              inputRef={apiKeyRef}
               label="API Key"
               type={showApiKey ? 'text' : 'password'}
               value={apiKey}

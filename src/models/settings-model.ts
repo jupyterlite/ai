@@ -24,6 +24,8 @@ export interface IMCPServerConfig {
 }
 
 export interface IAIConfig {
+  // Whether to use the secrets manager
+  useSecretsManager: boolean;
   // List of configured providers
   providers: IProviderConfig[];
   // Active provider IDs for different use cases
@@ -52,6 +54,7 @@ export interface IAIConfig {
 
 export class AISettingsModel extends VDomModel {
   private _config: IAIConfig = {
+    useSecretsManager: true,
     providers: [],
     activeProvider: '',
     activeCompleterProvider: undefined,
@@ -188,6 +191,7 @@ Ready to help you build something great! What are you working on?`
 
     // Merge JupyterLab settings with defaults
     const settingsData = this._settings.composite as Partial<IAIConfig>;
+
     this._config = {
       ...this._config,
       ...settingsData

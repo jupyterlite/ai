@@ -27,6 +27,7 @@ import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { settingsIcon } from '@jupyterlab/ui-components';
+import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManager } from './agent';
 import { AIChatModel } from './chat-model';
@@ -37,10 +38,12 @@ import {
 } from './providers/provider-registry';
 
 import {
+  IAgentManager,
   IChatProviderRegistry,
   ICompletionProviderRegistry,
-  IAISettingsModel,
-  IToolRegistry
+  IToolRegistry,
+  SECRETS_NAMESPACE,
+  IAISettingsModel
 } from './tokens';
 
 import {
@@ -166,27 +169,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
   autoStart: true,
   requires: [
     IAISettingsModel,
+    IAgentManager,
     IToolRegistry,
     IRenderMimeRegistry,
-    IDocumentManager,
-    IChatProviderRegistry
+    IDocumentManager
   ],
-  optional: [
-    IThemeManager,
-    ICommandPalette,
-    INotebookTracker,
-    ILayoutRestorer,
-    ILabShell
-  ],
+  optional: [IThemeManager, INotebookTracker, ILayoutRestorer, ILabShell],
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
+    agentManager: AgentManager,
     toolRegistry: IToolRegistry,
     rmRegistry: IRenderMimeRegistry,
     docManager: IDocumentManager,
-    chatProviderRegistry: IChatProviderRegistry,
     themeManager?: IThemeManager,
-    palette?: ICommandPalette,
     notebookTracker?: INotebookTracker,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell
@@ -199,13 +195,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
         shell: app.shell
       });
     }
-
-    // Create Agent Manager first so it can be shared
-    const agentManager = new AgentManager({
-      settingsModel,
-      toolRegistry,
-      chatProviderRegistry: chatProviderRegistry
-    });
 
     // Create AI chat model
     const chatModel = new AIChatModel({
@@ -286,56 +275,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     app.shell.add(chatWrapper, 'left', { rank: 1000 });
 
-    const settingsWidget = new AISettingsWidget({
-      settingsModel,
-      agentManager,
-      themeManager,
-      chatProviderRegistry
-    });
-    settingsWidget.id = 'jupyterlite-ai-settings';
-    settingsWidget.title.icon = settingsIcon;
-
     if (restorer) {
       restorer.add(chatWrapper, chatWrapper.id);
-      restorer.add(settingsWidget, settingsWidget.id);
     }
 
-    registerCommands(app, palette, settingsWidget, labShell);
+    registerCommands(app, labShell);
   }
 };
 
-function registerCommands(
-  app: JupyterFrontEnd,
-  palette?: ICommandPalette,
-  settingsWidget?: AISettingsWidget,
-  labShell?: ILabShell
-) {
+function registerCommands(app: JupyterFrontEnd, labShell?: ILabShell) {
   const { commands } = app;
-
-  commands.addCommand(CommandIds.openSettings, {
-    label: 'AI Settings',
-    caption: 'Configure AI providers and behavior',
-    icon: settingsIcon,
-    execute: () => {
-      // Check if the widget already exists in shell
-      let widget = Array.from(app.shell.widgets('main')).find(
-        w => w.id === 'jupyterlite-ai-settings'
-      ) as AISettingsWidget;
-
-      if (!widget && settingsWidget) {
-        // Use the pre-created widget
-        widget = settingsWidget;
-        app.shell.add(widget, 'main');
-      }
-
-      if (widget) {
-        app.shell.activateById(widget.id);
-      }
-    },
-    describedBy: {
-      args: {}
-    }
-  });
 
   if (labShell) {
     commands.addCommand(CommandIds.reposition, {
@@ -383,46 +332,118 @@ function registerCommands(
       }
     });
   }
-
-  // Add to command palette if available
-  if (palette) {
-    palette.addItem({
-      command: CommandIds.openSettings,
-      category: 'AI Assistant'
-    });
-  }
 }
 
 /**
- * A plugin to provide AI-powered code completion.
+ * A plugin to provide the settings model.
  */
-const completionPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:completion',
-  description: 'AI-powered code completion',
-  autoStart: true,
-  requires: [IAISettingsModel, ICompletionProviderRegistry],
-  optional: [ICompletionProviderManager],
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
-    completionProviderRegistry: ICompletionProviderRegistry,
-    manager?: ICompletionProviderManager
-  ) => {
-    if (!manager) {
-      console.info(
-        'Completion provider manager not available, skipping AI completion setup'
-      );
-      return;
+const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
+  SECRETS_NAMESPACE,
+  token => ({
+    id: SECRETS_NAMESPACE,
+    description: 'Provide the AI agent manager',
+    autoStart: true,
+    provides: IAgentManager,
+    requires: [IAISettingsModel, IChatProviderRegistry],
+    optional: [
+      ICommandPalette,
+      ICompletionProviderManager,
+      ICompletionProviderRegistry,
+      ILayoutRestorer,
+      ISecretsManager,
+      IThemeManager,
+      IToolRegistry
+    ],
+    activate: (
+      app: JupyterFrontEnd,
+      settingsModel: AISettingsModel,
+      chatProviderRegistry: IChatProviderRegistry,
+      palette: ICommandPalette,
+      completionManager?: ICompletionProviderManager,
+      completionProviderRegistry?: ICompletionProviderRegistry,
+      restorer?: ILayoutRestorer,
+      secretsManager?: ISecretsManager,
+      themeManager?: IThemeManager,
+      toolRegistry?: IToolRegistry
+    ): AgentManager => {
+      // Build the agent manager
+      const agentManager = new AgentManager({
+        settingsModel,
+        toolRegistry,
+        chatProviderRegistry,
+        secretsManager,
+        token
+      });
+
+      // Build the settings panel
+      const settingsWidget = new AISettingsWidget({
+        settingsModel,
+        agentManager,
+        themeManager,
+        chatProviderRegistry,
+        secretsManager,
+        token
+      });
+      settingsWidget.id = 'jupyterlite-ai-settings';
+      settingsWidget.title.icon = settingsIcon;
+
+      // Build the completion provider
+      if (completionManager && completionProviderRegistry) {
+        const completionProvider = new AICompletionProvider({
+          settingsModel,
+          completionProviderRegistry: completionProviderRegistry,
+          secretsManager,
+          token
+        });
+
+        completionManager.registerInlineProvider(completionProvider);
+      } else {
+        console.info(
+          'Completion provider manager not available, skipping AI completion setup'
+        );
+      }
+
+      if (restorer) {
+        restorer.add(settingsWidget, settingsWidget.id);
+      }
+
+      app.commands.addCommand(CommandIds.openSettings, {
+        label: 'AI Settings',
+        caption: 'Configure AI providers and behavior',
+        icon: settingsIcon,
+        execute: () => {
+          // Check if the widget already exists in shell
+          let widget = Array.from(app.shell.widgets('main')).find(
+            w => w.id === 'jupyterlite-ai-settings'
+          ) as AISettingsWidget;
+
+          if (!widget && settingsWidget) {
+            // Use the pre-created widget
+            widget = settingsWidget;
+            app.shell.add(widget, 'main');
+          }
+
+          if (widget) {
+            app.shell.activateById(widget.id);
+          }
+        },
+        describedBy: {
+          args: {}
+        }
+      });
+
+      // Add to command palette if available
+      if (palette) {
+        palette.addItem({
+          command: CommandIds.openSettings,
+          category: 'AI Assistant'
+        });
+      }
+
+      return agentManager;
     }
-
-    const completionProvider = new AICompletionProvider({
-      settingsModel,
-      completionProviderRegistry: completionProviderRegistry
-    });
-
-    manager.registerInlineProvider(completionProvider);
-  }
-};
+  })
+);
 
 /**
  * A plugin to provide the settings model.
@@ -529,8 +550,8 @@ export default [
   builtInChatProvidersPlugin,
   builtInCompletionProvidersPlugin,
   plugin,
-  completionPlugin,
   settingsModel,
+  agentManager,
   toolRegistry
 ];
 
