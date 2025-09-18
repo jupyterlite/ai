@@ -219,6 +219,18 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     };
   }, [agentManager]);
 
+  const getSecretFromManager = async (
+    provider: string,
+    fieldName: string
+  ): Promise<string | undefined> => {
+    const secret = await secretsManager?.get(
+      Private.getToken(),
+      SECRETS_NAMESPACE,
+      `${provider}:${fieldName}`
+    );
+    return secret?.value;
+  };
+
   /**
    * Attach a secrets field to the secrets manager.
    * @param input - the DOm element to attach.
@@ -295,13 +307,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     // Retrieve the API key from the secrets manager if necessary.
     if (model.config.useSecretsManager && secretsManager) {
       provider.apiKey =
-        (
-          await secretsManager.get(
-            Private.getToken(),
-            SECRETS_NAMESPACE,
-            `${provider.provider}:apiKey`
-          )
-        )?.value ??
+        (await getSecretFromManager(provider.provider, 'apiKey')) ??
         provider.apiKey ??
         '';
     }
@@ -344,6 +350,25 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
    * @param updates - Partial configuration updates to apply
    */
   const handleConfigUpdate = async (updates: Partial<IAIConfig>) => {
+    if (updates.useSecretsManager !== undefined) {
+      if (updates.useSecretsManager) {
+        for (const provider of model.config.providers) {
+          provider.apiKey = SECRETS_REPLACEMENT;
+          await model.updateProvider(provider.id, provider);
+        }
+      } else {
+        for (const provider of model.config.providers) {
+          const apiKey = await getSecretFromManager(
+            provider.provider,
+            'apiKey'
+          );
+          if (apiKey) {
+            provider.apiKey = apiKey;
+            await model.updateProvider(provider.id, provider);
+          }
+        }
+      }
+    }
     await model.updateConfig(updates);
   };
 
@@ -531,6 +556,22 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           ))}
                         </Select>
                       </FormControl>
+                    )}
+                    {secretsManager !== undefined && (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={config.useSecretsManager}
+                            onChange={e =>
+                              handleConfigUpdate({
+                                useSecretsManager: e.target.checked
+                              })
+                            }
+                            color="primary"
+                          />
+                        }
+                        label="use the secrets manager to manage API keys"
+                      />
                     )}
                   </Box>
                 </CardContent>
