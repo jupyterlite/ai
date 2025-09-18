@@ -299,7 +299,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           await secretsManager.get(
             Private.getToken(),
             SECRETS_NAMESPACE,
-            `${provider.name}:apiKey`
+            `${provider.provider}:apiKey`
           )
         )?.value ??
         provider.apiKey ??
