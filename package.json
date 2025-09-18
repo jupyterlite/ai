@@ -1,6 +1,6 @@
 {
     "name": "@jupyterlite/ai",
-    "version": "0.8.1",
+    "version": "0.9.0-a0",
     "description": "AI code completions and chat for JupyterLite",
     "keywords": [
         "jupyter",
