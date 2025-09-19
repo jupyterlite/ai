@@ -374,14 +374,18 @@ export function createGetCellInfoTool(
         ),
       cellIndex: z
         .number()
-        .describe('Index of the cell to get information for (0-based)')
+        .optional()
+        .nullable()
+        .describe(
+          'Index of the cell to get information for (0-based). If not provided, uses the currently active cell'
+        )
     }),
     execute: async (input: {
       notebookPath?: string | null;
-      cellIndex: number;
+      cellIndex?: number | null;
     }) => {
-      const { notebookPath, cellIndex } = input;
-
+      const { notebookPath } = input;
+      let { cellIndex } = input;
       try {
         const currentWidget = await getNotebookWidget(
           notebookPath,
@@ -405,6 +409,10 @@ export function createGetCellInfoTool(
             success: false,
             error: 'No notebook model available'
           });
+        }
+
+        if (cellIndex === undefined || cellIndex === null) {
+          cellIndex = notebook.activeCellIndex;
         }
 
         if (cellIndex < 0 || cellIndex >= model.cells.length) {
