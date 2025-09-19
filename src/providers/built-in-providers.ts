@@ -1,5 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createMistral } from '@ai-sdk/mistral';
+import { createOpenAI } from '@ai-sdk/openai';
 import { aisdk } from '@openai/agents-extensions';
 import { createOllama } from 'ollama-ai-provider-v2';
 
@@ -75,6 +76,42 @@ export function registerBuiltInChatProviders(
   };
 
   registry.registerProvider(mistralInfo);
+
+  // OpenAI provider
+  const openaiInfo: IChatProviderInfo = {
+    id: 'openai',
+    name: 'OpenAI',
+    requiresApiKey: true,
+    defaultModels: [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4o-audio-preview',
+      'gpt-4-turbo',
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'o1',
+      'o3-mini',
+      'chatgpt-4o-latest',
+      'gpt-5',
+      'gpt-5-mini'
+    ],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    factory: (options: IModelOptions) => {
+      if (!options.apiKey) {
+        throw new Error('API key required for OpenAI');
+      }
+      const openai = createOpenAI({
+        apiKey: options.apiKey,
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      return aisdk(openai(modelName));
+    }
+  };
+
+  registry.registerProvider(openaiInfo);
 
   // Ollama provider
   const ollamaInfo: IChatProviderInfo = {
@@ -186,6 +223,47 @@ export function registerBuiltInCompletionProviders(
   };
 
   registry.registerProvider(mistralInfo);
+
+  // OpenAI provider
+  const openaiInfo: ICompletionProviderInfo = {
+    id: 'openai',
+    name: 'OpenAI',
+    requiresApiKey: true,
+    defaultModels: [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4o-audio-preview',
+      'gpt-4-turbo',
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'o1',
+      'o3-mini',
+      'chatgpt-4o-latest',
+      'gpt-5',
+      'gpt-5-mini'
+    ],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    customSettings: {
+      completionConfig: {
+        useFilterText: true
+      }
+    },
+    factory: (options: IModelOptions) => {
+      if (!options.apiKey) {
+        throw new Error('API key required for OpenAI');
+      }
+      const openai = createOpenAI({
+        apiKey: options.apiKey,
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      return openai(modelName);
+    }
+  };
+
+  registry.registerProvider(openaiInfo);
 
   // Ollama provider
   const ollamaInfo: ICompletionProviderInfo = {
