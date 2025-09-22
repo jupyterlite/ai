@@ -596,10 +596,7 @@ export function createSetCellContentTool(
           }
         } catch (error) {
           // Silently ignore errors from the cell-diff command
-          console.warn(
-            'Failed to execute jupyterlab-cell-diff:show-codemirror:',
-            error
-          );
+          console.warn(`Failed to execute ${showDiffCommandId}:`, error);
         }
 
         return JSON.stringify({
