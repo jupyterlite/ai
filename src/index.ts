@@ -455,6 +455,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     kernelSpecManager: KernelSpec.IManager,
     notebookTracker?: INotebookTracker
   ) => {
+    const { commands } = app;
     const toolRegistry = new ToolRegistry();
 
     const notebookCreationTool = createNotebookCreationTool(
@@ -472,6 +473,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
     const setCellContentTool = createSetCellContentTool(
       docManager,
+      commands,
       notebookTracker
     );
     const runCellTool = createRunCellTool(docManager, notebookTracker);

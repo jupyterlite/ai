@@ -3,6 +3,7 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { KernelSpec } from '@jupyterlab/services';
+import { CommandRegistry } from '@lumino/commands';
 
 import { tool } from '@openai/agents';
 
@@ -459,6 +460,7 @@ export function createGetCellInfoTool(
  */
 export function createSetCellContentTool(
   docManager: IDocumentManager,
+  commands: CommandRegistry,
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
@@ -498,12 +500,12 @@ export function createSetCellContentTool(
       const { notebookPath, cellId, cellIndex, content } = input;
 
       try {
-        const currentWidget = await getNotebookWidget(
+        const notebookWidget = await getNotebookWidget(
           notebookPath,
           docManager,
           notebookTracker
         );
-        if (!currentWidget) {
+        if (!notebookWidget) {
           return JSON.stringify({
             success: false,
             error: notebookPath
@@ -512,7 +514,9 @@ export function createSetCellContentTool(
           });
         }
 
-        const notebook = currentWidget.content;
+        const notebook = notebookWidget.content;
+        const targetNotebookPath = notebookWidget.context.path;
+
         const model = notebook.model;
 
         if (!model) {
@@ -577,6 +581,27 @@ export function createSetCellContentTool(
 
         sharedModel.setSource(content);
 
+        // Show the cell diff using jupyterlab-cell-diff if available
+        const showDiffCommandId = 'jupyterlab-cell-diff:show-codemirror';
+        try {
+          if (commands.hasCommand(showDiffCommandId)) {
+            void commands.execute(showDiffCommandId, {
+              originalSource: previousContent,
+              newSource: content,
+              cellId: retrievedCellId,
+              showActionButtons: true,
+              openDiff: true,
+              notebookPath: targetNotebookPath
+            });
+          }
+        } catch (error) {
+          // Silently ignore errors from the cell-diff command
+          console.warn(
+            'Failed to execute jupyterlab-cell-diff:show-codemirror:',
+            error
+          );
+        }
+
         return JSON.stringify({
           success: true,
           message:
@@ -585,7 +610,7 @@ export function createSetCellContentTool(
               : cellIndex !== undefined && cellIndex !== null
                 ? `Cell ${targetCellIndex} content replaced successfully`
                 : 'Active cell content replaced successfully',
-          notebookPath: currentWidget.context.path,
+          notebookPath: targetNotebookPath,
           cellId: retrievedCellId,
           cellIndex: targetCellIndex,
           previousContent,

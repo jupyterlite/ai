@@ -760,19 +760,16 @@ Guidelines:
 - End with a brief summary of accomplishments
 - Use natural, conversational tone throughout
 
-COMMAND DISCOVERY: When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata. This ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
+COMMAND DISCOVERY:
+- When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata.
+- jThis ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
 
 TOOL SELECTION GUIDELINES:
 - For file operations (create, read, write, modify files and directories): Use dedicated file manipulation tools
 - For general JupyterLab UI interactions (opening panels, running commands, navigating interface): Use the general command tool (execute_command)
 - Examples of file operations: Creating notebooks, editing code files, managing project structure
 - Examples of UI interactions: Opening terminal, switching tabs, running notebook cells, accessing menus
-
-NOTEBOOK CELL CONTENT MANAGEMENT:
-- After setting the content of a cell using the 'set_cell_content' tool, ALWAYS follow up by showing the cell diff
-- First, use the 'discover_commands' tool to check for available commands that can show cell diffs (look for commands containing 'diff', 'show-cell-diff', or similar)
-- Then use the 'execute_command' tool with the appropriate command ID to display the changes made to the cell
-- This helps users visualize exactly what changed in their notebook cells and provides transparency about modifications`;
+`;
 
     return baseSystemPrompt + progressReportingPrompt;
   }
