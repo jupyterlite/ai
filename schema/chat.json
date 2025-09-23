@@ -22,6 +22,12 @@
       "title": "AI persona name",
       "description": "The name of the AI persona",
       "default": "Jupyternaut"
+    },
+    "enableClearChatButton": {
+      "type": "boolean",
+      "title": "Enable Clear Chat Button",
+      "description": "Whether to enable the button to clear the chat history.",
+      "default": false
     }
   },
   "additionalProperties": false

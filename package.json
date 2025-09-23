@@ -56,7 +56,7 @@
         "watch:labextension": "jupyter labextension watch ."
     },
     "dependencies": {
-        "@jupyter/chat": "^0.14.0",
+        "@jupyter/chat": "^0.17.0",
         "@jupyterlab/application": "^4.4.0",
         "@jupyterlab/apputils": "^4.5.0",
         "@jupyterlab/completer": "^4.4.0",
@@ -65,13 +65,14 @@
         "@jupyterlab/rendermime": "^4.4.0",
         "@jupyterlab/settingregistry": "^4.4.0",
         "@jupyterlab/ui-components": "^4.4.0",
-        "@langchain/anthropic": "^0.3.24",
+        "@langchain/anthropic": "^0.3.26",
         "@langchain/community": "^0.3.48",
-        "@langchain/core": "^0.3.62",
-        "@langchain/google-genai": "^0.2.14",
+        "@langchain/core": "^0.3.68",
+        "@langchain/google-genai": "^0.2.16",
+        "@langchain/langgraph": "^0.4.3",
         "@langchain/mistralai": "^0.2.1",
         "@langchain/ollama": "^0.2.3",
-        "@langchain/openai": "^0.5.16",
+        "@langchain/openai": "^0.6.7",
         "@lumino/coreutils": "^2.1.2",
         "@lumino/polling": "^2.1.2",
         "@lumino/signaling": "^2.1.2",
@@ -87,6 +88,9 @@
         "jupyter-secrets-manager": "^0.4.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
+    },
+    "resolutions": {
+        "zod": "3.25.67"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.4.0",
@@ -127,6 +131,7 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "webpackConfig": "./webpack.config.js"
     }
 }

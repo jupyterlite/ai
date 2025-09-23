@@ -9,14 +9,15 @@ import {
   AbstractChatModel,
   IChatCommandProvider,
   IChatContext,
-  IChatHistory,
   IChatMessage,
   IChatModel,
   IInputModel,
-  INewMessage
+  INewMessage,
+  IUser
 } from '@jupyter/chat';
 import {
   AIMessage,
+  BaseMessage,
   HumanMessage,
   mergeMessageRuns,
   SystemMessage
@@ -25,7 +26,7 @@ import { UUID } from '@lumino/coreutils';
 
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from './default-prompts';
 import { jupyternautLiteIcon } from './icons';
-import { IAIProviderRegistry } from './tokens';
+import { IAIProviderRegistry, IToolRegistry } from './tokens';
 import { AIChatModel } from './types/ai-model';
 
 /**
@@ -47,22 +48,47 @@ The current providers that are available are _${providers.sort().join('_, _')}_.
 To clear the chat, you can use the \`/clear\` command from the chat input.
 `;
 
-export type ConnectionMessage = {
-  type: 'connection';
-  client_id: string;
-};
-
 export class ChatHandler extends AbstractChatModel {
   constructor(options: ChatHandler.IOptions) {
     super(options);
     this._providerRegistry = options.providerRegistry;
+    this._toolRegistry = options.toolRegistry;
 
     this._providerRegistry.providerChanged.connect(() => {
       this._errorMessage = this._providerRegistry.chatError;
     });
   }
 
-  get provider(): AIChatModel | null {
+  clearMessages(): void {
+    super.clearMessages();
+    this._history = [];
+  }
+
+  /**
+   * The provider registry.
+   */
+  get providerRegistry(): IAIProviderRegistry {
+    return this._providerRegistry;
+  }
+
+  /**
+   * Get the tool registry.
+   */
+  get toolRegistry(): IToolRegistry | undefined {
+    return this._toolRegistry;
+  }
+
+  /**
+   * Get the agent from the provider registry.
+   */
+  get agent(): AIChatModel | null {
+    return this._providerRegistry.currentAgent;
+  }
+
+  /**
+   * Get the chat model from the provider registry.
+   */
+  get chatModel(): AIChatModel | null {
     return this._providerRegistry.currentChatModel;
   }
 
@@ -84,7 +110,7 @@ export class ChatHandler extends AbstractChatModel {
   }
 
   /**
-   * Get/set the system prompt for the chat.
+   * Get the system prompt for the chat.
    */
   get systemPrompt(): string {
     return (
@@ -97,7 +123,7 @@ export class ChatHandler extends AbstractChatModel {
     if (body.startsWith('/clear')) {
       // TODO: do we need a clear method?
       this.messagesDeleted(0, this.messages.length);
-      this._history.messages = [];
+      this._history = [];
       return false;
     }
     message.id = UUID.uuid4();
@@ -110,7 +136,9 @@ export class ChatHandler extends AbstractChatModel {
     };
     this.messageAdded(msg);
 
-    if (this._providerRegistry.currentChatModel === null) {
+    const chatModel = this.chatModel;
+
+    if (chatModel === null) {
       const errorMsg: IChatMessage = {
         id: UUID.uuid4(),
         body: `**${this._errorMessage ? this._errorMessage : this._defaultErrorMessage}**`,
@@ -122,63 +150,23 @@ export class ChatHandler extends AbstractChatModel {
       return false;
     }
 
-    this._history.messages.push(msg);
+    const messages = mergeMessageRuns([
+      new SystemMessage(this.systemPrompt),
+      ...this._history
+    ]);
 
-    const messages = mergeMessageRuns([new SystemMessage(this.systemPrompt)]);
-    messages.push(
-      ...this._history.messages.map(msg => {
-        if (msg.sender.username === 'User') {
-          return new HumanMessage(msg.body);
-        }
-        return new AIMessage(msg.body);
-      })
-    );
+    const newMessage = new HumanMessage(msg.body);
+    messages.push(newMessage);
+    this._history.push(newMessage);
 
     const sender = { username: this._personaName, avatar_url: AI_AVATAR };
     this.updateWriters([{ user: sender }]);
 
-    // create an empty message to be filled by the AI provider
-    const botMsg: IChatMessage = {
-      id: UUID.uuid4(),
-      body: '',
-      sender,
-      time: Private.getTimestampMs(),
-      type: 'msg'
-    };
-
-    let content = '';
-
-    this._controller = new AbortController();
-    try {
-      for await (const chunk of await this._providerRegistry.currentChatModel.stream(
-        messages,
-        { signal: this._controller.signal }
-      )) {
-        content += chunk.content ?? chunk;
-        botMsg.body = content;
-        this.messageAdded(botMsg);
-      }
-      this._history.messages.push(botMsg);
-      return true;
-    } catch (reason) {
-      const error = this._providerRegistry.formatErrorMessage(reason);
-      const errorMsg: IChatMessage = {
-        id: UUID.uuid4(),
-        body: `**${error}**`,
-        sender: { username: 'ERROR' },
-        time: Private.getTimestampMs(),
-        type: 'msg'
-      };
-      this.messageAdded(errorMsg);
-      return false;
-    } finally {
-      this.updateWriters([]);
-      this._controller = null;
+    if (this.agent !== null) {
+      return this._sendAgentMessage(this.agent, messages, sender);
     }
-  }
 
-  async getHistory(): Promise<IChatHistory> {
-    return this._history;
+    return this._sentChatMessage(chatModel, messages, sender);
   }
 
   dispose(): void {
@@ -197,12 +185,131 @@ export class ChatHandler extends AbstractChatModel {
     return new ChatHandler.ChatContext({ model: this });
   }
 
+  private async _sentChatMessage(
+    chatModel: AIChatModel,
+    messages: BaseMessage[],
+    sender: IUser
+  ): Promise<boolean> {
+    // Create an empty message to be filled by the AI provider
+    const botMsg: IChatMessage = {
+      id: UUID.uuid4(),
+      body: '',
+      sender,
+      time: Private.getTimestampMs(),
+      type: 'msg'
+    };
+    let content = '';
+    this._controller = new AbortController();
+    try {
+      for await (const chunk of await chatModel.stream(messages, {
+        signal: this._controller.signal
+      })) {
+        content += chunk.content ?? chunk;
+        botMsg.body = content;
+        this.messageAdded(botMsg);
+      }
+      this._history.push(new AIMessage(content));
+      return true;
+    } catch (reason) {
+      const error = this._providerRegistry.formatErrorMessage(reason);
+      const errorMsg: IChatMessage = {
+        id: UUID.uuid4(),
+        body: `**${error}**`,
+        sender: { username: 'ERROR' },
+        time: Private.getTimestampMs(),
+        type: 'msg'
+      };
+      this.messageAdded(errorMsg);
+      return false;
+    } finally {
+      this.updateWriters([]);
+      this._controller = null;
+    }
+  }
+
+  private async _sendAgentMessage(
+    agent: AIChatModel,
+    messages: BaseMessage[],
+    sender: IUser
+  ): Promise<boolean> {
+    this._controller = new AbortController();
+    try {
+      for await (const chunk of await agent.stream(
+        { messages },
+        {
+          streamMode: 'updates',
+          signal: this._controller.signal
+        }
+      )) {
+        if ((chunk as any).agent) {
+          messages = (chunk as any).agent.messages;
+          messages.forEach(message => {
+            this._history.push(message);
+            const contents: string[] = [];
+            if (typeof message.content === 'string') {
+              contents.push(message.content);
+            } else if (Array.isArray(message.content)) {
+              message.content.forEach(content => {
+                if (content.type === 'text') {
+                  contents.push(content.text);
+                }
+              });
+            }
+            contents.forEach(content => {
+              this.messageAdded({
+                id: UUID.uuid4(),
+                body: content,
+                sender,
+                time: Private.getTimestampMs(),
+                type: 'msg'
+              });
+            });
+          });
+        } else if ((chunk as any).tools) {
+          messages = (chunk as any).tools.messages;
+          messages.forEach(message => {
+            this._history.push(message);
+            const content = message.content as string;
+            const contentData = JSON.parse(content);
+            const title = contentData.command
+              ? contentData.command
+              : 'Show details';
+            const body = `<details><summary>${title}</summary><pre>${content}</pre></details>`;
+            this.messageAdded({
+              id: UUID.uuid4(),
+              body,
+              sender: { username: `Tool "${message.name}"` },
+              time: Private.getTimestampMs(),
+              type: 'msg'
+            });
+          });
+        }
+      }
+      return true;
+    } catch (reason) {
+      const error = this._providerRegistry.formatErrorMessage(reason);
+      const errorMsg: IChatMessage = {
+        id: UUID.uuid4(),
+        body: `**${error}**`,
+        sender: { username: 'ERROR' },
+        time: Private.getTimestampMs(),
+        type: 'msg'
+      };
+      this.messageAdded(errorMsg);
+      return false;
+    } finally {
+      this.updateWriters([]);
+      this._controller = null;
+    }
+  }
+
   private _providerRegistry: IAIProviderRegistry;
   private _personaName = 'AI';
   private _errorMessage: string = '';
-  private _history: IChatHistory = { messages: [] };
+  private _history: BaseMessage[] = [];
   private _defaultErrorMessage = 'AI provider not configured';
   private _controller: AbortController | null = null;
+  private _toolRegistry?: IToolRegistry;
 }
 
 export namespace ChatHandler {
@@ -211,13 +318,28 @@ export namespace ChatHandler {
    */
   export interface IOptions extends IChatModel.IOptions {
     providerRegistry: IAIProviderRegistry;
+    toolRegistry?: IToolRegistry;
   }
 
   /**
-   * The minimal chat context.
+   * The chat context.
    */
   export class ChatContext extends AbstractChatContext {
     users = [];
+
+    /**
+     * The provider registry.
+     */
+    get providerRegistry(): IAIProviderRegistry {
+      return (this._model as ChatHandler).providerRegistry;
+    }
+
+    /**
+     * The tool registry.
+     */
+    get toolsRegistry(): IToolRegistry | undefined {
+      return (this._model as ChatHandler).toolRegistry;
+    }
   }
 
   /**
