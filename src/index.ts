@@ -117,7 +117,7 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
       })
       .catch(reason => {
         console.error(
-          `Something went wrong when reading the settings.\n${reason}`
+          `Something went wrong when reading the settings.\n${reason} `
         );
       });
 
@@ -149,19 +149,6 @@ const chatPlugin: JupyterFrontEndPlugin<void> = {
         inputToolbarRegistry.show('send');
       }
     });
-
-    chatHandler.messagesUpdated.connect(() => {
-      if (!enableClearChatButton) {
-        inputToolbarRegistry.hide('clear');
-        return;
-      }
-      if (chatHandler.messages.length > 0) {
-        inputToolbarRegistry.show('clear');
-      } else {
-        inputToolbarRegistry.hide('clear');
-      }
-    });
-
     try {
       chatWidget = buildChatSidebar({
         model: chatHandler,
