@@ -47,6 +47,7 @@ export class AIChatModel extends AbstractChatModel {
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+    this.setReady();
   }
 
   /**
