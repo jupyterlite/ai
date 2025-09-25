@@ -2,6 +2,7 @@ import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import { FunctionTool } from '@openai/agents';
 import { LanguageModel } from 'ai';
+import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
 
@@ -269,3 +270,16 @@ export interface ICompletionProviderRegistry {
 export const IAISettingsModel = new Token<AISettingsModel>(
   '@jupyterlite/ai:IAISettingsModel'
 );
+
+/**
+ * Token for the agent manager.
+ */
+export const IAgentManager = new Token<AgentManager>(
+  '@jupyterlite/ai:agent-manager'
+);
+
+/**
+ * The string that replaces a secret key in settings.
+ */
+export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
+export const SECRETS_REPLACEMENT = '***';

@@ -8,12 +8,13 @@ import {
   StreamedRunResult,
   user
 } from '@openai/agents';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { BrowserMCPServerStreamableHttp } from './mcp/browser';
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
 import type { IChatProviderRegistry } from './tokens';
-import { ITool, IToolRegistry, ITokenUsage } from './tokens';
+import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
 
 /**
  * Event type mapping for type safety with inlined interface definitions
@@ -91,6 +92,15 @@ export interface IAgentManagerOptions {
    * Optional chat provider registry for model creation
    */
   chatProviderRegistry?: IChatProviderRegistry;
+
+  /**
+   * The secrets manager.
+   */
+  secretsManager?: ISecretsManager;
+  /**
+   * The token used to request the secrets manager.
+   */
+  token: symbol;
 }
 
 /**
@@ -105,9 +115,11 @@ export class AgentManager {
    * @param options Configuration options for the agent manager
    */
   constructor(options: IAgentManagerOptions) {
+    Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._chatProviderRegistry = options.chatProviderRegistry;
+    this._secretsManager = options.secretsManager;
     this._selectedToolNames = [];
     this._agent = null;
     this._runner = new Runner({ tracingDisabled: true });
@@ -438,7 +450,7 @@ export class AgentManager {
 
     try {
       const config = this._settingsModel.config;
-      const model = this._createModel();
+      const model = await this._createModel();
 
       const shouldUseTools =
         config.toolsEnabled &&
@@ -716,14 +728,27 @@ export class AgentManager {
    * Creates a model instance based on current settings.
    * @returns The configured model instance for the agent
    */
-  private _createModel() {
+  private async _createModel() {
     const activeProvider = this._settingsModel.getActiveProvider();
     if (!activeProvider) {
       throw new Error('No active provider configured');
     }
     const provider = activeProvider.provider;
     const model = activeProvider.model;
-    const apiKey = this._settingsModel.getApiKey(activeProvider.id);
+
+    let apiKey: string;
+    if (this._secretsManager && this._settingsModel.config.useSecretsManager) {
+      apiKey =
+        (
+          await this._secretsManager.get(
+            Private.getToken(),
+            SECRETS_NAMESPACE,
+            `${provider}:apiKey`
+          )
+        )?.value ?? '';
+    } else {
+      apiKey = this._settingsModel.getApiKey(activeProvider.id);
+    }
 
     return createModel(
       {
@@ -778,6 +803,7 @@ TOOL SELECTION GUIDELINES:
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _chatProviderRegistry?: IChatProviderRegistry;
+  private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
   private _agent: Agent | null;
   private _runner: Runner;
@@ -794,4 +820,17 @@ TOOL SELECTION GUIDELINES:
   private _mcpConnectionChanged: Signal<this, boolean>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
+}
+
+namespace Private {
+  /**
+   * The token to use with the secrets manager, setter and getter.
+   */
+  let secretsToken: symbol;
+  export function setToken(value: symbol): void {
+    secretsToken = value;
+  }
+  export function getToken(): symbol {
+    return secretsToken;
+  }
 }

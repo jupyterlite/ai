@@ -6,10 +6,11 @@ import {
 } from '@jupyterlab/completer';
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { generateText, LanguageModel } from 'ai';
+import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from '../models/settings-model';
-import type { ICompletionProviderRegistry } from '../tokens';
 import { createCompletionModel } from '../providers/models';
+import { SECRETS_NAMESPACE, type ICompletionProviderRegistry } from '../tokens';
 
 /**
  * Configuration interface for provider-specific completion behavior
@@ -62,8 +63,10 @@ export class AICompletionProvider implements IInlineCompletionProvider {
    * Construct a new completion provider.
    */
   constructor(options: AICompletionProvider.IOptions) {
+    Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._completionProviderRegistry = options.completionProviderRegistry;
+    this._secretsManager = options.secretsManager;
     this._settingsModel.stateChanged.connect(() => {
       this._updateModel();
     });
@@ -162,7 +165,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   /**
    * Update the language model based on current settings.
    */
-  private _updateModel(): void {
+  private async _updateModel(): Promise<void> {
     const activeProvider = this._settingsModel.getCompleterProvider();
     if (!activeProvider) {
       this._model = null;
@@ -171,7 +174,20 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
     const provider = activeProvider.provider;
     const model = activeProvider.model;
-    const apiKey = this._settingsModel.getApiKey(activeProvider.id);
+
+    let apiKey: string;
+    if (this._secretsManager && this._settingsModel.config.useSecretsManager) {
+      apiKey =
+        (
+          await this._secretsManager.get(
+            Private.getToken(),
+            SECRETS_NAMESPACE,
+            `${provider}:apiKey`
+          )
+        )?.value ?? '';
+    } else {
+      apiKey = this._settingsModel.getApiKey(activeProvider.id);
+    }
 
     try {
       this._model = createCompletionModel(
@@ -289,6 +305,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   private _settingsModel: AISettingsModel;
   private _completionProviderRegistry?: ICompletionProviderRegistry;
   private _model: LanguageModel | null = null;
+  private _secretsManager?: ISecretsManager;
 }
 
 export namespace AICompletionProvider {
@@ -304,5 +321,26 @@ export namespace AICompletionProvider {
      * The completion provider registry.
      */
     completionProviderRegistry?: ICompletionProviderRegistry;
+    /**
+     * The secrets manager.
+     */
+    secretsManager?: ISecretsManager;
+    /**
+     * The token used to request the secrets manager.
+     */
+    token: symbol;
+  }
+}
+
+namespace Private {
+  /**
+   * The token to use with the secrets manager, setter and getter.
+   */
+  let secretsToken: symbol;
+  export function setToken(value: symbol): void {
+    secretsToken = value;
+  }
+  export function getToken(): symbol {
+    return secretsToken;
   }
 }

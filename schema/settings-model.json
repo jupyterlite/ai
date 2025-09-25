@@ -4,6 +4,12 @@
   "description": "Configuration for JupyterLite AI extension providers, models, and behavior",
   "type": "object",
   "properties": {
+    "useSecretsManager": {
+      "type": "boolean",
+      "title": "Use secrets manager",
+      "description": "Whether to use or not the secrets manager. If not, secrets will be stored in plain text in settings",
+      "default": true
+    },
     "providers": {
       "title": "AI Providers",
       "description": "List of configured AI providers",
