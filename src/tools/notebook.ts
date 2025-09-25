@@ -583,21 +583,14 @@ export function createSetCellContentTool(
 
         // Show the cell diff using jupyterlab-cell-diff if available
         const showDiffCommandId = 'jupyterlab-cell-diff:show-codemirror';
-        try {
-          if (commands.hasCommand(showDiffCommandId)) {
-            void commands.execute(showDiffCommandId, {
-              originalSource: previousContent,
-              newSource: content,
-              cellId: retrievedCellId,
-              showActionButtons: true,
-              openDiff: true,
-              notebookPath: targetNotebookPath
-            });
-          }
-        } catch (error) {
-          // Silently ignore errors from the cell-diff command
-          console.warn(`Failed to execute ${showDiffCommandId}:`, error);
-        }
+        void commands.execute(showDiffCommandId, {
+          originalSource: previousContent,
+          newSource: content,
+          cellId: retrievedCellId,
+          showActionButtons: true,
+          openDiff: true,
+          notebookPath: targetNotebookPath
+        });
 
         return JSON.stringify({
           success: true,
