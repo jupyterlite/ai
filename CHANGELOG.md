@@ -2,6 +2,32 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0a1
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a0...59b5a7c9f4d61cd4ef9e23e7a3cf504878881d07))
+
+### Enhancements made
+
+- Call the diff command directly when setting the cell content [#162](https://github.com/jupyterlite/ai/pull/162) ([@jtpio](https://github.com/jtpio))
+- Add the secrets manager [#159](https://github.com/jupyterlite/ai/pull/159) ([@brichet](https://github.com/brichet))
+- Re-add OpenAI [#147](https://github.com/jupyterlite/ai/pull/147) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Get active cell info [#161](https://github.com/jupyterlite/ai/pull/161) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update @jupyter/chat and @mui dependencies [#164](https://github.com/jupyterlite/ai/pull/164) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-18&to=2025-09-25&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-18..2025-09-25&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-18..2025-09-25&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0a0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.8.1...01723cd4d0ffa484afb560b085bd26ab033d7c75))
@@ -35,8 +61,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-08-04&to=2025-09-18&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-08-04..2025-09-18&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-08-04..2025-09-18&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-08-04..2025-09-18&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.8.1
 
