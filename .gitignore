@@ -89,6 +89,9 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
+# vscode project settings
+.vscode
+
 # Spyder project settings
 .spyderproject
 .spyproject
