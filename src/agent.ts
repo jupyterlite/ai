@@ -762,7 +762,7 @@ Guidelines:
 
 COMMAND DISCOVERY:
 - When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata.
-- jThis ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
+- This ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
 
 TOOL SELECTION GUIDELINES:
 - For file operations (create, read, write, modify files and directories): Use dedicated file manipulation tools
