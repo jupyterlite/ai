@@ -249,7 +249,7 @@ export class AgentManager {
    */
   clearHistory(): void {
     this._history = [];
-    this._runner = new Runner();
+    this._runner = new Runner({ tracingDisabled: true });
     this._pendingApprovals.clear();
     this._interruptedState = null;
     // Reset token usage
