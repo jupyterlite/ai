@@ -578,6 +578,14 @@ export class AgentManager {
             });
             currentMessageId = null;
           }
+
+          const usage = data.response.usage;
+          const { inputTokens, outputTokens } = usage;
+          this._tokenUsage = {
+            inputTokens,
+            outputTokens
+          };
+          this._tokenUsageChanged.emit(this._tokenUsage);
         } else if (data.type === 'model') {
           const modelEvent = data.event as any;
           if (modelEvent.type === 'tool-call') {
