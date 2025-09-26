@@ -383,8 +383,8 @@ Ready to help you build something great! What are you working on?`
     }
 
     // Fallback to active chat provider
-    const activeProvider = this.getActiveProvider();
-    if (activeProvider && activeProvider.id === id) {
+    const activeProvider = this.getProvider(id);
+    if (activeProvider) {
       return activeProvider.apiKey || '';
     }
 

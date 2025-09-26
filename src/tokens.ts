@@ -5,6 +5,7 @@ import { LanguageModelV2 } from '@ai-sdk/provider';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
+import { AgentManagerFactory } from './agent';
 
 /**
  * Type definition for a tool
@@ -215,3 +216,10 @@ export const IAgentManager = new Token<AgentManager>(
  */
 export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
 export const SECRETS_REPLACEMENT = '***';
+
+/*
+ * Token for the agent manager registry.
+ */
+export const IAgentManagerFactory = new Token<AgentManagerFactory>(
+  'labai:IAgentManagerFactory'
+);

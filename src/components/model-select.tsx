@@ -2,6 +2,7 @@ import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
+import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
 
 const SELECT_ITEM_CLASS = 'labai-model-select-item';
@@ -21,9 +22,13 @@ export interface IModelSelectProps
  * The model select component for choosing AI models.
  */
 export function ModelSelect(props: IModelSelectProps): JSX.Element {
-  const { settingsModel } = props;
+  const { settingsModel, model } = props;
+  const agentManager = (model.chatContext as AIChatModel.IAIChatContext)
+    .agentManager;
 
-  const [currentProvider, setCurrentProvider] = useState<string>('');
+  const [currentProvider, setCurrentProvider] = useState<string>(
+    agentManager.activeProvider ?? ''
+  );
   const [currentModel, setCurrentModel] = useState<string>('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,7 +48,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
   const selectModel = useCallback(
     async (providerId: string) => {
       // Set the active provider using the provider ID
-      await settingsModel.setActiveProvider(providerId);
+      agentManager.activeProvider = providerId;
       closeMenu();
 
       // Provider selected successfully
@@ -54,23 +59,28 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
   // Update current selection when settings model changes
   useEffect(() => {
     const updateCurrentSelection = () => {
-      const activeProvider = settingsModel.getActiveProvider();
-      if (activeProvider) {
-        setCurrentProvider(activeProvider.id);
-        setCurrentModel(activeProvider.model);
+      if (!agentManager.activeProvider) {
+        return;
+      }
+      const activeProviderConfig = settingsModel.getProvider(
+        agentManager.activeProvider
+      );
+      if (activeProviderConfig) {
+        setCurrentProvider(activeProviderConfig.id);
+        setCurrentModel(activeProviderConfig.model);
       }
     };
 
     updateCurrentSelection();
-    settingsModel.stateChanged.connect(updateCurrentSelection);
+    agentManager.activeProviderChanged.connect(updateCurrentSelection);
     return () => {
-      settingsModel.stateChanged.disconnect(updateCurrentSelection);
+      agentManager.activeProviderChanged.disconnect(updateCurrentSelection);
     };
   }, [settingsModel]);
 
   // Get current provider label for display
-  const activeProvider = settingsModel.getActiveProvider();
-  const currentProviderLabel = activeProvider?.name || currentProvider;
+  const activeProviderConfig = settingsModel.getProvider(currentProvider);
+  const currentProviderLabel = activeProviderConfig?.name || currentProvider;
 
   // Use all configured providers (they're already validated when added)
   const availableProviders = configuredProviders;
@@ -234,6 +244,10 @@ export function createModelSelectItem(
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const chatContext = props.model.chatContext as AIChatModel.IAIChatContext;
+      if (!chatContext.agentManager) {
+        return;
+      }
       const modelSelectProps: IModelSelectProps = {
         ...props,
         settingsModel
