@@ -2,6 +2,24 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0a2
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a1...0a63b33304b70c8fa8461a2e36bba97d12f3d2d9))
+
+### Bugs fixed
+
+- Bump @jupyter/chat to 0.18.1 [#168](https://github.com/jupyterlite/ai/pull/168) ([@brichet](https://github.com/brichet))
+- Fix token usage [#167](https://github.com/jupyterlite/ai/pull/167) ([@jtpio](https://github.com/jtpio))
+- Disable tracing when creating a new `Runner` [#166](https://github.com/jupyterlite/ai/pull/166) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-25&to=2025-09-26&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-25..2025-09-26&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-25..2025-09-26&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0a1
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a0...59b5a7c9f4d61cd4ef9e23e7a3cf504878881d07))
@@ -25,8 +43,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-18&to=2025-09-25&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-18..2025-09-25&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-18..2025-09-25&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0a0
 
