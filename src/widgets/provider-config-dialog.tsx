@@ -65,7 +65,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         label: info.name,
         models: info.defaultModels,
         requiresApiKey: info.requiresApiKey,
-        allowCustomModel: id === 'ollama' // Only Ollama allows custom models for now
+        allowCustomModel: id === 'ollama', // Only Ollama allows custom models for now
+        supportsBaseURL: info.supportsBaseURL
       };
     });
   }, [chatProviderRegistry]);
@@ -235,7 +236,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             />
           )}
 
-          {(provider === 'ollama' || selectedProvider?.allowCustomModel) && (
+          {selectedProvider?.supportsBaseURL && (
             <TextField
               fullWidth
               label="Base URL (Optional)"
@@ -249,7 +250,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
               helperText={
                 provider === 'ollama'
                   ? 'Ollama server endpoint'
-                  : 'Custom API base URL if needed'
+                  : 'Custom API base URL (e.g., for LiteLLM proxy). Leave empty to use default provider endpoint.'
               }
             />
           )}
