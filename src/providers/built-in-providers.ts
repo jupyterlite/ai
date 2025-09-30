@@ -149,7 +149,9 @@ export function registerBuiltInChatProviders(
         ...(options.headers && { headers: options.headers })
       });
       const modelName = options.model || 'gpt-4o';
-      return aisdk(openai(modelName));
+      // explicitly use openai.chat to ensure we use the /chat/completions endpoint
+      // for use with LiteLLM and other OpenAI-compatible providers
+      return aisdk(openai.chat(modelName));
     }
   };
 
