@@ -132,6 +132,28 @@ export function registerBuiltInChatProviders(
   };
 
   registry.registerProvider(ollamaInfo);
+
+  // Generic OpenAI-compatible provider
+  const genericInfo: IChatProviderInfo = {
+    id: 'generic',
+    name: 'Generic (OpenAI-compatible)',
+    requiresApiKey: false,
+    defaultModels: [],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    supportsToolCalling: true,
+    factory: (options: IModelOptions) => {
+      const openai = createOpenAI({
+        apiKey: options.apiKey || 'dummy',
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      return aisdk(openai(modelName));
+    }
+  };
+
+  registry.registerProvider(genericInfo);
 }
 
 /**
@@ -291,4 +313,32 @@ export function registerBuiltInCompletionProviders(
   };
 
   registry.registerProvider(ollamaInfo);
+
+  // Generic OpenAI-compatible provider
+  const genericCompletionInfo: ICompletionProviderInfo = {
+    id: 'generic',
+    name: 'Generic (OpenAI-compatible)',
+    requiresApiKey: false,
+    defaultModels: [],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    customSettings: {
+      completionConfig: {
+        temperature: 0.3,
+        supportsFillInMiddle: false,
+        useFilterText: true
+      }
+    },
+    factory: (options: IModelOptions) => {
+      const openai = createOpenAI({
+        apiKey: options.apiKey || 'dummy',
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      return openai(modelName);
+    }
+  };
+
+  registry.registerProvider(genericCompletionInfo);
 }

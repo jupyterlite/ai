@@ -65,7 +65,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         label: info.name,
         models: info.defaultModels,
         requiresApiKey: info.requiresApiKey,
-        allowCustomModel: id === 'ollama', // Only Ollama allows custom models for now
+        allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
         supportsBaseURL: info.supportsBaseURL
       };
     });
