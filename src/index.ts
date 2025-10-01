@@ -9,6 +9,8 @@ import {
   ActiveCellManager,
   AttachmentOpenerRegistry,
   chatIcon,
+  ChatWidget,
+  IAttachmentOpenerRegistry,
   IInputToolbarRegistryFactory,
   InputToolbarRegistry,
   MultiChatPanel
@@ -40,6 +42,7 @@ import { AIChatModel } from './chat-model';
 import { ProviderRegistry } from './providers/provider-registry';
 
 import {
+  CommandIds,
   IAgentManagerFactory,
   IProviderRegistry,
   IToolRegistry,
@@ -97,17 +100,7 @@ import {
 } from './tools/commands';
 
 import { AISettingsWidget } from './widgets/ai-settings';
-
-// import { ChatWrapperWidget } from './widgets/chat-wrapper';
-
-/**
- * Command IDs namespace
- */
-namespace CommandIds {
-  export const openSettings = '@jupyterlite/ai:open-settings';
-  export const reposition = '@jupyterlite/ai:reposition';
-  export const openChat = '@jupyterlite/ai:open-chat';
-}
+import { MainAreaChat } from './widgets/mainAreaChat';
 
 /**
  * Provider registry plugin
@@ -290,7 +283,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       }
       model.name = name;
-      return { model };
+      return { model, displayName: name };
     };
 
     // Create chat panel with drag/drop functionality
@@ -300,9 +293,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       inputToolbarFactory,
       attachmentOpenerRegistry,
       createModel,
-      getChatNames: async () => {
-        return {};
-      }
+      renameChat: async () => true,
+      openInMain: (name: string) =>
+        app.commands.execute(CommandIds.openChat, { mainArea: true, name })
     });
 
     chatPanel.id = 'labai:sidepanel';
@@ -333,11 +326,32 @@ const plugin: JupyterFrontEndPlugin<void> = {
       restorer.add(chatPanel, chatPanel.id);
     }
 
-    registerCommands(app, labShell);
+    registerCommands(
+      app,
+      rmRegistry,
+      chatPanel,
+      attachmentOpenerRegistry,
+      inputToolbarFactory,
+      createModel,
+      themeManager,
+      labShell
+    );
   }
 };
 
-function registerCommands(app: JupyterFrontEnd, labShell?: ILabShell) {
+function registerCommands(
+  app: JupyterFrontEnd,
+  rmRegistry: IRenderMimeRegistry,
+  chatPanel: MultiChatPanel,
+  attachmentOpenerRegistry: IAttachmentOpenerRegistry,
+  inputToolbarFactory: IInputToolbarRegistryFactory,
+  createModel: (
+    name?: string,
+    activeProvider?: string
+  ) => Promise<MultiChatPanel.IAddChatArgs>,
+  themeManager?: IThemeManager,
+  labShell?: ILabShell
+) {
   const { commands } = app;
 
   if (labShell) {
@@ -382,6 +396,57 @@ function registerCommands(app: JupyterFrontEnd, labShell?: ILabShell) {
               description: 'The mode to use when repositioning the widget'
             }
           }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.openChat, {
+      execute: async args => {
+        const inMain = args.mainArea ?? false;
+        const name = args.name as string;
+        let previousModel: AIChatModel | undefined;
+        let widgetToDispose: ChatWidget | MainAreaChat | undefined;
+
+        // Check if this is a move request, to restore the previous model messages.
+        if (args.name) {
+          if (inMain) {
+            previousModel = chatPanel.sections.find(
+              section => section.title.label === name
+            )?.model as AIChatModel;
+          } else {
+            const { currentWidget } = app.shell;
+            if (
+              currentWidget instanceof MainAreaChat &&
+              currentWidget.model.name === name
+            ) {
+              previousModel = currentWidget.model;
+              widgetToDispose = currentWidget;
+            }
+          }
+        }
+        const { model, displayName } = await createModel(
+          args.name ? (args.name as string) : undefined,
+          previousModel?.agentManager.activeProvider
+        );
+        if (!model) {
+          return;
+        }
+        previousModel?.messages.forEach(message =>
+          model?.messageAdded(message)
+        );
+
+        if (inMain) {
+          const content = new ChatWidget({
+            model,
+            rmRegistry,
+            themeManager: themeManager ?? null,
+            inputToolbarRegistry: inputToolbarFactory.create(),
+            attachmentOpenerRegistry
+          });
+          app.shell.add(new MainAreaChat({ content, commands }), 'main');
+        } else {
+          widgetToDispose?.dispose();
+          chatPanel.addChat({ model, displayName });
         }
       }
     });

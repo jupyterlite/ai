@@ -8,6 +8,15 @@ import type { IModelOptions } from './providers/models';
 import { AgentManagerFactory } from './agent';
 
 /**
+ * Command IDs namespace
+ */
+export namespace CommandIds {
+  export const openSettings = '@jupyterlite/ai:open-settings';
+  export const reposition = '@jupyterlite/ai:reposition';
+  export const openChat = '@jupyterlite/ai:open-chat';
+}
+
+/**
  * Type definition for a tool
  */
 export type ITool = FunctionTool<any, any, any>;
