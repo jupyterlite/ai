@@ -6,7 +6,7 @@ const PLUGIN_ID = '@jupyterlite/ai:settings-model';
 export interface IProviderConfig {
   id: string;
   name: string;
-  provider: 'anthropic' | 'mistral' | 'ollama' | 'openai';
+  provider: string;
   model: string;
   apiKey?: string;
   baseURL?: string;
