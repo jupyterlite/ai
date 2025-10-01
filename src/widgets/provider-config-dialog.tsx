@@ -66,7 +66,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         models: info.defaultModels,
         requiresApiKey: info.requiresApiKey,
         allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
-        supportsBaseURL: info.supportsBaseURL
+        supportsBaseURL: info.supportsBaseURL,
+        description: info.description
       };
     });
   }, [chatProviderRegistry]);
@@ -151,15 +152,22 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             >
               {providerOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {option.label}
-                    {option.requiresApiKey && (
-                      <Chip
-                        size="small"
-                        label="API Key"
-                        color="default"
-                        variant="outlined"
-                      />
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {option.label}
+                      {option.requiresApiKey && (
+                        <Chip
+                          size="small"
+                          label="API Key"
+                          color="default"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                    {option.description && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.description}
+                      </Typography>
                     )}
                   </Box>
                 </MenuItem>

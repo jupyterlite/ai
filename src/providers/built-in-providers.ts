@@ -142,6 +142,7 @@ export function registerBuiltInChatProviders(
     supportsBaseURL: true,
     supportsHeaders: true,
     supportsToolCalling: true,
+    description: 'Uses /chat/completions endpoint',
     factory: (options: IModelOptions) => {
       const openai = createOpenAI({
         apiKey: options.apiKey || 'dummy',
@@ -324,6 +325,7 @@ export function registerBuiltInCompletionProviders(
     defaultModels: [],
     supportsBaseURL: true,
     supportsHeaders: true,
+    description: 'Uses /chat/completions endpoint',
     customSettings: {
       completionConfig: {
         temperature: 0.3,

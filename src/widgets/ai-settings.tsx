@@ -621,26 +621,36 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   </Alert>
                 ) : (
                   <List>
-                    {config.providers.map(provider => (
-                      <ListItem key={provider.id} divider>
-                        <ListItemText
-                          primary={provider.name}
-                          secondary={
-                            <Typography variant="body2" color="text.secondary">
-                              {provider.provider} • {provider.model}
-                            </Typography>
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            onClick={e => handleMenuClick(e, provider.id)}
-                            size="small"
-                          >
-                            <MoreVert />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    ))}
+                    {config.providers.map(provider => {
+                      const providerInfo = chatProviderRegistry.getProviderInfo(
+                        provider.provider
+                      );
+                      return (
+                        <ListItem key={provider.id} divider>
+                          <ListItemText
+                            primary={provider.name}
+                            secondary={
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {provider.provider} • {provider.model}
+                                {providerInfo?.description &&
+                                  ` • ${providerInfo.description}`}
+                              </Typography>
+                            }
+                          />
+                          <ListItemSecondaryAction>
+                            <IconButton
+                              onClick={e => handleMenuClick(e, provider.id)}
+                              size="small"
+                            >
+                              <MoreVert />
+                            </IconButton>
+                          </ListItemSecondaryAction>
+                        </ListItem>
+                      );
+                    })}
                   </List>
                 )}
               </CardContent>
