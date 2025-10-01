@@ -364,3 +364,8 @@
 .jp-ai-approval-icon {
   font-size: 16px;
 }
+
+.jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:open-chat']
+  svg {
+  transform: rotate(180deg);
+}

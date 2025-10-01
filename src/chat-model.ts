@@ -62,6 +62,13 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Get the agent manager associated to the model.
+   */
+  get agentManager(): AgentManager {
+    return this._agentManager;
+  }
+
+  /**
    * Creates a chat context for the current conversation.
    */
   createChatContext(): AIChatModel.IAIChatContext {
