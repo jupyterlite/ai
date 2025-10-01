@@ -251,13 +251,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     const createModel = async (
-      name?: string
+      name?: string,
+      activeProvider?: string
     ): Promise<MultiChatPanel.IAddChatArgs> => {
       // Create Agent Manager first so it can be shared
       const agentManager = agentManagerFactory.createAgent({
         settingsModel,
         toolRegistry,
-        providerRegistry
+        providerRegistry,
+        activeProvider
       });
 
       console.log('AGENT MANAGER', agentManager);
@@ -270,7 +272,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
         documentManager: docManager
       });
 
-      model.name = UUID.uuid4();
+      // Set the name of the chat if not provided.
+      // The name will be the name set by the user to the model if not already used by
+      // another chat.
+      if (!name) {
+        const existingName = chatPanel.sections.map(
+          section => section.title.label
+        );
+        const modelName =
+          settingsModel.getProvider(agentManager.activeProvider)?.name ||
+          UUID.uuid4();
+        name = modelName;
+        let i = 1;
+        while (existingName.includes(name)) {
+          name = `${modelName}-${i}`;
+          i += 1;
+        }
+      }
+      model.name = name;
       return { model };
     };
 

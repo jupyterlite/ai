@@ -246,6 +246,10 @@ export interface IAgentManagerOptions {
    * The secrets manager.
    */
   secretsManager?: ISecretsManager;
+  /**
+   * The active provider to use with this agent.
+   */
+  activeProvider?: string;
 }
 
 /**
@@ -274,9 +278,11 @@ export class AgentManager {
     this._pendingApprovals = new Map();
     this._interruptedState = null;
     this._agentEvent = new Signal<this, IAgentEvent>(this);
-    // this._mcpConnectionChanged = new Signal<this, boolean>(this);
     this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
+
+    this.activeProvider =
+      options.activeProvider ?? this._settingsModel.config.activeProvider;
 
     // Initialize selected tools to all available tools by default
     if (this._toolRegistry) {
@@ -315,10 +321,10 @@ export class AgentManager {
   /**
    * The active provider for this agent.
    */
-  get activeProvider(): string | undefined {
+  get activeProvider(): string {
     return this._activeProvider;
   }
-  set activeProvider(value: string | undefined) {
+  set activeProvider(value: string) {
     this._activeProvider = value;
     this._activeProviderChanged.emit(this._activeProvider);
   }
@@ -932,7 +938,7 @@ TOOL SELECTION GUIDELINES:
   private _agentEvent: Signal<this, IAgentEvent>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
-  private _activeProvider?: string;
+  private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
 }
 
