@@ -174,6 +174,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
     const provider = activeProvider.provider;
     const model = activeProvider.model;
+    const baseURL = activeProvider.baseURL;
 
     let apiKey: string;
     if (this._secretsManager && this._settingsModel.config.useSecretsManager) {
@@ -194,7 +195,8 @@ export class AICompletionProvider implements IInlineCompletionProvider {
         {
           provider,
           model,
-          apiKey
+          apiKey,
+          baseURL
         },
         this._completionProviderRegistry
       );

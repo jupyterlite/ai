@@ -65,7 +65,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         label: info.name,
         models: info.defaultModels,
         requiresApiKey: info.requiresApiKey,
-        allowCustomModel: id === 'ollama' // Only Ollama allows custom models for now
+        allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
+        supportsBaseURL: info.supportsBaseURL,
+        description: info.description
       };
     });
   }, [chatProviderRegistry]);
@@ -150,15 +152,22 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             >
               {providerOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {option.label}
-                    {option.requiresApiKey && (
-                      <Chip
-                        size="small"
-                        label="API Key"
-                        color="default"
-                        variant="outlined"
-                      />
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {option.label}
+                      {option.requiresApiKey && (
+                        <Chip
+                          size="small"
+                          label="API Key"
+                          color="default"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                    {option.description && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.description}
+                      </Typography>
                     )}
                   </Box>
                 </MenuItem>
@@ -235,7 +244,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             />
           )}
 
-          {(provider === 'ollama' || selectedProvider?.allowCustomModel) && (
+          {selectedProvider?.supportsBaseURL && (
             <TextField
               fullWidth
               label="Base URL (Optional)"
@@ -249,7 +258,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
               helperText={
                 provider === 'ollama'
                   ? 'Ollama server endpoint'
-                  : 'Custom API base URL if needed'
+                  : 'Custom API base URL (e.g., for LiteLLM proxy). Leave empty to use default provider endpoint.'
               }
             />
           )}

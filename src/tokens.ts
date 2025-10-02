@@ -156,6 +156,11 @@ export interface IBaseProviderInfo {
   supportsToolCalling?: boolean;
 
   /**
+   * Optional description shown in the UI
+   */
+  description?: string;
+
+  /**
    * Additional provider-specific configuration schema
    */
   customSettings?: Record<string, any>;

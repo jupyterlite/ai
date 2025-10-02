@@ -132,6 +132,31 @@ export function registerBuiltInChatProviders(
   };
 
   registry.registerProvider(ollamaInfo);
+
+  // Generic OpenAI-compatible provider
+  const genericInfo: IChatProviderInfo = {
+    id: 'generic',
+    name: 'Generic (OpenAI-compatible)',
+    requiresApiKey: false,
+    defaultModels: [],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    supportsToolCalling: true,
+    description: 'Uses /chat/completions endpoint',
+    factory: (options: IModelOptions) => {
+      const openai = createOpenAI({
+        apiKey: options.apiKey || 'dummy',
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      // explicitly use openai.chat to ensure we use the /chat/completions endpoint
+      // for use with LiteLLM and other OpenAI-compatible providers
+      return aisdk(openai.chat(modelName));
+    }
+  };
+
+  registry.registerProvider(genericInfo);
 }
 
 /**
@@ -291,4 +316,33 @@ export function registerBuiltInCompletionProviders(
   };
 
   registry.registerProvider(ollamaInfo);
+
+  // Generic OpenAI-compatible provider
+  const genericCompletionInfo: ICompletionProviderInfo = {
+    id: 'generic',
+    name: 'Generic (OpenAI-compatible)',
+    requiresApiKey: false,
+    defaultModels: [],
+    supportsBaseURL: true,
+    supportsHeaders: true,
+    description: 'Uses /chat/completions endpoint',
+    customSettings: {
+      completionConfig: {
+        temperature: 0.3,
+        supportsFillInMiddle: false,
+        useFilterText: true
+      }
+    },
+    factory: (options: IModelOptions) => {
+      const openai = createOpenAI({
+        apiKey: options.apiKey || 'dummy',
+        ...(options.baseURL && { baseURL: options.baseURL }),
+        ...(options.headers && { headers: options.headers })
+      });
+      const modelName = options.model || 'gpt-4o';
+      return openai(modelName);
+    }
+  };
+
+  registry.registerProvider(genericCompletionInfo);
 }
