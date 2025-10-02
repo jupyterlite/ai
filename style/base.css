@@ -365,7 +365,8 @@
   font-size: 16px;
 }
 
-.jp-MainAreaWidget .jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:move-chat']
+.jp-MainAreaWidget
+  .jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:move-chat']
   svg {
   transform: rotate(180deg);
 }
