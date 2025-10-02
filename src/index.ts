@@ -328,7 +328,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           area: widget instanceof MainAreaChat ? 'main' : 'side',
           provider: (widget.model as AIChatModel).agentManager.activeProvider
         }),
-        name: widget => widget.model.name
+        name: widget => {
+          const area = widget instanceof MainAreaChat ? 'main' : 'side';
+          return `${area}:${widget.model.name}`;
+        }
       });
     }
 
@@ -476,23 +479,10 @@ function registerCommands(
           const widget = new MainAreaChat({ content, commands });
           app.shell.add(widget, 'main');
 
-          // Remove the side panel widget. This action must be performed before adding
-          // the new widget to the tracker to avoid have the same name twice in the
-          // workspace.
-          const sideWidget = chatPanel.sections.find(
-            section => section.model.name === previousModel.name
-          )?.widget;
-          if (sideWidget) {
-            sideWidget.dispose();
-          }
-
           tracker.add(widget);
         } else {
           const current = app.shell.currentWidget;
-
-          // Remove the current main area chat. This action must be performed before
-          // adding the new widget to the tracker to avoid have the same name twice
-          // in the workspace.
+          // Remove the current main area chat.
           if (
             current instanceof MainAreaChat &&
             current.model.name === previousModel.name
