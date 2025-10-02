@@ -16,7 +16,11 @@ import {
   MultiChatPanel
 } from '@jupyter/chat';
 
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ICommandPalette,
+  IThemeManager,
+  WidgetTracker
+} from '@jupyterlab/apputils';
 
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 
@@ -31,13 +35,10 @@ import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { settingsIcon } from '@jupyterlab/ui-components';
+
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { UUID } from '@lumino/coreutils';
-
 import { AgentManagerFactory } from './agent';
-
-import { AIChatModel } from './chat-model';
 
 import {
   ChatProviderRegistry,
@@ -51,7 +52,8 @@ import {
   ICompletionProviderRegistry,
   IToolRegistry,
   SECRETS_NAMESPACE,
-  IAISettingsModel
+  IAISettingsModel,
+  IChatModelRegistry
 } from './tokens';
 
 import {
@@ -100,7 +102,10 @@ import {
 } from './tools/commands';
 
 import { AISettingsWidget } from './widgets/ai-settings';
-import { MainAreaChat } from './widgets/mainAreaChat';
+import { MainAreaChat } from './widgets/main-area-chat';
+import { ChatModelRegistry } from './chat-model-registry';
+import { UUID } from '@lumino/coreutils';
+import { AIChatModel } from './chat-model';
 
 /**
  * Chat provider registry plugin
@@ -160,36 +165,24 @@ const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * Initialization data for the extension.
+ * The chat model registry.
  */
-const plugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:plugin',
-  description: 'AI in JupyterLab',
+const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
+  id: '@jupyterlite/ai:chat-model-registry',
+  description: 'Registry for the current chat model',
   autoStart: true,
-  requires: [
-    IAISettingsModel,
-    IToolRegistry,
-    IRenderMimeRegistry,
-    IDocumentManager,
-    IChatProviderRegistry,
-    IInputToolbarRegistryFactory,
-    IAgentManagerFactory
-  ],
-  optional: [IThemeManager, INotebookTracker, ILayoutRestorer, ILabShell],
+  requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
+  optional: [IChatProviderRegistry, INotebookTracker, IToolRegistry],
+  provides: IChatModelRegistry,
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    toolRegistry: IToolRegistry,
-    rmRegistry: IRenderMimeRegistry,
-    docManager: IDocumentManager,
-    chatProviderRegistry: IChatProviderRegistry,
-    inputToolbarFactory: IInputToolbarRegistryFactory,
     agentManagerFactory: AgentManagerFactory,
-    themeManager?: IThemeManager,
+    docManager: IDocumentManager,
+    chatProviderRegistry?: IChatProviderRegistry,
     notebookTracker?: INotebookTracker,
-    restorer?: ILayoutRestorer,
-    labShell?: ILabShell
-  ): void => {
+    toolRegistry?: IToolRegistry
+  ): IChatModelRegistry => {
     // Create ActiveCellManager if notebook tracker is available
     let activeCellManager: ActiveCellManager | undefined;
     if (notebookTracker) {
@@ -198,7 +191,39 @@ const plugin: JupyterFrontEndPlugin<void> = {
         shell: app.shell
       });
     }
+    return new ChatModelRegistry({
+      activeCellManager,
+      settingsModel,
+      agentManagerFactory,
+      docManager,
+      chatProviderRegistry,
+      toolRegistry
+    });
+  }
+};
 
+/**
+ * Initialization data for the extension.
+ */
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:plugin',
+  description: 'AI in JupyterLab',
+  autoStart: true,
+  requires: [
+    IRenderMimeRegistry,
+    IInputToolbarRegistryFactory,
+    IChatModelRegistry
+  ],
+  optional: [IThemeManager, ILayoutRestorer, ILabShell],
+  activate: (
+    app: JupyterFrontEnd,
+    rmRegistry: IRenderMimeRegistry,
+    inputToolbarFactory: IInputToolbarRegistryFactory,
+    modelRegistry: IChatModelRegistry,
+    themeManager?: IThemeManager,
+    restorer?: ILayoutRestorer,
+    labShell?: ILabShell
+  ): void => {
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
     attachmentOpenerRegistry.set('file', attachment => {
@@ -209,59 +234,25 @@ const plugin: JupyterFrontEndPlugin<void> = {
       app.commands.execute('docmanager:open', { path: attachment.value });
     });
 
-    const createModel = async (
-      name?: string,
-      activeProvider?: string
-    ): Promise<MultiChatPanel.IAddChatArgs> => {
-      // Create Agent Manager first so it can be shared
-      const agentManager = agentManagerFactory.createAgent({
-        settingsModel,
-        toolRegistry,
-        chatProviderRegistry,
-        activeProvider
-      });
-
-      console.log('AGENT MANAGER', agentManager);
-      // Create AI chat model
-      const model = new AIChatModel({
-        user: { username: 'user', display_name: 'User' },
-        settingsModel,
-        agentManager,
-        activeCellManager,
-        documentManager: docManager
-      });
-
-      // Set the name of the chat if not provided.
-      // The name will be the name set by the user to the model if not already used by
-      // another chat.
-      if (!name) {
-        const existingName = chatPanel.sections.map(
-          section => section.title.label
-        );
-        const modelName =
-          settingsModel.getProvider(agentManager.activeProvider)?.name ||
-          UUID.uuid4();
-        name = modelName;
-        let i = 1;
-        while (existingName.includes(name)) {
-          name = `${modelName}-${i}`;
-          i += 1;
-        }
-      }
-      model.name = name;
-      return { model, displayName: name };
-    };
-
     // Create chat panel with drag/drop functionality
     const chatPanel = new MultiChatPanel({
       rmRegistry,
       themeManager: themeManager ?? null,
       inputToolbarFactory,
       attachmentOpenerRegistry,
-      createModel,
-      renameChat: async () => true,
+      createModel: async (name?: string, activeProvider?: string) => {
+        const model = modelRegistry.createModel(name, activeProvider);
+        return { model };
+      },
+      renameChat: async (oldName: string, newName: string) => {
+        const model = modelRegistry.get(oldName);
+        if (model) {
+          model.name = newName;
+        }
+        return true;
+      },
       openInMain: (name: string) =>
-        app.commands.execute(CommandIds.openChat, { mainArea: true, name })
+        app.commands.execute(CommandIds.moveChat, { area: 'main', name })
     });
 
     chatPanel.id = 'labai:sidepanel';
@@ -270,6 +261,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     chatPanel.sectionAdded.connect((_, section) => {
       const { model, widget } = section;
+      tracker.add(widget);
       model.writersChanged?.connect((_, writers) => {
         // Check if AI is currently writing (streaming)
         const aiWriting = writers.some(
@@ -288,8 +280,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     app.shell.add(chatPanel, 'left', { rank: 1000 });
 
+    // Creating the tracker for the document
+    const namespace = 'ai-chat';
+    const tracker = new WidgetTracker<MainAreaChat | ChatWidget>({ namespace });
+
     if (restorer) {
       restorer.add(chatPanel, chatPanel.id);
+      void restorer.restore(tracker, {
+        command: CommandIds.openChat,
+        args: widget => ({
+          name: widget.model.name,
+          area: widget instanceof MainAreaChat ? 'main' : 'side',
+          provider: (widget.model as AIChatModel).agentManager.activeProvider
+        }),
+        name: widget => widget.model.name
+      });
     }
 
     registerCommands(
@@ -298,7 +303,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       chatPanel,
       attachmentOpenerRegistry,
       inputToolbarFactory,
-      createModel,
+      tracker,
+      modelRegistry,
       themeManager,
       labShell
     );
@@ -311,10 +317,8 @@ function registerCommands(
   chatPanel: MultiChatPanel,
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
-  createModel: (
-    name?: string,
-    activeProvider?: string
-  ) => Promise<MultiChatPanel.IAddChatArgs>,
+  tracker: WidgetTracker<MainAreaChat | ChatWidget>,
+  modelRegistry: IChatModelRegistry,
   themeManager?: IThemeManager,
   labShell?: ILabShell
 ) {
@@ -368,40 +372,17 @@ function registerCommands(
 
     commands.addCommand(CommandIds.openChat, {
       execute: async args => {
-        const inMain = args.mainArea ?? false;
-        const name = args.name as string;
-        let previousModel: AIChatModel | undefined;
-        let widgetToDispose: ChatWidget | MainAreaChat | undefined;
-
-        // Check if this is a move request, to restore the previous model messages.
-        if (args.name) {
-          if (inMain) {
-            previousModel = chatPanel.sections.find(
-              section => section.title.label === name
-            )?.model as AIChatModel;
-          } else {
-            const { currentWidget } = app.shell;
-            if (
-              currentWidget instanceof MainAreaChat &&
-              currentWidget.model.name === name
-            ) {
-              previousModel = currentWidget.model;
-              widgetToDispose = currentWidget;
-            }
-          }
-        }
-        const { model, displayName } = await createModel(
+        const area = (args.area as string) === 'main' ? 'main' : 'side';
+        const provider = (args.provider as string) ?? undefined;
+        const model = modelRegistry.createModel(
           args.name ? (args.name as string) : undefined,
-          previousModel?.agentManager.activeProvider
+          provider
         );
         if (!model) {
           return;
         }
-        previousModel?.messages.forEach(message =>
-          model?.messageAdded(message)
-        );
 
-        if (inMain) {
+        if (area === 'main') {
           const content = new ChatWidget({
             model,
             rmRegistry,
@@ -409,11 +390,84 @@ function registerCommands(
             inputToolbarRegistry: inputToolbarFactory.create(),
             attachmentOpenerRegistry
           });
-          app.shell.add(new MainAreaChat({ content, commands }), 'main');
+          const widget = new MainAreaChat({ content, commands });
+          app.shell.add(widget, 'main');
+          tracker.add(widget);
         } else {
-          widgetToDispose?.dispose();
-          chatPanel.addChat({ model, displayName });
+          chatPanel.addChat({ model });
         }
+      }
+    });
+
+    commands.addCommand(CommandIds.moveChat, {
+      execute: async args => {
+        const area = args.area as string;
+        if (!['side', 'main'].includes(area)) {
+          console.error(
+            'Error while moving the chat to main area: the area has not been provided or is not correct'
+          );
+          return;
+        }
+        if (!args.name || !args.area) {
+          console.error(
+            'Error while moving the chat to main area: the name has not been provided'
+          );
+          return;
+        }
+        const previousModel = modelRegistry.get(args.name as string);
+        if (!previousModel) {
+          console.error(
+            'Error while moving the chat to main area: there is no reference model'
+          );
+          return;
+        }
+        previousModel.name = UUID.uuid4();
+        const model = modelRegistry.createModel(
+          args.name as string,
+          previousModel?.agentManager.activeProvider
+        );
+        previousModel?.messages.forEach(message =>
+          model?.messageAdded(message)
+        );
+
+        if (area === 'main') {
+          const content = new ChatWidget({
+            model,
+            rmRegistry,
+            themeManager: themeManager ?? null,
+            inputToolbarRegistry: inputToolbarFactory.create(),
+            attachmentOpenerRegistry
+          });
+          const widget = new MainAreaChat({ content, commands });
+          app.shell.add(widget, 'main');
+
+          // Remove the side panel widget. This action must be performed before adding
+          // the new widget to the tracker to avoid have the same name twice in the
+          // workspace.
+          const sideWidget = chatPanel.sections.find(
+            section => section.model.name === previousModel.name
+          )?.widget;
+          if (sideWidget) {
+            sideWidget.dispose();
+          }
+
+          tracker.add(widget);
+        } else {
+          const current = app.shell.currentWidget;
+
+          // Remove the current main area chat. This action must be performed before
+          // adding the new widget to the tracker to avoid have the same name twice
+          // in the workspace.
+          if (
+            current instanceof MainAreaChat &&
+            current.model.name === previousModel.name
+          ) {
+            current.dispose();
+          }
+          chatPanel.addChat({ model });
+        }
+
+        modelRegistry.remove(previousModel.name);
       }
     });
   }
@@ -677,6 +731,7 @@ export default [
   builtInChatProvidersPlugin,
   builtInCompletionProvidersPlugin,
   settingsModel,
+  chatModelRegistry,
   plugin,
   toolRegistry,
   agentManagerFactory,
