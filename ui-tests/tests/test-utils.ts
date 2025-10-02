@@ -105,3 +105,20 @@ export const getPlugin = (pluginId: string): Promise<any> => {
     }
   });
 };
+
+export const defaultSettings = {
+  activeProvider: 'ollama-1759407012872',
+  mcpServers: [],
+  providers: [
+    {
+      id: 'ollama-1759407012872',
+      name: 'Qwen2',
+      provider: 'ollama',
+      model: 'qwen2:0.5b'
+    }
+  ],
+  showTokenUsage: false,
+  toolsEnabled: false,
+  useSameProviderForChatAndCompleter: false,
+  useSecretsManager: false
+};

@@ -10,11 +10,12 @@ import {
   test
 } from '@jupyterlab/galata';
 import { Locator } from '@playwright/test';
-import { setUpOllama } from './test-utils';
+import { defaultSettings, setUpOllama } from './test-utils';
 
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
+    ...defaultSettings,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
