@@ -34,7 +34,11 @@ import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-import { settingsIcon } from '@jupyterlab/ui-components';
+import {
+  settingsIcon,
+  Toolbar,
+  ToolbarButton
+} from '@jupyterlab/ui-components';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
@@ -293,6 +297,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
     chatPanel.id = 'labai:sidepanel';
     chatPanel.title.icon = chatIcon;
     chatPanel.title.caption = 'Chat with AI assistant'; // TODO: i18n/
+
+    chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
+    chatPanel.toolbar.addItem(
+      'settings',
+      new ToolbarButton({
+        icon: settingsIcon,
+        onClick: () => {
+          app.commands.execute('@jupyterlite/ai:open-settings');
+        },
+        tooltip: 'Open AI Settings'
+      })
+    );
 
     chatPanel.sectionAdded.connect((_, section) => {
       const { model, widget } = section;
