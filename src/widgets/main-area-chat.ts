@@ -12,17 +12,22 @@ export namespace MainAreaChat {
   }
 }
 
+/**
+ * The chat as a main area widget.
+ */
 export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   constructor(options: MainAreaChat.IOptions) {
     super(options);
     this.title.label = this.content.model.name;
+    console.log('MODEL NAME', this.content.model.name);
     this.toolbar.addItem(
       'moveToSide',
       new CommandToolbarButton({
         commands: options.commands,
-        id: CommandIds.openChat,
+        id: CommandIds.moveChat,
         args: {
-          name: this.content.model.name
+          name: this.content.model.name,
+          area: 'side'
         },
         icon: launchIcon
       })
