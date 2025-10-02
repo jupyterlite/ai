@@ -110,6 +110,7 @@ import { MainAreaChat } from './widgets/main-area-chat';
 import { ChatModelRegistry } from './chat-model-registry';
 import { UUID } from '@lumino/coreutils';
 import { AIChatModel } from './chat-model';
+import { TokenUsageWidget } from './components/token-usage-display';
 
 /**
  * Chat provider registry plugin
@@ -216,7 +217,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
   requires: [
     IRenderMimeRegistry,
     IInputToolbarRegistryFactory,
-    IChatModelRegistry
+    IChatModelRegistry,
+    IAISettingsModel
   ],
   optional: [IThemeManager, ILayoutRestorer, ILabShell],
   activate: (
@@ -224,6 +226,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     rmRegistry: IRenderMimeRegistry,
     inputToolbarFactory: IInputToolbarRegistryFactory,
     modelRegistry: IChatModelRegistry,
+    settingsModel: AISettingsModel,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell
@@ -278,6 +281,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
     chatPanel.sectionAdded.connect((_, section) => {
       const { model, widget } = section;
       tracker.add(widget);
+      const tokenUsageWidget = new TokenUsageWidget({
+        tokenUsageChanged: (model as AIChatModel).tokenUsageChanged,
+        settingsModel
+      });
+      section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
         // Check if AI is currently writing (streaming)
         const aiWriting = writers.some(
