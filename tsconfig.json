@@ -12,23 +12,14 @@
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
-    "paths": {
-      "ollama/browser": ["./node_modules/@langchain/ollama/dist"]
-    },
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
-    "strictNullChecks": true,
     "target": "ES2022",
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": [
-    "src/*",
-    "src/**/*",
-    "src/settings/base.json",
-    "src/default-providers/**/*.json"
-  ]
+  "include": ["src/*", "src/**/*"]
 }
