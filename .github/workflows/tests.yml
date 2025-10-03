@@ -12,8 +12,6 @@ concurrency:
 
 jobs:
   ui-tests:
-    # TODO: re-enable tests
-    if: false
     name: ui-tests
     runs-on: ubuntu-latest
 
@@ -30,10 +28,10 @@ jobs:
       - name: Install the extension
         run: |
           set -eux
-          pip install "jupyterlab>=4.4.0"
+          pip install "jupyterlab>=4.5.0b0"
           pip install -e .
 
-      - name: Install Ollama with little model
+      - name: Install Ollama with a small model
         uses: pydantic/ollama-action@v3
         with:
           model: qwen2:0.5b
@@ -65,7 +63,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-jupyterlab
+          name: jupyterlite-ai-ui-tests-report-${{ github.run_id }}
           path: |
             ui-tests/test-results
             ui-tests/playwright-report
