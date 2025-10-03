@@ -63,7 +63,7 @@ test.describe('#withoutModel', () => {
     const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
     await expect(aiSettingsWidget).toBeVisible();
 
-    // Remove the existing default provider
+    // Remove the existing default provider for this test only
     const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
     await providerMenu.click();
     const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
