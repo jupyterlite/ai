@@ -10,12 +10,12 @@ import {
   test
 } from '@jupyterlab/galata';
 import { Locator } from '@playwright/test';
-import { defaultSettings, setUpOllama } from './test-utils';
+import { DEFAULT_SETTINGS_MODEL_SETTINGS } from './test-utils';
 
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
-    ...defaultSettings,
+    ...DEFAULT_SETTINGS_MODEL_SETTINGS,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
@@ -27,6 +27,8 @@ test.use({
 const CHAT_PANEL_ID = '@jupyterlite/ai:chat-wrapper';
 
 const CHAT_PANEL_TITLE = 'Chat with AI assistant';
+
+const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
 
 async function openChatPanel(page: IJupyterLabPageFixture): Promise<Locator> {
   const panel = page.locator(`[id="${CHAT_PANEL_ID}"]`);
@@ -55,25 +57,17 @@ test.describe('#withoutModel', () => {
     const content = 'Hello';
     const panel = await openChatPanel(page);
 
-    // Click "Open AI Settings" button in the chat panel toolbar
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
 
-    // Wait for the AI Settings widget to open
     const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
     await expect(aiSettingsWidget).toBeVisible();
 
-    // Find and click the menu button for the first provider
-    const providerMenu = aiSettingsWidget.locator('button[aria-label="more"]').first();
+    // Remove the existing default provider
+    const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
     await providerMenu.click();
-
-    // Click the "Delete" option in the menu
     const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
     await deleteMenuItem.click();
-
-    // Close the AI Settings widget
-    const closeButton = page.locator('.jp-icon-hover[data-icon="ui-components:close"]').last();
-    await closeButton.click();
 
     // Now send a message in the chat
     const input = panel
@@ -94,16 +88,11 @@ test.describe('#withoutModel', () => {
 
     await expect(
       messages.last().locator('.jp-chat-rendered-markdown')
-    ).toContainText('Please configure your AI settings first');
+    ).toContainText(NOT_CONFIGURED_TEXT);
   });
 });
 
 test.describe('#withModel', () => {
-  // Set up Ollama with default model.
-  test.beforeEach(async ({ page }) => {
-    await setUpOllama(page);
-  });
-
   test('should have a model', async ({ page }) => {
     const content = 'Which model are you built from ?';
     const panel = await openChatPanel(page);
@@ -124,6 +113,6 @@ test.describe('#withModel', () => {
     );
     await expect(
       messages.last().locator('.jp-chat-rendered-markdown')
-    ).not.toHaveText('AI provider not configured');
+    ).not.toHaveText(NOT_CONFIGURED_TEXT);
   });
 });
