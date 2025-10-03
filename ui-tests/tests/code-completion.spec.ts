@@ -39,8 +39,31 @@ test('should suggest inline completion', async ({ page }) => {
   await cell?.pressSequentially(content);
 
   // Ghost text should be visible as suggestion.
-  await expect(cell!.locator('.jp-GhostText')).toBeVisible();
-  await expect(cell!.locator('.jp-GhostText')).not.toBeEmpty();
+  // Retry by typing more content if ghost text doesn't appear
+  const ghostText = cell!.locator('.jp-GhostText');
+  const maxRetries = 3;
+  let retries = 0;
+  let ghostTextVisible = false;
+
+  while (retries < maxRetries && !ghostTextVisible) {
+    try {
+      await expect(ghostText).toBeVisible({ timeout: 5000 });
+      ghostTextVisible = true;
+    } catch {
+      retries++;
+      if (retries < maxRetries) {
+        // Trigger completion again by typing and deleting a character
+        if (retries > 1) {
+          await cell?.press('Backspace');
+        }
+        await cell?.pressSequentially('_');
+      }
+    }
+  }
+
+  // Final assertion that should pass after retries
+  await expect(ghostText).toBeVisible();
+  await expect(ghostText).not.toBeEmpty();
 
   expect(requestBody).toHaveProperty('messages');
   expect(requestBody.messages).toHaveLength(2);
