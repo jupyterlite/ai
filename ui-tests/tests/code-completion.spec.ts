@@ -19,6 +19,8 @@ test.use({
 });
 
 test('should suggest inline completion', async ({ page }) => {
+  test.setTimeout(60 * 1000);
+
   const content = 'def test';
   let requestBody: any = null;
   await page.notebook.createNew();
@@ -37,10 +39,8 @@ test('should suggest inline completion', async ({ page }) => {
   await cell?.pressSequentially(content);
 
   // Ghost text should be visible as suggestion.
-  await expect(cell!.locator('.jp-GhostText')).toBeVisible({ timeout: 10000 });
-  await expect(cell!.locator('.jp-GhostText')).not.toBeEmpty({
-    timeout: 10000
-  });
+  await expect(cell!.locator('.jp-GhostText')).toBeVisible();
+  await expect(cell!.locator('.jp-GhostText')).not.toBeEmpty();
 
   expect(requestBody).toHaveProperty('messages');
   expect(requestBody.messages).toHaveLength(2);
