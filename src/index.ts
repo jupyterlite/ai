@@ -40,9 +40,17 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
+import { AIChatModel } from './chat-model';
+
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
+import { UUID } from '@lumino/coreutils';
+
 import { AgentManagerFactory } from './agent';
+
+import { ApprovalButtons } from './approval-buttons';
+
+import { ChatModelRegistry } from './chat-model-registry';
 
 import {
   ChatProviderRegistry,
@@ -67,13 +75,13 @@ import {
 
 import { AICompletionProvider } from './completion';
 
-import { clearItem } from './components/clear-button';
-
-import { createModelSelectItem } from './components/model-select';
-
-import { stopItem } from './components/stop-button';
-
-import { createToolSelectItem } from './components/tool-select';
+import {
+  clearItem,
+  createModelSelectItem,
+  createToolSelectItem,
+  stopItem,
+  TokenUsageWidget
+} from './components';
 
 import { AISettingsModel } from './models/settings-model';
 
@@ -106,11 +114,8 @@ import {
 } from './tools/commands';
 
 import { AISettingsWidget } from './widgets/ai-settings';
+
 import { MainAreaChat } from './widgets/main-area-chat';
-import { ChatModelRegistry } from './chat-model-registry';
-import { UUID } from '@lumino/coreutils';
-import { AIChatModel } from './chat-model';
-import { TokenUsageWidget } from './components/token-usage-display';
 
 /**
  * Chat provider registry plugin
@@ -300,6 +305,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
           widget.inputToolbarRegistry?.hide('stop');
           widget.inputToolbarRegistry?.show('send');
         }
+      });
+
+      // Associate an approval buttons object to the chat.
+      const approvalButton = new ApprovalButtons({
+        chatPanel: widget
+      });
+      widget.disposed.connect(() => {
+        // Dispose of the approval buttons widget when the chat is disposed.
+        approvalButton.dispose();
       });
     });
 
