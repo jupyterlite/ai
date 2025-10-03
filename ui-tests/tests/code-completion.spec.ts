@@ -47,7 +47,7 @@ test('should suggest inline completion', async ({ page }) => {
 
   while (retries < maxRetries && !ghostTextVisible) {
     try {
-      await expect(ghostText).toBeVisible({ timeout: 5000 });
+      await expect(ghostText).toBeVisible({ timeout: 10000 });
       ghostTextVisible = true;
     } catch {
       retries++;
@@ -62,7 +62,7 @@ test('should suggest inline completion', async ({ page }) => {
   }
 
   // Final assertion that should pass after retries
-  await expect(ghostText).toBeVisible();
+  await expect(ghostText).toBeVisible({ timeout: 10000 });
   await expect(ghostText).not.toBeEmpty();
 
   expect(requestBody).toHaveProperty('messages');

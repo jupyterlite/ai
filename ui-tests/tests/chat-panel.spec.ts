@@ -93,9 +93,8 @@ test.describe('#withoutModel', () => {
 });
 
 test.describe('#withModel', () => {
-  test.describe.configure({ timeout: 120 * 1000 });
-
   test('should have a model', async ({ page }) => {
+    test.setTimeout(120 * 1000);
     const content = 'Which model are you built from ?';
     const panel = await openChatPanel(page);
     const input = panel
