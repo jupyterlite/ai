@@ -240,7 +240,11 @@ export interface IChatModelRegistry {
   get(name: string): AIChatModel | undefined;
   getAll(): AIChatModel[];
   remove(name: string): void;
-  createModel(name?: string, activeProvider?: string): AIChatModel;
+  createModel(
+    name?: string,
+    activeProvider?: string,
+    tokenUsage?: ITokenUsage
+  ): AIChatModel;
 }
 
 export const IChatModelRegistry = new Token<IChatModelRegistry>(

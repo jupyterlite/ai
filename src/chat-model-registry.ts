@@ -2,7 +2,12 @@ import { ActiveCellManager } from '@jupyter/chat';
 import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 import { AISettingsModel } from './models/settings-model';
-import { IChatModelRegistry, IProviderRegistry, IToolRegistry } from './tokens';
+import {
+  IChatModelRegistry,
+  IProviderRegistry,
+  ITokenUsage,
+  IToolRegistry
+} from './tokens';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { UUID } from '@lumino/coreutils';
 
@@ -19,13 +24,18 @@ export class ChatModelRegistry implements IChatModelRegistry {
     this._activeCellManager = options.activeCellManager;
   }
 
-  createModel(name?: string, activeProvider?: string): AIChatModel {
+  createModel(
+    name?: string,
+    activeProvider?: string,
+    tokenUsage?: ITokenUsage
+  ): AIChatModel {
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
       settingsModel: this._settingsModel,
       toolRegistry: this._toolRegistry,
       providerRegistry: this._providerRegistry,
-      activeProvider
+      activeProvider,
+      tokenUsage
     });
 
     // Create AI chat model

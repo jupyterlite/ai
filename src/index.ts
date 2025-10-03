@@ -282,8 +282,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       themeManager: themeManager ?? null,
       inputToolbarFactory,
       attachmentOpenerRegistry,
-      createModel: async (name?: string, activeProvider?: string) => {
-        const model = modelRegistry.createModel(name, activeProvider);
+      createModel: async (name?: string) => {
+        const model = modelRegistry.createModel(name);
         return { model };
       },
       renameChat: async (oldName: string, newName: string) => {
@@ -318,7 +318,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       tracker.add(widget);
       const tokenUsageWidget = new TokenUsageWidget({
         tokenUsageChanged: (model as AIChatModel).tokenUsageChanged,
-        settingsModel
+        settingsModel,
+        initialTokenUsage: (model as AIChatModel).agentManager.tokenUsage
       });
       section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
@@ -365,6 +366,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       chatPanel,
       attachmentOpenerRegistry,
       inputToolbarFactory,
+      settingsModel,
       tracker,
       modelRegistry,
       themeManager,
@@ -379,6 +381,7 @@ function registerCommands(
   chatPanel: MultiChatPanel,
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
+  settingsModel: AISettingsModel,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
   themeManager?: IThemeManager,
@@ -452,7 +455,7 @@ function registerCommands(
             inputToolbarRegistry: inputToolbarFactory.create(),
             attachmentOpenerRegistry
           });
-          const widget = new MainAreaChat({ content, commands });
+          const widget = new MainAreaChat({ content, commands, settingsModel });
           app.shell.add(widget, 'main');
           tracker.add(widget);
         } else {
@@ -483,10 +486,14 @@ function registerCommands(
           );
           return;
         }
+
+        // Rename temporary the previous model to be able to reuse this name for the new
+        // model. The previous is intended to be disposed anyway.
         previousModel.name = UUID.uuid4();
         const model = modelRegistry.createModel(
           args.name as string,
-          previousModel?.agentManager.activeProvider
+          previousModel?.agentManager.activeProvider,
+          previousModel?.agentManager.tokenUsage
         );
         previousModel?.messages.forEach(message =>
           model?.messageAdded(message)
@@ -500,9 +507,8 @@ function registerCommands(
             inputToolbarRegistry: inputToolbarFactory.create(),
             attachmentOpenerRegistry
           });
-          const widget = new MainAreaChat({ content, commands });
+          const widget = new MainAreaChat({ content, commands, settingsModel });
           app.shell.add(widget, 'main');
-
           tracker.add(widget);
         } else {
           const current = app.shell.currentWidget;

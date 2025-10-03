@@ -4,11 +4,14 @@ import { launchIcon } from '@jupyterlab/ui-components';
 import { CommandRegistry } from '@lumino/commands';
 
 import { AIChatModel } from '../chat-model';
+import { TokenUsageWidget } from '../components/token-usage-display';
+import { AISettingsModel } from '../models/settings-model';
 import { CommandIds } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
     commands: CommandRegistry;
+    settingsModel: AISettingsModel;
   }
 }
 
@@ -19,7 +22,6 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   constructor(options: MainAreaChat.IOptions) {
     super(options);
     this.title.label = this.content.model.name;
-    console.log('MODEL NAME', this.content.model.name);
     this.toolbar.addItem(
       'moveToSide',
       new CommandToolbarButton({
@@ -32,6 +34,12 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
         icon: launchIcon
       })
     );
+    const tokenUsageWidget = new TokenUsageWidget({
+      tokenUsageChanged: this.model.tokenUsageChanged,
+      settingsModel: options.settingsModel,
+      initialTokenUsage: this.model.agentManager.tokenUsage
+    });
+    this.toolbar.addItem('token-usage', tokenUsageWidget);
   }
 
   get model(): AIChatModel {

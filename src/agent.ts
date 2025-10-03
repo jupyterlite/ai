@@ -246,10 +246,16 @@ export interface IAgentManagerOptions {
    * The secrets manager.
    */
   secretsManager?: ISecretsManager;
+
   /**
    * The active provider to use with this agent.
    */
   activeProvider?: string;
+
+  /**
+   * Initial token usage.
+   */
+  tokenUsage?: ITokenUsage;
 }
 
 /**
@@ -278,7 +284,10 @@ export class AgentManager {
     this._pendingApprovals = new Map();
     this._interruptedState = null;
     this._agentEvent = new Signal<this, IAgentEvent>(this);
-    this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
+    this._tokenUsage = options.tokenUsage ?? {
+      inputTokens: 0,
+      outputTokens: 0
+    };
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
 
     this.activeProvider =
