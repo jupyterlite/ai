@@ -54,7 +54,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.10":
+"@ai-sdk/provider-utils@npm:3.0.10, @ai-sdk/provider-utils@npm:^3.0.7":
   version: 3.0.10
   resolution: "@ai-sdk/provider-utils@npm:3.0.10"
   dependencies:
@@ -64,19 +64,6 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: a5e8ff04a3787cfbc64323147ddcfec22d8b289bf27e8e77b034b87d4d6196549d8062aae7e9a5075c12aa20605b01a87090938606946cb31cddae4a1599e487
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/provider-utils@npm:^3.0.7":
-  version: 3.0.9
-  resolution: "@ai-sdk/provider-utils@npm:3.0.9"
-  dependencies:
-    "@ai-sdk/provider": 2.0.0
-    "@standard-schema/spec": ^1.0.0
-    eventsource-parser: ^3.0.5
-  peerDependencies:
-    zod: ^3.25.76 || ^4
-  checksum: b1c7a3ef435ed4a8b77256c59454aa6e1f6e33b13b0dd88822af213b376b8d55a0aad820201718e269b45b7b77b6e63d6cabbd47bcef05c8e5000a6801b9f104
   languageName: node
   linkType: hard
 
@@ -3422,27 +3409,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^1.17.2":
-  version: 1.17.5
-  resolution: "@modelcontextprotocol/sdk@npm:1.17.5"
-  dependencies:
-    ajv: ^6.12.6
-    content-type: ^1.0.5
-    cors: ^2.8.5
-    cross-spawn: ^7.0.5
-    eventsource: ^3.0.2
-    eventsource-parser: ^3.0.0
-    express: ^5.0.1
-    express-rate-limit: ^7.5.0
-    pkce-challenge: ^5.0.0
-    raw-body: ^3.0.0
-    zod: ^3.23.8
-    zod-to-json-schema: ^3.24.1
-  checksum: 94ebd8f5464e9fadc20a76efe79eaeb07b1c1ea6ead01e05dffa475723c001c67e1cf02169b2f0d9c1cd7d1fa75c0b69304a287175901e2e8398e8afd0cf12d2
-  languageName: node
-  linkType: hard
-
-"@modelcontextprotocol/sdk@npm:^1.19.1":
+"@modelcontextprotocol/sdk@npm:^1.17.2, @modelcontextprotocol/sdk@npm:^1.19.1":
   version: 1.19.1
   resolution: "@modelcontextprotocol/sdk@npm:1.19.1"
   dependencies:
