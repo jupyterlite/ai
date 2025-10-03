@@ -345,9 +345,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const approvalButton = new ApprovalButtons({
         chatPanel: widget
       });
+
       widget.disposed.connect(() => {
         // Dispose of the approval buttons widget when the chat is disposed.
         approvalButton.dispose();
+        // Remove the model from the registry when the widget is disposed.
+        modelRegistry.remove(model.name);
       });
     });
 
@@ -470,6 +473,11 @@ function registerCommands(
           });
           const widget = new MainAreaChat({ content, commands, settingsModel });
           app.shell.add(widget, 'main');
+
+          // Remove the model from the registry when the widget is disposed.
+          widget.disposed.connect(() => {
+            modelRegistry.remove(model.name);
+          });
           tracker.add(widget);
         } else {
           chatPanel.addChat({ model });
@@ -522,6 +530,11 @@ function registerCommands(
           });
           const widget = new MainAreaChat({ content, commands, settingsModel });
           app.shell.add(widget, 'main');
+
+          // Remove the model from the registry when the widget is disposed.
+          widget.disposed.connect(() => {
+            modelRegistry.remove(model.name);
+          });
           tracker.add(widget);
         } else {
           const current = app.shell.currentWidget;
