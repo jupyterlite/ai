@@ -292,10 +292,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       },
       renameChat: async (oldName: string, newName: string) => {
         const model = modelRegistry.get(oldName);
-        if (model) {
+        const concurrencyModel = modelRegistry.get(newName);
+        if (model && !concurrencyModel) {
           model.name = newName;
+          return true;
         }
-        return true;
+        return false;
       },
       openInMain: (name: string) =>
         app.commands.execute(CommandIds.moveChat, { area: 'main', name })
