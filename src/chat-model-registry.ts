@@ -5,6 +5,7 @@ import { AISettingsModel } from './models/settings-model';
 import {
   IChatModelRegistry,
   IChatProviderRegistry,
+  ITokenUsage,
   IToolRegistry
 } from './tokens';
 import { IDocumentManager } from '@jupyterlab/docmanager';
@@ -23,13 +24,18 @@ export class ChatModelRegistry implements IChatModelRegistry {
     this._activeCellManager = options.activeCellManager;
   }
 
-  createModel(name?: string, activeProvider?: string): AIChatModel {
+  createModel(
+    name?: string,
+    activeProvider?: string,
+    tokenUsage?: ITokenUsage
+  ): AIChatModel {
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
       settingsModel: this._settingsModel,
       toolRegistry: this._toolRegistry,
       chatProviderRegistry: this._chatProviderRegistry,
-      activeProvider
+      activeProvider,
+      tokenUsage
     });
 
     // Create AI chat model

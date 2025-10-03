@@ -17,6 +17,11 @@ export interface ITokenUsageDisplayProps {
    * The settings model instance for configuration options
    */
   settingsModel: AISettingsModel;
+
+  /**
+   * Initial token usage.
+   */
+  initialTokenUsage?: ITokenUsage;
 }
 
 /**
@@ -26,7 +31,8 @@ export interface ITokenUsageDisplayProps {
  */
 export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
   tokenUsageChanged,
-  settingsModel
+  settingsModel,
+  initialTokenUsage
 }) => {
   return (
     <UseSignal signal={settingsModel.stateChanged} initialArgs={undefined}>
@@ -37,7 +43,7 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
         }
 
         return (
-          <UseSignal signal={tokenUsageChanged}>
+          <UseSignal signal={tokenUsageChanged} initialArgs={initialTokenUsage}>
             {(_, tokenUsage: ITokenUsage | null | undefined) => {
               if (!tokenUsage) {
                 return null;
@@ -103,13 +109,9 @@ export class TokenUsageWidget extends ReactWidget {
    * Creates a new TokenUsageWidget instance.
    * @param options - Configuration options containing required models
    */
-  constructor(options: {
-    tokenUsageChanged: ISignal<any, ITokenUsage>;
-    settingsModel: AISettingsModel;
-  }) {
+  constructor(options: ITokenUsageDisplayProps) {
     super();
-    this._tokenUsageChanged = options.tokenUsageChanged;
-    this._settingsModel = options.settingsModel;
+    this._options = options;
   }
 
   /**
@@ -117,14 +119,8 @@ export class TokenUsageWidget extends ReactWidget {
    * @returns The TokenUsageDisplay React element
    */
   protected render(): React.ReactElement {
-    return (
-      <TokenUsageDisplay
-        tokenUsageChanged={this._tokenUsageChanged}
-        settingsModel={this._settingsModel}
-      />
-    );
+    return <TokenUsageDisplay {...this._options} />;
   }
 
-  private _tokenUsageChanged: ISignal<any, ITokenUsage>;
-  private _settingsModel: AISettingsModel;
+  private _options: ITokenUsageDisplayProps;
 }
