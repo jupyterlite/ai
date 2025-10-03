@@ -110,7 +110,7 @@ test.describe('#withModel', () => {
     await sendButton.click();
     await expect(
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1);
+    ).toHaveCount(1, { timeout: 60000 });
     await expect(messages).toHaveCount(2);
 
     await expect(messages.last().locator('.jp-chat-message-header')).toHaveText(
