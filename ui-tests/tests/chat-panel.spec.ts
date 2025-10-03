@@ -94,7 +94,8 @@ test.describe('#withoutModel', () => {
 
 test.describe('#withModel', () => {
   test('should have a model', async ({ page }) => {
-    test.setTimeout(120 * 1000);
+    test.setTimeout(60 * 1000);
+
     const content = 'Which model are you built from ?';
     const panel = await openChatPanel(page);
     const input = panel
@@ -107,6 +108,9 @@ test.describe('#withModel', () => {
 
     await input.pressSequentially(content);
     await sendButton.click();
+    await expect(
+      panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
+    ).toHaveCount(1);
     await expect(messages).toHaveCount(2);
 
     await expect(messages.last().locator('.jp-chat-message-header')).toHaveText(
