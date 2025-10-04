@@ -78,11 +78,18 @@ export class BrowserMCPServerStreamableHttp implements MCPServer {
         '@modelcontextprotocol/sdk/client/index.js'
       );
 
+      // Merge CORS-enabled requestInit with user options
+      const corsRequestInit = {
+        mode: 'cors' as RequestMode,
+        credentials: 'omit' as RequestCredentials,
+        ...this._options.requestInit
+      };
+
       this._transport = new StreamableHTTPClientTransport(
         new URL(this._options.url),
         {
           authProvider: this._options.authProvider,
-          requestInit: this._options.requestInit,
+          requestInit: corsRequestInit,
           fetch: this._options.fetch || fetch,
           reconnectionOptions: this._options.reconnectionOptions,
           sessionId: this._options.sessionId
