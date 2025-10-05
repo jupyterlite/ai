@@ -320,12 +320,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
     );
 
     chatPanel.sectionAdded.connect((_, section) => {
-      const { model, widget } = section;
+      const { widget } = section;
+      const model = section.model as AIChatModel;
+
       tracker.add(widget);
+      model.nameChanged.connect(() => {
+        tracker.save(widget);
+      });
+
       const tokenUsageWidget = new TokenUsageWidget({
-        tokenUsageChanged: (model as AIChatModel).tokenUsageChanged,
+        tokenUsageChanged: model.tokenUsageChanged,
         settingsModel,
-        initialTokenUsage: (model as AIChatModel).agentManager.tokenUsage
+        initialTokenUsage: model.agentManager.tokenUsage
       });
       section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
@@ -377,6 +383,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       });
     }
+
+    // Create a chat with default provider at startup.
+    app.restored.then(() => {
+      if (!chatPanel.sections.length) {
+        app.commands.execute(CommandIds.openChat);
+      }
+    });
 
     registerCommands(
       app,
