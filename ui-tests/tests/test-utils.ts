@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   }
 };
 
-export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-wrapper';
+export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
 
 export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
 

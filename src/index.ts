@@ -303,7 +303,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         app.commands.execute(CommandIds.moveChat, { area: 'main', name })
     });
 
-    chatPanel.id = 'labai:sidepanel';
+    chatPanel.id = '@jupyterlite/ai:chat-panel';
     chatPanel.title.icon = chatIcon;
     chatPanel.title.caption = 'Chat with AI assistant'; // TODO: i18n/
 
