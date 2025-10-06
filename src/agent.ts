@@ -581,10 +581,8 @@ export class AgentManager {
 
           const usage = data.response.usage;
           const { inputTokens, outputTokens } = usage;
-          this._tokenUsage = {
-            inputTokens,
-            outputTokens
-          };
+          this._tokenUsage.inputTokens += inputTokens;
+          this._tokenUsage.outputTokens += outputTokens;
           this._tokenUsageChanged.emit(this._tokenUsage);
         } else if (data.type === 'model') {
           const modelEvent = data.event as any;
