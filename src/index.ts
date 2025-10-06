@@ -433,6 +433,7 @@ function registerCommands(
     });
 
     commands.addCommand(CommandIds.openChat, {
+      label: 'Open a chat',
       execute: async args => {
         const area = (args.area as string) === 'main' ? 'main' : 'side';
         const provider = (args.provider as string) ?? undefined;
@@ -463,10 +464,32 @@ function registerCommands(
         } else {
           chatPanel.addChat({ model });
         }
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description:
+                'The name of the area to open the chat to'
+            },
+            name: {
+              type: 'string',
+              description: 'The name of the chat'
+            },
+            provider: {
+              type: 'string',
+              description: 'The provider/model to use with this chat'
+            }
+          }
+        }
       }
     });
 
     commands.addCommand(CommandIds.moveChat, {
+      label: 'Move chat between area',
       execute: async args => {
         const area = args.area as string;
         if (!['side', 'main'].includes(area)) {
@@ -530,6 +553,24 @@ function registerCommands(
         }
 
         modelRegistry.remove(previousModel.name);
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description:
+                'The name of the area to move the chat to'
+            },
+            name: {
+              type: 'string',
+              description: 'The name of the chat to move'
+            }
+          },
+          requires: ['area', 'name']
+        }
       }
     });
   }
