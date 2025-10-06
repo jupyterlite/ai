@@ -166,7 +166,8 @@ test.describe('#withModel', () => {
 
     const mainAreaTab = await page.activity.getTabLocator(DEFAULT_MODEL_NAME);
     await expect(mainAreaTab).toHaveCount(1);
-    const mainAreaPanel = await page.activity.getPanelLocator(DEFAULT_MODEL_NAME);
+    const mainAreaPanel =
+      await page.activity.getPanelLocator(DEFAULT_MODEL_NAME);
     await mainAreaPanel
       ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
       .click();
