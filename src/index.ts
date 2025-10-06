@@ -506,8 +506,7 @@ function registerCommands(
             area: {
               type: 'string',
               enum: ['main', 'side'],
-              description:
-                'The name of the area to open the chat to'
+              description: 'The name of the area to open the chat to'
             },
             name: {
               type: 'string',
@@ -595,8 +594,7 @@ function registerCommands(
             area: {
               type: 'string',
               enum: ['main', 'side'],
-              description:
-                'The name of the area to move the chat to'
+              description: 'The name of the area to move the chat to'
             },
             name: {
               type: 'string',
