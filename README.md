@@ -5,14 +5,9 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite ✨
 
-[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/jupyterlite/ai/assets/591645/855c4e3e-3a63-4868-8052-5c9909922c21)
+[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
 
 ## Requirements
-
-> [!NOTE]
-> This extension is meant to be used in JupyterLite to enable AI code completions and chat in the browser, with a specific provider.
-> To enable more AI providers in JupyterLab and Jupyter Notebook, we recommend using the [Jupyter AI](https://github.com/jupyterlab/jupyter-ai) extension directly.
-> At the moment Jupyter AI is not compatible with JupyterLite, but might be to some extent in the future.
 
 - JupyterLab >= 4.4.0 or Notebook >= 7.4.0
 
@@ -32,7 +27,7 @@ To install the extension, execute:
 pip install jupyterlite-ai
 ```
 
-To install requirements (jupyterlab, jupyterlite and notebook), there is an optional dependencies argument:
+To install requirements (JupyterLab, JupyterLite and Notebook):
 
 ```bash
 pip install jupyterlite-ai[jupyter]
@@ -42,25 +37,16 @@ pip install jupyterlite-ai[jupyter]
 
 AI providers typically require using an API key to access their models.
 
-The process is different for each provider, so you may refer to their documentation to learn how to generate new API keys, if they are not covered in the sections below.
+The process is different for each provider, so you may refer to their documentation to learn how to generate new API keys.
 
-## Using MistralAI
+## Using a provider with an API key
 
-> [!WARNING]
-> This extension is still very much experimental. It is not an official MistralAI extension.
+1. Open the AI settings and 
+2. Click on "Add a new provider"
+3. Enter the details for the provider
+4. In the chat, select the new provider
 
-1. Go to https://console.mistral.ai/api-keys/ and create an API key.
-
-![Screenshot showing how to create an API key](./img/1-api-key.png)
-
-2. Open the JupyterLab settings and go to the **Ai providers** section to select the `MistralAI`
-   provider and the API key (required).
-
-![Screenshot showing how to add the API key to the settings](./img/2-jupyterlab-settings.png)
-
-3. Open the chat, or use the inline completer
-
-![Screenshot showing how to use the chat](./img/3-usage.png)
+![screenshot showing the dialog to add a new provider](https://github.com/user-attachments/assets/823c71c6-5807-44c8-80b6-2e59379a65d5)
 
 ## Using ChromeAI
 
