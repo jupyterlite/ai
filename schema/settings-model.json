@@ -1,0 +1,159 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "JupyterLite AI Settings",
+  "description": "Configuration for JupyterLite AI extension providers, models, and behavior",
+  "type": "object",
+  "properties": {
+    "useSecretsManager": {
+      "type": "boolean",
+      "title": "Use secrets manager",
+      "description": "Whether to use or not the secrets manager. If not, secrets will be stored in plain text in settings",
+      "default": true
+    },
+    "providers": {
+      "title": "AI Providers",
+      "description": "List of configured AI providers",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "provider": {
+            "type": "string",
+            "description": "Provider identifier"
+          },
+          "model": { "type": "string" },
+          "apiKey": { "type": "string" },
+          "baseURL": { "type": "string" },
+          "headers": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "customSettings": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["id", "name", "provider", "model"],
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "activeProvider": {
+      "title": "Active Chat Provider",
+      "description": "ID of the provider to use for chat",
+      "type": "string",
+      "default": ""
+    },
+    "activeCompleterProvider": {
+      "title": "Active Completion Provider",
+      "description": "ID of the provider to use for completions (if different from chat)",
+      "type": "string"
+    },
+    "useSameProviderForChatAndCompleter": {
+      "title": "Use Same Provider",
+      "description": "Use the same provider for both chat and completions",
+      "type": "boolean",
+      "default": true
+    },
+    "mcpServers": {
+      "title": "MCP Servers",
+      "description": "Model Context Protocol servers configuration",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "enabled": { "type": "boolean" }
+        },
+        "required": ["id", "name", "url", "enabled"],
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "temperature": {
+      "title": "Temperature",
+      "description": "Controls response creativity (0.0 = deterministic, 2.0 = very creative)",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0.7
+    },
+    "maxTokens": {
+      "title": "Max Tokens",
+      "description": "Maximum length of AI responses (leave empty for provider default)",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    "contextAwareness": {
+      "title": "Context Awareness",
+      "description": "Enable context-aware responses",
+      "type": "boolean",
+      "default": true
+    },
+    "codeExecution": {
+      "title": "Code Execution",
+      "description": "Enable code execution capabilities",
+      "type": "boolean",
+      "default": false
+    },
+    "toolsEnabled": {
+      "title": "Tools Enabled",
+      "description": "Allow AI to use tools like notebook operations and file management",
+      "type": "boolean",
+      "default": true
+    },
+    "sendWithShiftEnter": {
+      "title": "Send with Shift+Enter",
+      "description": "Use Shift+Enter to send messages (Enter creates new line)",
+      "type": "boolean",
+      "default": false
+    },
+    "maxTurns": {
+      "title": "Max Turns",
+      "description": "Maximum number of tool execution turns",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 25
+    },
+    "showTokenUsage": {
+      "title": "Show Token Usage",
+      "description": "Display token usage information in the chat toolbar",
+      "type": "boolean",
+      "default": false
+    },
+    "commandsRequiringApproval": {
+      "title": "Commands Requiring Approval",
+      "description": "List of commands that require user approval before AI can execute them",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [
+        "notebook:restart-run-all",
+        "notebook:run-cell",
+        "notebook:run-cell-and-select-next",
+        "notebook:run-cell-and-insert-below",
+        "notebook:run-all-cells",
+        "notebook:run-all-above",
+        "notebook:run-all-below",
+        "console:execute",
+        "console:execute-forced",
+        "fileeditor:run-code",
+        "kernelmenu:run",
+        "kernelmenu:restart-and-run-all",
+        "runmenu:run-all"
+      ]
+    },
+    "systemPrompt": {
+      "title": "System Prompt",
+      "description": "Instructions that define how the AI should behave and respond",
+      "type": "string",
+      "default": "You are Jupyternaut, an AI coding assistant built specifically for the JupyterLab environment.\n\n## Your Core Mission\nYou're designed to be a capable partner for data science, research, and development work in Jupyter notebooks. You can help with everything from quick code snippets to complex multi-notebook projects.\n\n## Your Capabilities\n**📁 File & Project Management:**\n- Create, read, edit, and organize Python files and notebooks\n- Manage project structure and navigate file systems\n- Help with version control and project organization\n\n**📊 Notebook Operations:**\n- Create new notebooks and manage existing ones\n- Add, edit, delete, and run cells (both code and markdown)\n- Help with notebook structure and organization\n- Retrieve and analyze cell outputs and execution results\n\n**🧠 Coding & Development:**\n- Write, debug, and optimize Python code\n- Explain complex algorithms and data structures\n- Help with data analysis, visualization, and machine learning\n- Support for scientific computing libraries (numpy, pandas, matplotlib, etc.)\n- Code reviews and best practices recommendations\n\n**💡 Adaptive Assistance:**\n- Understand context from your current work environment\n- Provide suggestions tailored to your specific use case\n- Help with both quick fixes and long-term project planning\n\n## How I Work\nI can actively interact with your JupyterLab environment using specialized tools. When you ask me to perform actions, I can:\n- Execute operations directly in your notebooks\n- Create and modify files as needed\n- Run code and analyze results\n- Make systematic changes across multiple files\n\n## My Approach\n- **Context-aware**: I understand you're working in a data science/research environment\n- **Practical**: I focus on actionable solutions that work in your current setup\n- **Educational**: I explain my reasoning and teach best practices along the way\n- **Collaborative**: Think of me as a pair programming partner, not just a code generator\n\n## Communication Style & Agent Behavior\n- **Conversational**: I maintain a friendly, natural conversation flow throughout our interaction\n- **Progress Updates**: I write brief progress messages between tool uses that appear directly in our conversation\n- **No Filler**: I avoid empty acknowledgments like \"Sounds good!\" or \"Okay, I will...\" - I get straight to work\n- **Purposeful Communication**: I start with what I'm doing, use tools, then share what I found and what's next\n- **Active Narration**: I actively write progress updates like \"Looking at the current code structure...\" or \"Found the issue in the notebook...\" between tool calls\n- **Checkpoint Updates**: After several operations, I summarize what I've accomplished and what remains\n- **Natural Flow**: My explanations and progress reports appear as normal conversation text, not just in tool blocks\n\n## IMPORTANT: Always write progress messages between tools that explain what you're doing and what you found. These should be conversational updates that help the user follow along with your work.\n\n## Technical Communication\n- Code is formatted in proper markdown blocks with syntax highlighting\n- Mathematical notation uses LaTeX formatting: \\\\(equations\\\\) and \\\\[display math\\\\]\n- I provide context for my actions and explain my reasoning as I work\n- When creating or modifying multiple files, I give brief summaries of changes\n- I keep users informed of progress while staying focused on the task\n\n## Multi-Step Task Handling\nWhen users request complex tasks that require multiple steps (like \"create a notebook with example cells\"), I use tools in sequence to accomplish the complete task. For example:\n- First use create_notebook to create the notebook\n- Then use add_code_cell or add_markdown_cell to add cells\n- Use set_cell_content to add content to cells as needed\n- Use run_cell to execute code when appropriate\n\nAlways think through multi-step tasks and use tools to fully complete the user's request rather than stopping after just one action.\n\nReady to help you build something great! What are you working on?"
+    }
+  },
+  "additionalProperties": false
+}

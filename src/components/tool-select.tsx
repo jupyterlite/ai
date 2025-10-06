@@ -1,33 +1,49 @@
-/*
- * Copyright (c) Jupyter Development Team.
- * Distributed under the terms of the Modified BSD License.
- */
-
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
-import { checkIcon } from '@jupyterlab/ui-components';
+
 import BuildIcon from '@mui/icons-material/Build';
+
+import CheckIcon from '@mui/icons-material/Check';
+
 import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
+
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { ChatHandler } from '../chat-handler';
-import { IAIProviderRegistry, Tool } from '../tokens';
+import { INamedTool, IToolRegistry } from '../tokens';
+import { AIChatModel } from '../chat-model';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
 /**
- * The tool select component.
+ * Properties for the tool select component.
  */
-export function toolSelect(
-  props: InputToolbarRegistry.IToolbarItemProps
-): JSX.Element {
-  const chatContext = props.model.chatContext as ChatHandler.ChatContext;
-  const toolRegistry = chatContext.toolsRegistry;
-  const providerRegistry = chatContext.providerRegistry;
+export interface IToolSelectProps
+  extends InputToolbarRegistry.IToolbarItemProps {
+  /**
+   * The tool registry to get available tools from.
+   */
+  toolRegistry: IToolRegistry;
 
-  const [allowTools, setAllowTools] = useState<boolean>(true);
-  const [agentAvailable, setAgentAvailable] = useState<boolean | undefined>();
-  const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
-  const [tools, setTools] = useState<Tool[]>(toolRegistry?.tools || []);
+  /**
+   * Whether tools are enabled.
+   */
+  toolsEnabled: boolean;
+
+  /**
+   * Function to handle tool selection changes.
+   */
+  onToolSelectionChange: (selectedToolNames: string[]) => void;
+}
+
+/**
+ * The tool select component for choosing AI tools.
+ */
+export function ToolSelect(props: IToolSelectProps): JSX.Element {
+  const { toolRegistry, onToolSelectionChange, toolsEnabled } = props;
+
+  const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
+  const [tools, setTools] = useState<INamedTool[]>(
+    toolRegistry?.namedTools || []
+  );
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,80 +56,85 @@ export function toolSelect(
     setMenuOpen(false);
   }, []);
 
-  const onClick = (tool: Tool) => {
-    const currentTools = [...selectedTools];
-    const index = currentTools.indexOf(tool);
-    if (index !== -1) {
-      currentTools.splice(index, 1);
-    } else {
-      currentTools.push(tool);
-    }
-    setSelectedTools(currentTools);
-    if (!providerRegistry.setTools(currentTools)) {
-      setSelectedTools([]);
-    }
-  };
+  const toggleTool = useCallback(
+    (toolName: string) => {
+      const currentToolNames = [...selectedToolNames];
+      const index = currentToolNames.indexOf(toolName);
 
+      if (index !== -1) {
+        // Remove tool
+        currentToolNames.splice(index, 1);
+      } else {
+        // Add tool
+        currentToolNames.push(toolName);
+      }
+
+      setSelectedToolNames(currentToolNames);
+      onToolSelectionChange(currentToolNames);
+    },
+    [selectedToolNames, onToolSelectionChange]
+  );
+
+  // Update tools when registry changes
   useEffect(() => {
-    const updateTools = () => setTools(toolRegistry?.tools || []);
-    toolRegistry?.toolsChanged.connect(updateTools);
-    return () => {
-      toolRegistry?.toolsChanged.disconnect(updateTools);
+    const updateTools = () => {
+      const newTools = toolRegistry?.namedTools || [];
+      setTools(newTools);
     };
+
+    if (toolRegistry) {
+      updateTools();
+      toolRegistry.toolsChanged.connect(updateTools);
+      return () => {
+        toolRegistry.toolsChanged.disconnect(updateTools);
+      };
+    }
   }, [toolRegistry]);
 
+  // Initialize selected tools to all tools by default
   useEffect(() => {
-    const updateAllowTools = (_: IAIProviderRegistry, value: boolean) =>
-      setAllowTools(value);
+    if (tools.length > 0 && selectedToolNames.length === 0) {
+      const defaultToolNames = tools.map(tool => tool.name);
+      setSelectedToolNames(defaultToolNames);
+      onToolSelectionChange(defaultToolNames);
+    }
+  }, [tools, selectedToolNames.length, onToolSelectionChange]);
 
-    const updateAgentAvailable = () =>
-      setAgentAvailable(providerRegistry.isAgentAvailable());
+  // Don't render if tools are disabled or no tools available
+  if (!toolsEnabled || tools.length === 0) {
+    return <></>;
+  }
 
-    providerRegistry.allowToolsChanged.connect(updateAllowTools);
-    providerRegistry.providerChanged.connect(updateAgentAvailable);
-
-    setAllowTools(providerRegistry.allowTools);
-    setAgentAvailable(providerRegistry.isAgentAvailable());
-    return () => {
-      providerRegistry.allowToolsChanged.disconnect(updateAllowTools);
-      providerRegistry.providerChanged.disconnect(updateAgentAvailable);
-    };
-  }, [providerRegistry]);
-
-  return allowTools && tools.length ? (
+  return (
     <>
       <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        disabled={!agentAvailable}
-        tooltip={
-          agentAvailable === undefined
-            ? 'The provider is not set'
-            : agentAvailable
-              ? 'Tools'
-              : 'The provider or model cannot use tools'
-        }
+        tooltip={`Tools (${selectedToolNames.length}/${tools.length} selected)`}
         buttonProps={{
-          variant: 'contained',
+          size: 'small',
+          variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
+          color: 'primary',
+          title: 'Select AI Tools',
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {
               return;
             }
             openMenu(e.currentTarget);
-            // stopping propagation of this event prevents the prompt from being
-            // sent when the dropdown button is selected and clicked via 'Enter'.
+            // Stop propagation to prevent sending message
             e.stopPropagation();
           }
         }}
         sx={
-          selectedTools.length === 0
+          selectedToolNames.length === 0
             ? { backgroundColor: 'var(--jp-layout-color3)' }
             : {}
         }
       >
         <BuildIcon />
       </TooltippedButton>
+
       <Menu
         open={menuOpen}
         onClose={closeMenu}
@@ -133,28 +154,65 @@ export function toolSelect(
           }
         }}
       >
-        {tools.map(tool => (
-          <Tooltip title={tool.description}>
+        {tools.map(namedTool => (
+          <Tooltip
+            key={namedTool.name}
+            title={namedTool.tool.description || namedTool.name}
+            placement="left"
+          >
             <MenuItem
               className={SELECT_ITEM_CLASS}
               onClick={e => {
-                onClick(tool);
-                // prevent sending second message with no selection
+                toggleTool(namedTool.name);
+                // Prevent sending message on tool selection
                 e.stopPropagation();
               }}
             >
-              {selectedTools.includes(tool) ? (
-                <checkIcon.react className={'lm-Menu-itemIcon'} />
+              {selectedToolNames.includes(namedTool.name) ? (
+                <CheckIcon
+                  sx={{
+                    marginRight: '8px',
+                    color: 'var(--jp-brand-color1, #2196F3)'
+                  }}
+                />
               ) : (
-                <div className={'lm-Menu-itemIcon'} />
+                <div style={{ width: '24px', marginRight: '8px' }} />
               )}
-              <Typography display="block">{tool.name}</Typography>
+              <Typography variant="body2">{namedTool.name}</Typography>
             </MenuItem>
           </Tooltip>
         ))}
       </Menu>
     </>
-  ) : (
-    <></>
   );
+}
+
+/**
+ * Factory function returning the toolbar item for tool selection.
+ */
+export function createToolSelectItem(
+  toolRegistry: IToolRegistry,
+  toolsEnabled: boolean = true
+): InputToolbarRegistry.IToolbarItem {
+  return {
+    element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const onToolSelectionChange = (tools: string[]) => {
+        const chatContext = props.model
+          .chatContext as AIChatModel.IAIChatContext;
+        if (!chatContext.agentManager) {
+          return;
+        }
+        chatContext.agentManager.setSelectedTools(tools);
+      };
+
+      const toolSelectProps: IToolSelectProps = {
+        ...props,
+        toolRegistry,
+        onToolSelectionChange,
+        toolsEnabled
+      };
+      return <ToolSelect {...toolSelectProps} />;
+    },
+    position: 1
+  };
 }

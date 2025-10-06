@@ -2,6 +2,82 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0a2
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a1...0a63b33304b70c8fa8461a2e36bba97d12f3d2d9))
+
+### Bugs fixed
+
+- Bump @jupyter/chat to 0.18.1 [#168](https://github.com/jupyterlite/ai/pull/168) ([@brichet](https://github.com/brichet))
+- Fix token usage [#167](https://github.com/jupyterlite/ai/pull/167) ([@jtpio](https://github.com/jtpio))
+- Disable tracing when creating a new `Runner` [#166](https://github.com/jupyterlite/ai/pull/166) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-25&to=2025-09-26&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-25..2025-09-26&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-25..2025-09-26&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
+## 0.9.0a1
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a0...59b5a7c9f4d61cd4ef9e23e7a3cf504878881d07))
+
+### Enhancements made
+
+- Call the diff command directly when setting the cell content [#162](https://github.com/jupyterlite/ai/pull/162) ([@jtpio](https://github.com/jtpio))
+- Add the secrets manager [#159](https://github.com/jupyterlite/ai/pull/159) ([@brichet](https://github.com/brichet))
+- Re-add OpenAI [#147](https://github.com/jupyterlite/ai/pull/147) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Get active cell info [#161](https://github.com/jupyterlite/ai/pull/161) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update @jupyter/chat and @mui dependencies [#164](https://github.com/jupyterlite/ai/pull/164) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-18&to=2025-09-25&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-18..2025-09-25&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-18..2025-09-25&type=Issues)
+
+## 0.9.0a0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.8.1...01723cd4d0ffa484afb560b085bd26ab033d7c75))
+
+### New features added
+
+- Add `jupyterlab-cell-diff` [#153](https://github.com/jupyterlite/ai/pull/153) ([@jtpio](https://github.com/jtpio))
+- Agent workflows [#145](https://github.com/jupyterlite/ai/pull/145) ([@jtpio](https://github.com/jtpio))
+
+### Enhancements made
+
+- Add `supportsToolCalling` provider setting [#151](https://github.com/jupyterlite/ai/pull/151) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Fix parameters for `discover_commands` [#157](https://github.com/jupyterlite/ai/pull/157) ([@jtpio](https://github.com/jtpio))
+- Fix valid model check [#149](https://github.com/jupyterlite/ai/pull/149) ([@jtpio](https://github.com/jtpio))
+
+### Maintenance and upkeep improvements
+
+- Expose settings model and tool registry tokens, and use chat context [#152](https://github.com/jupyterlite/ai/pull/152) ([@brichet](https://github.com/brichet))
+- Bump dependencies, disable tracing for now [#150](https://github.com/jupyterlite/ai/pull/150) ([@jtpio](https://github.com/jtpio))
+- More cleanup [#148](https://github.com/jupyterlite/ai/pull/148) ([@jtpio](https://github.com/jtpio))
+
+### API and Breaking Changes
+
+- Agent workflows [#145](https://github.com/jupyterlite/ai/pull/145) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-08-04&to=2025-09-18&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-08-04..2025-09-18&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-08-04..2025-09-18&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-08-04..2025-09-18&type=Issues)
+
 ## 0.8.1
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.8.0...6627589bb83cfb1ab891d9ce3f3e4df8336f9a62))
@@ -15,8 +91,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-07-09&to=2025-08-04&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-07-09..2025-08-04&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.8.0
 

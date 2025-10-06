@@ -90,6 +90,52 @@ Then restart Chrome for these changes to take effect.
 > [!NOTE]
 > For more information about Chrome Built-in AI: https://developer.chrome.com/docs/ai/get-started
 
+## Using LiteLLM Proxy
+
+[LiteLLM Proxy](https://docs.litellm.ai/docs/simple_proxy) is an OpenAI-compatible proxy server that allows you to call 100+ LLMs through a unified interface.
+
+Using LiteLLM Proxy with jupyterlite-ai provides flexibility to switch between different AI providers (OpenAI, Anthropic, Google, Azure, local models, etc.) without changing your JupyterLite configuration. It's particularly useful for enterprise deployments where the proxy can be hosted within private infrastructure to manage external API calls and keep API keys server-side.
+
+### Setting up LiteLLM Proxy
+
+1. Install LiteLLM:
+
+Follow the instructions at https://docs.litellm.ai/docs/simple_proxy.
+
+2. Create a `litellm_config.yaml` file with your model configuration:
+
+```yaml
+model_list:
+  - model_name: gpt-5
+    litellm_params:
+      model: gpt-5
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: claude-sonnet
+    litellm_params:
+      model: claude-sonnet-4-5-20250929
+      api_key: os.environ/ANTHROPIC_API_KEY
+```
+
+3. Start the proxy server, for example:
+
+```bash
+litellm --config litellm_config.yaml
+```
+
+The proxy will start on `http://0.0.0.0:4000` by default.
+
+### Configuring `jupyterlite-ai` to use LiteLLM Proxy
+
+1. In JupyterLab, open the AI settings panel and go to the **AI Providers** section.
+2. Select the **Generic** provider (OpenAI-compatible)
+3. Configure the following settings:
+   - **Base URL**: `http://0.0.0.0:4000` (or your proxy server URL)
+   - **Model**: The model name from your `litellm_config.yaml` (e.g., `gpt-5`, `claude-sonnet`)
+
+> [!NOTE]
+> For more information about LiteLLM Proxy configuration, see the [LiteLLM documentation](https://docs.litellm.ai/docs/simple_proxy).
+
 ## Uninstall
 
 To remove the extension, execute:

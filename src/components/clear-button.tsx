@@ -1,11 +1,10 @@
-/*
- * Copyright (c) Jupyter Development Team.
- * Distributed under the terms of the Modified BSD License.
- */
-import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRounded';
+import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+
+import ClearIcon from '@mui/icons-material/Clear';
+
 import React from 'react';
 
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { AIChatModel } from '../chat-model';
 
 /**
  * Properties of the clear button.
@@ -13,9 +12,9 @@ import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 export interface IClearButtonProps
   extends InputToolbarRegistry.IToolbarItemProps {
   /**
-   * The function to clear the chat.
+   * The function to clear messages.
    */
-  clearChat: () => void;
+  clearMessages: () => void;
 }
 
 /**
@@ -23,33 +22,35 @@ export interface IClearButtonProps
  */
 export function ClearButton(props: IClearButtonProps): JSX.Element {
   const tooltip = 'Clear chat';
-
   return (
     <TooltippedButton
-      onClick={props.clearChat}
+      onClick={props.clearMessages}
       tooltip={tooltip}
       buttonProps={{
         size: 'small',
-        variant: 'contained',
+        variant: 'outlined',
+        color: 'secondary',
         title: tooltip
       }}
     >
-      <CleaningServicesRoundedIcon />
+      <ClearIcon />
     </TooltippedButton>
   );
 }
 
 /**
- * Factory function returning the toolbar item.
+ * Factory returning the clear button toolbar item.
  */
-export function clearItem(
-  clearChat: () => void
-): InputToolbarRegistry.IToolbarItem {
+export function clearItem(): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
-      const clearProps: IClearButtonProps = { ...props, clearChat };
-      return <ClearButton {...clearProps} />;
+      const { model } = props;
+      const clearMessages = () =>
+        (model.chatContext as AIChatModel.IAIChatContext).clearMessages();
+      const clearProps: IClearButtonProps = { ...props, clearMessages };
+      return ClearButton(clearProps);
     },
-    position: 30
+    position: 0,
+    hidden: false
   };
 }

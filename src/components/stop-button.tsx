@@ -1,12 +1,10 @@
-/*
- * Copyright (c) Jupyter Development Team.
- * Distributed under the terms of the Modified BSD License.
- */
+import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
 import StopIcon from '@mui/icons-material/Stop';
+
 import React from 'react';
 
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { AIChatModel } from '../chat-model';
 
 /**
  * Properties of the stop button.
@@ -20,7 +18,7 @@ export interface IStopButtonProps
 }
 
 /**
- * The stop button.
+ * The stop button component.
  */
 export function StopButton(props: IStopButtonProps): JSX.Element {
   const tooltip = 'Stop streaming';
@@ -31,6 +29,7 @@ export function StopButton(props: IStopButtonProps): JSX.Element {
       buttonProps={{
         size: 'small',
         variant: 'contained',
+        color: 'error',
         title: tooltip
       }}
     >
@@ -40,17 +39,18 @@ export function StopButton(props: IStopButtonProps): JSX.Element {
 }
 
 /**
- * factory returning the toolbar item.
+ * Factory returning the stop button toolbar item.
  */
-export function stopItem(
-  stopStreaming: () => void
-): InputToolbarRegistry.IToolbarItem {
+export function stopItem(): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
+      const { model } = props;
+      const stopStreaming = () =>
+        (model.chatContext as AIChatModel.IAIChatContext).stopStreaming();
       const stopProps: IStopButtonProps = { ...props, stopStreaming };
       return StopButton(stopProps);
     },
     position: 50,
-    hidden: true /* hidden by default */
+    hidden: true // Hidden by default, shown when streaming
   };
 }
