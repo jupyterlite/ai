@@ -41,7 +41,7 @@ The process is different for each provider, so you may refer to their documentat
 
 ## Using a provider with an API key
 
-1. Open the AI settings and 
+1. Open the AI settings and
 2. Click on "Add a new provider"
 3. Enter the details for the provider
 4. In the chat, select the new provider
