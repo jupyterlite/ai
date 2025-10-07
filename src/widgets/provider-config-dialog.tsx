@@ -1,7 +1,6 @@
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -110,7 +109,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       name: name.trim(),
       provider: provider as IProviderConfig['provider'],
       model,
-      ...(selectedProvider?.requiresApiKey && apiKey && { apiKey }),
+      ...(apiKey && { apiKey }),
       ...(baseURL && { baseURL })
     };
 
@@ -219,30 +218,32 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             </FormControl>
           )}
 
-          {selectedProvider?.requiresApiKey && (
-            <TextField
-              fullWidth
-              inputRef={apiKeyRef}
-              label="API Key"
-              type={showApiKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              required={selectedProvider.requiresApiKey}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      edge="end"
-                    >
-                      {showApiKey ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-          )}
+          <TextField
+            fullWidth
+            inputRef={apiKeyRef}
+            label={
+              selectedProvider?.requiresApiKey
+                ? 'API Key'
+                : 'API Key (Optional)'
+            }
+            type={showApiKey ? 'text' : 'password'}
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+            placeholder="Enter your API key..."
+            required={selectedProvider?.requiresApiKey ?? false}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    edge="end"
+                  >
+                    {showApiKey ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
 
           {selectedProvider?.supportsBaseURL && (
             <TextField
@@ -261,12 +262,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   : 'Custom API base URL (e.g., for LiteLLM proxy). Leave empty to use default provider endpoint.'
               }
             />
-          )}
-
-          {!selectedProvider?.requiresApiKey && (
-            <Alert severity="info">
-              This provider does not require an API key.
-            </Alert>
           )}
         </Box>
       </DialogContent>
