@@ -39,7 +39,7 @@ AI providers typically require using an API key to access their models.
 
 The process is different for each provider, so you may refer to their documentation to learn how to generate new API keys.
 
-## Using a provider with an API key
+## Using a provider with an API key (e.g. Anthropic, MistralAI, OpenAI)
 
 1. Open the AI settings and
 2. Click on "Add a new provider"
