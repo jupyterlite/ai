@@ -370,3 +370,12 @@
   svg {
   transform: rotate(180deg);
 }
+
+.jp-chat-sidepanel .jp-chat-add span.jp-ToolbarButtonComponent-label {
+  display: none;
+}
+
+.jp-chat-sidepanel .jp-chat-add svg path.jp-icon3 {
+  stroke: var(--jp-inverse-layout-color3);
+  stroke-width: 2;
+}
