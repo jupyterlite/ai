@@ -1,6 +1,7 @@
 from fastmcp import FastMCP
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 mcp = FastMCP("My Server")
 
@@ -9,6 +10,11 @@ mcp = FastMCP("My Server")
 def process_data(input: str) -> str:
     """Process data on the server"""
     return f"Processed: {input}"
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
 
 custom_middleware = [

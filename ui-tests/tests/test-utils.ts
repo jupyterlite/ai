@@ -3,6 +3,9 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
+import { IJupyterLabPageFixture } from '@jupyterlab/galata';
+import { Locator } from '@playwright/test';
+
 export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   '@jupyterlite/ai:settings-model': {
     activeProvider: 'ollama-1759407012872',
@@ -10,9 +13,9 @@ export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
     providers: [
       {
         id: 'ollama-1759407012872',
-        name: 'Qwen2',
+        name: 'Qwen2.5',
         provider: 'ollama',
-        model: 'qwen2:0.5b'
+        model: 'qwen2.5:0.5b'
       }
     ],
     showTokenUsage: false,
@@ -21,3 +24,19 @@ export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
     useSecretsManager: false
   }
 };
+
+export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-wrapper';
+
+export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
+
+export async function openChatPanel(
+  page: IJupyterLabPageFixture
+): Promise<Locator> {
+  const panel = page.locator(`[id="${CHAT_PANEL_ID}"]`);
+  if (!(await panel.isVisible())) {
+    const chatIcon = page.getByTitle(CHAT_PANEL_TITLE).filter();
+    await chatIcon.click();
+    await page.waitForCondition(() => panel.isVisible());
+  }
+  return panel;
+}
