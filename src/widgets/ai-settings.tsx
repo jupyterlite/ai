@@ -977,18 +977,17 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                             <Typography variant="body2" color="text.secondary">
                               {server.url}
                             </Typography>
-                            {server.enabled &&
-                              server.connected !== undefined && (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  Status:{' '}
-                                  {server.connected
-                                    ? 'Connected'
-                                    : 'Connection failed'}
-                                </Typography>
-                              )}
+                            {server.enabled && agentManager && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Status:{' '}
+                                {agentManager.isMCPServerConnected(server.name)
+                                  ? 'Connected'
+                                  : 'Connection failed'}
+                              </Typography>
+                            )}
                           </Box>
                         }
                       />
@@ -1137,8 +1136,7 @@ const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
     onSave({
       name: name.trim(),
       url: url.trim(),
-      enabled,
-      connected: false
+      enabled
     });
     onClose();
   };
