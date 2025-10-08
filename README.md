@@ -182,6 +182,29 @@ By default, the `jlpm build` command generates the source maps for this extensio
 jupyter lab build --minimize=False
 ```
 
+### Running UI tests
+
+The UI tests use Playwright and can be configured with environment variables:
+
+- `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
+  - `on`: Record video for all tests
+  - `off`: Do not record video
+  - `retain-on-failure`: Only keep videos for failed tests
+- `PWSLOWMO`: Adds a delay (in milliseconds) between Playwright actions for debugging (default: `0`)
+
+Example usage:
+
+```bash
+# Record all test videos
+PWVIDEO=on jlpm playwright test
+
+# Slow down test execution by 500ms per action
+PWSLOWMO=500 jlpm playwright test
+
+# Combine both options
+PWVIDEO=on PWSLOWMO=1000 jlpm playwright test
+```
+
 ### Development uninstall
 
 ```bash
