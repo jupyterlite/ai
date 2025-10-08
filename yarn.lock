@@ -42,15 +42,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai@npm:^2.0.42":
-  version: 2.0.42
-  resolution: "@ai-sdk/openai@npm:2.0.42"
+"@ai-sdk/openai@npm:^2.0.44":
+  version: 2.0.44
+  resolution: "@ai-sdk/openai@npm:2.0.44"
   dependencies:
     "@ai-sdk/provider": 2.0.0
     "@ai-sdk/provider-utils": 3.0.10
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 0b7685c68c02cb410106f936b89f4f0799092b475ea04f3ced4616b9b628580274e8a6c02922b69c93ec3fe6e983b747b1f11bce9d01fee261db023c6fdf5c16
+  checksum: c2bb3123cfcf42042a252360e85a67b97675d878a4326d0ed19b58027131edc96bfe72c1b5c9ec8a836d25faace0c79e64d6b3b52f1e6a871f228a5e174a8412
   languageName: node
   linkType: hard
 
@@ -2992,7 +2992,7 @@ __metadata:
   dependencies:
     "@ai-sdk/anthropic": ^2.0.23
     "@ai-sdk/mistral": ^2.0.17
-    "@ai-sdk/openai": ^2.0.42
+    "@ai-sdk/openai": ^2.0.44
     "@jupyter/chat": ^0.18.1
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/apputils": ^4.5.6
