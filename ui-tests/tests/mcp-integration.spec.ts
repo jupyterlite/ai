@@ -65,4 +65,24 @@ test.describe('#mcpIntegration', () => {
     await expect(toolCall).toContainText('process_data');
     await expect(toolCall).toContainText('Processed: hello world');
   });
+
+  test('should show MCP server as Connected in AI Settings', async ({
+    page
+  }) => {
+    const panel = await openChatPanel(page);
+
+    const settingsButton = panel.getByTitle('Open AI Settings');
+    await settingsButton.click();
+
+    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    await expect(settingsPanel).toBeVisible();
+
+    const mcpServersTab = settingsPanel.getByRole('tab', {
+      name: /MCP Servers/i
+    });
+    await mcpServersTab.click();
+
+    await expect(settingsPanel.locator('text=Test MCP Server')).toBeVisible();
+    await expect(settingsPanel.locator('text=Status: Connected')).toBeVisible();
+  });
 });
