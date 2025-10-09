@@ -235,7 +235,7 @@ export class AgentManager {
       const providerInfo = this._chatProviderRegistry.getProviderInfo(
         activeProvider.provider
       );
-      if (providerInfo?.requiresApiKey) {
+      if (providerInfo?.apiKeyRequirement === 'required') {
         return !!activeProvider.apiKey;
       }
     }

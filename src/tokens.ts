@@ -131,9 +131,12 @@ export interface IBaseProviderInfo {
   name: string;
 
   /**
-   * Whether this provider requires an API key
+   * API key requirement policy for this provider
+   * - 'required': API key is mandatory
+   * - 'optional': API key is optional
+   * - 'none': API key is not needed and field will be hidden
    */
-  requiresApiKey: boolean;
+  apiKeyRequirement: 'required' | 'optional' | 'none';
 
   /**
    * Default model names for this provider
