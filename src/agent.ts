@@ -335,6 +335,7 @@ export class AgentManager {
   }
   set activeProvider(value: string) {
     this._activeProvider = value;
+    this.initializeAgent();
     this._activeProviderChanged.emit(this._activeProvider);
   }
 
@@ -591,9 +592,9 @@ export class AgentManager {
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP servers.
    */
-  async initializeAgent(
+  initializeAgent = async (
     mcpServers?: BrowserMCPServerStreamableHttp[]
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this._isInitializing) {
       return;
     }
@@ -645,7 +646,7 @@ export class AgentManager {
     } finally {
       this._isInitializing = false;
     }
-  }
+  };
 
   /**
    * Processes the result stream from agent execution.
