@@ -996,13 +996,15 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                             <Typography variant="body2" color="text.secondary">
                               {server.url}
                             </Typography>
-                            {server.enabled && agentManager && (
+                            {server.enabled && agentManagerFactory && (
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
                               >
                                 Status:{' '}
-                                {agentManager.isMCPServerConnected(server.name)
+                                {agentManagerFactory.isMCPServerConnected(
+                                  server.name
+                                )
                                   ? 'Connected'
                                   : 'Connection failed'}
                               </Typography>
