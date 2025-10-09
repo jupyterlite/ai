@@ -218,7 +218,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             </FormControl>
           )}
 
-          {selectedProvider?.apiKeyRequirement !== 'none' && (
+          {selectedProvider && selectedProvider?.apiKeyRequirement !== 'none' && (
             <TextField
               fullWidth
               inputRef={apiKeyRef}
