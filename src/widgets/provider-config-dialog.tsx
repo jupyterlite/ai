@@ -218,34 +218,35 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             </FormControl>
           )}
 
-          {selectedProvider && selectedProvider?.apiKeyRequirement !== 'none' && (
-            <TextField
-              fullWidth
-              inputRef={apiKeyRef}
-              label={
-                selectedProvider?.apiKeyRequirement === 'required'
-                  ? 'API Key'
-                  : 'API Key (Optional)'
-              }
-              type={showApiKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              required={selectedProvider?.apiKeyRequirement === 'required'}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      edge="end"
-                    >
-                      {showApiKey ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-          )}
+          {selectedProvider &&
+            selectedProvider?.apiKeyRequirement !== 'none' && (
+              <TextField
+                fullWidth
+                inputRef={apiKeyRef}
+                label={
+                  selectedProvider?.apiKeyRequirement === 'required'
+                    ? 'API Key'
+                    : 'API Key (Optional)'
+                }
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder="Enter your API key..."
+                required={selectedProvider?.apiKeyRequirement === 'required'}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        edge="end"
+                      >
+                        {showApiKey ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+            )}
 
           {selectedProvider?.supportsBaseURL && (
             <TextField
