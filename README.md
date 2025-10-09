@@ -133,6 +133,9 @@ The proxy will start on `http://0.0.0.0:4000` by default.
    - **Base URL**: `http://0.0.0.0:4000` (or your proxy server URL)
    - **Model**: The model name from your `litellm_config.yaml` (e.g., `gpt-5`, `claude-sonnet`)
 
+> [!IMPORTANT]
+> The API key must be configured on the LiteLLM Proxy server (in the `litellm_config.yaml` file). Providing an API key via the AI provider settings UI will not have any effect, as the proxy server handles authentication with the upstream AI providers.
+
 > [!NOTE]
 > For more information about LiteLLM Proxy configuration, see the [LiteLLM documentation](https://docs.litellm.ai/docs/simple_proxy).
 

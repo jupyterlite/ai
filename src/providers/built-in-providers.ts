@@ -22,7 +22,7 @@ export function registerBuiltInChatProviders(
   const anthropicInfo: IChatProviderInfo = {
     id: 'anthropic',
     name: 'Anthropic Claude',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'claude-sonnet-4-5',
       'claude-sonnet-4-5-20250929',
@@ -63,7 +63,7 @@ export function registerBuiltInChatProviders(
   const mistralInfo: IChatProviderInfo = {
     id: 'mistral',
     name: 'Mistral AI',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'ministral-3b-latest',
       'ministral-8b-latest',
@@ -102,7 +102,7 @@ export function registerBuiltInChatProviders(
   const openaiInfo: IChatProviderInfo = {
     id: 'openai',
     name: 'OpenAI',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'o1',
       'o1-2024-12-17',
@@ -162,7 +162,7 @@ export function registerBuiltInChatProviders(
   const ollamaInfo: IChatProviderInfo = {
     id: 'ollama',
     name: 'Ollama',
-    requiresApiKey: false,
+    apiKeyRequirement: 'none',
     defaultModels: [],
     supportsBaseURL: true,
     supportsHeaders: true,
@@ -182,7 +182,7 @@ export function registerBuiltInChatProviders(
   const genericInfo: IChatProviderInfo = {
     id: 'generic',
     name: 'Generic (OpenAI-compatible)',
-    requiresApiKey: false,
+    apiKeyRequirement: 'optional',
     defaultModels: [],
     supportsBaseURL: true,
     supportsHeaders: true,
@@ -214,7 +214,7 @@ export function registerBuiltInCompletionProviders(
   const anthropicInfo: ICompletionProviderInfo = {
     id: 'anthropic',
     name: 'Anthropic Claude',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'claude-sonnet-4-5',
       'claude-sonnet-4-5-20250929',
@@ -262,7 +262,7 @@ export function registerBuiltInCompletionProviders(
   const mistralInfo: ICompletionProviderInfo = {
     id: 'mistral',
     name: 'Mistral AI',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'ministral-3b-latest',
       'ministral-8b-latest',
@@ -319,7 +319,7 @@ export function registerBuiltInCompletionProviders(
   const openaiInfo: ICompletionProviderInfo = {
     id: 'openai',
     name: 'OpenAI',
-    requiresApiKey: true,
+    apiKeyRequirement: 'required',
     defaultModels: [
       'o1',
       'o1-2024-12-17',
@@ -384,7 +384,7 @@ export function registerBuiltInCompletionProviders(
   const ollamaInfo: ICompletionProviderInfo = {
     id: 'ollama',
     name: 'Ollama',
-    requiresApiKey: false,
+    apiKeyRequirement: 'none',
     defaultModels: ['phi3'],
     supportsBaseURL: true,
     supportsHeaders: true,
@@ -411,7 +411,7 @@ export function registerBuiltInCompletionProviders(
   const genericCompletionInfo: ICompletionProviderInfo = {
     id: 'generic',
     name: 'Generic (OpenAI-compatible)',
-    requiresApiKey: false,
+    apiKeyRequirement: 'optional',
     defaultModels: [],
     supportsBaseURL: true,
     supportsHeaders: true,
