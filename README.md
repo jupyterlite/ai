@@ -5,6 +5,10 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite ✨
 
+> [!NOTE]
+> This documentation applies to the upcoming **0.9.0** release.
+> For the latest stable version, please refer to the [0.8.x branch](https://github.com/jupyterlite/ai/tree/0.8.x).
+
 [a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
 
 ## Requirements
