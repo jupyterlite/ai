@@ -35,6 +35,10 @@ jupyter = [
     "jupyterlite>=0.6.0a0",
     "notebook>=7.4.0"
 ]
+test = [
+    "fastmcp>=2.12.4,<3",
+    "starlette>=0.48.0,<0.49",
+]
 
 [tool.hatch.version]
 source = "nodejs"

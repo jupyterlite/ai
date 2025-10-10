@@ -3,14 +3,13 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
+import { expect, galata, test } from '@jupyterlab/galata';
 import {
-  expect,
-  galata,
-  IJupyterLabPageFixture,
-  test
-} from '@jupyterlab/galata';
-import { Locator } from '@playwright/test';
-import { DEFAULT_SETTINGS_MODEL_SETTINGS } from './test-utils';
+  CHAT_PANEL_ID,
+  CHAT_PANEL_TITLE,
+  DEFAULT_SETTINGS_MODEL_SETTINGS,
+  openChatPanel
+} from './test-utils';
 
 test.use({
   mockSettings: {
@@ -24,21 +23,7 @@ test.use({
   }
 });
 
-const CHAT_PANEL_ID = '@jupyterlite/ai:chat-wrapper';
-
-const CHAT_PANEL_TITLE = 'Chat with AI assistant';
-
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
-
-async function openChatPanel(page: IJupyterLabPageFixture): Promise<Locator> {
-  const panel = page.locator(`[id="${CHAT_PANEL_ID}"]`);
-  if (!(await panel.isVisible())) {
-    const chatIcon = page.getByTitle(CHAT_PANEL_TITLE).filter();
-    await chatIcon.click();
-    await page.waitForCondition(() => panel.isVisible());
-  }
-  return panel;
-}
 
 test.describe('#withoutModel', () => {
   test('should contain the chat panel icon', async ({ page }) => {

@@ -1136,8 +1136,7 @@ const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
     onSave({
       name: name.trim(),
       url: url.trim(),
-      enabled,
-      connected: false
+      enabled
     });
     onClose();
   };

@@ -29,12 +29,12 @@ jobs:
         run: |
           set -eux
           pip install "jupyterlab>=4.5.0b0"
-          pip install -e .
+          pip install -e ".[test]"
 
       - name: Install Ollama with a small model
         uses: pydantic/ollama-action@v3
         with:
-          model: qwen2:0.5b
+          model: qwen2.5:0.5b
 
       - name: Install tests dependencies
         working-directory: ui-tests
