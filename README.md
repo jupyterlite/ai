@@ -229,11 +229,7 @@ The provider configuration object requires the following properties:
 You can provide a custom `fetch` function to the provider, which is useful for adding custom headers, handling authentication, or routing requests through a proxy:
 
 ```typescript
-factory: (options: {
-  apiKey: string;
-  baseURL?: string;
-  model?: string;
-}) => {
+factory: (options: { apiKey: string; baseURL?: string; model?: string }) => {
   const provider = createOpenAI({
     apiKey: options.apiKey,
     baseURL: options.baseURL || 'https://api.example.com/v1',
@@ -250,7 +246,7 @@ factory: (options: {
     }
   });
   return provider(options.model || 'my-model');
-}
+};
 ```
 
 ## Uninstall
