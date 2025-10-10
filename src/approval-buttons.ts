@@ -1,93 +1,62 @@
-import {
-  settingsIcon,
-  Toolbar,
-  ToolbarButton
-} from '@jupyterlab/ui-components';
-import { CommandRegistry } from '@lumino/commands';
-import { Panel, Widget } from '@lumino/widgets';
-import { AIChatModel } from '../chat-model';
-import { TokenUsageWidget } from '../components/token-usage-display';
-import { AISettingsModel } from '../models/settings-model';
+import { ChatWidget } from '@jupyter/chat';
+import { IDisposable } from '@lumino/disposable';
+import { AIChatModel } from './chat-model';
 
-/**
- * CSS class for the chat toolbar
- */
-const CHAT_TOOLBAR_CLASS = 'jp-AIChatToolbar';
-
-/**
- * CSS class for the chat panel
- */
-const CHAT_PANEL_CLASS = 'jp-AIChatPanel';
-
-/**
- * A widget wrapper for the chat panel that provides toolbar functionality
- * and approval button handling for AI tool calls.
- */
-export class ChatWrapperWidget extends Panel {
-  /**
-   * Constructs a new ChatWrapperWidget.
-   *
-   * @param options - Configuration options for the widget
-   */
-  constructor(options: ChatWrapperWidget.IOptions) {
-    super();
+export class ApprovalButtons implements IDisposable {
+  constructor(options: ApprovalButtons.IOptions) {
     this._chatPanel = options.chatPanel;
-    this._chatModel = options.chatModel;
-    this._settingsModel = options.settingsModel;
-    this._commands = options.commands;
-    this._toolbar = this._createToolbar();
-
-    this.id = '@jupyterlite/ai:chat-wrapper';
-    this.title.caption = 'Chat with AI assistant';
-    this.title.icon = this._chatPanel.title.icon;
-
-    this.addClass('jp-AIChatWrapper');
-
-    this._toolbar.addClass(CHAT_TOOLBAR_CLASS);
-    this._chatPanel.addClass(CHAT_PANEL_CLASS);
-
-    // Add widgets to the panel
-    this.addWidget(this._toolbar);
-    this.addWidget(this._chatPanel);
+    this._chatModel = this._chatPanel.model as AIChatModel;
 
     // Set up approval button event handling
     this._setupApprovalHandlers();
 
     // Set up message processing for approval buttons
     this._setupMessageProcessing();
+  }
 
-    // Fix the focus issue: override the global click handler
-    // TODO: remove after https://github.com/jupyterlab/jupyter-chat/issues/267
-    this._fixCopyFocusIssue();
+  get isDisposed(): boolean {
+    return this._isDisposed;
   }
 
   /**
-   * Creates and configures the toolbar with token usage display and settings button.
-   *
-   * TODO: integrate with IToolbarRegistry to allow adding custom toolbar items
-   *
-   * @returns The configured toolbar widget
+   * Dispose of the resources held by the object.
    */
-  private _createToolbar() {
-    const toolbar = new Toolbar();
-    const tokenUsageWidget = new TokenUsageWidget({
-      tokenUsageChanged: this._chatModel.tokenUsageChanged,
-      settingsModel: this._settingsModel
-    });
-    toolbar.addItem('token-usage', tokenUsageWidget);
+  dispose(): void {
+    if (this._isDisposed) {
+      return;
+    }
+    this._isDisposed = true;
 
-    toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    toolbar.addItem(
-      'settings',
-      new ToolbarButton({
-        icon: settingsIcon,
-        onClick: () => {
-          this._commands.execute('@jupyterlite/ai:open-settings');
-        },
-        tooltip: 'Open AI Settings'
-      })
+    // Stop the mutation observer.
+    if (this._mutationObserver) {
+      this._mutationObserver.disconnect();
+      this._mutationObserver = undefined;
+    }
+
+    // Remove all listener on existing buttons.
+    const existingButtons = this._chatPanel.node.querySelectorAll(
+      '.jp-ai-approval-btn'
     );
-    return toolbar;
+    existingButtons.forEach(button => {
+      button.removeEventListener('click', this._handleButtonClick);
+    });
+
+    const existingGroupButtons = this._chatPanel.node.querySelectorAll(
+      '.jp-ai-group-approval-buttons button'
+    );
+    existingGroupButtons.forEach(button => {
+      button.removeEventListener('click', this._handleGroupedButtonClick);
+    });
+
+    // // 3. Remettre le handler original du chat panel si nécessaire
+    // if (this._originalClickHandler) {
+    //   this._chatPanel.node.onclick = this._originalClickHandler;
+    //   this._originalClickHandler = null;
+    // }
+
+    // Clean the references.
+    this._chatModel = null!;
+    this._chatPanel = null!;
   }
 
   /**
@@ -279,7 +248,10 @@ export class ChatWrapperWidget extends Panel {
    */
   private _setupMessageProcessing() {
     // Use a MutationObserver to watch for new messages and process approval buttons
-    const observer = new MutationObserver(mutations => {
+    this._mutationObserver = new MutationObserver(mutations => {
+      if (this._isDisposed) {
+        return;
+      }
       mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
@@ -290,7 +262,7 @@ export class ChatWrapperWidget extends Panel {
       });
     });
 
-    observer.observe(this._chatPanel.node, {
+    this._mutationObserver.observe(this._chatPanel.node, {
       childList: true,
       subtree: true
     });
@@ -473,52 +445,16 @@ export class ChatWrapperWidget extends Panel {
     return null;
   }
 
-  /**
-   * Fixes focus issue by replacing the global click handler with a more selective one.
-   * Only focuses the input when clicking empty areas, not on interactive elements.
-   */
-  private _fixCopyFocusIssue() {
-    // Remove the global click handler that causes focus on any click
-    // The original handler is: this.node.onclick = () => this.model.input.focus();
-    if (this._chatPanel.node.onclick) {
-      this._chatPanel.node.onclick = null;
-    }
-
-    // Add a more selective click handler that only focuses when clicking empty areas
-    this._chatPanel.node.addEventListener('click', (event: Event) => {
-      const target = event.target as HTMLElement;
-
-      // Don't focus if clicking on selectable text elements
-      const selection = window.getSelection();
-      if (
-        target.closest('pre') ||
-        target.closest('code') ||
-        target.closest('.jp-RenderedMarkdown') ||
-        target.closest('.jp-ai-tool-call') ||
-        target.closest('button') ||
-        target.closest('.jp-chat-input-container') ||
-        (selection && selection.toString().length > 0)
-      ) {
-        return;
-      }
-
-      // Only focus input when clicking empty chat areas
-      this._chatModel.input.focus();
-    });
-  }
-
-  // Private fields
-  private _chatPanel: Widget;
+  private _chatPanel: ChatWidget;
   private _chatModel: AIChatModel;
-  private _settingsModel: AISettingsModel;
-  private _toolbar: Toolbar;
-  private _commands: CommandRegistry;
+  private _isDisposed: boolean = false;
+  private _mutationObserver?: MutationObserver;
 }
 
 /**
  * Namespace for ChatWrapperWidget statics.
  */
-export namespace ChatWrapperWidget {
+export namespace ApprovalButtons {
   /**
    * The options for the constructor of the chat wrapper widget.
    */
@@ -526,18 +462,6 @@ export namespace ChatWrapperWidget {
     /**
      * The chat panel widget to wrap.
      */
-    chatPanel: Widget;
-    /**
-     * The command registry for the chat wrapper.
-     */
-    commands: CommandRegistry;
-    /**
-     * The chat model for the chat wrapper.
-     */
-    chatModel: AIChatModel;
-    /**
-     * The settings model for the chat wrapper.
-     */
-    settingsModel: AISettingsModel;
+    chatPanel: ChatWidget;
   }
 }

@@ -8,17 +8,22 @@ import {
   IUser
 } from '@jupyter/chat';
 
-import { IDocumentManager } from '@jupyterlab/docmanager';
+import { PathExt } from '@jupyterlab/coreutils';
 
-import { AgentManager, IAgentEvent } from './agent';
+import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { UUID } from '@lumino/coreutils';
 
-import { PathExt } from '@jupyterlab/coreutils';
+import { ISignal, Signal } from '@lumino/signaling';
+
+import { AgentManager, IAgentEvent } from './agent';
 
 import { AI_AVATAR } from './icons';
 
 import { AISettingsModel } from './models/settings-model';
+
+import { ITokenUsage } from './tokens';
+
 /**
  * AI Chat Model implementation that provides chat functionality with OpenAI agents,
  * tool integration, and MCP server support.
@@ -51,14 +56,42 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Override the getter/setter of the name to add a signal when renaming a chat.
+   */
+  get name(): string {
+    return super.name;
+  }
+  set name(value: string) {
+    super.name = value;
+    this._nameChanged.emit(value);
+  }
+
+  /**
+   * A signal emitting when the chat name has changed.
+   */
+  get nameChanged(): ISignal<AIChatModel, string> {
+    return this._nameChanged;
+  }
+
+  /**
    * Gets the current user information.
    */
   get user(): IUser {
     return this._user;
   }
 
-  get tokenUsageChanged() {
+  /**
+   * A signal emitting when the token usage changed.
+   */
+  get tokenUsageChanged(): ISignal<AgentManager, ITokenUsage> {
     return this._agentManager.tokenUsageChanged;
+  }
+
+  /**
+   * Get the agent manager associated to the model.
+   */
+  get agentManager(): AgentManager {
+    return this._agentManager;
   }
 
   /**
@@ -719,6 +752,7 @@ Status: ${status}
   private _pendingToolCalls: Map<string, string> = new Map();
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IChatMessage | null = null;
+  private _nameChanged = new Signal<AIChatModel, string>(this);
 }
 
 /**
