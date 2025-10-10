@@ -66,7 +66,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.10, @ai-sdk/provider-utils@npm:^3.0.7":
+"@ai-sdk/provider-utils@npm:3.0.10":
   version: 3.0.10
   resolution: "@ai-sdk/provider-utils@npm:3.0.10"
   dependencies:
@@ -79,7 +79,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.11":
+"@ai-sdk/provider-utils@npm:3.0.11, @ai-sdk/provider-utils@npm:^3.0.7":
   version: 3.0.11
   resolution: "@ai-sdk/provider-utils@npm:3.0.11"
   dependencies:
