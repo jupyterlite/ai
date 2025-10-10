@@ -1,6 +1,6 @@
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
-import { FunctionTool } from '@openai/agents';
+import { FunctionTool, Model } from '@openai/agents';
 import { LanguageModel } from 'ai';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
@@ -106,7 +106,7 @@ export const ICompletionProviderRegistry =
  * Interface for a provider factory function that creates chat models
  */
 export interface IChatProviderFactory {
-  (options: IModelOptions): any; // Returns the model instance for @openai/agents
+  (options: IModelOptions): Model;
 }
 
 /**
@@ -209,11 +209,6 @@ export interface IChatProviderRegistry {
   registerProvider(info: IChatProviderInfo): void;
 
   /**
-   * Unregister a chat provider.
-   */
-  unregisterProvider(id: string): boolean;
-
-  /**
    * Get provider info by id.
    */
   getProviderInfo(id: string): IChatProviderInfo | null;
@@ -221,7 +216,7 @@ export interface IChatProviderRegistry {
   /**
    * Create a chat model instance for the given provider.
    */
-  createChatModel(id: string, options: IModelOptions): any | null;
+  createChatModel(id: string, options: IModelOptions): Model | null;
 
   /**
    * Get all available provider IDs.
@@ -247,11 +242,6 @@ export interface ICompletionProviderRegistry {
    * Register a new completion provider.
    */
   registerProvider(info: ICompletionProviderInfo): void;
-
-  /**
-   * Unregister a completion provider.
-   */
-  unregisterProvider(id: string): boolean;
 
   /**
    * Get provider info by id.
