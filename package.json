@@ -55,6 +55,7 @@
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^2.0.23",
+        "@ai-sdk/google": "^2.0.19",
         "@ai-sdk/mistral": "^2.0.17",
         "@ai-sdk/openai": "^2.0.44",
         "@jupyter/chat": "^0.18.1",
