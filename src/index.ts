@@ -469,6 +469,29 @@ function registerCommands(
       }
     });
 
+    const openInMain = (model: AIChatModel) => {
+      const content = new ChatWidget({
+        model,
+        rmRegistry,
+        themeManager: themeManager ?? null,
+        inputToolbarRegistry: inputToolbarFactory.create(),
+        attachmentOpenerRegistry
+      });
+      const widget = new MainAreaChat({ content, commands, settingsModel });
+      app.shell.add(widget, 'main');
+
+      // Update the tracker if the model name changed.
+      model.nameChanged.connect(() => {
+        tracker.save(widget);
+      });
+
+      // Remove the model from the registry when the widget is disposed.
+      widget.disposed.connect(() => {
+        modelRegistry.remove(model.name);
+      });
+      tracker.add(widget);
+    };
+
     commands.addCommand(CommandIds.openChat, {
       label: 'Open a chat',
       execute: async (args): Promise<boolean> => {
@@ -483,26 +506,7 @@ function registerCommands(
         }
 
         if (area === 'main') {
-          const content = new ChatWidget({
-            model,
-            rmRegistry,
-            themeManager: themeManager ?? null,
-            inputToolbarRegistry: inputToolbarFactory.create(),
-            attachmentOpenerRegistry
-          });
-          const widget = new MainAreaChat({ content, commands, settingsModel });
-          app.shell.add(widget, 'main');
-
-          // Update the tracker if the model name changed.
-          model.nameChanged.connect(() => {
-            tracker.save(widget);
-          });
-
-          // Remove the model from the registry when the widget is disposed.
-          widget.disposed.connect(() => {
-            modelRegistry.remove(model.name);
-          });
-          tracker.add(widget);
+          openInMain(model);
         } else {
           chatPanel.addChat({ model });
         }
@@ -559,6 +563,7 @@ function registerCommands(
         // when the previous widget is disposed.
         const trackerUpdated = new PromiseDelegate<boolean>();
         const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
+          console.log('UPDATED', widget);
           if (widget.model === previousModel) {
             trackerUpdated.resolve(true);
           }
@@ -595,21 +600,7 @@ function registerCommands(
         }
 
         if (area === 'main') {
-          const content = new ChatWidget({
-            model,
-            rmRegistry,
-            themeManager: themeManager ?? null,
-            inputToolbarRegistry: inputToolbarFactory.create(),
-            attachmentOpenerRegistry
-          });
-          const widget = new MainAreaChat({ content, commands, settingsModel });
-          app.shell.add(widget, 'main');
-
-          // Remove the model from the registry when the widget is disposed.
-          widget.disposed.connect(() => {
-            modelRegistry.remove(model.name);
-          });
-          tracker.add(widget);
+          openInMain(model);
         } else {
           const current = app.shell.currentWidget;
           // Remove the current main area chat.
