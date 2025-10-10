@@ -44,7 +44,7 @@ import { AIChatModel } from './chat-model';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { UUID } from '@lumino/coreutils';
+import { PromiseDelegate, UUID } from '@lumino/coreutils';
 
 import { AgentManagerFactory } from './agent';
 
@@ -266,7 +266,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return false;
       },
       openInMain: (name: string) =>
-        app.commands.execute(CommandIds.moveChat, { area: 'main', name })
+        app.commands.execute(CommandIds.moveChat, {
+          area: 'main',
+          name
+        }) as Promise<boolean>
     });
 
     chatPanel.id = '@jupyterlite/ai:chat-panel';
@@ -352,7 +355,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     // Create a chat with default provider at startup.
     app.restored.then(() => {
-      if (!chatPanel.sections.length) {
+      if (!modelRegistry.getAll().length) {
         app.commands.execute(CommandIds.openChat);
       }
     });
@@ -434,7 +437,7 @@ function registerCommands(
 
     commands.addCommand(CommandIds.openChat, {
       label: 'Open a chat',
-      execute: async args => {
+      execute: async (args): Promise<boolean> => {
         const area = (args.area as string) === 'main' ? 'main' : 'side';
         const provider = (args.provider as string) ?? undefined;
         const model = modelRegistry.createModel(
@@ -442,7 +445,7 @@ function registerCommands(
           provider
         );
         if (!model) {
-          return;
+          return false;
         }
 
         if (area === 'main') {
@@ -456,6 +459,11 @@ function registerCommands(
           const widget = new MainAreaChat({ content, commands, settingsModel });
           app.shell.add(widget, 'main');
 
+          // Update the tracker if the model name changed.
+          model.nameChanged.connect(() => {
+            tracker.save(widget);
+          });
+
           // Remove the model from the registry when the widget is disposed.
           widget.disposed.connect(() => {
             modelRegistry.remove(model.name);
@@ -464,6 +472,7 @@ function registerCommands(
         } else {
           chatPanel.addChat({ model });
         }
+        return true;
       },
       describedBy: {
         args: {
@@ -489,31 +498,44 @@ function registerCommands(
 
     commands.addCommand(CommandIds.moveChat, {
       caption: 'Move chat between area',
-      execute: async args => {
+      execute: async (args): Promise<boolean> => {
         const area = args.area as string;
         if (!['side', 'main'].includes(area)) {
           console.error(
             'Error while moving the chat to main area: the area has not been provided or is not correct'
           );
-          return;
+          return false;
         }
         if (!args.name || !args.area) {
           console.error(
             'Error while moving the chat to main area: the name has not been provided'
           );
-          return;
+          return false;
         }
         const previousModel = modelRegistry.get(args.name as string);
         if (!previousModel) {
           console.error(
             'Error while moving the chat to main area: there is no reference model'
           );
-          return;
+          return false;
         }
+
+        // Listen for the widget updated in tracker, to ensure the previous model name
+        // has been updated. This is required to remove the widget from the restorer
+        // when the previous widget is disposed.
+        const trackerUpdated = new PromiseDelegate<boolean>();
+        const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
+          if (widget.model === previousModel) {
+            trackerUpdated.resolve(true);
+          }
+        };
+        tracker.widgetUpdated.connect(widgetUpdated);
 
         // Rename temporary the previous model to be able to reuse this name for the new
         // model. The previous is intended to be disposed anyway.
         previousModel.name = UUID.uuid4();
+
+        // Create a new model by duplicating the previous model attributes.
         const model = modelRegistry.createModel(
           args.name as string,
           previousModel?.agentManager.activeProvider,
@@ -522,6 +544,21 @@ function registerCommands(
         previousModel?.messages.forEach(message =>
           model?.messageAdded(message)
         );
+
+        // Wait (with timeout) for the tracker to have updated the previous widget.
+        const status = await Promise.any([
+          trackerUpdated.promise,
+          new Promise<boolean>(r =>
+            setTimeout(() => {
+              return false;
+            }, 2000)
+          )
+        ]);
+        tracker.widgetUpdated.disconnect(widgetUpdated);
+
+        if (!status) {
+          return false;
+        }
 
         if (area === 'main') {
           const content = new ChatWidget({
@@ -551,7 +588,7 @@ function registerCommands(
           chatPanel.addChat({ model });
         }
 
-        modelRegistry.remove(previousModel.name);
+        return true;
       },
       describedBy: {
         args: {
