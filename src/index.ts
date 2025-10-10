@@ -522,7 +522,7 @@ function registerCommands(
     });
 
     commands.addCommand(CommandIds.moveChat, {
-      label: 'Move chat between area',
+      caption: 'Move chat between area',
       execute: async args => {
         const area = args.area as string;
         if (!['side', 'main'].includes(area)) {
