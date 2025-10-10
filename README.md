@@ -52,33 +52,40 @@ The process is different for each provider, so you may refer to their documentat
 
 ![screenshot showing the dialog to add a new provider](https://github.com/user-attachments/assets/823c71c6-5807-44c8-80b6-2e59379a65d5)
 
-### Using ChromeAI
+### Using Ollama
 
-> [!WARNING]
-> Support for ChromeAI is still experimental and only available in Google Chrome.
+[Ollama](https://ollama.com/) allows you to run open-weight LLMs locally on your machine.
 
-You can test ChromeAI is enabled in your browser by going to the following URL: https://chromeai.org/
+#### Setting up Ollama
 
-Enable the proper flags in Google Chrome.
+1. Install Ollama following the instructions at https://ollama.com/download
+2. Pull a model, for example:
 
-- chrome://flags/#prompt-api-for-gemini-nano
-  - Select: `Enabled`
-- chrome://flags/#optimization-guide-on-device-model
-  - Select: `Enabled BypassPrefRequirement`
-- chrome://components
-  - Click `Check for Update` on Optimization Guide On Device Model to download the model
-- [Optional] chrome://flags/#text-safety-classifier
+```bash
+ollama pull llama3.2
+```
 
-![a screenshot showing how to enable the ChromeAI flag in Google Chrome](https://github.com/user-attachments/assets/d48f46cc-52ee-4ce5-9eaf-c763cdbee04c)
+3. Start the Ollama server (it typically runs on `http://localhost:11434`)
 
-Then restart Chrome for these changes to take effect.
+#### Configuring `jupyterlite-ai` to use Ollama
 
-> [!WARNING]
-> On first use, Chrome will download the on-device model, which can be as large as 22GB (according to their docs and at the time of writing).
-> During the download, ChromeAI may not be available via the extension.
+1. In JupyterLab, open the AI settings panel and go to the **Providers** section
+2. Click on "Add a new provider"
+3. Select the **Ollama** provider
+4. Configure the following settings:
+   - **Model**: The model name you pulled (e.g., `llama3.2`)
 
-> [!NOTE]
-> For more information about Chrome Built-in AI: https://developer.chrome.com/docs/ai/get-started
+### Using a generic OpenAI-compatible provider
+
+The Generic provider allows you to connect to any OpenAI-compatible API endpoint.
+
+1. In JupyterLab, open the AI settings panel and go to the **Providers** section
+2. Click on "Add a new provider"
+3. Select the **Generic** provider
+4. Configure the following settings:
+   - **Base URL**: The base URL of your API endpoint
+   - **Model**: The model name to use
+   - **API Key**: Your API key (if required by the provider)
 
 ### Using LiteLLM Proxy
 
