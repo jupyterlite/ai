@@ -30,6 +30,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/google@npm:^2.0.19":
+  version: 2.0.19
+  resolution: "@ai-sdk/google@npm:2.0.19"
+  dependencies:
+    "@ai-sdk/provider": 2.0.0
+    "@ai-sdk/provider-utils": 3.0.11
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 8177707b51c7d41e61eca9cfd75f5df6c6dbf193399cce6b822a7ee6363ac7568d0aade5181e75f8b210545d8b64117841fa337eb39b7ca86353fb4aaad89a27
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/mistral@npm:^2.0.17":
   version: 2.0.17
   resolution: "@ai-sdk/mistral@npm:2.0.17"
@@ -54,7 +66,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.10, @ai-sdk/provider-utils@npm:^3.0.7":
+"@ai-sdk/provider-utils@npm:3.0.10":
   version: 3.0.10
   resolution: "@ai-sdk/provider-utils@npm:3.0.10"
   dependencies:
@@ -64,6 +76,19 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: a5e8ff04a3787cfbc64323147ddcfec22d8b289bf27e8e77b034b87d4d6196549d8062aae7e9a5075c12aa20605b01a87090938606946cb31cddae4a1599e487
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider-utils@npm:3.0.11, @ai-sdk/provider-utils@npm:^3.0.7":
+  version: 3.0.11
+  resolution: "@ai-sdk/provider-utils@npm:3.0.11"
+  dependencies:
+    "@ai-sdk/provider": 2.0.0
+    "@standard-schema/spec": ^1.0.0
+    eventsource-parser: ^3.0.5
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: da856329bc1a89b54513b16cd9d58df99ff134dc1ac653039a837730652efa5db1f3f8f897be6e510e0247dd72b0b7a414d2c0321165faec87ddd8ce7bcfca3c
   languageName: node
   linkType: hard
 
@@ -2991,6 +3016,7 @@ __metadata:
   resolution: "@jupyterlite/ai@workspace:."
   dependencies:
     "@ai-sdk/anthropic": ^2.0.23
+    "@ai-sdk/google": ^2.0.19
     "@ai-sdk/mistral": ^2.0.17
     "@ai-sdk/openai": ^2.0.44
     "@jupyter/chat": ^0.18.1
