@@ -5,10 +5,6 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite ✨
 
-> [!NOTE]
-> This documentation applies to the upcoming **0.9.0** release.
-> For the latest stable version, please refer to the [0.8.x branch](https://github.com/jupyterlite/ai/tree/0.8.x).
-
 [a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
 
 ## Requirements
@@ -37,13 +33,17 @@ To install requirements (JupyterLab, JupyterLite and Notebook):
 pip install jupyterlite-ai[jupyter]
 ```
 
-# Usage
+## Usage
+
+> [!NOTE]
+> This documentation applies to the upcoming **0.9.0** release.
+> For the latest stable version, please refer to the [0.8.x branch](https://github.com/jupyterlite/ai/tree/0.8.x).
 
 AI providers typically require using an API key to access their models.
 
 The process is different for each provider, so you may refer to their documentation to learn how to generate new API keys.
 
-## Using a provider with an API key (e.g. Anthropic, MistralAI, OpenAI)
+### Using a provider with an API key (e.g. Anthropic, MistralAI, OpenAI)
 
 1. Open the AI settings and
 2. Click on "Add a new provider"
@@ -52,7 +52,7 @@ The process is different for each provider, so you may refer to their documentat
 
 ![screenshot showing the dialog to add a new provider](https://github.com/user-attachments/assets/823c71c6-5807-44c8-80b6-2e59379a65d5)
 
-## Using ChromeAI
+### Using ChromeAI
 
 > [!WARNING]
 > Support for ChromeAI is still experimental and only available in Google Chrome.
@@ -80,13 +80,13 @@ Then restart Chrome for these changes to take effect.
 > [!NOTE]
 > For more information about Chrome Built-in AI: https://developer.chrome.com/docs/ai/get-started
 
-## Using LiteLLM Proxy
+### Using LiteLLM Proxy
 
 [LiteLLM Proxy](https://docs.litellm.ai/docs/simple_proxy) is an OpenAI-compatible proxy server that allows you to call 100+ LLMs through a unified interface.
 
 Using LiteLLM Proxy with jupyterlite-ai provides flexibility to switch between different AI providers (OpenAI, Anthropic, Google, Azure, local models, etc.) without changing your JupyterLite configuration. It's particularly useful for enterprise deployments where the proxy can be hosted within private infrastructure to manage external API calls and keep API keys server-side.
 
-### Setting up LiteLLM Proxy
+#### Setting up LiteLLM Proxy
 
 1. Install LiteLLM:
 
@@ -115,7 +115,7 @@ litellm --config litellm_config.yaml
 
 The proxy will start on `http://0.0.0.0:4000` by default.
 
-### Configuring `jupyterlite-ai` to use LiteLLM Proxy
+#### Configuring `jupyterlite-ai` to use LiteLLM Proxy
 
 1. In JupyterLab, open the AI settings panel and go to the **AI Providers** section.
 2. Select the **Generic** provider (OpenAI-compatible)
