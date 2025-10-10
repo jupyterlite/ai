@@ -1,4 +1,5 @@
 import { ISignal, Signal } from '@lumino/signaling';
+import type { Model } from '@openai/agents';
 import type { LanguageModel } from 'ai';
 import type { IModelOptions } from './models';
 import {
@@ -33,24 +34,12 @@ export class ChatProviderRegistry implements IChatProviderRegistry {
    * @param info Provider information including factory
    */
   registerProvider(info: IChatProviderInfo): void {
+    if (info.id in this._providers) {
+      throw new Error(`Provider with id "${info.id}" is already registered`);
+    }
     this._providers[info.id] = { ...info };
     this._factories[info.id] = info.factory;
     this._providersChanged.emit();
-  }
-
-  /**
-   * Unregister a chat provider by ID
-   * @param id Provider ID to remove
-   * @returns true if provider was found and removed, false otherwise
-   */
-  unregisterProvider(id: string): boolean {
-    if (id in this._providers) {
-      delete this._providers[id];
-      delete this._factories[id];
-      this._providersChanged.emit();
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -68,18 +57,13 @@ export class ChatProviderRegistry implements IChatProviderRegistry {
    * @param options Model configuration options
    * @returns Chat model instance or null if creation fails
    */
-  createChatModel(id: string, options: IModelOptions): any | null {
+  createChatModel(id: string, options: IModelOptions): Model | null {
     const factory = this._factories[id];
     if (!factory) {
       return null;
     }
 
-    try {
-      return factory(options);
-    } catch (error) {
-      console.error(`Failed to create chat model for provider ${id}:`, error);
-      return null;
-    }
+    return factory(options);
   }
 
   /**
@@ -118,24 +102,12 @@ export class CompletionProviderRegistry implements ICompletionProviderRegistry {
    * @param info Provider information including factory
    */
   registerProvider(info: ICompletionProviderInfo): void {
+    if (info.id in this._providers) {
+      throw new Error(`Provider with id "${info.id}" is already registered`);
+    }
     this._providers[info.id] = { ...info };
     this._factories[info.id] = info.factory;
     this._providersChanged.emit();
-  }
-
-  /**
-   * Unregister a completion provider by ID
-   * @param id Provider ID to remove
-   * @returns true if provider was found and removed, false otherwise
-   */
-  unregisterProvider(id: string): boolean {
-    if (id in this._providers) {
-      delete this._providers[id];
-      delete this._factories[id];
-      this._providersChanged.emit();
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -162,15 +134,7 @@ export class CompletionProviderRegistry implements ICompletionProviderRegistry {
       return null;
     }
 
-    try {
-      return factory(options);
-    } catch (error) {
-      console.error(
-        `Failed to create completion model for provider ${id}:`,
-        error
-      );
-      return null;
-    }
+    return factory(options);
   }
 
   /**
