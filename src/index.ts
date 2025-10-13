@@ -44,6 +44,7 @@ import {
 
 import {
   anthropicProvider,
+  googleProvider,
   mistralProvider,
   openaiProvider,
   ollamaProvider,
@@ -125,6 +126,19 @@ const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IProviderRegistry],
   activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
     providerRegistry.registerProvider(anthropicProvider);
+  }
+};
+
+/**
+ * Google provider plugin
+ */
+const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:google-provider',
+  description: 'Register Google Generative AI provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(googleProvider);
   }
 };
 
@@ -567,6 +581,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
+  googleProviderPlugin,
   mistralProviderPlugin,
   openaiProviderPlugin,
   ollamaProviderPlugin,

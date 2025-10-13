@@ -673,7 +673,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                     label="Completion"
                                     size="small"
                                     color="secondary"
-                                    icon={<CheckCircleOutline />}
+                                    icon={<CheckCircle />}
                                   />
                                 )}
                               </Box>

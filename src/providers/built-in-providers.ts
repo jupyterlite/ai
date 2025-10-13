@@ -4,7 +4,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOllama } from 'ollama-ai-provider-v2';
 
-import type { IProviderInfo, IProviderRegistry } from '../tokens';
+import type { IProviderInfo } from '../tokens';
 import type { IModelOptions } from './models';
 
 /**
@@ -87,18 +87,7 @@ export const googleProvider: IProviderInfo = {
     'gemma-3-27b-it'
   ],
   supportsBaseURL: true,
-  chatFactory: (options: IModelOptions) => {
-    if (!options.apiKey) {
-      throw new Error('API key required for Google Generative AI');
-    }
-    const google = createGoogleGenerativeAI({
-      apiKey: options.apiKey,
-      ...(options.baseURL && { baseURL: options.baseURL })
-    });
-    const modelName = options.model || 'gemini-2.5-flash';
-    return aisdk(google(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for Google Generative AI');
     }
@@ -253,15 +242,3 @@ export const genericProvider: IProviderInfo = {
     return openai(modelName);
   }
 };
-
-/**
- * Register all built-in providers
- */
-export function registerBuiltInProviders(registry: IProviderRegistry): void {
-  registry.registerProvider(anthropicProvider);
-  registry.registerProvider(googleProvider);
-  registry.registerProvider(mistralProvider);
-  registry.registerProvider(openaiProvider);
-  registry.registerProvider(ollamaProvider);
-  registry.registerProvider(genericProvider);
-}
