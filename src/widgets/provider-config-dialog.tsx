@@ -61,12 +61,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   const [baseURL, setBaseURL] = React.useState(initialConfig?.baseURL || '');
   const [showApiKey, setShowApiKey] = React.useState(false);
 
-  // Parameters state
   const [parameters, setParameters] = React.useState<IProviderParameters>(
     initialConfig?.parameters || {}
   );
 
-  // Accordion expansion state
   const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
 
   // Get provider options from registry

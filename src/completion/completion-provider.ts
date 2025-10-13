@@ -30,16 +30,6 @@ export interface IProviderCompletionConfig {
    * Whether to set filterText for this provider
    */
   useFilterText?: boolean;
-
-  /**
-   * Custom prompt formatter for provider-specific requirements
-   */
-  customPromptFormat?: (prompt: string, suffix: string) => string;
-
-  /**
-   * Function to clean up provider-specific artifacts from completion text
-   */
-  cleanupCompletion?: (completion: string) => string;
 }
 
 /**
@@ -115,7 +105,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     }
 
     const provider = activeProvider.provider;
-    const providerConfig = this._getProviderCompletionConfig(provider);
+    const providerConfig = this._getProviderCompletionConfig();
 
     try {
       let completionPrompt: string;
@@ -128,8 +118,9 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       } else {
         // For files, use simpler approach
         completionPrompt = prompt.trim();
-        if (providerConfig.customPromptFormat && suffix.trim()) {
-          completionPrompt = providerConfig.customPromptFormat(prompt, suffix);
+        // Apply fill-in-middle formatting if supported and suffix exists
+        if (providerConfig.supportsFillInMiddle && suffix.trim()) {
+          completionPrompt = `<PRE>${prompt}<SUF>${suffix}<MID>`;
         }
       }
 
@@ -140,11 +131,13 @@ export class AICompletionProvider implements IInlineCompletionProvider {
         temperature: providerConfig.temperature || 0.3
       });
 
-      // Clean up provider-specific artifacts if cleanup function is provided
-      let cleanCompletion = completion;
-      if (providerConfig.cleanupCompletion) {
-        cleanCompletion = providerConfig.cleanupCompletion(completion);
-      }
+      // Clean up FIM tags and code block markers
+      const cleanCompletion = completion
+        .replace(/<PRE>/g, '')
+        .replace(/<SUF>/g, '')
+        .replace(/<MID>/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .trim();
 
       const items = [
         {
@@ -286,14 +279,8 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
   /**
    * Get provider-specific completion configuration
-   * Merges user settings with provider-specific functions
    */
-  private _getProviderCompletionConfig(
-    provider: string
-  ): IProviderCompletionConfig {
-    const providerInfo = this._providerRegistry?.getProviderInfo(provider);
-    const providerCompletionConfig = providerInfo?.completionConfig;
-
+  private _getProviderCompletionConfig(): IProviderCompletionConfig {
     // Get provider-specific completion parameters
     const activeProvider = this._settingsModel.getCompleterProvider();
 
@@ -303,14 +290,10 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       activeProvider?.parameters?.supportsFillInMiddle ?? false;
     const useFilterText = activeProvider?.parameters?.useFilterText ?? false;
 
-    // Merge provider-specific functions with user settings
     return {
       temperature,
       supportsFillInMiddle,
-      useFilterText,
-      // Provider-specific functions from registry (if available)
-      customPromptFormat: providerCompletionConfig?.customPromptFormat,
-      cleanupCompletion: providerCompletionConfig?.cleanupCompletion
+      useFilterText
     };
   }
 

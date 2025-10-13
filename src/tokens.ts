@@ -163,16 +163,6 @@ export interface IProviderInfo {
    * Factory function for creating completion models
    */
   completionFactory: ICompletionProviderFactory;
-
-  /**
-   * Completion-specific configuration (provider-specific functions only)
-   * Note: temperature, supportsFillInMiddle, and useFilterText are now
-   * configured via settings instead of per-provider.
-   */
-  completionConfig?: {
-    customPromptFormat?: (prompt: string, suffix: string) => string;
-    cleanupCompletion?: (completion: string) => string;
-  };
 }
 
 /**

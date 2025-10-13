@@ -36,7 +36,7 @@
             "properties": {
               "temperature": {
                 "type": "number",
-                "description": "Chat temperature (0.0 = deterministic, 2.0 = very creative)",
+                "description": "Temperature (0.0 = deterministic, 2.0 = very creative)",
                 "minimum": 0,
                 "maximum": 2
               },

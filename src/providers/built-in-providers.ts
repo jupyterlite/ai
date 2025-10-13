@@ -175,19 +175,6 @@ export const mistralProvider: IProviderInfo = {
     });
     const modelName = options.model || 'mistral-large-latest';
     return mistral(modelName);
-  },
-  completionConfig: {
-    customPromptFormat: (prompt: string, suffix: string) => {
-      return suffix.trim() ? `<PRE>${prompt}<SUF>${suffix}<MID>` : prompt;
-    },
-    cleanupCompletion: (completion: string) => {
-      return completion
-        .replace(/<PRE>/g, '')
-        .replace(/<SUF>/g, '')
-        .replace(/<MID>/g, '')
-        .replace(/```[\s\S]*?```/g, '')
-        .trim();
-    }
   }
 };
 
