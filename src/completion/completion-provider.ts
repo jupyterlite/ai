@@ -10,7 +10,7 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from '../models/settings-model';
 import { createCompletionModel } from '../providers/models';
-import { SECRETS_NAMESPACE, type ICompletionProviderRegistry } from '../tokens';
+import { SECRETS_NAMESPACE, type IProviderRegistry } from '../tokens';
 
 /**
  * Configuration interface for provider-specific completion behavior
@@ -65,7 +65,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   constructor(options: AICompletionProvider.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
-    this._completionProviderRegistry = options.completionProviderRegistry;
+    this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
     this._settingsModel.stateChanged.connect(() => {
       this._updateModel();
@@ -198,7 +198,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
           apiKey,
           baseURL
         },
-        this._completionProviderRegistry
+        this._providerRegistry
       );
     } catch (error) {
       console.error(`Error creating model for ${provider}:`, error);
@@ -285,27 +285,37 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   }
 
   /**
-   * Get provider-specific completion configuration from registry
+   * Get provider-specific completion configuration
+   * Merges user settings with provider-specific functions
    */
   private _getProviderCompletionConfig(
     provider: string
   ): IProviderCompletionConfig {
-    const providerInfo =
-      this._completionProviderRegistry?.getProviderInfo(provider);
-    const completionConfig = providerInfo?.customSettings?.completionConfig;
+    const providerInfo = this._providerRegistry?.getProviderInfo(provider);
+    const providerCompletionConfig = providerInfo?.completionConfig;
 
-    // Return provider config or default config
-    return (
-      completionConfig || {
-        temperature: 0.3,
-        supportsFillInMiddle: false,
-        useFilterText: false
-      }
-    );
+    // Get provider-specific completion parameters
+    const activeProvider = this._settingsModel.getCompleterProvider();
+
+    // Use provider-specific temperature or fall back to default
+    const temperature = activeProvider?.parameters?.temperature ?? 0.3;
+    const supportsFillInMiddle =
+      activeProvider?.parameters?.supportsFillInMiddle ?? false;
+    const useFilterText = activeProvider?.parameters?.useFilterText ?? false;
+
+    // Merge provider-specific functions with user settings
+    return {
+      temperature,
+      supportsFillInMiddle,
+      useFilterText,
+      // Provider-specific functions from registry (if available)
+      customPromptFormat: providerCompletionConfig?.customPromptFormat,
+      cleanupCompletion: providerCompletionConfig?.cleanupCompletion
+    };
   }
 
   private _settingsModel: AISettingsModel;
-  private _completionProviderRegistry?: ICompletionProviderRegistry;
+  private _providerRegistry?: IProviderRegistry;
   private _model: LanguageModel | null = null;
   private _secretsManager?: ISecretsManager;
 }
@@ -320,9 +330,9 @@ export namespace AICompletionProvider {
      */
     settingsModel: AISettingsModel;
     /**
-     * The completion provider registry.
+     * The provider registry
      */
-    completionProviderRegistry?: ICompletionProviderRegistry;
+    providerRegistry?: IProviderRegistry;
     /**
      * The secrets manager.
      */

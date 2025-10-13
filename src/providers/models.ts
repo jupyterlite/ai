@@ -1,8 +1,5 @@
 import type { LanguageModel } from 'ai';
-import type {
-  IChatProviderRegistry,
-  ICompletionProviderRegistry
-} from '../tokens';
+import type { IProviderRegistry } from '../tokens';
 
 /**
  * Configuration options for creating language models.
@@ -40,10 +37,10 @@ export interface IModelOptions {
  */
 export function createCompletionModel(
   options: IModelOptions,
-  registry?: ICompletionProviderRegistry
+  registry?: IProviderRegistry
 ): LanguageModel {
   if (!registry) {
-    throw new Error('Completion provider registry not available');
+    throw new Error('Provider registry not available');
   }
 
   const model = registry.createCompletionModel(options.provider, options);
@@ -62,10 +59,10 @@ export function createCompletionModel(
  */
 export function createModel(
   options: IModelOptions,
-  registry?: IChatProviderRegistry
+  registry?: IProviderRegistry
 ) {
   if (!registry) {
-    throw new Error('Chat provider registry not available');
+    throw new Error('Provider registry not available');
   }
 
   const model = registry.createChatModel(options.provider, options);

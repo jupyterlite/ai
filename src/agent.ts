@@ -13,7 +13,7 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 import { BrowserMCPServerStreamableHttp } from './mcp/browser';
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
-import type { IChatProviderRegistry } from './tokens';
+import type { IProviderRegistry } from './tokens';
 import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
 
 /**
@@ -89,9 +89,9 @@ export interface IAgentManagerOptions {
   toolRegistry?: IToolRegistry;
 
   /**
-   * Optional chat provider registry for model creation
+   * Optional provider registry for model creation
    */
-  chatProviderRegistry?: IChatProviderRegistry;
+  providerRegistry?: IProviderRegistry;
 
   /**
    * The secrets manager.
@@ -118,7 +118,7 @@ export class AgentManager {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
-    this._chatProviderRegistry = options.chatProviderRegistry;
+    this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
     this._selectedToolNames = [];
     this._agent = null;
@@ -231,8 +231,8 @@ export class AgentManager {
       return false;
     }
 
-    if (this._chatProviderRegistry) {
-      const providerInfo = this._chatProviderRegistry.getProviderInfo(
+    if (this._providerRegistry) {
+      const providerInfo = this._providerRegistry.getProviderInfo(
         activeProvider.provider
       );
       if (providerInfo?.apiKeyRequirement === 'required') {
@@ -293,11 +293,15 @@ export class AgentManager {
       // Add user message to history
       this._history.push(user(message));
 
+      // Get provider-specific maxTurns or fall back to global config
+      const activeProvider = this._settingsModel.getActiveProvider();
+      const maxTurns = activeProvider?.parameters?.maxTurns ?? config.maxTurns;
+
       // Main agentic loop
       let result = await this._runner.run(this._agent, this._history, {
         stream: true,
         signal: this._controller.signal,
-        ...(shouldUseTools && { maxTurns: config.maxTurns })
+        ...(shouldUseTools && { maxTurns })
       });
 
       await this._processRunResult(result);
@@ -324,7 +328,7 @@ export class AgentManager {
         result = await this._runner.run(this._agent!, result.state, {
           stream: true,
           signal: this._controller.signal,
-          maxTurns: config.maxTurns
+          maxTurns
         });
 
         await this._processRunResult(result);
@@ -465,6 +469,13 @@ export class AgentManager {
 
       const mcpServers = this._mcpServers.filter(server => server !== null);
 
+      // Get provider-specific parameters or fall back to global config
+      const activeProvider = this._settingsModel.getActiveProvider();
+      const temperature =
+        activeProvider?.parameters?.temperature ?? config.temperature;
+      const maxTokens =
+        activeProvider?.parameters?.maxTokens ?? config.maxTokens;
+
       this._agent = new Agent({
         name: 'Assistant',
         instructions: shouldUseTools
@@ -473,10 +484,10 @@ export class AgentManager {
         model: model,
         mcpServers,
         tools,
-        ...(config.temperature && {
+        ...(temperature && {
           modelSettings: {
-            temperature: config.temperature,
-            ...(config.maxTokens && { maxTokens: config.maxTokens })
+            temperature,
+            maxTokens
           }
         })
       });
@@ -718,11 +729,11 @@ export class AgentManager {
    */
   private _supportsToolCalling(): boolean {
     const activeProvider = this._settingsModel.getActiveProvider();
-    if (!activeProvider || !this._chatProviderRegistry) {
+    if (!activeProvider || !this._providerRegistry) {
       return false;
     }
 
-    const providerInfo = this._chatProviderRegistry.getProviderInfo(
+    const providerInfo = this._providerRegistry.getProviderInfo(
       activeProvider.provider
     );
 
@@ -764,7 +775,7 @@ export class AgentManager {
         apiKey,
         baseURL
       },
-      this._chatProviderRegistry
+      this._providerRegistry
     );
   }
 
@@ -810,7 +821,7 @@ TOOL SELECTION GUIDELINES:
   // Private attributes
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
-  private _chatProviderRegistry?: IChatProviderRegistry;
+  private _providerRegistry?: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
   private _agent: Agent | null;

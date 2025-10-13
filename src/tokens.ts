@@ -86,21 +86,12 @@ export const IToolRegistry = new Token<IToolRegistry>(
 );
 
 /**
- * Token for the chat provider registry.
+ * Token for the provider registry.
  */
-export const IChatProviderRegistry = new Token<IChatProviderRegistry>(
-  '@jupyterlite/ai:chat-provider-registry',
-  'Registry for chat AI providers'
+export const IProviderRegistry = new Token<IProviderRegistry>(
+  '@jupyterlite/ai:provider-registry',
+  'Registry for AI providers'
 );
-
-/**
- * Token for the completion provider registry.
- */
-export const ICompletionProviderRegistry =
-  new Token<ICompletionProviderRegistry>(
-    '@jupyterlite/ai:completion-provider-registry',
-    'Registry for completion providers'
-  );
 
 /**
  * Interface for a provider factory function that creates chat models
@@ -117,9 +108,9 @@ export interface ICompletionProviderFactory {
 }
 
 /**
- * Base information about a registered provider
+ * Provider information
  */
-export interface IBaseProviderInfo {
+export interface IProviderInfo {
   /**
    * Unique identifier for the provider
    */
@@ -164,89 +155,54 @@ export interface IBaseProviderInfo {
   description?: string;
 
   /**
-   * Additional provider-specific configuration schema
-   */
-  customSettings?: Record<string, any>;
-}
-
-/**
- * Information about a chat provider
- */
-export interface IChatProviderInfo extends IBaseProviderInfo {
-  /**
    * Factory function for creating chat models
    */
-  factory: IChatProviderFactory;
-}
+  chatFactory: IChatProviderFactory;
 
-/**
- * Information about a completion provider
- */
-export interface ICompletionProviderInfo extends IBaseProviderInfo {
   /**
    * Factory function for creating completion models
    */
-  factory: ICompletionProviderFactory;
+  completionFactory: ICompletionProviderFactory;
+
+  /**
+   * Completion-specific configuration (provider-specific functions only)
+   * Note: temperature, supportsFillInMiddle, and useFilterText are now
+   * configured via settings instead of per-provider.
+   */
+  completionConfig?: {
+    customPromptFormat?: (prompt: string, suffix: string) => string;
+    cleanupCompletion?: (completion: string) => string;
+  };
 }
 
 /**
- * Registry for chat AI providers
+ * Registry for AI providers
  */
-export interface IChatProviderRegistry {
+export interface IProviderRegistry {
   /**
    * The registered providers as a record (id -> info mapping).
    */
-  readonly providers: Record<string, IChatProviderInfo>;
+  readonly providers: Record<string, IProviderInfo>;
 
   /**
    * A signal triggered when providers have changed.
    */
-  readonly providersChanged: ISignal<IChatProviderRegistry, void>;
+  readonly providersChanged: ISignal<IProviderRegistry, void>;
 
   /**
-   * Register a new chat provider.
+   * Register a new provider.
    */
-  registerProvider(info: IChatProviderInfo): void;
+  registerProvider(info: IProviderInfo): void;
 
   /**
    * Get provider info by id.
    */
-  getProviderInfo(id: string): IChatProviderInfo | null;
+  getProviderInfo(id: string): IProviderInfo | null;
 
   /**
    * Create a chat model instance for the given provider.
    */
   createChatModel(id: string, options: IModelOptions): Model | null;
-
-  /**
-   * Get all available provider IDs.
-   */
-  getAvailableProviders(): string[];
-}
-
-/**
- * Registry for completion providers
- */
-export interface ICompletionProviderRegistry {
-  /**
-   * The registered providers as a record (id -> info mapping).
-   */
-  readonly providers: Record<string, ICompletionProviderInfo>;
-
-  /**
-   * A signal triggered when providers have changed.
-   */
-  readonly providersChanged: ISignal<ICompletionProviderRegistry, void>;
-
-  /**
-   * Register a new completion provider.
-   */
-  registerProvider(info: ICompletionProviderInfo): void;
-
-  /**
-   * Get provider info by id.
-   */
-  getProviderInfo(id: string): ICompletionProviderInfo | null;
 
   /**
    * Create a completion model instance for the given provider.

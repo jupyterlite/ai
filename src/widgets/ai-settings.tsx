@@ -9,7 +9,6 @@ import Edit from '@mui/icons-material/Edit';
 import Error from '@mui/icons-material/Error';
 import ErrorOutline from '@mui/icons-material/ErrorOutline';
 import MoreVert from '@mui/icons-material/MoreVert';
-import Psychology from '@mui/icons-material/Psychology';
 import Settings from '@mui/icons-material/Settings';
 import {
   Alert,
@@ -17,6 +16,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,7 +33,6 @@ import {
   Menu,
   MenuItem,
   Select,
-  Slider,
   Switch,
   Tab,
   Tabs,
@@ -54,7 +53,7 @@ import {
 import {
   SECRETS_NAMESPACE,
   SECRETS_REPLACEMENT,
-  type IChatProviderRegistry
+  type IProviderRegistry
 } from '../tokens';
 import { ProviderConfigDialog } from './provider-config-dialog';
 
@@ -90,7 +89,7 @@ export class AISettingsWidget extends ReactWidget {
     this._settingsModel = options.settingsModel;
     this._agentManager = options.agentManager;
     this._themeManager = options.themeManager;
-    this._chatProviderRegistry = options.chatProviderRegistry;
+    this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
     this.id = 'jupyterlite-ai-settings';
     this.title.label = 'AI Settings';
@@ -108,7 +107,7 @@ export class AISettingsWidget extends ReactWidget {
         model={this._settingsModel}
         agentManager={this._agentManager}
         themeManager={this._themeManager}
-        chatProviderRegistry={this._chatProviderRegistry}
+        providerRegistry={this._providerRegistry}
         secretsManager={this._secretsManager}
       />
     );
@@ -117,7 +116,7 @@ export class AISettingsWidget extends ReactWidget {
   private _settingsModel: AISettingsModel;
   private _agentManager?: AgentManager;
   private _themeManager?: IThemeManager;
-  private _chatProviderRegistry: IChatProviderRegistry;
+  private _providerRegistry: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
 }
 
@@ -128,7 +127,7 @@ interface IAISettingsComponentProps {
   model: AISettingsModel;
   agentManager?: AgentManager;
   themeManager?: IThemeManager;
-  chatProviderRegistry: IChatProviderRegistry;
+  providerRegistry: IProviderRegistry;
   secretsManager?: ISecretsManager;
 }
 
@@ -141,7 +140,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   model,
   agentManager,
   themeManager,
-  chatProviderRegistry,
+  providerRegistry,
   secretsManager
 }) => {
   if (!model) {
@@ -483,7 +482,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             onChange={(_, newValue) => setActiveTab(newValue)}
           >
             <Tab label="Providers" />
-            <Tab label="Model Parameters" />
             <Tab label="Behavior" />
             <Tab label="MCP Servers" />
           </Tabs>
@@ -622,32 +620,115 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 ) : (
                   <List>
                     {config.providers.map(provider => {
-                      const providerInfo = chatProviderRegistry.getProviderInfo(
-                        provider.provider
-                      );
+                      const isActive = config.activeProvider === provider.id;
+                      const isActiveCompleter =
+                        config.useSameProviderForChatAndCompleter
+                          ? isActive
+                          : config.activeCompleterProvider === provider.id;
+                      const params = provider.parameters;
+
                       return (
-                        <ListItem key={provider.id} divider>
-                          <ListItemText
-                            primary={provider.name}
-                            secondary={
+                        <ListItem
+                          key={provider.id}
+                          sx={{
+                            flexDirection: 'column',
+                            alignItems: 'stretch',
+                            py: 2
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              width: '100%',
+                              mb: 1
+                            }}
+                          >
+                            <Box sx={{ flex: 1 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  mb: 0.5
+                                }}
+                              >
+                                <Typography
+                                  variant="subtitle1"
+                                  fontWeight="medium"
+                                >
+                                  {provider.name}
+                                </Typography>
+                                {isActive && (
+                                  <Chip
+                                    label="Chat"
+                                    size="small"
+                                    color="primary"
+                                    icon={<CheckCircle />}
+                                  />
+                                )}
+                                {isActiveCompleter && (
+                                  <Chip
+                                    label="Completion"
+                                    size="small"
+                                    color="secondary"
+                                    icon={<CheckCircleOutline />}
+                                  />
+                                )}
+                              </Box>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
+                                gutterBottom
                               >
                                 {provider.provider} • {provider.model}
-                                {providerInfo?.description &&
-                                  ` • ${providerInfo.description}`}
                               </Typography>
-                            }
-                          />
-                          <ListItemSecondaryAction>
+
+                              {/* Display parameters if set */}
+                              {params &&
+                                (params.temperature !== undefined ||
+                                  params.maxTokens !== undefined ||
+                                  params.maxTurns !== undefined) && (
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 1,
+                                      mt: 1
+                                    }}
+                                  >
+                                    {params.temperature !== undefined && (
+                                      <Chip
+                                        label={`Temp: ${params.temperature}`}
+                                        size="small"
+                                        variant="outlined"
+                                      />
+                                    )}
+                                    {params.maxTokens !== undefined && (
+                                      <Chip
+                                        label={`Tokens: ${params.maxTokens}`}
+                                        size="small"
+                                        variant="outlined"
+                                      />
+                                    )}
+                                    {params.maxTurns !== undefined && (
+                                      <Chip
+                                        label={`Turns: ${params.maxTurns}`}
+                                        size="small"
+                                        variant="outlined"
+                                      />
+                                    )}
+                                  </Box>
+                                )}
+                            </Box>
                             <IconButton
                               onClick={e => handleMenuClick(e, provider.id)}
                               size="small"
                             >
                               <MoreVert />
                             </IconButton>
-                          </ListItemSecondaryAction>
+                          </Box>
                         </ListItem>
                       );
                     })}
@@ -659,74 +740,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
         )}
 
         {activeTab === 1 && (
-          <Card elevation={2}>
-            <CardContent>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 1 }}
-              >
-                <Psychology color="primary" />
-                <Typography variant="h6" component="h2">
-                  Model Parameters
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box>
-                  <Typography variant="body1" gutterBottom>
-                    Temperature: {config.temperature}
-                  </Typography>
-                  <Slider
-                    value={config.temperature}
-                    onChange={(_, value) =>
-                      handleConfigUpdate({ temperature: value as number })
-                    }
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    valueLabelDisplay="auto"
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Controls response creativity: low value = deterministic and
-                    focused, middle value = balanced, high value = creative and
-                    varied
-                  </Typography>
-                </Box>
-
-                <TextField
-                  fullWidth
-                  label="Max Tokens"
-                  type="number"
-                  value={config.maxTokens || ''}
-                  onChange={e =>
-                    handleConfigUpdate({
-                      maxTokens: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined
-                    })
-                  }
-                  inputProps={{ min: 1, max: 8192 }}
-                  helperText="Maximum length of AI responses (leave empty for provider default)"
-                />
-
-                <TextField
-                  fullWidth
-                  label="Max Turns"
-                  type="number"
-                  value={config.maxTurns}
-                  onChange={e =>
-                    handleConfigUpdate({
-                      maxTurns: parseInt(e.target.value)
-                    })
-                  }
-                  inputProps={{ min: 1, max: 100 }}
-                  helperText="Maximum number of tool execution turns (when using tools)"
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === 2 && (
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" component="h2" gutterBottom>
@@ -891,7 +904,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           </Card>
         )}
 
-        {activeTab === 3 && (
+        {activeTab === 2 && (
           <Card elevation={2}>
             <CardContent>
               <Box
@@ -1014,7 +1027,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           onSave={editingProvider ? handleEditProvider : handleAddProvider}
           initialConfig={editingProvider}
           mode={editingProvider ? 'edit' : 'add'}
-          chatProviderRegistry={chatProviderRegistry}
+          providerRegistry={providerRegistry}
           handleSecretField={handleSecretField}
         />
 
@@ -1215,7 +1228,7 @@ export namespace AISettingsWidget {
     settingsModel: AISettingsModel;
     agentManager?: AgentManager;
     themeManager?: IThemeManager;
-    chatProviderRegistry: IChatProviderRegistry;
+    providerRegistry: IProviderRegistry;
     /**
      * The secrets manager.
      */
