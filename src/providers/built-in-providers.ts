@@ -2,7 +2,6 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
-import { aisdk } from '@openai/agents-extensions';
 import { createOllama } from 'ollama-ai-provider-v2';
 
 import type { IProviderInfo, IProviderRegistry } from '../tokens';
@@ -32,22 +31,7 @@ export const anthropicProvider: IProviderInfo = {
   ],
   supportsBaseURL: true,
   supportsHeaders: true,
-  chatFactory: (options: IModelOptions) => {
-    if (!options.apiKey) {
-      throw new Error('API key required for Anthropic');
-    }
-    const anthropic = createAnthropic({
-      apiKey: options.apiKey,
-      headers: {
-        'anthropic-dangerous-direct-browser-access': 'true',
-        ...options.headers
-      },
-      ...(options.baseURL && { baseURL: options.baseURL })
-    });
-    const modelName = options.model ?? '';
-    return aisdk(anthropic(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for Anthropic');
     }
@@ -154,18 +138,7 @@ export const mistralProvider: IProviderInfo = {
     'open-mixtral-8x22b'
   ],
   supportsBaseURL: true,
-  chatFactory: (options: IModelOptions) => {
-    if (!options.apiKey) {
-      throw new Error('API key required for Mistral');
-    }
-    const mistral = createMistral({
-      apiKey: options.apiKey,
-      ...(options.baseURL && { baseURL: options.baseURL })
-    });
-    const modelName = options.model || 'mistral-large-latest';
-    return aisdk(mistral(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for Mistral');
     }
@@ -224,19 +197,7 @@ export const openaiProvider: IProviderInfo = {
   ],
   supportsBaseURL: true,
   supportsHeaders: true,
-  chatFactory: (options: IModelOptions) => {
-    if (!options.apiKey) {
-      throw new Error('API key required for OpenAI');
-    }
-    const openai = createOpenAI({
-      apiKey: options.apiKey,
-      ...(options.baseURL && { baseURL: options.baseURL }),
-      ...(options.headers && { headers: options.headers })
-    });
-    const modelName = options.model || 'gpt-4o';
-    return aisdk(openai(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for OpenAI');
     }
@@ -260,15 +221,7 @@ export const ollamaProvider: IProviderInfo = {
   defaultModels: [],
   supportsBaseURL: true,
   supportsHeaders: true,
-  chatFactory: (options: IModelOptions) => {
-    const ollama = createOllama({
-      baseURL: options.baseURL || 'http://localhost:11434/api',
-      ...(options.headers && { headers: options.headers })
-    });
-    const modelName = options.model || 'phi3';
-    return aisdk(ollama(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     const ollama = createOllama({
       baseURL: options.baseURL || 'http://localhost:11434/api',
       ...(options.headers && { headers: options.headers })
@@ -290,16 +243,7 @@ export const genericProvider: IProviderInfo = {
   supportsHeaders: true,
   supportsToolCalling: true,
   description: 'Uses /chat/completions endpoint',
-  chatFactory: (options: IModelOptions) => {
-    const openai = createOpenAI({
-      apiKey: options.apiKey || 'dummy',
-      ...(options.baseURL && { baseURL: options.baseURL }),
-      ...(options.headers && { headers: options.headers })
-    });
-    const modelName = options.model || 'gpt-4o';
-    return aisdk(openai.chat(modelName));
-  },
-  completionFactory: (options: IModelOptions) => {
+  factory: (options: IModelOptions) => {
     const openai = createOpenAI({
       apiKey: options.apiKey || 'dummy',
       ...(options.baseURL && { baseURL: options.baseURL }),
