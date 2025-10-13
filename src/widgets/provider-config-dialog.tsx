@@ -97,6 +97,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       setParameters(initialConfig?.parameters || {});
       setShowApiKey(false);
       setExpandedAdvanced(false);
+    } else {
+      // Reset expanded state when dialog closes
+      setExpandedAdvanced(false);
     }
   }, [open, initialConfig]);
 

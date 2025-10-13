@@ -151,10 +151,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   id: 'my-extension:custom-provider',
   autoStart: true,
   requires: [IProviderRegistry],
-  activate: (
-    app: JupyterFrontEnd,
-    registry: IProviderRegistry
-  ) => {
+  activate: (app: JupyterFrontEnd, registry: IProviderRegistry) => {
     const providerInfo = {
       id: 'my-custom-provider',
       name: 'My Custom Provider',
