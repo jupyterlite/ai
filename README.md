@@ -124,11 +124,11 @@ The proxy will start on `http://0.0.0.0:4000` by default.
 
 #### Configuring `jupyterlite-ai` to use LiteLLM Proxy
 
-1. In JupyterLab, open the AI settings panel and go to the **AI Providers** section.
-2. Select the **Generic** provider (OpenAI-compatible)
-3. Configure the following settings:
-   - **Base URL**: `http://0.0.0.0:4000` (or your proxy server URL)
-   - **Model**: The model name from your `litellm_config.yaml` (e.g., `gpt-5`, `claude-sonnet`)
+Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-compatible-provider) with the following settings:
+
+- **Base URL**: `http://0.0.0.0:4000` (or your proxy server URL)
+- **Model**: The model name from your `litellm_config.yaml` (e.g., `gpt-5`, `claude-sonnet`)
+- **API Key (optional)**: If the LiteLLM Proxy server requires an API key, provide it here.
 
 > [!IMPORTANT]
 > The API key must be configured on the LiteLLM Proxy server (in the `litellm_config.yaml` file). Providing an API key via the AI provider settings UI will not have any effect, as the proxy server handles authentication with the upstream AI providers.
