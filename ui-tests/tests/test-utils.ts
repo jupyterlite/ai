@@ -10,7 +10,7 @@ export const DEFAULT_MODEL_NAME = 'Qwen2.5';
 
 export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   '@jupyterlite/ai:settings-model': {
-    activeProvider: 'ollama-1759407012872',
+    defaultProvider: 'ollama-1759407012872',
     mcpServers: [],
     providers: [
       {
