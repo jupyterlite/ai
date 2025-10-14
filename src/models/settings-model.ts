@@ -38,7 +38,7 @@ export interface IAIConfig {
   // List of configured providers
   providers: IProviderConfig[];
   // Active provider IDs for different use cases
-  activeProvider: string; // Provider for chat
+  defaultProvider: string; // Default provider for chat
   activeCompleterProvider?: string; // Provider for completions (if different)
   // When true, use the same provider for chat and completions
   useSameProviderForChatAndCompleter: boolean;
@@ -61,7 +61,7 @@ export class AISettingsModel extends VDomModel {
   private _config: IAIConfig = {
     useSecretsManager: true,
     providers: [],
-    activeProvider: '',
+    defaultProvider: '',
     activeCompleterProvider: undefined,
     useSameProviderForChatAndCompleter: true,
     mcpServers: [],
@@ -212,17 +212,17 @@ Ready to help you build something great! What are you working on?`
     return this._config.providers.find(p => p.id === id);
   }
 
-  getActiveProvider(): IProviderConfig | undefined {
-    return this.getProvider(this._config.activeProvider);
+  getDefaultProvider(): IProviderConfig | undefined {
+    return this.getProvider(this._config.defaultProvider);
   }
 
   getCompleterProvider(): IProviderConfig | undefined {
     if (this._config.useSameProviderForChatAndCompleter) {
-      return this.getActiveProvider();
+      return this.getDefaultProvider();
     }
     return this._config.activeCompleterProvider
       ? this.getProvider(this._config.activeCompleterProvider)
-      : this.getActiveProvider();
+      : this.getDefaultProvider();
   }
 
   async addProvider(
@@ -245,10 +245,10 @@ Ready to help you build something great! What are you working on?`
 
     // If this is the first provider, make it active
     if (this._config.providers.length === 1) {
-      this._config.activeProvider = id;
-      // Save both providers and activeProvider
+      // Save both providers and defaultProvider
       await this.saveSetting('providers', this._config.providers);
-      await this.saveSetting('activeProvider', this._config.activeProvider);
+      this._config.defaultProvider = id;
+      await this.saveSetting('defaultProvider', this._config.defaultProvider);
     } else {
       // Only save providers
       await this.saveSetting('providers', this._config.providers);
@@ -267,10 +267,10 @@ Ready to help you build something great! What are you working on?`
     await this.saveSetting('providers', this._config.providers);
 
     // If this was the active provider, select a new one
-    if (this._config.activeProvider === id) {
-      this._config.activeProvider =
+    if (this._config.defaultProvider === id) {
+      this._config.defaultProvider =
         this._config.providers.length > 0 ? this._config.providers[0].id : '';
-      await this.saveSetting('activeProvider', this._config.activeProvider);
+      await this.saveSetting('defaultProvider', this._config.defaultProvider);
     }
 
     if (this._config.activeCompleterProvider === id) {
@@ -297,8 +297,8 @@ Ready to help you build something great! What are you working on?`
 
   async setActiveProvider(id: string): Promise<void> {
     if (this.getProvider(id)) {
-      this._config.activeProvider = id;
-      await this.saveSetting('activeProvider', this._config.activeProvider);
+      this._config.defaultProvider = id;
+      await this.saveSetting('defaultProvider', this._config.defaultProvider);
     }
   }
 
@@ -405,7 +405,6 @@ Ready to help you build something great! What are you working on?`
         error
       );
     }
-    this.stateChanged.emit(void 0);
   }
 }
 

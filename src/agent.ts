@@ -291,7 +291,7 @@ export class AgentManager {
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
 
     this.activeProvider =
-      options.activeProvider ?? this._settingsModel.config.activeProvider;
+      options.activeProvider ?? this._settingsModel.config.defaultProvider;
 
     // Initialize selected tools to all available tools by default
     if (this._toolRegistry) {
@@ -376,7 +376,7 @@ export class AgentManager {
    * @returns True if the configuration is valid, false otherwise
    */
   hasValidConfig(): boolean {
-    const activeProvider = this._settingsModel.getActiveProvider();
+    const activeProvider = this._settingsModel.getDefaultProvider();
     if (!activeProvider) {
       return false;
     }
@@ -448,9 +448,11 @@ export class AgentManager {
       this._history.push(user(message));
 
       // Get provider-specific maxTurns or use default
-      const activeProvider = this._settingsModel.getActiveProvider();
+      const activeProviderConfig = this._settingsModel.getProvider(
+        this._activeProvider
+      );
       const maxTurns =
-        activeProvider?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
+        activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
       // Main agentic loop
       let result = await this._runner.run(this._agent, this._history, {
@@ -833,13 +835,15 @@ export class AgentManager {
    * @returns True if the provider supports tool calling, false otherwise
    */
   private _supportsToolCalling(): boolean {
-    const activeProvider = this._settingsModel.getActiveProvider();
-    if (!activeProvider || !this._providerRegistry) {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    if (!activeProviderConfig || !this._providerRegistry) {
       return false;
     }
 
     const providerInfo = this._providerRegistry.getProviderInfo(
-      activeProvider.provider
+      activeProviderConfig.provider
     );
 
     // Default to true if supportsToolCalling is not specified

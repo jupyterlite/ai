@@ -520,12 +520,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 }
               />
             )}
-            {/* Active Provider Selection */}
+            {/* Default Provider Selection */}
             {config.providers.length > 0 && (
               <Card elevation={2}>
                 <CardContent>
                   <Typography variant="h6" component="h2" gutterBottom>
-                    Active Providers
+                    Default Providers
                   </Typography>
 
                   <Box
@@ -534,7 +534,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     <FormControl fullWidth>
                       <InputLabel>Chat Provider</InputLabel>
                       <Select
-                        value={config.activeProvider}
+                        value={config.defaultProvider}
                         label="Chat Provider"
                         onChange={e => model.setActiveProvider(e.target.value)}
                       >
@@ -624,7 +624,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 ) : (
                   <List>
                     {config.providers.map(provider => {
-                      const isActive = config.activeProvider === provider.id;
+                      const isActive = config.defaultProvider === provider.id;
                       const isActiveCompleter =
                         config.useSameProviderForChatAndCompleter
                           ? isActive

@@ -389,7 +389,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     // Create a chat with default provider at startup.
     app.restored.then(() => {
-      if (!modelRegistry.getAll().length) {
+      if (
+        !modelRegistry.getAll().length &&
+        settingsModel.config.defaultProvider
+      ) {
         app.commands.execute(CommandIds.openChat);
       }
     });
@@ -651,8 +654,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       ICompletionProviderManager,
       ILayoutRestorer,
       ISecretsManager,
-      IThemeManager,
-      IToolRegistry
+      IThemeManager
     ],
     activate: (
       app: JupyterFrontEnd,
@@ -662,8 +664,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       completionManager?: ICompletionProviderManager,
       restorer?: ILayoutRestorer,
       secretsManager?: ISecretsManager,
-      themeManager?: IThemeManager,
-      toolRegistry?: IToolRegistry
+      themeManager?: IThemeManager
     ): AgentManagerFactory => {
       const agentManagerFactory = new AgentManagerFactory({
         settingsModel,

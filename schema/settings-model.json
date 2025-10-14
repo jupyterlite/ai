@@ -73,9 +73,9 @@
       },
       "default": []
     },
-    "activeProvider": {
-      "title": "Active Chat Provider",
-      "description": "ID of the provider to use for chat",
+    "defaultProvider": {
+      "title": "Default Chat Provider",
+      "description": "ID of the default provider to use for chat",
       "type": "string",
       "default": ""
     },
