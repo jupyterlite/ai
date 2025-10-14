@@ -3,6 +3,14 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 const PLUGIN_ID = '@jupyterlite/ai:settings-model';
 
+export interface IProviderParameters {
+  temperature?: number;
+  maxTokens?: number;
+  maxTurns?: number;
+  supportsFillInMiddle?: boolean;
+  useFilterText?: boolean;
+}
+
 export interface IProviderConfig {
   id: string;
   name: string;
@@ -11,6 +19,7 @@ export interface IProviderConfig {
   apiKey?: string;
   baseURL?: string;
   headers?: Record<string, string>;
+  parameters?: IProviderParameters;
   customSettings?: Record<string, any>;
   [key: string]: any; // Index signature for JupyterLab settings compatibility
 }
@@ -36,16 +45,12 @@ export interface IAIConfig {
   // MCP servers configuration
   mcpServers: IMCPServerConfig[];
   // Global settings
-  temperature: number;
-  maxTokens?: number;
   contextAwareness: boolean;
   codeExecution: boolean;
   systemPrompt: string;
   toolsEnabled: boolean;
   // Chat behavior settings
   sendWithShiftEnter: boolean;
-  // Maximum number of turns/iterations when using tools
-  maxTurns: number;
   // Token usage display setting
   showTokenUsage: boolean;
   // Commands that require approval before execution
@@ -60,13 +65,10 @@ export class AISettingsModel extends VDomModel {
     activeCompleterProvider: undefined,
     useSameProviderForChatAndCompleter: true,
     mcpServers: [],
-    temperature: 0.7,
-    maxTokens: undefined,
     contextAwareness: true,
     codeExecution: false,
     toolsEnabled: true,
     sendWithShiftEnter: false,
-    maxTurns: 25,
     showTokenUsage: false,
     commandsRequiringApproval: [
       'notebook:restart-run-all',
@@ -235,6 +237,7 @@ Ready to help you build something great! What are you working on?`
       apiKey: providerConfig.apiKey,
       baseURL: providerConfig.baseURL,
       headers: providerConfig.headers,
+      parameters: providerConfig.parameters,
       customSettings: providerConfig.customSettings
     };
 

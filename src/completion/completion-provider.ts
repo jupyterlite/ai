@@ -5,12 +5,13 @@ import {
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
 import { NotebookPanel } from '@jupyterlab/notebook';
-import { generateText, LanguageModel } from 'ai';
+import { LanguageModelV2 } from '@ai-sdk/provider';
+import { generateText } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from '../models/settings-model';
 import { createCompletionModel } from '../providers/models';
-import { SECRETS_NAMESPACE, type ICompletionProviderRegistry } from '../tokens';
+import { SECRETS_NAMESPACE, type IProviderRegistry } from '../tokens';
 
 /**
  * Configuration interface for provider-specific completion behavior
@@ -30,16 +31,6 @@ export interface IProviderCompletionConfig {
    * Whether to set filterText for this provider
    */
   useFilterText?: boolean;
-
-  /**
-   * Custom prompt formatter for provider-specific requirements
-   */
-  customPromptFormat?: (prompt: string, suffix: string) => string;
-
-  /**
-   * Function to clean up provider-specific artifacts from completion text
-   */
-  cleanupCompletion?: (completion: string) => string;
 }
 
 /**
@@ -56,6 +47,11 @@ Rules:
 - Use variables, imports, functions, and other definitions from previous notebook cells when relevant`;
 
 /**
+ * Default temperature for code completion (lower than chat for more deterministic results)
+ */
+const DEFAULT_COMPLETION_TEMPERATURE = 0.3;
+
+/**
  * The generic completion provider to register to the completion provider manager.
  */
 export class AICompletionProvider implements IInlineCompletionProvider {
@@ -65,7 +61,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   constructor(options: AICompletionProvider.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
-    this._completionProviderRegistry = options.completionProviderRegistry;
+    this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
     this._settingsModel.stateChanged.connect(() => {
       this._updateModel();
@@ -115,7 +111,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     }
 
     const provider = activeProvider.provider;
-    const providerConfig = this._getProviderCompletionConfig(provider);
+    const providerConfig = this._getProviderCompletionConfig();
 
     try {
       let completionPrompt: string;
@@ -128,8 +124,9 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       } else {
         // For files, use simpler approach
         completionPrompt = prompt.trim();
-        if (providerConfig.customPromptFormat && suffix.trim()) {
-          completionPrompt = providerConfig.customPromptFormat(prompt, suffix);
+        // Apply fill-in-middle formatting if supported and suffix exists
+        if (providerConfig.supportsFillInMiddle && suffix.trim()) {
+          completionPrompt = `<PRE>${prompt}<SUF>${suffix}<MID>`;
         }
       }
 
@@ -140,11 +137,13 @@ export class AICompletionProvider implements IInlineCompletionProvider {
         temperature: providerConfig.temperature || 0.3
       });
 
-      // Clean up provider-specific artifacts if cleanup function is provided
-      let cleanCompletion = completion;
-      if (providerConfig.cleanupCompletion) {
-        cleanCompletion = providerConfig.cleanupCompletion(completion);
-      }
+      // Clean up FIM tags and code block markers
+      const cleanCompletion = completion
+        .replace(/<PRE>/g, '')
+        .replace(/<SUF>/g, '')
+        .replace(/<MID>/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .trim();
 
       const items = [
         {
@@ -198,7 +197,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
           apiKey,
           baseURL
         },
-        this._completionProviderRegistry
+        this._providerRegistry
       );
     } catch (error) {
       console.error(`Error creating model for ${provider}:`, error);
@@ -285,28 +284,29 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   }
 
   /**
-   * Get provider-specific completion configuration from registry
+   * Get provider-specific completion configuration
    */
-  private _getProviderCompletionConfig(
-    provider: string
-  ): IProviderCompletionConfig {
-    const providerInfo =
-      this._completionProviderRegistry?.getProviderInfo(provider);
-    const completionConfig = providerInfo?.customSettings?.completionConfig;
+  private _getProviderCompletionConfig(): IProviderCompletionConfig {
+    // Get provider-specific completion parameters
+    const activeProvider = this._settingsModel.getCompleterProvider();
 
-    // Return provider config or default config
-    return (
-      completionConfig || {
-        temperature: 0.3,
-        supportsFillInMiddle: false,
-        useFilterText: false
-      }
-    );
+    // Use provider-specific temperature or fall back to default
+    const temperature =
+      activeProvider?.parameters?.temperature ?? DEFAULT_COMPLETION_TEMPERATURE;
+    const supportsFillInMiddle =
+      activeProvider?.parameters?.supportsFillInMiddle ?? false;
+    const useFilterText = activeProvider?.parameters?.useFilterText ?? false;
+
+    return {
+      temperature,
+      supportsFillInMiddle,
+      useFilterText
+    };
   }
 
   private _settingsModel: AISettingsModel;
-  private _completionProviderRegistry?: ICompletionProviderRegistry;
-  private _model: LanguageModel | null = null;
+  private _providerRegistry?: IProviderRegistry;
+  private _model: LanguageModelV2 | null = null;
   private _secretsManager?: ISecretsManager;
 }
 
@@ -320,9 +320,9 @@ export namespace AICompletionProvider {
      */
     settingsModel: AISettingsModel;
     /**
-     * The completion provider registry.
+     * The provider registry
      */
-    completionProviderRegistry?: ICompletionProviderRegistry;
+    providerRegistry?: IProviderRegistry;
     /**
      * The secrets manager.
      */

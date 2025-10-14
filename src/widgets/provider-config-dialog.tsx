@@ -1,6 +1,10 @@
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Chip,
@@ -9,17 +13,26 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
   Select,
+  Slider,
+  Switch,
   TextField,
   Typography
 } from '@mui/material';
 import React from 'react';
-import { IProviderConfig } from '../models/settings-model';
-import type { IChatProviderRegistry } from '../tokens';
+import { IProviderConfig, IProviderParameters } from '../models/settings-model';
+import type { IProviderRegistry } from '../tokens';
+
+/**
+ * Default parameter values for provider configuration
+ */
+const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_MAX_TURNS = 25;
 
 interface IProviderConfigDialogProps {
   open: boolean;
@@ -27,7 +40,7 @@ interface IProviderConfigDialogProps {
   onSave: (config: Omit<IProviderConfig, 'id'>) => void;
   initialConfig?: IProviderConfig;
   mode: 'add' | 'edit';
-  chatProviderRegistry: IChatProviderRegistry;
+  providerRegistry: IProviderRegistry;
   handleSecretField: (
     input: HTMLInputElement,
     provider: string,
@@ -41,7 +54,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   onSave,
   initialConfig,
   mode,
-  chatProviderRegistry,
+  providerRegistry,
   handleSecretField
 }) => {
   const apiKeyRef = React.useRef<HTMLInputElement>();
@@ -54,9 +67,15 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   const [baseURL, setBaseURL] = React.useState(initialConfig?.baseURL || '');
   const [showApiKey, setShowApiKey] = React.useState(false);
 
+  const [parameters, setParameters] = React.useState<IProviderParameters>(
+    initialConfig?.parameters || {}
+  );
+
+  const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
+
   // Get provider options from registry
   const providerOptions = React.useMemo(() => {
-    const providers = chatProviderRegistry.providers;
+    const providers = providerRegistry.providers;
     return Object.keys(providers).map(id => {
       const info = providers[id];
       return {
@@ -69,7 +88,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         description: info.description
       };
     });
-  }, [chatProviderRegistry]);
+  }, [providerRegistry]);
 
   const selectedProvider = providerOptions.find(p => p.value === provider);
 
@@ -81,7 +100,12 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       setModel(initialConfig?.model || '');
       setApiKey(initialConfig?.apiKey || '');
       setBaseURL(initialConfig?.baseURL || '');
+      setParameters(initialConfig?.parameters || {});
       setShowApiKey(false);
+      setExpandedAdvanced(false);
+    } else {
+      // Reset expanded state when dialog closes
+      setExpandedAdvanced(false);
     }
   }, [open, initialConfig]);
 
@@ -105,12 +129,18 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       return;
     }
 
+    // Only include parameters if at least one is set
+    const hasParameters = Object.keys(parameters).some(
+      key => parameters[key as keyof IProviderParameters] !== undefined
+    );
+
     const config: Omit<IProviderConfig, 'id'> = {
       name: name.trim(),
       provider: provider as IProviderConfig['provider'],
       model,
       ...(apiKey && { apiKey }),
-      ...(baseURL && { baseURL })
+      ...(baseURL && { baseURL }),
+      ...(hasParameters && { parameters })
     };
 
     onSave(config);
@@ -266,6 +296,126 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
               }
             />
           )}
+
+          {/* Advanced Settings Section */}
+          <Accordion
+            expanded={expandedAdvanced}
+            onChange={(_, isExpanded) => setExpandedAdvanced(isExpanded)}
+            sx={{
+              mt: 2,
+              bgcolor: 'transparent',
+              boxShadow: 'none',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 1
+            }}
+          >
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                Advanced Settings
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ bgcolor: 'transparent' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Typography gutterBottom>
+                    Temperature: {parameters.temperature ?? 'Default'}
+                  </Typography>
+                  <Slider
+                    value={parameters.temperature ?? DEFAULT_TEMPERATURE}
+                    onChange={(_, value) =>
+                      setParameters({
+                        ...parameters,
+                        temperature: value as number
+                      })
+                    }
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    valueLabelDisplay="auto"
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Temperature for the model (lower values are more
+                    deterministic)
+                  </Typography>
+                </Box>
+
+                <TextField
+                  fullWidth
+                  label="Max Tokens (Optional)"
+                  type="number"
+                  value={parameters.maxTokens ?? ''}
+                  onChange={e =>
+                    setParameters({
+                      ...parameters,
+                      maxTokens: e.target.value
+                        ? Number(e.target.value)
+                        : undefined
+                    })
+                  }
+                  placeholder="Leave empty for provider default"
+                  helperText="Maximum length of AI responses"
+                  inputProps={{ min: 1 }}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Max Turns (Optional)"
+                  type="number"
+                  value={parameters.maxTurns ?? ''}
+                  onChange={e =>
+                    setParameters({
+                      ...parameters,
+                      maxTurns: e.target.value
+                        ? Number(e.target.value)
+                        : undefined
+                    })
+                  }
+                  placeholder={`Default: ${DEFAULT_MAX_TURNS}`}
+                  helperText="Maximum number of tool execution turns"
+                  inputProps={{ min: 1, max: 100 }}
+                />
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 2, mb: 1 }}
+                >
+                  Completion Options
+                </Typography>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={parameters.supportsFillInMiddle ?? false}
+                      onChange={e =>
+                        setParameters({
+                          ...parameters,
+                          supportsFillInMiddle: e.target.checked
+                        })
+                      }
+                    />
+                  }
+                  label="Fill-in-the-middle support"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={parameters.useFilterText ?? false}
+                      onChange={e =>
+                        setParameters({
+                          ...parameters,
+                          useFilterText: e.target.checked
+                        })
+                      }
+                    />
+                  }
+                  label="Use filter text"
+                />
+              </Box>
+            </AccordionDetails>
+          </Accordion>
         </Box>
       </DialogContent>
       <DialogActions>

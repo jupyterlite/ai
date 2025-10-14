@@ -1,56 +1,38 @@
 import { ISignal, Signal } from '@lumino/signaling';
-import type { LanguageModel } from 'ai';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { Model } from '@openai/agents';
+import { aisdk } from '@openai/agents-extensions';
 import type { IModelOptions } from './models';
-import {
-  IChatProviderFactory,
-  IChatProviderInfo,
-  IChatProviderRegistry,
-  ICompletionProviderFactory,
-  ICompletionProviderInfo,
-  ICompletionProviderRegistry
-} from '../tokens';
+import { IProviderInfo, IProviderRegistry } from '../tokens';
 
 /**
- * Implementation of the chat provider registry
+ * Implementation of the provider registry
  */
-export class ChatProviderRegistry implements IChatProviderRegistry {
+export class ProviderRegistry implements IProviderRegistry {
   /**
    * Get a copy of all registered providers
    */
-  get providers(): Record<string, IChatProviderInfo> {
+  get providers(): Record<string, IProviderInfo> {
     return { ...this._providers };
   }
 
   /**
    * Signal emitted when providers are added or removed
    */
-  get providersChanged(): ISignal<IChatProviderRegistry, void> {
+  get providersChanged(): ISignal<IProviderRegistry, void> {
     return this._providersChanged;
   }
 
   /**
-   * Register a new chat provider
-   * @param info Provider information including factory
+   * Register a new provider
+   * @param info Provider information with factories for chat and completion
    */
-  registerProvider(info: IChatProviderInfo): void {
-    this._providers[info.id] = { ...info };
-    this._factories[info.id] = info.factory;
-    this._providersChanged.emit();
-  }
-
-  /**
-   * Unregister a chat provider by ID
-   * @param id Provider ID to remove
-   * @returns true if provider was found and removed, false otherwise
-   */
-  unregisterProvider(id: string): boolean {
-    if (id in this._providers) {
-      delete this._providers[id];
-      delete this._factories[id];
-      this._providersChanged.emit();
-      return true;
+  registerProvider(info: IProviderInfo): void {
+    if (info.id in this._providers) {
+      throw new Error(`Provider with id "${info.id}" is already registered`);
     }
-    return false;
+    this._providers[info.id] = { ...info };
+    this._providersChanged.emit();
   }
 
   /**
@@ -58,7 +40,7 @@ export class ChatProviderRegistry implements IChatProviderRegistry {
    * @param id Provider ID
    * @returns Provider info or null if not found
    */
-  getProviderInfo(id: string): IChatProviderInfo | null {
+  getProviderInfo(id: string): IProviderInfo | null {
     return this._providers[id] || null;
   }
 
@@ -68,83 +50,15 @@ export class ChatProviderRegistry implements IChatProviderRegistry {
    * @param options Model configuration options
    * @returns Chat model instance or null if creation fails
    */
-  createChatModel(id: string, options: IModelOptions): any | null {
-    const factory = this._factories[id];
-    if (!factory) {
+  createChatModel(id: string, options: IModelOptions): Model | null {
+    const provider = this._providers[id];
+    if (!provider) {
       return null;
     }
 
-    try {
-      return factory(options);
-    } catch (error) {
-      console.error(`Failed to create chat model for provider ${id}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Get list of all available provider IDs
-   * @returns Array of provider IDs
-   */
-  getAvailableProviders(): string[] {
-    return Object.keys(this._providers);
-  }
-
-  private _providers: Record<string, IChatProviderInfo> = {};
-  private _factories: Record<string, IChatProviderFactory> = {};
-  private _providersChanged = new Signal<IChatProviderRegistry, void>(this);
-}
-
-/**
- * Implementation of the completion provider registry
- */
-export class CompletionProviderRegistry implements ICompletionProviderRegistry {
-  /**
-   * Get a copy of all registered providers
-   */
-  get providers(): Record<string, ICompletionProviderInfo> {
-    return { ...this._providers };
-  }
-
-  /**
-   * Signal emitted when providers are added or removed
-   */
-  get providersChanged(): ISignal<ICompletionProviderRegistry, void> {
-    return this._providersChanged;
-  }
-
-  /**
-   * Register a new completion provider
-   * @param info Provider information including factory
-   */
-  registerProvider(info: ICompletionProviderInfo): void {
-    this._providers[info.id] = { ...info };
-    this._factories[info.id] = info.factory;
-    this._providersChanged.emit();
-  }
-
-  /**
-   * Unregister a completion provider by ID
-   * @param id Provider ID to remove
-   * @returns true if provider was found and removed, false otherwise
-   */
-  unregisterProvider(id: string): boolean {
-    if (id in this._providers) {
-      delete this._providers[id];
-      delete this._factories[id];
-      this._providersChanged.emit();
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Get provider information by ID
-   * @param id Provider ID
-   * @returns Provider info or null if not found
-   */
-  getProviderInfo(id: string): ICompletionProviderInfo | null {
-    return this._providers[id] || null;
+    const languageModel = provider.factory(options);
+    // wrap with aisdk for compatibility with the agent framework
+    return aisdk(languageModel);
   }
 
   /**
@@ -156,21 +70,13 @@ export class CompletionProviderRegistry implements ICompletionProviderRegistry {
   createCompletionModel(
     id: string,
     options: IModelOptions
-  ): LanguageModel | null {
-    const factory = this._factories[id];
-    if (!factory) {
+  ): LanguageModelV2 | null {
+    const provider = this._providers[id];
+    if (!provider) {
       return null;
     }
 
-    try {
-      return factory(options);
-    } catch (error) {
-      console.error(
-        `Failed to create completion model for provider ${id}:`,
-        error
-      );
-      return null;
-    }
+    return provider.factory(options);
   }
 
   /**
@@ -181,9 +87,6 @@ export class CompletionProviderRegistry implements ICompletionProviderRegistry {
     return Object.keys(this._providers);
   }
 
-  private _providers: Record<string, ICompletionProviderInfo> = {};
-  private _factories: Record<string, ICompletionProviderFactory> = {};
-  private _providersChanged = new Signal<ICompletionProviderRegistry, void>(
-    this
-  );
+  private _providers: Record<string, IProviderInfo> = {};
+  private _providersChanged = new Signal<IProviderRegistry, void>(this);
 }

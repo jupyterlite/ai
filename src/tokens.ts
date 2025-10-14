@@ -1,7 +1,7 @@
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
-import { FunctionTool } from '@openai/agents';
-import { LanguageModel } from 'ai';
+import { FunctionTool, Model } from '@openai/agents';
+import { LanguageModelV2 } from '@ai-sdk/provider';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
@@ -86,40 +86,24 @@ export const IToolRegistry = new Token<IToolRegistry>(
 );
 
 /**
- * Token for the chat provider registry.
+ * Token for the provider registry.
  */
-export const IChatProviderRegistry = new Token<IChatProviderRegistry>(
-  '@jupyterlite/ai:chat-provider-registry',
-  'Registry for chat AI providers'
+export const IProviderRegistry = new Token<IProviderRegistry>(
+  '@jupyterlite/ai:provider-registry',
+  'Registry for AI providers'
 );
 
 /**
- * Token for the completion provider registry.
+ * Interface for a provider factory function that creates language models
  */
-export const ICompletionProviderRegistry =
-  new Token<ICompletionProviderRegistry>(
-    '@jupyterlite/ai:completion-provider-registry',
-    'Registry for completion providers'
-  );
-
-/**
- * Interface for a provider factory function that creates chat models
- */
-export interface IChatProviderFactory {
-  (options: IModelOptions): any; // Returns the model instance for @openai/agents
+export interface IProviderFactory {
+  (options: IModelOptions): LanguageModelV2;
 }
 
 /**
- * Interface for a provider factory function that creates completion models
+ * Provider information
  */
-export interface ICompletionProviderFactory {
-  (options: IModelOptions): LanguageModel;
-}
-
-/**
- * Base information about a registered provider
- */
-export interface IBaseProviderInfo {
+export interface IProviderInfo {
   /**
    * Unique identifier for the provider
    */
@@ -164,99 +148,39 @@ export interface IBaseProviderInfo {
   description?: string;
 
   /**
-   * Additional provider-specific configuration schema
+   * Factory function for creating language models
    */
-  customSettings?: Record<string, any>;
+  factory: IProviderFactory;
 }
 
 /**
- * Information about a chat provider
+ * Registry for AI providers
  */
-export interface IChatProviderInfo extends IBaseProviderInfo {
-  /**
-   * Factory function for creating chat models
-   */
-  factory: IChatProviderFactory;
-}
-
-/**
- * Information about a completion provider
- */
-export interface ICompletionProviderInfo extends IBaseProviderInfo {
-  /**
-   * Factory function for creating completion models
-   */
-  factory: ICompletionProviderFactory;
-}
-
-/**
- * Registry for chat AI providers
- */
-export interface IChatProviderRegistry {
+export interface IProviderRegistry {
   /**
    * The registered providers as a record (id -> info mapping).
    */
-  readonly providers: Record<string, IChatProviderInfo>;
+  readonly providers: Record<string, IProviderInfo>;
 
   /**
    * A signal triggered when providers have changed.
    */
-  readonly providersChanged: ISignal<IChatProviderRegistry, void>;
+  readonly providersChanged: ISignal<IProviderRegistry, void>;
 
   /**
-   * Register a new chat provider.
+   * Register a new provider.
    */
-  registerProvider(info: IChatProviderInfo): void;
-
-  /**
-   * Unregister a chat provider.
-   */
-  unregisterProvider(id: string): boolean;
+  registerProvider(info: IProviderInfo): void;
 
   /**
    * Get provider info by id.
    */
-  getProviderInfo(id: string): IChatProviderInfo | null;
+  getProviderInfo(id: string): IProviderInfo | null;
 
   /**
    * Create a chat model instance for the given provider.
    */
-  createChatModel(id: string, options: IModelOptions): any | null;
-
-  /**
-   * Get all available provider IDs.
-   */
-  getAvailableProviders(): string[];
-}
-
-/**
- * Registry for completion providers
- */
-export interface ICompletionProviderRegistry {
-  /**
-   * The registered providers as a record (id -> info mapping).
-   */
-  readonly providers: Record<string, ICompletionProviderInfo>;
-
-  /**
-   * A signal triggered when providers have changed.
-   */
-  readonly providersChanged: ISignal<ICompletionProviderRegistry, void>;
-
-  /**
-   * Register a new completion provider.
-   */
-  registerProvider(info: ICompletionProviderInfo): void;
-
-  /**
-   * Unregister a completion provider.
-   */
-  unregisterProvider(id: string): boolean;
-
-  /**
-   * Get provider info by id.
-   */
-  getProviderInfo(id: string): ICompletionProviderInfo | null;
+  createChatModel(id: string, options: IModelOptions): Model | null;
 
   /**
    * Create a completion model instance for the given provider.
@@ -264,7 +188,7 @@ export interface ICompletionProviderRegistry {
   createCompletionModel(
     id: string,
     options: IModelOptions
-  ): LanguageModel | null;
+  ): LanguageModelV2 | null;
 
   /**
    * Get all available provider IDs.

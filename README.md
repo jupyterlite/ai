@@ -144,44 +144,16 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import {
-  IChatProviderRegistry,
-  ICompleterProviderRegistry
-} from '@jupyterlite/ai';
+import { IProviderRegistry } from '@jupyterlite/ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import { aisdk } from '@openai/agents-extensions';
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'my-extension:custom-provider',
   autoStart: true,
-  requires: [IChatProviderRegistry, ICompleterProviderRegistry],
-  activate: (
-    app: JupyterFrontEnd,
-    chatRegistry: IChatProviderRegistry,
-    completerRegistry: ICompleterProviderRegistry
-  ) => {
-    const chatProviderInfo = {
-      id: 'my-custom-chat-provider',
-      name: 'My Custom Provider',
-      apiKeyRequirement: 'required' as const,
-      defaultModels: ['my-model'],
-      supportsBaseURL: true,
-      factory: (options: {
-        apiKey: string;
-        baseURL?: string;
-        model?: string;
-      }) => {
-        const provider = createOpenAI({
-          apiKey: options.apiKey,
-          baseURL: options.baseURL || 'https://api.example.com/v1'
-        });
-        // wrap with aisdk() since this will be used by the chat agent
-        return aisdk(provider(options.model || 'my-model'));
-      }
-    };
-
-    const completerProviderInfo = {
-      id: 'my-custom-completion-provider',
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, registry: IProviderRegistry) => {
+    const providerInfo = {
+      id: 'my-custom-provider',
       name: 'My Custom Provider',
       apiKeyRequirement: 'required' as const,
       defaultModels: ['my-model'],
@@ -199,8 +171,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     };
 
-    chatRegistry.registerProvider(chatProviderInfo);
-    completerRegistry.registerProvider(completerProviderInfo);
+    registry.registerProvider(providerInfo);
   }
 };
 ```
@@ -212,7 +183,7 @@ The provider configuration object requires the following properties:
 - `apiKeyRequirement`: Whether an API key is `'required'`, `'optional'`, or `'none'`
 - `defaultModels`: Array of model names to show in the settings
 - `supportsBaseURL`: Whether the provider supports a custom base URL
-- `factory`: Function that creates and returns the AI SDK provider instance
+- `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
 **Example: Using a custom fetch function**
 

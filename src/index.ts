@@ -32,23 +32,23 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 import { AgentManager } from './agent';
 import { AIChatModel } from './chat-model';
 
-import {
-  ChatProviderRegistry,
-  CompletionProviderRegistry
-} from './providers/provider-registry';
+import { ProviderRegistry } from './providers/provider-registry';
 
 import {
   IAgentManager,
-  IChatProviderRegistry,
-  ICompletionProviderRegistry,
+  IProviderRegistry,
   IToolRegistry,
   SECRETS_NAMESPACE,
   IAISettingsModel
 } from './tokens';
 
 import {
-  registerBuiltInChatProviders,
-  registerBuiltInCompletionProviders
+  anthropicProvider,
+  googleProvider,
+  mistralProvider,
+  openaiProvider,
+  ollamaProvider,
+  genericProvider
 } from './providers/built-in-providers';
 
 import { AICompletionProvider } from './completion';
@@ -104,59 +104,93 @@ namespace CommandIds {
 }
 
 /**
- * Chat provider registry plugin
+ * Provider registry plugin
  */
-const chatProviderRegistryPlugin: JupyterFrontEndPlugin<IChatProviderRegistry> =
-  {
-    id: '@jupyterlite/ai:chat-provider-registry',
-    description: 'Chat AI provider registry',
-    autoStart: true,
-    provides: IChatProviderRegistry,
-    activate: () => {
-      return new ChatProviderRegistry();
-    }
-  };
-
-/**
- * Completion provider registry plugin
- */
-const completionProviderRegistryPlugin: JupyterFrontEndPlugin<ICompletionProviderRegistry> =
-  {
-    id: '@jupyterlite/ai:completion-provider-registry',
-    description: 'Completion provider registry',
-    autoStart: true,
-    provides: ICompletionProviderRegistry,
-    activate: () => {
-      return new CompletionProviderRegistry();
-    }
-  };
-
-/**
- * Built-in chat providers plugin
- */
-const builtInChatProvidersPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:built-in-chat-providers',
-  description: 'Register built-in chat AI providers',
+const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
+  id: '@jupyterlite/ai:provider-registry',
+  description: 'AI provider registry',
   autoStart: true,
-  requires: [IChatProviderRegistry],
-  activate: (app: JupyterFrontEnd, chatRegistry: IChatProviderRegistry) => {
-    registerBuiltInChatProviders(chatRegistry);
+  provides: IProviderRegistry,
+  activate: () => {
+    return new ProviderRegistry();
   }
 };
 
 /**
- * Built-in completion providers plugin
+ * Anthropic provider plugin
  */
-const builtInCompletionProvidersPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:built-in-completion-providers',
-  description: 'Register built-in completion providers',
+const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:anthropic-provider',
+  description: 'Register Anthropic provider',
   autoStart: true,
-  requires: [ICompletionProviderRegistry],
-  activate: (
-    app: JupyterFrontEnd,
-    completionRegistry: ICompletionProviderRegistry
-  ) => {
-    registerBuiltInCompletionProviders(completionRegistry);
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(anthropicProvider);
+  }
+};
+
+/**
+ * Google provider plugin
+ */
+const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:google-provider',
+  description: 'Register Google Generative AI provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(googleProvider);
+  }
+};
+
+/**
+ * Mistral provider plugin
+ */
+const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:mistral-provider',
+  description: 'Register Mistral provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(mistralProvider);
+  }
+};
+
+/**
+ * OpenAI provider plugin
+ */
+const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:openai-provider',
+  description: 'Register OpenAI provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(openaiProvider);
+  }
+};
+
+/**
+ * Ollama provider plugin
+ */
+const ollamaProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:ollama-provider',
+  description: 'Register Ollama provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(ollamaProvider);
+  }
+};
+
+/**
+ * Generic provider plugin
+ */
+const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:generic-provider',
+  description: 'Register Generic OpenAI-compatible provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(genericProvider);
   }
 };
 
@@ -344,11 +378,10 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
     description: 'Provide the AI agent manager',
     autoStart: true,
     provides: IAgentManager,
-    requires: [IAISettingsModel, IChatProviderRegistry],
+    requires: [IAISettingsModel, IProviderRegistry],
     optional: [
       ICommandPalette,
       ICompletionProviderManager,
-      ICompletionProviderRegistry,
       ILayoutRestorer,
       ISecretsManager,
       IThemeManager,
@@ -357,10 +390,9 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
     activate: (
       app: JupyterFrontEnd,
       settingsModel: AISettingsModel,
-      chatProviderRegistry: IChatProviderRegistry,
+      providerRegistry: IProviderRegistry,
       palette: ICommandPalette,
       completionManager?: ICompletionProviderManager,
-      completionProviderRegistry?: ICompletionProviderRegistry,
       restorer?: ILayoutRestorer,
       secretsManager?: ISecretsManager,
       themeManager?: IThemeManager,
@@ -370,7 +402,7 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
       const agentManager = new AgentManager({
         settingsModel,
         toolRegistry,
-        chatProviderRegistry,
+        providerRegistry,
         secretsManager,
         token
       });
@@ -380,7 +412,7 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
         settingsModel,
         agentManager,
         themeManager,
-        chatProviderRegistry,
+        providerRegistry,
         secretsManager,
         token
       });
@@ -388,10 +420,10 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
       settingsWidget.title.icon = settingsIcon;
 
       // Build the completion provider
-      if (completionManager && completionProviderRegistry) {
+      if (completionManager) {
         const completionProvider = new AICompletionProvider({
           settingsModel,
-          completionProviderRegistry: completionProviderRegistry,
+          providerRegistry,
           secretsManager,
           token
         });
@@ -547,10 +579,13 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
 };
 
 export default [
-  chatProviderRegistryPlugin,
-  completionProviderRegistryPlugin,
-  builtInChatProvidersPlugin,
-  builtInCompletionProvidersPlugin,
+  providerRegistryPlugin,
+  anthropicProviderPlugin,
+  googleProviderPlugin,
+  mistralProviderPlugin,
+  openaiProviderPlugin,
+  ollamaProviderPlugin,
+  genericProviderPlugin,
   plugin,
   settingsModel,
   agentManager,
