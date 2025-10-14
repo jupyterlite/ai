@@ -326,10 +326,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const { widget } = section;
       const model = section.model as AIChatModel;
 
+      // Add the widget to the tracker.
       tracker.add(widget);
-      model.nameChanged.connect(() => {
-        tracker.save(widget);
-      });
+
+      // Update the tracker if the model name changed.
+      model.nameChanged.connect(() => tracker.save(widget));
+      // Update the tracker if the active provider changed.
+      model.agentManager.activeProviderChanged.connect(() =>
+        tracker.save(widget)
+      );
 
       const tokenUsageWidget = new TokenUsageWidget({
         tokenUsageChanged: model.tokenUsageChanged,
@@ -483,16 +488,20 @@ function registerCommands(
       const widget = new MainAreaChat({ content, commands, settingsModel });
       app.shell.add(widget, 'main');
 
+      // Add the widget to the tracker.
+      tracker.add(widget);
+
       // Update the tracker if the model name changed.
-      model.nameChanged.connect(() => {
-        tracker.save(widget);
-      });
+      model.nameChanged.connect(() => tracker.save(widget));
+      // Update the tracker if the active provider changed.
+      model.agentManager.activeProviderChanged.connect(() =>
+        tracker.save(widget)
+      );
 
       // Remove the model from the registry when the widget is disposed.
       widget.disposed.connect(() => {
         modelRegistry.remove(model.name);
       });
-      tracker.add(widget);
     };
 
     commands.addCommand(CommandIds.openChat, {
@@ -566,7 +575,6 @@ function registerCommands(
         // when the previous widget is disposed.
         const trackerUpdated = new PromiseDelegate<boolean>();
         const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
-          console.log('UPDATED', widget);
           if (widget.model === previousModel) {
             trackerUpdated.resolve(true);
           }
