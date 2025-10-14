@@ -17,6 +17,12 @@ import type { IProviderRegistry } from './tokens';
 import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
 
 /**
+ * Default parameter values for agent configuration
+ */
+const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_MAX_TURNS = 25;
+
+/**
  * Event type mapping for type safety with inlined interface definitions
  */
 export interface IAgentEventTypeMap {
@@ -293,9 +299,10 @@ export class AgentManager {
       // Add user message to history
       this._history.push(user(message));
 
-      // Get provider-specific maxTurns or fall back to global config
+      // Get provider-specific maxTurns or use default
       const activeProvider = this._settingsModel.getActiveProvider();
-      const maxTurns = activeProvider?.parameters?.maxTurns ?? config.maxTurns;
+      const maxTurns =
+        activeProvider?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
       // Main agentic loop
       let result = await this._runner.run(this._agent, this._history, {
@@ -469,12 +476,11 @@ export class AgentManager {
 
       const mcpServers = this._mcpServers.filter(server => server !== null);
 
-      // Get provider-specific parameters or fall back to global config
+      // Get provider-specific parameters or use defaults
       const activeProvider = this._settingsModel.getActiveProvider();
       const temperature =
-        activeProvider?.parameters?.temperature ?? config.temperature;
-      const maxTokens =
-        activeProvider?.parameters?.maxTokens ?? config.maxTokens;
+        activeProvider?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
+      const maxTokens = activeProvider?.parameters?.maxTokens;
 
       this._agent = new Agent({
         name: 'Assistant',

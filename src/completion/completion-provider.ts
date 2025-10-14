@@ -47,6 +47,11 @@ Rules:
 - Use variables, imports, functions, and other definitions from previous notebook cells when relevant`;
 
 /**
+ * Default temperature for code completion (lower than chat for more deterministic results)
+ */
+const DEFAULT_COMPLETION_TEMPERATURE = 0.3;
+
+/**
  * The generic completion provider to register to the completion provider manager.
  */
 export class AICompletionProvider implements IInlineCompletionProvider {
@@ -286,7 +291,8 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     const activeProvider = this._settingsModel.getCompleterProvider();
 
     // Use provider-specific temperature or fall back to default
-    const temperature = activeProvider?.parameters?.temperature ?? 0.3;
+    const temperature =
+      activeProvider?.parameters?.temperature ?? DEFAULT_COMPLETION_TEMPERATURE;
     const supportsFillInMiddle =
       activeProvider?.parameters?.supportsFillInMiddle ?? false;
     const useFilterText = activeProvider?.parameters?.useFilterText ?? false;

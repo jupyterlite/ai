@@ -683,6 +683,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                 gutterBottom
                               >
                                 {provider.provider} • {provider.model}
+                                {provider.description &&
+                                  ` • ${provider.description}`}
                               </Typography>
 
                               {/* Display parameters if set */}

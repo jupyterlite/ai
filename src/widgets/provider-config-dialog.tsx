@@ -28,6 +28,12 @@ import React from 'react';
 import { IProviderConfig, IProviderParameters } from '../models/settings-model';
 import type { IProviderRegistry } from '../tokens';
 
+/**
+ * Default parameter values for provider configuration
+ */
+const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_MAX_TURNS = 25;
+
 interface IProviderConfigDialogProps {
   open: boolean;
   onClose: () => void;
@@ -316,7 +322,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                     Temperature: {parameters.temperature ?? 'Default'}
                   </Typography>
                   <Slider
-                    value={parameters.temperature ?? 0.7}
+                    value={parameters.temperature ?? DEFAULT_TEMPERATURE}
                     onChange={(_, value) =>
                       setParameters({
                         ...parameters,
@@ -365,7 +371,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                         : undefined
                     })
                   }
-                  placeholder="Default: 25"
+                  placeholder={`Default: ${DEFAULT_MAX_TURNS}`}
                   helperText="Maximum number of tool execution turns"
                   inputProps={{ min: 1, max: 100 }}
                 />

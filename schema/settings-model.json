@@ -38,7 +38,8 @@
                 "type": "number",
                 "description": "Temperature (0.0 = deterministic, 2.0 = very creative)",
                 "minimum": 0,
-                "maximum": 2
+                "maximum": 2,
+                "default": 0.7
               },
               "maxTokens": {
                 "type": "number",
@@ -49,7 +50,8 @@
                 "type": "number",
                 "description": "Maximum number of tool execution turns",
                 "minimum": 1,
-                "maximum": 100
+                "maximum": 100,
+                "default": 25
               },
               "supportsFillInMiddle": {
                 "type": "boolean",
@@ -105,21 +107,6 @@
       },
       "default": []
     },
-    "temperature": {
-      "title": "Temperature",
-      "description": "Controls response creativity (0.0 = deterministic, 2.0 = very creative)",
-      "type": "number",
-      "minimum": 0,
-      "maximum": 2,
-      "default": 0.7
-    },
-    "maxTokens": {
-      "title": "Max Tokens",
-      "description": "Maximum length of AI responses (leave empty for provider default)",
-      "type": "number",
-      "minimum": 1,
-      "maximum": 8192
-    },
     "contextAwareness": {
       "title": "Context Awareness",
       "description": "Enable context-aware responses",
@@ -143,14 +130,6 @@
       "description": "Use Shift+Enter to send messages (Enter creates new line)",
       "type": "boolean",
       "default": false
-    },
-    "maxTurns": {
-      "title": "Max Turns",
-      "description": "Maximum number of tool execution turns",
-      "type": "number",
-      "minimum": 1,
-      "maximum": 100,
-      "default": 25
     },
     "showTokenUsage": {
       "title": "Show Token Usage",

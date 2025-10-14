@@ -45,16 +45,12 @@ export interface IAIConfig {
   // MCP servers configuration
   mcpServers: IMCPServerConfig[];
   // Global settings
-  temperature: number;
-  maxTokens?: number;
   contextAwareness: boolean;
   codeExecution: boolean;
   systemPrompt: string;
   toolsEnabled: boolean;
   // Chat behavior settings
   sendWithShiftEnter: boolean;
-  // Maximum number of turns/iterations when using tools
-  maxTurns: number;
   // Token usage display setting
   showTokenUsage: boolean;
   // Commands that require approval before execution
@@ -69,13 +65,10 @@ export class AISettingsModel extends VDomModel {
     activeCompleterProvider: undefined,
     useSameProviderForChatAndCompleter: true,
     mcpServers: [],
-    temperature: 0.7,
-    maxTokens: undefined,
     contextAwareness: true,
     codeExecution: false,
     toolsEnabled: true,
     sendWithShiftEnter: false,
-    maxTurns: 25,
     showTokenUsage: false,
     commandsRequiringApproval: [
       'notebook:restart-run-all',
