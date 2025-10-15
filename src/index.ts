@@ -852,7 +852,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
  */
 const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
   {
-    id: 'labai:input-toolbar-factory',
+    id: '@jupyterlite/ai:input-toolbar-factory',
     description: 'The input toolbar registry plugin.',
     autoStart: true,
     provides: IInputToolbarRegistryFactory,

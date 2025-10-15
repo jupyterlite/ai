@@ -1,15 +1,10 @@
 import { LabIcon } from '@jupyterlab/ui-components';
 
-import labaiIconSvg from '../style/icons/jupyternaut-lite.svg';
-
-export const labaiIcon = new LabIcon({
-  name: '@jupyterlite/ai:icon',
-  svgstr: labaiIconSvg
-});
+import jupyternautSvg from '../style/icons/jupyternaut-lite.svg';
 
 export const jupyternautIcon = new LabIcon({
   name: '@jupyterlite/ai:jupyternaut',
-  svgstr: labaiIconSvg
+  svgstr: jupyternautSvg
 });
 
 const AI_AVATAR_BASE64 = btoa(jupyternautIcon.svgstr);

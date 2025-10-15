@@ -5,8 +5,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
 
-const SELECT_ITEM_CLASS = 'labai-model-select-item';
-
 /**
  * Properties for the model select component.
  */
@@ -187,7 +185,6 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         {availableModels.map(({ provider, providerLabel, isSelected }) => (
           <MenuItem
             key={provider}
-            className={SELECT_ITEM_CLASS}
             onClick={async e => {
               await selectModel(provider);
               // Prevent sending message on model selection
