@@ -325,9 +325,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     // Retrieve the API key from the secrets manager if necessary.
     if (model.config.useSecretsManager && secretsManager) {
       provider.apiKey =
-        (await getSecretFromManager(provider.provider, 'apiKey')) ??
-        provider.apiKey ??
-        '';
+        (await getSecretFromManager(provider.provider, 'apiKey')) ?? '';
     }
     setEditingProvider(provider);
     setDialogOpen(true);
