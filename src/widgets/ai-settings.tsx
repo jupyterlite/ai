@@ -232,6 +232,23 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     return secret?.value;
   };
 
+  const setSecretToManager = async (
+    provider: string,
+    fieldName: string,
+    value: string
+  ): Promise<void> => {
+    await secretsManager?.set(
+      Private.getToken(),
+      SECRETS_NAMESPACE,
+      `${provider}:${fieldName}`,
+      {
+        namespace: SECRETS_NAMESPACE,
+        id: `${provider}:${fieldName}`,
+        value
+      }
+    );
+  };
+
   /**
    * Attach a secrets field to the secrets manager.
    * @param input - the DOm element to attach.
@@ -354,6 +371,15 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     if (updates.useSecretsManager !== undefined) {
       if (updates.useSecretsManager) {
         for (const provider of model.config.providers) {
+          // if the secrets manager doesn't have the current API key, copy the current
+          // one from settings.
+          if (!(await getSecretFromManager(provider.provider, 'apiKey'))) {
+            setSecretToManager(
+              provider.provider,
+              'apiKey',
+              provider.apiKey ?? ''
+            );
+          }
           provider.apiKey = SECRETS_REPLACEMENT;
           await model.updateProvider(provider.id, provider);
         }
