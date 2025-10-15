@@ -275,26 +275,6 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Formats tool input for display, handling both objects and pre-stringified JSON.
-   * @param input The tool input to format (object or string)
-   * @returns Pretty-printed JSON string
-   */
-  private _formatToolInput(input: string | object): string {
-    if (typeof input === 'string') {
-      try {
-        // If it's already a JSON string, parse and re-stringify with formatting
-        const parsed = JSON.parse(input);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        // If parsing fails, return the string as-is
-        return input;
-      }
-    }
-    // If it's an object, stringify it with formatting
-    return JSON.stringify(input, null, 2);
-  }
-
-  /**
    * Handles settings changes and updates chat configuration accordingly.
    */
   private _onSettingsChanged(): void {
@@ -403,7 +383,7 @@ export class AIChatModel extends AbstractChatModel {
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${JSON.stringify(event.data.input, null, 2)}</code></pre>
+<pre class="jp-ai-tool-code"><code>${event.data.input}</code></pre>
 </div>
 </div>
 </details>`,
@@ -501,7 +481,7 @@ export class AIChatModel extends AbstractChatModel {
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">${assistantName} wants to execute this tool. Do you approve?</div>
-<pre class="jp-ai-tool-code"><code>${this._formatToolInput(event.data.toolInput)}</code></pre>
+<pre class="jp-ai-tool-code"><code>${event.data.toolInput}</code></pre>
 </div>
 [APPROVAL_BUTTONS:${event.data.interruptionId}]
 </div>
@@ -525,7 +505,7 @@ export class AIChatModel extends AbstractChatModel {
 ${assistantName} wants to execute this tool. Do you approve?
 
 \`\`\`json
-${this._formatToolInput(event.data.toolInput)}
+${event.data.toolInput}
 \`\`\`
 
 [APPROVAL_BUTTONS:${event.data.interruptionId}]`,
@@ -553,7 +533,7 @@ ${this._formatToolInput(event.data.toolInput)}
     const toolsList = event.data.approvals
       .map(
         (info, index) =>
-          `**${index + 1}. ${info.toolName}**\n\`\`\`json\n${this._formatToolInput(info.toolInput)}\n\`\`\`\n`
+          `**${index + 1}. ${info.toolName}**\n\`\`\`json\n${info.toolInput}\n\`\`\`\n`
       )
       .join('\n\n');
 

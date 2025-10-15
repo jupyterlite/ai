@@ -184,18 +184,18 @@ export interface IAgentEventTypeMap {
   tool_call_start: {
     callId: string;
     toolName: string;
-    input: any;
+    input: string;
   };
   tool_call_complete: {
     callId: string;
     toolName: string;
-    output: any;
+    output: string;
     isError: boolean;
   };
   tool_approval_required: {
     interruptionId: string;
     toolName: string;
-    toolInput: any;
+    toolInput: string;
     callId?: string;
   };
   grouped_approval_required: {
@@ -203,7 +203,7 @@ export interface IAgentEventTypeMap {
     approvals: Array<{
       interruptionId: string;
       toolName: string;
-      toolInput: any;
+      toolInput: string;
     }>;
   };
   error: {
@@ -719,6 +719,26 @@ export class AgentManager {
   }
 
   /**
+   * Formats tool input for display, handling both objects and pre-stringified JSON.
+   * @param input The tool input to format (object or string)
+   * @returns Pretty-printed JSON string
+   */
+  private _formatToolInput(input: string | object): string {
+    if (typeof input === 'string') {
+      try {
+        // If it's already a JSON string, parse and re-stringify with formatting
+        const parsed = JSON.parse(input);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        // If parsing fails, return the string as-is
+        return input;
+      }
+    }
+    // If it's an object, stringify it with formatting
+    return JSON.stringify(input, null, 2);
+  }
+
+  /**
    * Handles the start of a tool call from the model event.
    * @param modelEvent The model event containing tool call information
    */
@@ -738,7 +758,7 @@ export class AgentManager {
       data: {
         callId: toolCallId,
         toolName,
-        input: parsedToolInput
+        input: this._formatToolInput(parsedToolInput)
       }
     });
   }
@@ -795,7 +815,7 @@ export class AgentManager {
       data: {
         interruptionId,
         toolName,
-        toolInput,
+        toolInput: this._formatToolInput(toolInput),
         callId
       }
     });
@@ -819,7 +839,7 @@ export class AgentManager {
       return {
         interruptionId,
         toolName,
-        toolInput
+        toolInput: this._formatToolInput(toolInput)
       };
     });
 
