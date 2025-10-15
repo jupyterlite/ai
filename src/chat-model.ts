@@ -163,6 +163,9 @@ export class AIChatModel extends AbstractChatModel {
         const attachmentContents = await this._processAttachments(
           this.input.attachments
         );
+        // Clear attachments right after  processing
+        this.input.clearAttachments();
+
         if (attachmentContents.length > 0) {
           enhancedMessage +=
             '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
@@ -172,8 +175,6 @@ export class AIChatModel extends AbstractChatModel {
       this.updateWriters([{ user: this._getAIUser() }]);
 
       await this._agentManager.generateResponse(enhancedMessage);
-      // Clear attachments after processing
-      this.input.clearAttachments();
     } catch (error) {
       const errorMessage: IChatMessage = {
         body: `Error generating AI response: ${(error as Error).message}`,
@@ -279,10 +280,7 @@ export class AIChatModel extends AbstractChatModel {
    */
   private _onSettingsChanged(): void {
     const config = this._settingsModel.config;
-    this.config = {
-      ...config,
-      enableCodeToolbar: true
-    };
+    this.config = { ...config, enableCodeToolbar: true };
     // Agent manager handles agent recreation automatically via its own settings listener
   }
 
