@@ -478,32 +478,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
         {/* Tab Panels */}
         {activeTab === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {secretsManager !== undefined && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={config.useSecretsManager}
-                    onChange={e =>
-                      handleConfigUpdate({
-                        useSecretsManager: e.target.checked
-                      })
-                    }
-                    color="primary"
-                    sx={{ alignSelf: 'flex-start' }}
-                  />
-                }
-                label={
-                  <div>
-                    <span>Use the secrets manager to manage API keys</span>
-                    {!config.useSecretsManager && (
-                      <Alert severity="warning" icon={<Error />} sx={{ mb: 2 }}>
-                        The secrets will be stored in plain text in settings
-                      </Alert>
-                    )}
-                  </div>
-                }
-              />
-            )}
             {/* Default Provider Selection */}
             {config.providers.length > 0 && (
               <Card elevation={2}>
@@ -726,6 +700,34 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 )}
               </CardContent>
             </Card>
+
+            {/* Secrets Manager Settings */}
+            {secretsManager !== undefined && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={config.useSecretsManager}
+                    onChange={e =>
+                      handleConfigUpdate({
+                        useSecretsManager: e.target.checked
+                      })
+                    }
+                    color="primary"
+                    sx={{ alignSelf: 'flex-start' }}
+                  />
+                }
+                label={
+                  <div>
+                    <span>Use the secrets manager to manage API keys</span>
+                    {!config.useSecretsManager && (
+                      <Alert severity="warning" icon={<Error />} sx={{ mb: 2 }}>
+                        The secrets will be stored in plain text in settings
+                      </Alert>
+                    )}
+                  </div>
+                }
+              />
+            )}
           </Box>
         )}
 
