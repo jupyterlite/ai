@@ -46,11 +46,11 @@ test.describe('#commandsTool', () => {
     // Wait for AI response
     await expect(
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1, { timeout: 60000 });
+    ).toHaveCount(1);
 
     // Wait for tool call to appear
     const toolCall = panel.locator('.jp-ai-tool-call');
-    await expect(toolCall).toHaveCount(1, { timeout: 30000 });
+    await expect(toolCall).toHaveCount(1);
 
     // Verify the tool was called
     await expect(toolCall).toContainText('discover_commands');
@@ -95,11 +95,11 @@ test.describe('#commandsTool', () => {
     // Wait for AI response
     await expect(
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1, { timeout: 60000 });
+    ).toHaveCount(1);
 
     // Wait for tool call to appear
     const toolCall = panel.locator('.jp-ai-tool-call');
-    await expect(toolCall).toHaveCount(1, { timeout: 30000 });
+    await expect(toolCall).toHaveCount(1);
 
     // Verify the tool was called
     await expect(toolCall).toContainText('discover_commands');
