@@ -48,12 +48,6 @@ export class ApprovalButtons implements IDisposable {
       button.removeEventListener('click', this._handleGroupedButtonClick);
     });
 
-    // // 3. Remettre le handler original du chat panel si nécessaire
-    // if (this._originalClickHandler) {
-    //   this._chatPanel.node.onclick = this._originalClickHandler;
-    //   this._originalClickHandler = null;
-    // }
-
     // Clean the references.
     this._chatModel = null!;
     this._chatPanel = null!;
