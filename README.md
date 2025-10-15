@@ -224,7 +224,7 @@ To avoid storing the API keys in the settings, `jupyterlite-ai` uses [jupyter-se
 The secrets manager get the API keys from a connector in a secure way.\
 The default connector of the secrets manager is _in memory_, which means that **the API keys are reset when reloading the page**.
 
-To prevent the keys to be reset on reload, there are two options:
+To prevent the keys from being reset on reload, there are two options:
 
 1. use a connector that fetches the keys on a remote server (using secure rest API, or web socket)
 
