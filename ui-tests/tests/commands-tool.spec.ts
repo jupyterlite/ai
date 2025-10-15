@@ -6,6 +6,8 @@
 import { expect, galata, test } from '@jupyterlab/galata';
 import { DEFAULT_SETTINGS_MODEL_SETTINGS, openChatPanel } from './test-utils';
 
+const EXPECT_TIMEOUT = 120000;
+
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
@@ -46,14 +48,16 @@ test.describe('#commandsTool', () => {
     // Wait for AI response
     await expect(
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1);
+    ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Wait for tool call to appear
     const toolCall = panel.locator('.jp-ai-tool-call');
-    await expect(toolCall).toHaveCount(1);
+    await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Verify the tool was called
-    await expect(toolCall).toContainText('discover_commands');
+    await expect(toolCall).toContainText('discover_commands', {
+      timeout: EXPECT_TIMEOUT
+    });
 
     // Click to expand the tool call
     await toolCall.click();
@@ -95,14 +99,16 @@ test.describe('#commandsTool', () => {
     // Wait for AI response
     await expect(
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1);
+    ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Wait for tool call to appear
     const toolCall = panel.locator('.jp-ai-tool-call');
-    await expect(toolCall).toHaveCount(1);
+    await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Verify the tool was called
-    await expect(toolCall).toContainText('discover_commands');
+    await expect(toolCall).toContainText('discover_commands', {
+      timeout: EXPECT_TIMEOUT
+    });
 
     // Click to expand the tool call
     await toolCall.click();
