@@ -5,6 +5,18 @@ import { LanguageModelV2 } from '@ai-sdk/provider';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
+import { AgentManagerFactory } from './agent';
+import { AIChatModel } from './chat-model';
+
+/**
+ * Command IDs namespace
+ */
+export namespace CommandIds {
+  export const openSettings = '@jupyterlite/ai:open-settings';
+  export const reposition = '@jupyterlite/ai:reposition';
+  export const openChat = '@jupyterlite/ai:open-chat';
+  export const moveChat = '@jupyterlite/ai:move-chat';
+}
 
 /**
  * Type definition for a tool
@@ -215,3 +227,26 @@ export const IAgentManager = new Token<AgentManager>(
  */
 export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
 export const SECRETS_REPLACEMENT = '***';
+
+/*
+ * Token for the agent manager registry.
+ */
+export const IAgentManagerFactory = new Token<AgentManagerFactory>(
+  '@jupyterlite/ai:agent-manager-factory'
+);
+
+export interface IChatModelRegistry {
+  add(model: AIChatModel): void;
+  get(name: string): AIChatModel | undefined;
+  getAll(): AIChatModel[];
+  remove(name: string): void;
+  createModel(
+    name?: string,
+    activeProvider?: string,
+    tokenUsage?: ITokenUsage
+  ): AIChatModel;
+}
+
+export const IChatModelRegistry = new Token<IChatModelRegistry>(
+  '@jupyterlite/ai:chat-model-registry'
+);

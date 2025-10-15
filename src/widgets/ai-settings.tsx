@@ -43,7 +43,7 @@ import {
 } from '@mui/material';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 import React, { useEffect, useState } from 'react';
-import { AgentManager } from '../agent';
+import { AgentManagerFactory } from '../agent';
 import {
   AISettingsModel,
   IAIConfig,
@@ -87,7 +87,7 @@ export class AISettingsWidget extends ReactWidget {
     super();
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
-    this._agentManager = options.agentManager;
+    this._agentManagerFactory = options.agentManagerFactory;
     this._themeManager = options.themeManager;
     this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
@@ -105,7 +105,7 @@ export class AISettingsWidget extends ReactWidget {
     return (
       <AISettingsComponent
         model={this._settingsModel}
-        agentManager={this._agentManager}
+        agentManagerFactory={this._agentManagerFactory}
         themeManager={this._themeManager}
         providerRegistry={this._providerRegistry}
         secretsManager={this._secretsManager}
@@ -114,7 +114,7 @@ export class AISettingsWidget extends ReactWidget {
   }
 
   private _settingsModel: AISettingsModel;
-  private _agentManager?: AgentManager;
+  private _agentManagerFactory?: AgentManagerFactory;
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
@@ -125,7 +125,7 @@ export class AISettingsWidget extends ReactWidget {
  */
 interface IAISettingsComponentProps {
   model: AISettingsModel;
-  agentManager?: AgentManager;
+  agentManagerFactory?: AgentManagerFactory;
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
   secretsManager?: ISecretsManager;
@@ -138,7 +138,7 @@ interface IAISettingsComponentProps {
  */
 const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   model,
-  agentManager,
+  agentManagerFactory,
   themeManager,
   providerRegistry,
   secretsManager
@@ -203,7 +203,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
    * Effect to listen for MCP connection changes to re-render connection status
    */
   useEffect(() => {
-    if (!agentManager) {
+    if (!agentManagerFactory) {
       return;
     }
 
@@ -212,11 +212,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
       setConfig(prevConfig => ({ ...prevConfig }));
     };
 
-    agentManager.mcpConnectionChanged.connect(onMCPConnectionChanged);
+    agentManagerFactory.mcpConnectionChanged.connect(onMCPConnectionChanged);
     return () => {
-      agentManager.mcpConnectionChanged.disconnect(onMCPConnectionChanged);
+      agentManagerFactory.mcpConnectionChanged.disconnect(
+        onMCPConnectionChanged
+      );
     };
-  }, [agentManager]);
+  }, [agentManagerFactory]);
 
   const getSecretFromManager = async (
     provider: string,
@@ -442,8 +444,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     setMcpMenuServerId('');
   };
 
-  const isValidConfig = agentManager?.hasValidConfig() ?? false;
-
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -463,18 +463,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             AI Settings
           </Typography>
         </Box>
-
-        {/* Status Alert */}
-        <Alert
-          severity={isValidConfig ? 'success' : 'warning'}
-          icon={isValidConfig ? <CheckCircle /> : <Error />}
-          sx={{ mb: 2 }}
-        >
-          {isValidConfig
-            ? 'Configuration is valid and ready to use'
-            : 'Please add and configure a provider to get started'}
-        </Alert>
-
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs
@@ -516,12 +504,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 }
               />
             )}
-            {/* Active Provider Selection */}
+            {/* Default Provider Selection */}
             {config.providers.length > 0 && (
               <Card elevation={2}>
                 <CardContent>
                   <Typography variant="h6" component="h2" gutterBottom>
-                    Active Providers
+                    Default Providers
                   </Typography>
 
                   <Box
@@ -530,7 +518,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     <FormControl fullWidth>
                       <InputLabel>Chat Provider</InputLabel>
                       <Select
-                        value={config.activeProvider}
+                        value={config.defaultProvider}
                         label="Chat Provider"
                         onChange={e => model.setActiveProvider(e.target.value)}
                       >
@@ -620,7 +608,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 ) : (
                   <List>
                     {config.providers.map(provider => {
-                      const isActive = config.activeProvider === provider.id;
+                      const isActive = config.defaultProvider === provider.id;
                       const isActiveCompleter =
                         config.useSameProviderForChatAndCompleter
                           ? isActive
@@ -960,7 +948,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                               {server.name}
                             </Typography>
                             {server.enabled &&
-                              agentManager?.isMCPServerConnected(
+                              agentManagerFactory?.isMCPServerConnected(
                                 server.name
                               ) && (
                                 <CheckCircleOutline
@@ -968,7 +956,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                 />
                               )}
                             {server.enabled &&
-                              !agentManager?.isMCPServerConnected(
+                              !agentManagerFactory?.isMCPServerConnected(
                                 server.name
                               ) && (
                                 <ErrorOutline
@@ -992,13 +980,15 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                             <Typography variant="body2" color="text.secondary">
                               {server.url}
                             </Typography>
-                            {server.enabled && agentManager && (
+                            {server.enabled && agentManagerFactory && (
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
                               >
                                 Status:{' '}
-                                {agentManager.isMCPServerConnected(server.name)
+                                {agentManagerFactory.isMCPServerConnected(
+                                  server.name
+                                )
                                   ? 'Connected'
                                   : 'Connection failed'}
                               </Typography>
@@ -1228,7 +1218,7 @@ export namespace AISettingsWidget {
    */
   export interface IOptions {
     settingsModel: AISettingsModel;
-    agentManager?: AgentManager;
+    agentManagerFactory?: AgentManagerFactory;
     themeManager?: IThemeManager;
     providerRegistry: IProviderRegistry;
     /**

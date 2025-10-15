@@ -6,14 +6,16 @@
 import { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import { Locator } from '@playwright/test';
 
+export const DEFAULT_MODEL_NAME = 'Qwen2.5';
+
 export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   '@jupyterlite/ai:settings-model': {
-    activeProvider: 'ollama-1759407012872',
+    defaultProvider: 'ollama-1759407012872',
     mcpServers: [],
     providers: [
       {
         id: 'ollama-1759407012872',
-        name: 'Qwen2.5',
+        name: DEFAULT_MODEL_NAME,
         provider: 'ollama',
         model: 'qwen2.5:0.5b'
       }
@@ -25,7 +27,7 @@ export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   }
 };
 
-export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-wrapper';
+export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
 
 export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
 

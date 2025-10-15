@@ -16,6 +16,149 @@ import { createModel } from './providers/models';
 import type { IProviderRegistry } from './tokens';
 import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
 
+export namespace AgentManagerFactory {
+  export interface IOptions {
+    /**
+     * The settings model.
+     */
+    settingsModel: AISettingsModel;
+    /**
+     * The secrets manager.
+     */
+    secretsManager?: ISecretsManager;
+    /**
+     * The token used to request the secrets manager.
+     */
+    token: symbol;
+  }
+}
+export class AgentManagerFactory {
+  constructor(options: AgentManagerFactory.IOptions) {
+    Private.setToken(options.token);
+    this._settingsModel = options.settingsModel;
+    this._secretsManager = options.secretsManager;
+    this._mcpServers = [];
+    this._mcpConnectionChanged = new Signal<this, boolean>(this);
+
+    // Initialize agent on construction
+    this._initializeAgents().catch(error =>
+      console.warn('Failed to initialize agent in constructor:', error)
+    );
+
+    // Listen for settings changes
+    this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+  }
+
+  createAgent(options: IAgentManagerOptions): AgentManager {
+    const agentManager = new AgentManager({
+      ...options,
+      secretsManager: this._secretsManager
+    });
+    this._agentManagers.push(agentManager);
+    return agentManager;
+  }
+
+  /**
+   * Signal emitted when MCP connection status changes
+   */
+  get mcpConnectionChanged(): ISignal<this, boolean> {
+    return this._mcpConnectionChanged;
+  }
+
+  /**
+   * Checks if a specific MCP server is connected by server name.
+   * @param serverName The name of the MCP server to check
+   * @returns True if the server is connected, false otherwise
+   */
+  isMCPServerConnected(serverName: string): boolean {
+    return this._mcpServers.some(server => server.name === serverName);
+  }
+
+  /**
+   * Handles settings changes and reinitializes the agent.
+   */
+  private _onSettingsChanged(): void {
+    this._initializeAgents().catch(error =>
+      console.warn('Failed to initialize agent on settings change:', error)
+    );
+  }
+
+  /**
+   * Initializes MCP (Model Context Protocol) servers based on current settings.
+   * Closes existing servers and connects to enabled servers from configuration.
+   */
+  private async _initializeMCPServers(): Promise<void> {
+    const config = this._settingsModel.config;
+    const enabledServers = config.mcpServers.filter(server => server.enabled);
+    let connectionChanged = false;
+
+    // Close existing servers
+    for (const server of this._mcpServers) {
+      try {
+        await server.close();
+        connectionChanged = true;
+      } catch (error) {
+        console.warn('Error closing MCP server:', error);
+      }
+    }
+    this._mcpServers = [];
+
+    // Initialize new servers
+    for (const serverConfig of enabledServers) {
+      try {
+        const mcpServer = new BrowserMCPServerStreamableHttp({
+          url: serverConfig.url,
+          name: serverConfig.name
+        });
+        await mcpServer.connect();
+        this._mcpServers.push(mcpServer);
+        connectionChanged = true;
+      } catch (error) {
+        console.warn(
+          `Failed to connect to MCP server "${serverConfig.name}" at ${serverConfig.url}:`,
+          error
+        );
+      }
+    }
+
+    // Emit connection change signal if there were any changes
+    if (connectionChanged) {
+      this._mcpConnectionChanged.emit(this._mcpServers.length > 0);
+    }
+  }
+
+  /**
+   * Initializes the AI agent with current settings and tools.
+   * Sets up the agent with model configuration, tools, and MCP servers.
+   */
+  private async _initializeAgents(): Promise<void> {
+    if (this._isInitializing) {
+      return;
+    }
+    this._isInitializing = true;
+
+    try {
+      await this._initializeMCPServers();
+      const mcpServers = this._mcpServers.filter(server => server !== null);
+
+      this._agentManagers.forEach(manager => {
+        manager.initializeAgent(mcpServers);
+      });
+    } catch (error) {
+      console.warn('Failed to initialize agents:', error);
+    } finally {
+      this._isInitializing = false;
+    }
+  }
+
+  private _agentManagers: AgentManager[] = [];
+  private _settingsModel: AISettingsModel;
+  private _secretsManager?: ISecretsManager;
+  private _mcpServers: BrowserMCPServerStreamableHttp[];
+  private _mcpConnectionChanged: Signal<this, boolean>;
+  private _isInitializing: boolean = false;
+}
+
 /**
  * Default parameter values for agent configuration
  */
@@ -103,10 +246,16 @@ export interface IAgentManagerOptions {
    * The secrets manager.
    */
   secretsManager?: ISecretsManager;
+
   /**
-   * The token used to request the secrets manager.
+   * The active provider to use with this agent.
    */
-  token: symbol;
+  activeProvider?: string;
+
+  /**
+   * Initial token usage.
+   */
+  tokenUsage?: ITokenUsage;
 }
 
 /**
@@ -121,7 +270,6 @@ export class AgentManager {
    * @param options Configuration options for the agent manager
    */
   constructor(options: IAgentManagerOptions) {
-    Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
@@ -136,22 +284,19 @@ export class AgentManager {
     this._pendingApprovals = new Map();
     this._interruptedState = null;
     this._agentEvent = new Signal<this, IAgentEvent>(this);
-    this._mcpConnectionChanged = new Signal<this, boolean>(this);
-    this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
+    this._tokenUsage = options.tokenUsage ?? {
+      inputTokens: 0,
+      outputTokens: 0
+    };
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
+
+    this.activeProvider =
+      options.activeProvider ?? this._settingsModel.config.defaultProvider;
 
     // Initialize selected tools to all available tools by default
     if (this._toolRegistry) {
       this._selectedToolNames = Object.keys(this._toolRegistry.tools);
     }
-
-    // Initialize agent on construction
-    this._initializeAgent().catch(error =>
-      console.warn('Failed to initialize agent in constructor:', error)
-    );
-
-    // Listen for settings changes
-    this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
   }
 
   /**
@@ -162,10 +307,10 @@ export class AgentManager {
   }
 
   /**
-   * Signal emitted when MCP connection status changes
+   * Signal emitted when the active provider has changed.
    */
-  get mcpConnectionChanged(): ISignal<this, boolean> {
-    return this._mcpConnectionChanged;
+  get activeProviderChanged(): ISignal<this, string | undefined> {
+    return this._activeProviderChanged;
   }
 
   /**
@@ -183,12 +328,24 @@ export class AgentManager {
   }
 
   /**
+   * The active provider for this agent.
+   */
+  get activeProvider(): string {
+    return this._activeProvider;
+  }
+  set activeProvider(value: string) {
+    this._activeProvider = value;
+    this.initializeAgent();
+    this._activeProviderChanged.emit(this._activeProvider);
+  }
+
+  /**
    * Sets the selected tools by name and reinitializes the agent.
    * @param toolNames Array of tool names to select
    */
   setSelectedTools(toolNames: string[]): void {
     this._selectedToolNames = [...toolNames];
-    this._initializeAgent().catch(error =>
+    this.initializeAgent().catch(error =>
       console.warn('Failed to initialize agent on tools change:', error)
     );
   }
@@ -214,35 +371,28 @@ export class AgentManager {
   }
 
   /**
-   * Checks if a specific MCP server is connected by server name.
-   * @param serverName The name of the MCP server to check
-   * @returns True if the server is connected, false otherwise
-   */
-  isMCPServerConnected(serverName: string): boolean {
-    return this._mcpServers.some(server => server.name === serverName);
-  }
-
-  /**
    * Checks if the current configuration is valid for agent operations.
    * Uses the provider registry to determine if an API key is required.
    * @returns True if the configuration is valid, false otherwise
    */
   hasValidConfig(): boolean {
-    const activeProvider = this._settingsModel.getActiveProvider();
-    if (!activeProvider) {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    if (!activeProviderConfig) {
       return false;
     }
 
-    if (!activeProvider.model) {
+    if (!activeProviderConfig.model) {
       return false;
     }
 
     if (this._providerRegistry) {
       const providerInfo = this._providerRegistry.getProviderInfo(
-        activeProvider.provider
+        activeProviderConfig.provider
       );
       if (providerInfo?.apiKeyRequirement === 'required') {
-        return !!activeProvider.apiKey;
+        return !!activeProviderConfig.apiKey;
       }
     }
 
@@ -282,7 +432,7 @@ export class AgentManager {
     try {
       // Ensure we have an agent
       if (!this._agent) {
-        await this._initializeAgent();
+        await this.initializeAgent();
       }
 
       if (!this._agent) {
@@ -300,9 +450,11 @@ export class AgentManager {
       this._history.push(user(message));
 
       // Get provider-specific maxTurns or use default
-      const activeProvider = this._settingsModel.getActiveProvider();
+      const activeProviderConfig = this._settingsModel.getProvider(
+        this._activeProvider
+      );
       const maxTurns =
-        activeProvider?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
+        activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
       // Main agentic loop
       let result = await this._runner.run(this._agent, this._history, {
@@ -441,19 +593,12 @@ export class AgentManager {
   }
 
   /**
-   * Handles settings changes and reinitializes the agent.
-   */
-  private _onSettingsChanged(): void {
-    this._initializeAgent().catch(error =>
-      console.warn('Failed to initialize agent on settings change:', error)
-    );
-  }
-
-  /**
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP servers.
    */
-  private async _initializeAgent(): Promise<void> {
+  initializeAgent = async (
+    mcpServers?: BrowserMCPServerStreamableHttp[]
+  ): Promise<void> => {
     if (this._isInitializing) {
       return;
     }
@@ -461,6 +606,10 @@ export class AgentManager {
 
     try {
       const config = this._settingsModel.config;
+      if (mcpServers !== undefined) {
+        this._mcpServers = mcpServers;
+      }
+
       const model = await this._createModel();
 
       const shouldUseTools =
@@ -470,17 +619,15 @@ export class AgentManager {
         Object.keys(this._toolRegistry.tools).length > 0 &&
         this._supportsToolCalling();
 
-      await this._initializeMCPServers();
-
       const tools = shouldUseTools ? this.selectedAgentTools : [];
 
-      const mcpServers = this._mcpServers.filter(server => server !== null);
+      const activeProviderConfig = this._settingsModel.getProvider(
+        this._activeProvider
+      );
 
-      // Get provider-specific parameters or use defaults
-      const activeProvider = this._settingsModel.getActiveProvider();
       const temperature =
-        activeProvider?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
-      const maxTokens = activeProvider?.parameters?.maxTokens;
+        activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
+      const maxTokens = activeProviderConfig?.parameters?.maxTokens;
 
       this._agent = new Agent({
         name: 'Assistant',
@@ -488,7 +635,7 @@ export class AgentManager {
           ? this._getEnhancedSystemPrompt(config.systemPrompt || '')
           : config.systemPrompt || 'You are a helpful assistant.',
         model: model,
-        mcpServers,
+        mcpServers: this._mcpServers,
         tools,
         ...(temperature && {
           modelSettings: {
@@ -503,51 +650,7 @@ export class AgentManager {
     } finally {
       this._isInitializing = false;
     }
-  }
-
-  /**
-   * Initializes MCP (Model Context Protocol) servers based on current settings.
-   * Closes existing servers and connects to enabled servers from configuration.
-   */
-  private async _initializeMCPServers(): Promise<void> {
-    const config = this._settingsModel.config;
-    const enabledServers = config.mcpServers.filter(server => server.enabled);
-    let connectionChanged = false;
-
-    // Close existing servers
-    for (const server of this._mcpServers) {
-      try {
-        await server.close();
-        connectionChanged = true;
-      } catch (error) {
-        console.warn('Error closing MCP server:', error);
-      }
-    }
-    this._mcpServers = [];
-
-    // Initialize new servers
-    for (const serverConfig of enabledServers) {
-      try {
-        const mcpServer = new BrowserMCPServerStreamableHttp({
-          url: serverConfig.url,
-          name: serverConfig.name
-        });
-        await mcpServer.connect();
-        this._mcpServers.push(mcpServer);
-        connectionChanged = true;
-      } catch (error) {
-        console.warn(
-          `Failed to connect to MCP server "${serverConfig.name}" at ${serverConfig.url}:`,
-          error
-        );
-      }
-    }
-
-    // Emit connection change signal if there were any changes
-    if (connectionChanged) {
-      this._mcpConnectionChanged.emit(this._mcpServers.length > 0);
-    }
-  }
+  };
 
   /**
    * Processes the result stream from agent execution.
@@ -734,13 +837,15 @@ export class AgentManager {
    * @returns True if the provider supports tool calling, false otherwise
    */
   private _supportsToolCalling(): boolean {
-    const activeProvider = this._settingsModel.getActiveProvider();
-    if (!activeProvider || !this._providerRegistry) {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    if (!activeProviderConfig || !this._providerRegistry) {
       return false;
     }
 
     const providerInfo = this._providerRegistry.getProviderInfo(
-      activeProvider.provider
+      activeProviderConfig.provider
     );
 
     // Default to true if supportsToolCalling is not specified
@@ -752,13 +857,18 @@ export class AgentManager {
    * @returns The configured model instance for the agent
    */
   private async _createModel() {
-    const activeProvider = this._settingsModel.getActiveProvider();
-    if (!activeProvider) {
+    if (!this._activeProvider) {
       throw new Error('No active provider configured');
     }
-    const provider = activeProvider.provider;
-    const model = activeProvider.model;
-    const baseURL = activeProvider.baseURL;
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    if (!activeProviderConfig) {
+      throw new Error('No active provider configured');
+    }
+    const provider = activeProviderConfig.provider;
+    const model = activeProviderConfig.model;
+    const baseURL = activeProviderConfig.baseURL;
 
     let apiKey: string;
     if (this._secretsManager && this._settingsModel.config.useSecretsManager) {
@@ -771,7 +881,7 @@ export class AgentManager {
           )
         )?.value ?? '';
     } else {
-      apiKey = this._settingsModel.getApiKey(activeProvider.id);
+      apiKey = this._settingsModel.getApiKey(activeProviderConfig.id);
     }
 
     return createModel(
@@ -842,9 +952,10 @@ TOOL SELECTION GUIDELINES:
   >;
   private _interruptedState: any;
   private _agentEvent: Signal<this, IAgentEvent>;
-  private _mcpConnectionChanged: Signal<this, boolean>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
+  private _activeProvider: string = '';
+  private _activeProviderChanged = new Signal<this, string | undefined>(this);
 }
 
 namespace Private {

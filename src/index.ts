@@ -8,11 +8,19 @@ import {
 import {
   ActiveCellManager,
   AttachmentOpenerRegistry,
+  chatIcon,
   ChatWidget,
-  InputToolbarRegistry
+  IAttachmentOpenerRegistry,
+  IInputToolbarRegistryFactory,
+  InputToolbarRegistry,
+  MultiChatPanel
 } from '@jupyter/chat';
 
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ICommandPalette,
+  IThemeManager,
+  WidgetTracker
+} from '@jupyterlab/apputils';
 
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 
@@ -26,20 +34,34 @@ import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-import { settingsIcon } from '@jupyterlab/ui-components';
+import {
+  settingsIcon,
+  Toolbar,
+  ToolbarButton
+} from '@jupyterlab/ui-components';
+
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { AgentManager } from './agent';
+import { PromiseDelegate, UUID } from '@lumino/coreutils';
+
+import { AgentManagerFactory } from './agent';
+
 import { AIChatModel } from './chat-model';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
+import { ApprovalButtons } from './approval-buttons';
+
+import { ChatModelRegistry } from './chat-model-registry';
+
 import {
-  IAgentManager,
+  CommandIds,
+  IAgentManagerFactory,
   IProviderRegistry,
   IToolRegistry,
   SECRETS_NAMESPACE,
-  IAISettingsModel
+  IAISettingsModel,
+  IChatModelRegistry
 } from './tokens';
 
 import {
@@ -53,13 +75,13 @@ import {
 
 import { AICompletionProvider } from './completion';
 
-import { clearItem } from './components/clear-button';
-
-import { createModelSelectItem } from './components/model-select';
-
-import { stopItem } from './components/stop-button';
-
-import { createToolSelectItem } from './components/tool-select';
+import {
+  clearItem,
+  createModelSelectItem,
+  createToolSelectItem,
+  stopItem,
+  TokenUsageWidget
+} from './components';
 
 import { AISettingsModel } from './models/settings-model';
 
@@ -93,15 +115,7 @@ import {
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
-import { ChatWrapperWidget } from './widgets/chat-wrapper';
-
-/**
- * Command IDs namespace
- */
-namespace CommandIds {
-  export const openSettings = '@jupyterlite/ai:open-settings';
-  export const reposition = '@jupyterlite/ai:reposition';
-}
+import { MainAreaChat } from './widgets/main-area-chat';
 
 /**
  * Provider registry plugin
@@ -195,32 +209,24 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * Initialization data for the extension.
+ * The chat model registry.
  */
-const plugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:plugin',
-  description: 'AI in JupyterLab',
+const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
+  id: '@jupyterlite/ai:chat-model-registry',
+  description: 'Registry for the current chat model',
   autoStart: true,
-  requires: [
-    IAISettingsModel,
-    IAgentManager,
-    IToolRegistry,
-    IRenderMimeRegistry,
-    IDocumentManager
-  ],
-  optional: [IThemeManager, INotebookTracker, ILayoutRestorer, ILabShell],
+  requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
+  optional: [IProviderRegistry, INotebookTracker, IToolRegistry],
+  provides: IChatModelRegistry,
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    agentManager: AgentManager,
-    toolRegistry: IToolRegistry,
-    rmRegistry: IRenderMimeRegistry,
+    agentManagerFactory: AgentManagerFactory,
     docManager: IDocumentManager,
-    themeManager?: IThemeManager,
+    providerRegistry?: IProviderRegistry,
     notebookTracker?: INotebookTracker,
-    restorer?: ILayoutRestorer,
-    labShell?: ILabShell
-  ): void => {
+    toolRegistry?: IToolRegistry
+  ): IChatModelRegistry => {
     // Create ActiveCellManager if notebook tracker is available
     let activeCellManager: ActiveCellManager | undefined;
     if (notebookTracker) {
@@ -229,57 +235,41 @@ const plugin: JupyterFrontEndPlugin<void> = {
         shell: app.shell
       });
     }
-
-    // Create AI chat model
-    const chatModel = new AIChatModel({
-      user: { username: 'user', display_name: 'User' },
-      settingsModel,
-      agentManager,
+    return new ChatModelRegistry({
       activeCellManager,
-      documentManager: docManager
+      settingsModel,
+      agentManagerFactory,
+      docManager,
+      providerRegistry,
+      toolRegistry
     });
+  }
+};
 
-    // Create input toolbar registry with all buttons
-    const inputToolbarRegistry = InputToolbarRegistry.defaultToolbarRegistry();
-    const stopButton = stopItem();
-    const clearButton = clearItem();
-    const toolSelectButton = createToolSelectItem(
-      toolRegistry,
-      settingsModel.config.toolsEnabled
-    );
-    const modelSelectButton = createModelSelectItem(settingsModel);
-
-    inputToolbarRegistry.addItem('stop', stopButton);
-    inputToolbarRegistry.addItem('clear', clearButton);
-    inputToolbarRegistry.addItem('model', modelSelectButton);
-    inputToolbarRegistry.addItem('tools', toolSelectButton);
-
-    // Listen to writers changes to show/hide stop button
-    chatModel.writersChanged.connect((_, writers) => {
-      // Check if AI is currently writing (streaming)
-      const aiWriting = writers.some(
-        writer => writer.user.username === 'ai-assistant'
-      );
-
-      if (aiWriting) {
-        inputToolbarRegistry.hide('send');
-        inputToolbarRegistry.show('stop');
-      } else {
-        inputToolbarRegistry.hide('stop');
-        inputToolbarRegistry.show('send');
-      }
-    });
-
-    // Listen for settings changes to update tool availability
-    settingsModel.stateChanged.connect(() => {
-      const config = settingsModel.config;
-      if (!config.toolsEnabled) {
-        inputToolbarRegistry.hide('tools');
-      } else {
-        inputToolbarRegistry.show('tools');
-      }
-    });
-
+/**
+ * Initialization data for the extension.
+ */
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:plugin',
+  description: 'AI in JupyterLab',
+  autoStart: true,
+  requires: [
+    IRenderMimeRegistry,
+    IInputToolbarRegistryFactory,
+    IChatModelRegistry,
+    IAISettingsModel
+  ],
+  optional: [IThemeManager, ILayoutRestorer, ILabShell],
+  activate: (
+    app: JupyterFrontEnd,
+    rmRegistry: IRenderMimeRegistry,
+    inputToolbarFactory: IInputToolbarRegistryFactory,
+    modelRegistry: IChatModelRegistry,
+    settingsModel: AISettingsModel,
+    themeManager?: IThemeManager,
+    restorer?: ILayoutRestorer,
+    labShell?: ILabShell
+  ): void => {
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
     attachmentOpenerRegistry.set('file', attachment => {
@@ -291,33 +281,154 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     // Create chat panel with drag/drop functionality
-    const chatPanel = new ChatWidget({
-      model: chatModel,
+    const chatPanel = new MultiChatPanel({
       rmRegistry,
-      themeManager,
-      inputToolbarRegistry,
-      attachmentOpenerRegistry
+      themeManager: themeManager ?? null,
+      inputToolbarFactory,
+      attachmentOpenerRegistry,
+      createModel: async (name?: string) => {
+        const model = modelRegistry.createModel(name);
+        return { model };
+      },
+      renameChat: async (oldName: string, newName: string) => {
+        const model = modelRegistry.get(oldName);
+        const concurrencyModel = modelRegistry.get(newName);
+        if (model && !concurrencyModel) {
+          model.name = newName;
+          return true;
+        }
+        return false;
+      },
+      openInMain: (name: string) =>
+        app.commands.execute(CommandIds.moveChat, {
+          area: 'main',
+          name
+        }) as Promise<boolean>
     });
 
-    // Create wrapper widget with a toolbar
-    const chatWrapper = new ChatWrapperWidget({
-      chatPanel,
-      commands: app.commands,
-      chatModel,
-      settingsModel
+    chatPanel.id = '@jupyterlite/ai:chat-panel';
+    chatPanel.title.icon = chatIcon;
+    chatPanel.title.caption = 'Chat with AI assistant'; // TODO: i18n/
+
+    chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
+    chatPanel.toolbar.addItem(
+      'settings',
+      new ToolbarButton({
+        icon: settingsIcon,
+        onClick: () => {
+          app.commands.execute('@jupyterlite/ai:open-settings');
+        },
+        tooltip: 'Open AI Settings'
+      })
+    );
+
+    chatPanel.sectionAdded.connect((_, section) => {
+      const { widget } = section;
+      const model = section.model as AIChatModel;
+
+      // Add the widget to the tracker.
+      tracker.add(widget);
+
+      // Update the tracker if the model name changed.
+      model.nameChanged.connect(() => tracker.save(widget));
+      // Update the tracker if the active provider changed.
+      model.agentManager.activeProviderChanged.connect(() =>
+        tracker.save(widget)
+      );
+
+      const tokenUsageWidget = new TokenUsageWidget({
+        tokenUsageChanged: model.tokenUsageChanged,
+        settingsModel,
+        initialTokenUsage: model.agentManager.tokenUsage
+      });
+      section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
+      model.writersChanged?.connect((_, writers) => {
+        // Check if AI is currently writing (streaming)
+        const aiWriting = writers.some(
+          writer => writer.user.username === 'ai-assistant'
+        );
+
+        if (aiWriting) {
+          widget.inputToolbarRegistry?.hide('send');
+          widget.inputToolbarRegistry?.show('stop');
+        } else {
+          widget.inputToolbarRegistry?.hide('stop');
+          widget.inputToolbarRegistry?.show('send');
+        }
+      });
+
+      // Associate an approval buttons object to the chat.
+      const approvalButton = new ApprovalButtons({
+        chatPanel: widget
+      });
+
+      widget.disposed.connect(() => {
+        // Dispose of the approval buttons widget when the chat is disposed.
+        approvalButton.dispose();
+        // Remove the model from the registry when the widget is disposed.
+        modelRegistry.remove(model.name);
+      });
     });
 
-    app.shell.add(chatWrapper, 'left', { rank: 1000 });
+    app.shell.add(chatPanel, 'left', { rank: 1000 });
+
+    // Creating the tracker for the document
+    const namespace = 'ai-chat';
+    const tracker = new WidgetTracker<MainAreaChat | ChatWidget>({ namespace });
 
     if (restorer) {
-      restorer.add(chatWrapper, chatWrapper.id);
+      restorer.add(chatPanel, chatPanel.id);
+      void restorer.restore(tracker, {
+        command: CommandIds.openChat,
+        args: widget => ({
+          name: widget.model.name,
+          area: widget instanceof MainAreaChat ? 'main' : 'side',
+          provider: (widget.model as AIChatModel).agentManager.activeProvider
+        }),
+        name: widget => {
+          const area = widget instanceof MainAreaChat ? 'main' : 'side';
+          return `${area}:${widget.model.name}`;
+        }
+      });
     }
 
-    registerCommands(app, labShell);
+    // Create a chat with default provider at startup.
+    app.restored.then(() => {
+      if (
+        !modelRegistry.getAll().length &&
+        settingsModel.config.defaultProvider
+      ) {
+        app.commands.execute(CommandIds.openChat);
+      }
+    });
+
+    registerCommands(
+      app,
+      rmRegistry,
+      chatPanel,
+      attachmentOpenerRegistry,
+      inputToolbarFactory,
+      settingsModel,
+      tracker,
+      modelRegistry,
+      themeManager,
+      labShell
+    );
   }
 };
 
-function registerCommands(app: JupyterFrontEnd, labShell?: ILabShell) {
+function registerCommands(
+  app: JupyterFrontEnd,
+  rmRegistry: IRenderMimeRegistry,
+  chatPanel: MultiChatPanel,
+  attachmentOpenerRegistry: IAttachmentOpenerRegistry,
+  inputToolbarFactory: IInputToolbarRegistryFactory,
+  settingsModel: AISettingsModel,
+  tracker: WidgetTracker<MainAreaChat | ChatWidget>,
+  modelRegistry: IChatModelRegistry,
+  themeManager?: IThemeManager,
+  labShell?: ILabShell
+) {
   const { commands } = app;
 
   if (labShell) {
@@ -365,27 +476,193 @@ function registerCommands(app: JupyterFrontEnd, labShell?: ILabShell) {
         }
       }
     });
+
+    const openInMain = (model: AIChatModel) => {
+      const content = new ChatWidget({
+        model,
+        rmRegistry,
+        themeManager: themeManager ?? null,
+        inputToolbarRegistry: inputToolbarFactory.create(),
+        attachmentOpenerRegistry
+      });
+      const widget = new MainAreaChat({ content, commands, settingsModel });
+      app.shell.add(widget, 'main');
+
+      // Add the widget to the tracker.
+      tracker.add(widget);
+
+      // Update the tracker if the model name changed.
+      model.nameChanged.connect(() => tracker.save(widget));
+      // Update the tracker if the active provider changed.
+      model.agentManager.activeProviderChanged.connect(() =>
+        tracker.save(widget)
+      );
+
+      // Remove the model from the registry when the widget is disposed.
+      widget.disposed.connect(() => {
+        modelRegistry.remove(model.name);
+      });
+    };
+
+    commands.addCommand(CommandIds.openChat, {
+      label: 'Open a chat',
+      execute: async (args): Promise<boolean> => {
+        const area = (args.area as string) === 'main' ? 'main' : 'side';
+        const provider = (args.provider as string) ?? undefined;
+        const model = modelRegistry.createModel(
+          args.name ? (args.name as string) : undefined,
+          provider
+        );
+        if (!model) {
+          return false;
+        }
+
+        if (area === 'main') {
+          openInMain(model);
+        } else {
+          chatPanel.addChat({ model });
+        }
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description: 'The name of the area to open the chat to'
+            },
+            name: {
+              type: 'string',
+              description: 'The name of the chat'
+            },
+            provider: {
+              type: 'string',
+              description: 'The provider/model to use with this chat'
+            }
+          }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.moveChat, {
+      caption: 'Move chat between area',
+      execute: async (args): Promise<boolean> => {
+        const area = args.area as string;
+        if (!['side', 'main'].includes(area)) {
+          console.error(
+            'Error while moving the chat to main area: the area has not been provided or is not correct'
+          );
+          return false;
+        }
+        if (!args.name || !args.area) {
+          console.error(
+            'Error while moving the chat to main area: the name has not been provided'
+          );
+          return false;
+        }
+        const previousModel = modelRegistry.get(args.name as string);
+        if (!previousModel) {
+          console.error(
+            'Error while moving the chat to main area: there is no reference model'
+          );
+          return false;
+        }
+
+        // Listen for the widget updated in tracker, to ensure the previous model name
+        // has been updated. This is required to remove the widget from the restorer
+        // when the previous widget is disposed.
+        const trackerUpdated = new PromiseDelegate<boolean>();
+        const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
+          if (widget.model === previousModel) {
+            trackerUpdated.resolve(true);
+          }
+        };
+        tracker.widgetUpdated.connect(widgetUpdated);
+
+        // Rename temporary the previous model to be able to reuse this name for the new
+        // model. The previous is intended to be disposed anyway.
+        previousModel.name = UUID.uuid4();
+
+        // Create a new model by duplicating the previous model attributes.
+        const model = modelRegistry.createModel(
+          args.name as string,
+          previousModel?.agentManager.activeProvider,
+          previousModel?.agentManager.tokenUsage
+        );
+        previousModel?.messages.forEach(message =>
+          model?.messageAdded(message)
+        );
+
+        // Wait (with timeout) for the tracker to have updated the previous widget.
+        const status = await Promise.any([
+          trackerUpdated.promise,
+          new Promise<boolean>(r =>
+            setTimeout(() => {
+              return false;
+            }, 2000)
+          )
+        ]);
+        tracker.widgetUpdated.disconnect(widgetUpdated);
+
+        if (!status) {
+          return false;
+        }
+
+        if (area === 'main') {
+          openInMain(model);
+        } else {
+          const current = app.shell.currentWidget;
+          // Remove the current main area chat.
+          if (
+            current instanceof MainAreaChat &&
+            current.model.name === previousModel.name
+          ) {
+            current.dispose();
+          }
+          chatPanel.addChat({ model });
+        }
+
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description: 'The name of the area to move the chat to'
+            },
+            name: {
+              type: 'string',
+              description: 'The name of the chat to move'
+            }
+          },
+          requires: ['area', 'name']
+        }
+      }
+    });
   }
 }
 
 /**
  * A plugin to provide the settings model.
  */
-const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
-  SECRETS_NAMESPACE,
-  token => ({
+const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
+  SecretsManager.sign(SECRETS_NAMESPACE, token => ({
     id: SECRETS_NAMESPACE,
     description: 'Provide the AI agent manager',
     autoStart: true,
-    provides: IAgentManager,
+    provides: IAgentManagerFactory,
     requires: [IAISettingsModel, IProviderRegistry],
     optional: [
       ICommandPalette,
       ICompletionProviderManager,
       ILayoutRestorer,
       ISecretsManager,
-      IThemeManager,
-      IToolRegistry
+      IThemeManager
     ],
     activate: (
       app: JupyterFrontEnd,
@@ -395,14 +672,10 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
       completionManager?: ICompletionProviderManager,
       restorer?: ILayoutRestorer,
       secretsManager?: ISecretsManager,
-      themeManager?: IThemeManager,
-      toolRegistry?: IToolRegistry
-    ): AgentManager => {
-      // Build the agent manager
-      const agentManager = new AgentManager({
+      themeManager?: IThemeManager
+    ): AgentManagerFactory => {
+      const agentManagerFactory = new AgentManagerFactory({
         settingsModel,
-        toolRegistry,
-        providerRegistry,
         secretsManager,
         token
       });
@@ -410,7 +683,7 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
       // Build the settings panel
       const settingsWidget = new AISettingsWidget({
         settingsModel,
-        agentManager,
+        agentManagerFactory,
         themeManager,
         providerRegistry,
         secretsManager,
@@ -472,13 +745,12 @@ const agentManager: JupyterFrontEndPlugin<AgentManager> = SecretsManager.sign(
         });
       }
 
-      return agentManager;
+      return agentManagerFactory;
     }
-  })
-);
+  }));
 
 /**
- * A plugin to provide the settings model.
+ * Built-in completion providers plugin
  */
 const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   id: '@jupyterlite/ai:settings-model',
@@ -491,9 +763,6 @@ const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   }
 };
 
-/**
- * A plugin to provide the tool registry.
- */
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
   description: 'Provide the AI tool registry',
@@ -578,6 +847,54 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   }
 };
 
+/**
+ * Extension providing the input toolbar registry.
+ */
+const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
+  {
+    id: 'labai:input-toolbar-factory',
+    description: 'The input toolbar registry plugin.',
+    autoStart: true,
+    provides: IInputToolbarRegistryFactory,
+    requires: [IAISettingsModel, IToolRegistry],
+    activate: (
+      app: JupyterFrontEnd,
+      settingsModel: AISettingsModel,
+      toolRegistry: IToolRegistry
+    ): IInputToolbarRegistryFactory => {
+      const stopButton = stopItem();
+      const clearButton = clearItem();
+      const toolSelectButton = createToolSelectItem(
+        toolRegistry,
+        settingsModel.config.toolsEnabled
+      );
+      const modelSelectButton = createModelSelectItem(settingsModel);
+
+      return {
+        create() {
+          const inputToolbarRegistry =
+            InputToolbarRegistry.defaultToolbarRegistry();
+          inputToolbarRegistry.addItem('stop', stopButton);
+          inputToolbarRegistry.addItem('clear', clearButton);
+          inputToolbarRegistry.addItem('model', modelSelectButton);
+          inputToolbarRegistry.addItem('tools', toolSelectButton);
+
+          // Listen for settings changes to update tool availability
+          settingsModel.stateChanged.connect(() => {
+            const config = settingsModel.config;
+            if (!config.toolsEnabled) {
+              inputToolbarRegistry.hide('tools');
+            } else {
+              inputToolbarRegistry.show('tools');
+            }
+          });
+
+          return inputToolbarRegistry;
+        }
+      };
+    }
+  };
+
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
@@ -586,10 +903,12 @@ export default [
   openaiProviderPlugin,
   ollamaProviderPlugin,
   genericProviderPlugin,
-  plugin,
   settingsModel,
-  agentManager,
-  toolRegistry
+  chatModelRegistry,
+  plugin,
+  toolRegistry,
+  agentManagerFactory,
+  inputToolbarFactory
 ];
 
 // Export extension points for other extensions to use
