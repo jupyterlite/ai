@@ -279,7 +279,7 @@ export class AIChatModel extends AbstractChatModel {
    * @param input The tool input to format (object or string)
    * @returns Pretty-printed JSON string
    */
-  private _formatToolInput(input: any): string {
+  private _formatToolInput(input: string | object): string {
     if (typeof input === 'string') {
       try {
         // If it's already a JSON string, parse and re-stringify with formatting
