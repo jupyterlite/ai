@@ -921,7 +921,9 @@ Guidelines:
 - Use natural, conversational tone throughout
 
 COMMAND DISCOVERY:
-- When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata.
+- When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata, with the optional query parameter.
+- The query should typically be a single word, e.g., 'terminal', 'notebook', 'cell', 'file', 'edit', 'view', 'run', etc, to find relevant commands.
+- If searching with a query does not yield the desired command, try again with a different query or use an empty query to list all commands.
 - This ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
 
 TOOL SELECTION GUIDELINES:
