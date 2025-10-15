@@ -376,21 +376,23 @@ export class AgentManager {
    * @returns True if the configuration is valid, false otherwise
    */
   hasValidConfig(): boolean {
-    const activeProvider = this._settingsModel.getDefaultProvider();
-    if (!activeProvider) {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    if (!activeProviderConfig) {
       return false;
     }
 
-    if (!activeProvider.model) {
+    if (!activeProviderConfig.model) {
       return false;
     }
 
     if (this._providerRegistry) {
       const providerInfo = this._providerRegistry.getProviderInfo(
-        activeProvider.provider
+        activeProviderConfig.provider
       );
       if (providerInfo?.apiKeyRequirement === 'required') {
-        return !!activeProvider.apiKey;
+        return !!activeProviderConfig.apiKey;
       }
     }
 

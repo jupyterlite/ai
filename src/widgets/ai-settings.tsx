@@ -444,10 +444,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     setMcpMenuServerId('');
   };
 
-  // TODO: Fix this test or remove it ?
-  // const isValidConfig = agentManagerFactory?.hasValidConfig() ?? false;
-  const isValidConfig = true;
-
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -467,18 +463,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             AI Settings
           </Typography>
         </Box>
-
-        {/* Status Alert */}
-        <Alert
-          severity={isValidConfig ? 'success' : 'warning'}
-          icon={isValidConfig ? <CheckCircle /> : <Error />}
-          sx={{ mb: 2 }}
-        >
-          {isValidConfig
-            ? 'Configuration is valid and ready to use'
-            : 'Please add and configure a provider to get started'}
-        </Alert>
-
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs
