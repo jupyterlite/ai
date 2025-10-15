@@ -25,11 +25,9 @@ test.use({
 });
 
 test.describe('#commandsTool', () => {
-  test.beforeEach(async () => {
-    test.setTimeout(120 * 1000);
-  });
-
   test('should filter commands using query parameter', async ({ page }) => {
+    test.setTimeout(120 * 1000);
+
     const panel = await openChatPanel(page);
     const input = panel
       .locator('.jp-chat-input-container')
@@ -77,6 +75,8 @@ test.describe('#commandsTool', () => {
   test('should return all commands without query parameter', async ({
     page
   }) => {
+    test.setTimeout(120 * 1000);
+
     const panel = await openChatPanel(page);
     const input = panel
       .locator('.jp-chat-input-container')
