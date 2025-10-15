@@ -20,51 +20,56 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .nullable()
         .describe('Optional search query to filter commands')
     }),
-    execute: async () => {
-      try {
-        const commandList: Array<{
-          id: string;
-          label?: string;
-          caption?: string;
-          description?: string;
-          args?: any;
-        }> = [];
+    execute: async (input: { query?: string | null }) => {
+      const { query } = input;
+      const commandList: Array<{
+        id: string;
+        label?: string;
+        caption?: string;
+        description?: string;
+        args?: any;
+      }> = [];
 
-        // Get all command IDs
-        const commandIds = commands.listCommands();
+      // Get all command IDs
+      const commandIds = commands.listCommands();
 
-        for (const id of commandIds) {
-          try {
-            // Get command metadata using various CommandRegistry methods
-            const description = await commands.describedBy(id);
-            const label = commands.label(id);
-            const caption = commands.caption(id);
-            const usage = commands.usage(id);
+      for (const id of commandIds) {
+        // Get command metadata using various CommandRegistry methods
+        const description = await commands.describedBy(id);
+        const label = commands.label(id);
+        const caption = commands.caption(id);
+        const usage = commands.usage(id);
 
-            commandList.push({
-              id,
-              label: label || undefined,
-              caption: caption || undefined,
-              description: usage || undefined,
-              args: description?.args || undefined
-            });
-          } catch (error) {
-            // Some commands might not have descriptions, skip them
-            commandList.push({ id });
+        const command = {
+          id,
+          label: label || undefined,
+          caption: caption || undefined,
+          description: usage || undefined,
+          args: description?.args || undefined
+        };
+
+        // Filter by query if provided
+        if (query) {
+          const searchTerm = query.toLowerCase();
+          const matchesQuery =
+            id.toLowerCase().includes(searchTerm) ||
+            label?.toLowerCase().includes(searchTerm) ||
+            caption?.toLowerCase().includes(searchTerm) ||
+            usage?.toLowerCase().includes(searchTerm);
+
+          if (matchesQuery) {
+            commandList.push(command);
           }
+        } else {
+          commandList.push(command);
         }
-
-        return {
-          success: true,
-          commandCount: commandList.length,
-          commands: commandList
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: `Failed to discover commands: ${error instanceof Error ? error.message : String(error)}`
-        };
       }
+
+      return {
+        success: true,
+        commandCount: commandList.length,
+        commands: commandList
+      };
     }
   });
 }
@@ -87,7 +92,7 @@ export function createExecuteCommandTool(
         .optional()
         .describe('Optional arguments to pass to the command')
     }),
-    needsApproval: async (_context, { commandId }) => {
+    needsApproval: async (context, { commandId }) => {
       // Use configurable list of commands requiring approval
       const commandsRequiringApproval =
         settingsModel.config.commandsRequiringApproval;
