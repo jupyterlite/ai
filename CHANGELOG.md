@@ -2,6 +2,46 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0a3
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a2...3fbe54ef55d08c0d4042804fe98774ed9b9efc1f))
+
+### Enhancements made
+
+- Add Google Generative AI provider [#185](https://github.com/jupyterlite/ai/pull/185) ([@jtpio](https://github.com/jtpio))
+- Allow specifying an API key for the generic OpenAI compatible provider [#179](https://github.com/jupyterlite/ai/pull/179) ([@jtpio](https://github.com/jtpio))
+- Switch to ai-sdk and openai-agent [#176](https://github.com/jupyterlite/ai/pull/176) ([@brichet](https://github.com/brichet))
+- Add multichat panel [#169](https://github.com/jupyterlite/ai/pull/169) ([@brichet](https://github.com/brichet))
+- Custom base URL and generic provider (OpenAI compatible) [#171](https://github.com/jupyterlite/ai/pull/171) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Token usage accumulation [#175](https://github.com/jupyterlite/ai/pull/175) ([@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Single provider registry [#191](https://github.com/jupyterlite/ai/pull/191) ([@jtpio](https://github.com/jtpio))
+- Drop Python 3.8 [#183](https://github.com/jupyterlite/ai/pull/183) ([@jtpio](https://github.com/jtpio))
+- Add `PWVIDEO` and `PWSLOWMO` to record videos from UI tests [#181](https://github.com/jupyterlite/ai/pull/181) ([@jtpio](https://github.com/jtpio))
+- Add UI tests for remote MCP servers [#180](https://github.com/jupyterlite/ai/pull/180) ([@jtpio](https://github.com/jtpio))
+- Update dependencies and default models [#174](https://github.com/jupyterlite/ai/pull/174) ([@jtpio](https://github.com/jtpio))
+- Re-enable UI tests [#172](https://github.com/jupyterlite/ai/pull/172) ([@jtpio](https://github.com/jtpio))
+
+### Documentation improvements
+
+- Document Ollama and generic, remove ChromeAI [#189](https://github.com/jupyterlite/ai/pull/189) ([@jtpio](https://github.com/jtpio))
+- Documentation about secrets manager [#188](https://github.com/jupyterlite/ai/pull/188) ([@brichet](https://github.com/brichet))
+- Add documentation for custom providers [#184](https://github.com/jupyterlite/ai/pull/184) ([@jtpio](https://github.com/jtpio))
+- Update README to reflect the latest iterations [#178](https://github.com/jupyterlite/ai/pull/178) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-26&to=2025-10-15&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-26..2025-10-15&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-26..2025-10-15&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0a2
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a1...0a63b33304b70c8fa8461a2e36bba97d12f3d2d9))
@@ -17,8 +57,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-25&to=2025-09-26&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-25..2025-09-26&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-25..2025-09-26&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0a1
 
