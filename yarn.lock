@@ -5,15 +5,15 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@ai-sdk/anthropic@npm:^2.0.23":
-  version: 2.0.23
-  resolution: "@ai-sdk/anthropic@npm:2.0.23"
+"@ai-sdk/anthropic@npm:^2.0.30":
+  version: 2.0.30
+  resolution: "@ai-sdk/anthropic@npm:2.0.30"
   dependencies:
     "@ai-sdk/provider": 2.0.0
-    "@ai-sdk/provider-utils": 3.0.10
+    "@ai-sdk/provider-utils": 3.0.12
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 1e5907ac921fdf942ce1a524cf80375469da2a75f8a2fb9fb3ee22cecd0f6f80ca11b561297e61e491a08f5d75dd6b5152cc55cac4ef60025fc7228e4e2eae98
+  checksum: d8cb3af5efbd286f457afd49590537e8f2355d50006ec8a622bcf7bffe500e3b150075b1f05421ce3736d39efee37af8ae68d656632d7d239c35a32a3eb652ab
   languageName: node
   linkType: hard
 
@@ -79,7 +79,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.11, @ai-sdk/provider-utils@npm:^3.0.7":
+"@ai-sdk/provider-utils@npm:3.0.11":
   version: 3.0.11
   resolution: "@ai-sdk/provider-utils@npm:3.0.11"
   dependencies:
@@ -89,6 +89,19 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: da856329bc1a89b54513b16cd9d58df99ff134dc1ac653039a837730652efa5db1f3f8f897be6e510e0247dd72b0b7a414d2c0321165faec87ddd8ce7bcfca3c
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider-utils@npm:3.0.12, @ai-sdk/provider-utils@npm:^3.0.7":
+  version: 3.0.12
+  resolution: "@ai-sdk/provider-utils@npm:3.0.12"
+  dependencies:
+    "@ai-sdk/provider": 2.0.0
+    "@standard-schema/spec": ^1.0.0
+    eventsource-parser: ^3.0.5
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 0787ede346d4cf5d83fc5870125d27f1e746a7b26cde25566faebf82142f7ba5228ec3d5341cac06167dc81070bebf1076504aa279fa0bf10b5d1c501d6b40b5
   languageName: node
   linkType: hard
 
@@ -3015,7 +3028,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyterlite/ai@workspace:."
   dependencies:
-    "@ai-sdk/anthropic": ^2.0.23
+    "@ai-sdk/anthropic": ^2.0.30
     "@ai-sdk/google": ^2.0.19
     "@ai-sdk/mistral": ^2.0.17
     "@ai-sdk/openai": ^2.0.44
