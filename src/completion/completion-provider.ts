@@ -34,17 +34,12 @@ export interface IProviderCompletionConfig {
 }
 
 /**
- * Default system prompt for code completion
+ * Minimal fallback system prompt for code completion.
+ * The actual default comes from the schema (schema/settings-model.json).
+ * This is only used if settings completely fail to load.
  */
-const DEFAULT_COMPLETION_SYSTEM_PROMPT = `You are an AI code completion assistant. Complete the given code fragment with appropriate code.
-Rules:
-- Return only the completion text, no explanations or comments
-- Do not include code block markers (\`\`\` or similar)
-- Make completions contextually relevant to the surrounding code and notebook context
-- Follow the language-specific conventions and style guidelines for the detected programming language
-- Keep completions concise but functional
-- Do not repeat the existing code that comes before the cursor
-- Use variables, imports, functions, and other definitions from previous notebook cells when relevant`;
+const DEFAULT_COMPLETION_SYSTEM_PROMPT =
+  'You are an AI code completion assistant. Complete the code with only the completion text, no explanations.';
 
 /**
  * Default temperature for code completion (lower than chat for more deterministic results)

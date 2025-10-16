@@ -156,6 +156,8 @@ When users request complex tasks that require multiple steps (like "create a not
 Always think through multi-step tasks and use tools to fully complete the user's request rather than stopping after just one action.
 
 Ready to help you build something great! What are you working on?`,
+    // Completion system prompt - also defined in schema/settings-model.json
+    // This serves as a fallback if settings fail to load or are not available
     completionSystemPrompt: `You are an AI code completion assistant. Complete the given code fragment with appropriate code.
 Rules:
 - Return only the completion text, no explanations or comments
