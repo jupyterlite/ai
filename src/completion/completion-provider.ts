@@ -86,7 +86,8 @@ export class AICompletionProvider implements IInlineCompletionProvider {
    * Get the system prompt for the completion.
    */
   get systemPrompt(): string {
-    return DEFAULT_COMPLETION_SYSTEM_PROMPT;
+    const config = this._settingsModel.config;
+    return config.completionSystemPrompt || DEFAULT_COMPLETION_SYSTEM_PROMPT;
   }
 
   /**
