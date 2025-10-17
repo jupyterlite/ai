@@ -26,6 +26,8 @@ import { ICompletionProviderManager } from '@jupyterlab/completer';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
+import { IEditorTracker } from '@jupyterlab/fileeditor';
+
 import { INotebookTracker } from '@jupyterlab/notebook';
 
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
@@ -794,7 +796,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
-  optional: [INotebookTracker, IDiffManager, ILabShell],
+  optional: [INotebookTracker, IDiffManager, IEditorTracker],
   provides: IToolRegistry,
   activate: (
     app: JupyterFrontEnd,
@@ -803,7 +805,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     kernelSpecManager: KernelSpec.IManager,
     notebookTracker?: INotebookTracker,
     diffManager?: IDiffManager,
-    labShell?: ILabShell
+    editorTracker?: IEditorTracker
   ) => {
     const toolRegistry = new ToolRegistry();
 
@@ -864,9 +866,9 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     toolRegistry.add('get_file_content', getFileContentTool);
     toolRegistry.add('set_file_content', setFileContentTool);
 
-    // Add current file tool if lab shell is available
-    if (labShell) {
-      const getCurrentFileTool = createGetCurrentFileTool(labShell);
+    // Add current file tool if editor tracker is available
+    if (editorTracker) {
+      const getCurrentFileTool = createGetCurrentFileTool(editorTracker);
       toolRegistry.add('get_current_file', getCurrentFileTool);
     }
 

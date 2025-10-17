@@ -1,7 +1,7 @@
 import { CommandRegistry } from '@lumino/commands';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IDocumentWidget } from '@jupyterlab/docregistry';
-import { ILabShell } from '@jupyterlab/application';
+import { IEditorTracker } from '@jupyterlab/fileeditor';
 
 import { tool } from '@openai/agents';
 
@@ -485,7 +485,7 @@ export function createSetFileContentTool(
 /**
  * Create a tool for getting information about the currently active file
  */
-export function createGetCurrentFileTool(labShell: ILabShell): ITool {
+export function createGetCurrentFileTool(editorTracker: IEditorTracker): ITool {
   return tool({
     name: 'get_current_file',
     description:
@@ -493,8 +493,8 @@ export function createGetCurrentFileTool(labShell: ILabShell): ITool {
     parameters: z.object({}),
     execute: async () => {
       try {
-        // Get the current widget from the lab shell
-        const currentWidget = labShell.currentWidget;
+        // Get the current widget from the editor tracker
+        const currentWidget = editorTracker.currentWidget;
 
         if (!currentWidget) {
           return JSON.stringify({
