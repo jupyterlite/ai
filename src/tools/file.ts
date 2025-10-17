@@ -1,5 +1,7 @@
 import { CommandRegistry } from '@lumino/commands';
 import { IDocumentManager } from '@jupyterlab/docmanager';
+import { IDocumentWidget } from '@jupyterlab/docregistry';
+import { ILabShell } from '@jupyterlab/application';
 
 import { tool } from '@openai/agents';
 
@@ -301,6 +303,250 @@ export function createNavigateToDirectoryTool(
           success: false,
           error: `Failed to navigate to directory: ${(error as Error).message}`
         };
+      }
+    }
+  });
+}
+
+/**
+ * Create a tool for getting the content of a file
+ */
+export function createGetFileContentTool(docManager: IDocumentManager): ITool {
+  return tool({
+    name: 'get_file_content',
+    description:
+      'Get the content of a file by its path. Works with any text-based file including notebooks, Python files, markdown, etc.',
+    parameters: z.object({
+      filePath: z
+        .string()
+        .describe(
+          'Path to the file to read (e.g., "notebook.ipynb", "script.py")'
+        )
+    }),
+    execute: async (input: { filePath: string }) => {
+      const { filePath } = input;
+
+      try {
+        // Try to find an already open widget
+        let widget = docManager.findWidget(filePath);
+
+        // If not found, open the file
+        if (!widget) {
+          widget = docManager.openOrReveal(filePath);
+        }
+
+        if (!widget) {
+          return JSON.stringify({
+            success: false,
+            error: `Failed to open file at path: ${filePath}`
+          });
+        }
+
+        // Wait for the context to be ready
+        await widget.context.ready;
+
+        // Get the content model
+        const model = widget.context.model;
+
+        if (!model) {
+          return JSON.stringify({
+            success: false,
+            error: 'File model not available'
+          });
+        }
+
+        // Get the content using shared model
+        const sharedModel = model.sharedModel;
+        const content = sharedModel.getSource();
+
+        return JSON.stringify({
+          success: true,
+          filePath,
+          fileName: widget.title.label,
+          content,
+          isDirty: model.dirty,
+          readOnly: model.readOnly
+        });
+      } catch (error) {
+        return JSON.stringify({
+          success: false,
+          error: `Failed to read file content: ${(error as Error).message}`
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Create a tool for setting the content of a file
+ */
+export function createSetFileContentTool(
+  docManager: IDocumentManager,
+  commands: CommandRegistry
+): ITool {
+  return tool({
+    name: 'set_file_content',
+    description:
+      'Set or update the content of an existing file. This will replace the entire content of the file.',
+    parameters: z.object({
+      filePath: z
+        .string()
+        .describe(
+          'Path to the file to update (e.g., "notebook.ipynb", "script.py")'
+        ),
+      content: z.string().describe('The new content to set for the file'),
+      save: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Whether to save the file after updating (default: true)')
+    }),
+    execute: async (input: {
+      filePath: string;
+      content: string;
+      save?: boolean;
+    }) => {
+      const { filePath, content, save = true } = input;
+
+      try {
+        // Try to find an already open widget
+        let widget = docManager.findWidget(filePath);
+
+        // If not found, open the file
+        if (!widget) {
+          widget = docManager.openOrReveal(filePath);
+        }
+
+        if (!widget) {
+          return JSON.stringify({
+            success: false,
+            error: `Failed to open file at path: ${filePath}`
+          });
+        }
+
+        // Wait for the context to be ready
+        await widget.context.ready;
+
+        // Get the content model
+        const model = widget.context.model;
+
+        if (!model) {
+          return JSON.stringify({
+            success: false,
+            error: 'File model not available'
+          });
+        }
+
+        if (model.readOnly) {
+          return JSON.stringify({
+            success: false,
+            error: 'File is read-only and cannot be modified'
+          });
+        }
+
+        // Get the original content before setting new content
+        const sharedModel = model.sharedModel;
+        const originalContent = sharedModel.getSource();
+
+        // Set the new content using shared model
+        sharedModel.setSource(content);
+
+        // Show the diff using jupyterlab-cell-diff if available
+        const diffCommandId = 'jupyterlab-cell-diff:diff-file';
+        void commands.execute(diffCommandId, {
+          filePath,
+          originalSource: originalContent,
+          newSource: content
+        });
+
+        // Save if requested
+        if (save) {
+          await widget.context.save();
+        }
+
+        return JSON.stringify({
+          success: true,
+          filePath,
+          fileName: widget.title.label,
+          contentLength: content.length,
+          saved: save,
+          isDirty: model.dirty
+        });
+      } catch (error) {
+        return JSON.stringify({
+          success: false,
+          error: `Failed to set file content: ${(error as Error).message}`
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Create a tool for getting information about the currently active file
+ */
+export function createGetCurrentFileTool(labShell: ILabShell): ITool {
+  return tool({
+    name: 'get_current_file',
+    description:
+      'Get information about the currently active file in the editor, including its path, name, and content',
+    parameters: z.object({}),
+    execute: async () => {
+      try {
+        // Get the current widget from the lab shell
+        const currentWidget = labShell.currentWidget;
+
+        if (!currentWidget) {
+          return JSON.stringify({
+            success: false,
+            error: 'No active file or widget'
+          });
+        }
+
+        // Check if it's a document widget with a context
+        const docWidget = currentWidget as IDocumentWidget;
+        if (!docWidget.context) {
+          return JSON.stringify({
+            success: false,
+            error: 'Current widget is not a document'
+          });
+        }
+
+        // Wait for context to be ready
+        await docWidget.context.ready;
+
+        const model = docWidget.context.model;
+        if (!model) {
+          return JSON.stringify({
+            success: false,
+            error: 'Document model not available'
+          });
+        }
+
+        // Get content using shared model
+        const sharedModel = model.sharedModel;
+        const content = sharedModel.getSource();
+        const filePath = docWidget.context.path;
+        const fileName = currentWidget.title.label;
+
+        // Determine file type based on path extension
+        const fileExtension = filePath.split('.').pop() || 'unknown';
+
+        return JSON.stringify({
+          success: true,
+          filePath,
+          fileName,
+          fileExtension,
+          content,
+          isDirty: model.dirty,
+          readOnly: model.readOnly,
+          widgetType: currentWidget.constructor.name
+        });
+      } catch (error) {
+        return JSON.stringify({
+          success: false,
+          error: `Failed to get current file info: ${(error as Error).message}`
+        });
       }
     }
   });

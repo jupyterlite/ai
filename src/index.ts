@@ -102,10 +102,13 @@ import {
 import {
   createCopyFileTool,
   createDeleteFileTool,
+  createGetCurrentFileTool,
+  createGetFileContentTool,
   createNavigateToDirectoryTool,
   createNewFileTool,
   createOpenFileTool,
-  createRenameFileTool
+  createRenameFileTool,
+  createSetFileContentTool
 } from './tools/file';
 
 import {
@@ -768,14 +771,15 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
-  optional: [INotebookTracker],
+  optional: [INotebookTracker, ILabShell],
   provides: IToolRegistry,
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
     docManager: IDocumentManager,
     kernelSpecManager: KernelSpec.IManager,
-    notebookTracker?: INotebookTracker
+    notebookTracker?: INotebookTracker,
+    labShell?: ILabShell
   ) => {
     const { commands } = app;
     const toolRegistry = new ToolRegistry();
@@ -825,6 +829,8 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const renameFileTool = createRenameFileTool(docManager);
     const copyFileTool = createCopyFileTool(docManager);
     const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
+    const getFileContentTool = createGetFileContentTool(docManager);
+    const setFileContentTool = createSetFileContentTool(docManager, commands);
 
     toolRegistry.add('create_file', newFileTool);
     toolRegistry.add('open_file', openFileTool);
@@ -832,6 +838,14 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     toolRegistry.add('rename_file', renameFileTool);
     toolRegistry.add('copy_file', copyFileTool);
     toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
+    toolRegistry.add('get_file_content', getFileContentTool);
+    toolRegistry.add('set_file_content', setFileContentTool);
+
+    // Add current file tool if lab shell is available
+    if (labShell) {
+      const getCurrentFileTool = createGetCurrentFileTool(labShell);
+      toolRegistry.add('get_current_file', getCurrentFileTool);
+    }
 
     // Add command operation tools
     const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
