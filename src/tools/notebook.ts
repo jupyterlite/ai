@@ -197,6 +197,7 @@ export function createAddCellTool(
         .describe('Type of cell to add'),
       position: z
         .enum(['above', 'below'])
+        .optional()
         .default('below')
         .describe('Position relative to current cell')
     }),
