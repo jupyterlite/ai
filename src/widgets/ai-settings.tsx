@@ -1,5 +1,6 @@
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
+import { Debouncer } from '@lumino/polling';
 import Add from '@mui/icons-material/Add';
 import Cable from '@mui/icons-material/Cable';
 import CheckCircle from '@mui/icons-material/CheckCircle';
@@ -28,7 +29,6 @@ import {
   InputLabel,
   List,
   ListItem,
-  ListItemSecondaryAction,
   ListItemText,
   Menu,
   MenuItem,
@@ -42,7 +42,7 @@ import {
   createTheme
 } from '@mui/material';
 import { ISecretsManager } from 'jupyter-secrets-manager';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AgentManagerFactory } from '../agent';
 import {
   AISettingsModel,
@@ -162,6 +162,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   >();
   const [mcpMenuAnchor, setMcpMenuAnchor] = useState<null | HTMLElement>(null);
   const [mcpMenuServerId, setMcpMenuServerId] = useState<string>('');
+  // Local state for system prompt to prevent cursor jumping
+  const [systemPromptValue, setSystemPromptValue] = useState(
+    config.systemPrompt || ''
+  );
+
+  // Ref to hold the current system prompt value for the debouncer
+  const systemPromptValueRef = React.useRef(systemPromptValue);
 
   /**
    * Effect to listen for model state changes and update config
@@ -219,6 +226,53 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
       );
     };
   }, [agentManagerFactory]);
+
+  /**
+   * Effect to sync local system prompt state with config when it changes externally
+   */
+  useEffect(() => {
+    setSystemPromptValue(config.systemPrompt || '');
+  }, [config.systemPrompt]);
+
+  /**
+   * Effect to keep the ref in sync with the state
+   */
+  useEffect(() => {
+    systemPromptValueRef.current = systemPromptValue;
+  }, [systemPromptValue]);
+
+  // Debouncer for system prompt saves - waits 1 second after typing stops
+  const systemPromptDebouncer = useMemo(
+    () =>
+      new Debouncer(async () => {
+        await handleConfigUpdate({
+          systemPrompt: systemPromptValueRef.current
+        });
+      }, 1000),
+    []
+  );
+
+  /**
+   * Effect to clean up debouncer on unmount
+   */
+  useEffect(() => {
+    return () => {
+      systemPromptDebouncer.dispose();
+    };
+  }, [systemPromptDebouncer]);
+
+  /**
+   * Effect to invoke debouncer when system prompt value changes
+   */
+  useEffect(() => {
+    // Don't trigger on initial mount or if value hasn't changed
+    if (systemPromptValue === config.systemPrompt) {
+      return;
+    }
+
+    // Invoke the debouncer to save after 1 second of inactivity
+    void systemPromptDebouncer.invoke();
+  }, [systemPromptValue, config.systemPrompt, systemPromptDebouncer]);
 
   const getSecretFromManager = async (
     provider: string,
@@ -816,10 +870,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   multiline
                   rows={3}
                   label="System Prompt"
-                  value={config.systemPrompt}
-                  onChange={e =>
-                    handleConfigUpdate({ systemPrompt: e.target.value })
-                  }
+                  value={systemPromptValue}
+                  onChange={e => setSystemPromptValue(e.target.value)}
                   placeholder="Define the AI's behavior and personality..."
                   helperText="Instructions that define how the AI should behave and respond"
                 />
@@ -842,9 +894,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
                     {config.commandsRequiringApproval.map((command, index) => (
-                      <ListItem key={index} divider>
-                        <ListItemText primary={command} />
-                        <ListItemSecondaryAction>
+                      <ListItem
+                        key={index}
+                        divider
+                        secondaryAction={
                           <IconButton
                             onClick={() => {
                               const newCommands = [
@@ -859,7 +912,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           >
                             <Delete />
                           </IconButton>
-                        </ListItemSecondaryAction>
+                        }
+                      >
+                        <ListItemText primary={command} />
                       </ListItem>
                     ))}
                   </List>
@@ -936,7 +991,18 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
               ) : (
                 <List>
                   {config.mcpServers.map(server => (
-                    <ListItem key={server.id} divider>
+                    <ListItem
+                      key={server.id}
+                      divider
+                      secondaryAction={
+                        <IconButton
+                          onClick={e => handleMCPMenuClick(e, server.id)}
+                          size="small"
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      }
+                    >
                       <ListItemText
                         primary={
                           <Box
@@ -998,14 +1064,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           </Box>
                         }
                       />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          onClick={e => handleMCPMenuClick(e, server.id)}
-                          size="small"
-                        >
-                          <MoreVert />
-                        </IconButton>
-                      </ListItemSecondaryAction>
                     </ListItem>
                   ))}
                 </List>
