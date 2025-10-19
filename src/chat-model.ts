@@ -138,7 +138,7 @@ export class AIChatModel extends AbstractChatModel {
       time: Date.now() / 1000,
       type: 'msg',
       raw_time: false,
-      attachments: this.input.attachments
+      attachments: [...this.input.attachments]
     };
     this.messageAdded(userMessage);
 
