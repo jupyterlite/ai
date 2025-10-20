@@ -34,14 +34,6 @@ export interface IProviderCompletionConfig {
 }
 
 /**
- * Minimal fallback system prompt for code completion.
- * The actual default comes from the schema (schema/settings-model.json).
- * This is only used if settings completely fail to load.
- */
-const DEFAULT_COMPLETION_SYSTEM_PROMPT =
-  'You are an AI code completion assistant. Complete the code with only the completion text, no explanations.';
-
-/**
  * Default temperature for code completion (lower than chat for more deterministic results)
  */
 const DEFAULT_COMPLETION_TEMPERATURE = 0.3;
@@ -81,8 +73,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
    * Get the system prompt for the completion.
    */
   get systemPrompt(): string {
-    const config = this._settingsModel.config;
-    return config.completionSystemPrompt || DEFAULT_COMPLETION_SYSTEM_PROMPT;
+    return this._settingsModel.config.completionSystemPrompt;
   }
 
   /**
