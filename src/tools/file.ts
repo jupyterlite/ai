@@ -315,12 +315,12 @@ export function createGetFileContentTool(docManager: IDocumentManager): ITool {
   return tool({
     name: 'get_file_content',
     description:
-      'Get the content of a file by its path. Works with any text-based file including notebooks, Python files, markdown, etc.',
+      'Get the content of a file by its path. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead.',
     parameters: z.object({
       filePath: z
         .string()
         .describe(
-          'Path to the file to read (e.g., "notebook.ipynb", "script.py")'
+          'Path to the file to read (e.g., "script.py", "README.md", "config.json")'
         )
     }),
     execute: async (input: { filePath: string }) => {
@@ -387,12 +387,12 @@ export function createSetFileContentTool(
   return tool({
     name: 'set_file_content',
     description:
-      'Set or update the content of an existing file. This will replace the entire content of the file.',
+      'Set or update the content of an existing file. This will replace the entire content of the file. For Jupyter notebooks, use dedicated notebook tools instead.',
     parameters: z.object({
       filePath: z
         .string()
         .describe(
-          'Path to the file to update (e.g., "notebook.ipynb", "script.py")'
+          'Path to the file to update (e.g., "script.py", "README.md", "config.json")'
         ),
       content: z.string().describe('The new content to set for the file'),
       save: z
