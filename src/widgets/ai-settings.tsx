@@ -167,6 +167,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     config.systemPrompt
   );
   const systemPromptValueRef = React.useRef(config.systemPrompt);
+  const [completionPromptValue, setCompletionPromptValue] = useState(
+    config.completionSystemPrompt
+  );
+  const completionPromptValueRef = React.useRef(config.completionSystemPrompt);
 
   /**
    * Effect to listen for model state changes and update config
@@ -231,11 +235,17 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     systemPromptValueRef.current = config.systemPrompt;
   }, [config.systemPrompt]);
 
-  const systemPromptDebouncer = useMemo(
+  useEffect(() => {
+    setCompletionPromptValue(config.completionSystemPrompt);
+    completionPromptValueRef.current = config.completionSystemPrompt;
+  }, [config.completionSystemPrompt]);
+
+  const promptDebouncer = useMemo(
     () =>
       new Debouncer(async () => {
         await handleConfigUpdate({
-          systemPrompt: systemPromptValueRef.current
+          systemPrompt: systemPromptValueRef.current,
+          completionSystemPrompt: completionPromptValueRef.current
         });
       }, 1000),
     []
@@ -244,14 +254,20 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   // Cleanup debouncer on unmount
   useEffect(() => {
     return () => {
-      systemPromptDebouncer.dispose();
+      promptDebouncer.dispose();
     };
-  }, [systemPromptDebouncer]);
+  }, [promptDebouncer]);
 
   const handleSystemPromptChange = (value: string) => {
     setSystemPromptValue(value);
     systemPromptValueRef.current = value;
-    void systemPromptDebouncer.invoke();
+    void promptDebouncer.invoke();
+  };
+
+  const handleCompletionPromptChange = (value: string) => {
+    setCompletionPromptValue(value);
+    completionPromptValueRef.current = value;
+    void promptDebouncer.invoke();
   };
 
   const getSecretFromManager = async (
@@ -861,12 +877,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   multiline
                   rows={3}
                   label="Completion System Prompt"
-                  value={config.completionSystemPrompt}
-                  onChange={e =>
-                    handleConfigUpdate({
-                      completionSystemPrompt: e.target.value
-                    })
-                  }
+                  value={completionPromptValue}
+                  onChange={e => handleCompletionPromptChange(e.target.value)}
                   placeholder="Define how the AI should generate code completions..."
                   helperText="Instructions that define how the AI should generate code completions"
                 />
