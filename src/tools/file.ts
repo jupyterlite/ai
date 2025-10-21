@@ -485,37 +485,70 @@ export function createSetFileContentTool(
 /**
  * Create a tool for getting information about the currently active file
  */
-export function createGetCurrentFileTool(editorTracker: IEditorTracker): ITool {
+export function createGetCurrentFileTool(
+  docManager: IDocumentManager,
+  editorTracker?: IEditorTracker
+): ITool {
   return tool({
     name: 'get_current_file',
     description:
       'Get information about the currently active file in the editor, including its path, name, and content',
-    parameters: z.object({}),
-    execute: async () => {
-      try {
-        // Get the current widget from the editor tracker
-        const currentWidget = editorTracker.currentWidget;
+    parameters: z.object({
+      filePath: z
+        .string()
+        .optional()
+        .nullable()
+        .describe(
+          'Path to the file. If not provided, uses the currently active file'
+        )
+    }),
+    execute: async (input: { filePath?: string | null }) => {
+      const { filePath } = input;
 
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: 'No active file or widget'
-          });
+      try {
+        let widget: IDocumentWidget | null = null;
+
+        if (filePath) {
+          // Try to find an already open widget
+          widget = docManager.findWidget(filePath) || null;
+
+          // If not found, open the file
+          if (!widget) {
+            widget = docManager.openOrReveal(filePath) || null;
+          }
+
+          if (!widget) {
+            return JSON.stringify({
+              success: false,
+              error: `Failed to open file at path: ${filePath}`
+            });
+          }
+        } else {
+          // Get the current widget from the editor tracker
+          const currentWidget = editorTracker?.currentWidget;
+
+          if (!currentWidget) {
+            return JSON.stringify({
+              success: false,
+              error: 'No active file or widget and no file path provided'
+            });
+          }
+
+          // Check if it's a document widget with a context
+          widget = currentWidget as IDocumentWidget;
         }
 
-        // Check if it's a document widget with a context
-        const docWidget = currentWidget as IDocumentWidget;
-        if (!docWidget.context) {
+        if (!widget.context) {
           return JSON.stringify({
             success: false,
-            error: 'Current widget is not a document'
+            error: 'Widget is not a document'
           });
         }
 
         // Wait for context to be ready
-        await docWidget.context.ready;
+        await widget.context.ready;
 
-        const model = docWidget.context.model;
+        const model = widget.context.model;
         if (!model) {
           return JSON.stringify({
             success: false,
@@ -526,26 +559,26 @@ export function createGetCurrentFileTool(editorTracker: IEditorTracker): ITool {
         // Get content using shared model
         const sharedModel = model.sharedModel;
         const content = sharedModel.getSource();
-        const filePath = docWidget.context.path;
-        const fileName = currentWidget.title.label;
+        const resolvedFilePath = widget.context.path;
+        const fileName = widget.title.label;
 
         // Determine file type based on path extension
-        const fileExtension = filePath.split('.').pop() || 'unknown';
+        const fileExtension = resolvedFilePath.split('.').pop() || 'unknown';
 
         return JSON.stringify({
           success: true,
-          filePath,
+          filePath: resolvedFilePath,
           fileName,
           fileExtension,
           content,
           isDirty: model.dirty,
           readOnly: model.readOnly,
-          widgetType: currentWidget.constructor.name
+          widgetType: widget.constructor.name
         });
       } catch (error) {
         return JSON.stringify({
           success: false,
-          error: `Failed to get current file info: ${(error as Error).message}`
+          error: `Failed to get file info: ${(error as Error).message}`
         });
       }
     }

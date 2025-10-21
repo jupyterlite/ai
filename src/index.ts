@@ -868,7 +868,10 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
 
     // Add current file tool if editor tracker is available
     if (editorTracker) {
-      const getCurrentFileTool = createGetCurrentFileTool(editorTracker);
+      const getCurrentFileTool = createGetCurrentFileTool(
+        docManager,
+        editorTracker
+      );
       toolRegistry.add('get_current_file', getCurrentFileTool);
     }
 
