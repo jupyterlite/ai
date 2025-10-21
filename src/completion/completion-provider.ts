@@ -34,19 +34,6 @@ export interface IProviderCompletionConfig {
 }
 
 /**
- * Default system prompt for code completion
- */
-const DEFAULT_COMPLETION_SYSTEM_PROMPT = `You are an AI code completion assistant. Complete the given code fragment with appropriate code.
-Rules:
-- Return only the completion text, no explanations or comments
-- Do not include code block markers (\`\`\` or similar)
-- Make completions contextually relevant to the surrounding code and notebook context
-- Follow the language-specific conventions and style guidelines for the detected programming language
-- Keep completions concise but functional
-- Do not repeat the existing code that comes before the cursor
-- Use variables, imports, functions, and other definitions from previous notebook cells when relevant`;
-
-/**
  * Default temperature for code completion (lower than chat for more deterministic results)
  */
 const DEFAULT_COMPLETION_TEMPERATURE = 0.3;
@@ -86,7 +73,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
    * Get the system prompt for the completion.
    */
   get systemPrompt(): string {
-    return DEFAULT_COMPLETION_SYSTEM_PROMPT;
+    return this._settingsModel.config.completionSystemPrompt;
   }
 
   /**

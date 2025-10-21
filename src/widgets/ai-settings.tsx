@@ -824,6 +824,21 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   helperText="Instructions that define how the AI should behave and respond"
                 />
 
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Completion System Prompt"
+                  value={config.completionSystemPrompt}
+                  onChange={e =>
+                    handleConfigUpdate({
+                      completionSystemPrompt: e.target.value
+                    })
+                  }
+                  placeholder="Define how the AI should generate code completions..."
+                  helperText="Instructions that define how the AI should generate code completions"
+                />
+
                 <Divider sx={{ my: 2 }} />
 
                 <Box>
