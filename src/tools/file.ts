@@ -1,3 +1,4 @@
+import { PathExt } from '@jupyterlab/coreutils';
 import { CommandRegistry } from '@lumino/commands';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IDocumentWidget } from '@jupyterlab/docregistry';
@@ -20,16 +21,11 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
     parameters: z.object({
       fileName: z.string().describe('Name of the file to create'),
       fileType: z
-        .enum([
-          'text',
-          'python',
-          'markdown',
-          'json',
-          'javascript',
-          'typescript'
-        ])
+        .string()
         .default('text')
-        .describe('Type of file to create'),
+        .describe(
+          'Type of file to create. Common examples: text, python, markdown, json, javascript, typescript, yaml, julia, r, csv'
+        ),
       content: z
         .string()
         .optional()
@@ -49,40 +45,25 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
     },
     execute: async (input: {
       fileName: string;
-      fileType?:
-        | 'text'
-        | 'python'
-        | 'markdown'
-        | 'json'
-        | 'javascript'
-        | 'typescript';
+      fileType?: string;
       content?: string | null;
       cwd?: string | null;
     }) => {
       const { fileName, content = '', cwd, fileType = 'text' } = input;
 
-      // Determine file extension based on type
-      const extensions: Record<string, string> = {
-        python: 'py',
-        markdown: 'md',
-        json: 'json',
-        text: 'txt',
-        javascript: 'js',
-        typescript: 'ts'
-      };
+      // Get file extension from the document registry
+      // Registry extensions include the dot (e.g., '.py'), so we remove it
+      const registeredFileType = docManager.registry.getFileType(fileType);
+      const extWithDot = registeredFileType?.extensions[0] || '.txt';
+      const ext = extWithDot.slice(1); // Remove leading dot
 
-      const ext = extensions[fileType] || 'txt';
-
-      // If fileName already has an extension, use it as-is, otherwise add the extension
-      const fullFileName = fileName.includes('.')
-        ? fileName
-        : `${fileName}.${ext}`;
+      // Check if fileName already has an extension using PathExt
+      const existingExt = PathExt.extname(fileName);
+      const fullFileName = existingExt ? fileName : `${fileName}.${ext}`;
 
       // For Python files, ensure .py extension if fileType is python
       const finalFileName =
-        fileType === 'python' &&
-        !fileName.endsWith('.py') &&
-        !fileName.includes('.')
+        fileType === 'python' && !fileName.endsWith('.py') && !existingExt
           ? `${fileName}.py`
           : fullFileName;
 
@@ -529,8 +510,8 @@ export function createGetCurrentFileTool(
       const resolvedFilePath = widget.context.path;
       const fileName = widget.title.label;
 
-      // Determine file type based on path extension
-      const fileExtension = resolvedFilePath.split('.').pop() || 'unknown';
+      // Determine file type based on path extension using PathExt
+      const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
 
       return JSON.stringify({
         success: true,
