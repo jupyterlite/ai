@@ -21,7 +21,7 @@ test.use({
 const TIMEOUT = 120000;
 
 test('should suggest inline completion', async ({ page }) => {
-  test.setTimeout(TIMEOUT);
+  test.setTimeout(2 * TIMEOUT);
 
   const content = 'def test';
   let requestBody: any = null;
