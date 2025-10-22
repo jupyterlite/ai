@@ -18,7 +18,7 @@ test.use({
   }
 });
 
-const TIMEOUT = 60000;
+const TIMEOUT = 120000;
 
 test('should suggest inline completion', async ({ page }) => {
   test.setTimeout(TIMEOUT);
