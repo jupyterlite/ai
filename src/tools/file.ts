@@ -51,13 +51,11 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
     }) => {
       const { fileName, content = '', cwd, fileType = 'text' } = input;
 
-      // Get file extension from the document registry
       // Registry extensions include the dot (e.g., '.py'), so we remove it
       const registeredFileType = docManager.registry.getFileType(fileType);
       const extWithDot = registeredFileType?.extensions[0] || '.txt';
-      const ext = extWithDot.slice(1); // Remove leading dot
+      const ext = extWithDot.slice(1);
 
-      // Check if fileName already has an extension using PathExt
       const existingExt = PathExt.extname(fileName);
       const fullFileName = existingExt ? fileName : `${fileName}.${ext}`;
 
@@ -69,14 +67,12 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
 
       const fullPath = cwd ? `${cwd}/${finalFileName}` : finalFileName;
 
-      // Create file with content using document manager
       const model = await docManager.services.contents.newUntitled({
         path: cwd || '',
         type: 'file',
         ext
       });
 
-      // Rename to desired name if needed
       let finalPath = model.path;
       if (model.name !== finalFileName) {
         const renamed = await docManager.services.contents.rename(
@@ -86,7 +82,6 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
         finalPath = renamed.path;
       }
 
-      // Set content if provided
       if (content) {
         await docManager.services.contents.save(finalPath, {
           type: 'file',
@@ -95,7 +90,6 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
         });
       }
 
-      // Open the newly created file
       let opened = false;
       if (!docManager.findWidget(finalPath)) {
         docManager.openOrReveal(finalPath);
@@ -304,10 +298,8 @@ export function createGetFileContentTool(docManager: IDocumentManager): ITool {
     execute: async (input: { filePath: string }) => {
       const { filePath } = input;
 
-      // Try to find an already open widget
       let widget = docManager.findWidget(filePath);
 
-      // If not found, open the file
       if (!widget) {
         widget = docManager.openOrReveal(filePath);
       }
@@ -316,17 +308,14 @@ export function createGetFileContentTool(docManager: IDocumentManager): ITool {
         throw new Error(`Failed to open file at path: ${filePath}`);
       }
 
-      // Wait for the context to be ready
       await widget.context.ready;
 
-      // Get the content model
       const model = widget.context.model;
 
       if (!model) {
         throw new Error('File model not available');
       }
 
-      // Get the content using shared model
       const sharedModel = model.sharedModel;
       const content = sharedModel.getSource();
 
@@ -379,10 +368,8 @@ export function createSetFileContentTool(
     }) => {
       const { filePath, content, save = true } = input;
 
-      // Try to find an already open widget
       let widget = docManager.findWidget(filePath);
 
-      // If not found, open the file
       if (!widget) {
         widget = docManager.openOrReveal(filePath);
       }
@@ -391,10 +378,8 @@ export function createSetFileContentTool(
         throw new Error(`Failed to open file at path: ${filePath}`);
       }
 
-      // Wait for the context to be ready
       await widget.context.ready;
 
-      // Get the content model
       const model = widget.context.model;
 
       if (!model) {
@@ -405,14 +390,11 @@ export function createSetFileContentTool(
         throw new Error('File is read-only and cannot be modified');
       }
 
-      // Get the original content before setting new content
       const sharedModel = model.sharedModel;
       const originalContent = sharedModel.getSource();
 
-      // Set the new content using shared model
       sharedModel.setSource(content);
 
-      // Show the diff using jupyterlab-cell-diff if available
       const diffCommandId = 'jupyterlab-cell-diff:diff-file';
       void commands.execute(diffCommandId, {
         filePath,
@@ -420,7 +402,6 @@ export function createSetFileContentTool(
         newSource: content
       });
 
-      // Save if requested
       if (save) {
         await widget.context.save();
       }
@@ -469,10 +450,8 @@ export function createGetCurrentFileTool(
       let widget: IDocumentWidget | null = null;
 
       if (filePath) {
-        // Try to find an already open widget
         widget = docManager.findWidget(filePath) || null;
 
-        // If not found, open the file
         if (!widget) {
           widget = docManager.openOrReveal(filePath) || null;
         }
@@ -481,14 +460,12 @@ export function createGetCurrentFileTool(
           throw new Error(`Failed to open file at path: ${filePath}`);
         }
       } else {
-        // Get the current widget from the editor tracker
         const currentWidget = editorTracker?.currentWidget;
 
         if (!currentWidget) {
           throw new Error('No active file or widget and no file path provided');
         }
 
-        // Check if it's a document widget with a context
         widget = currentWidget as IDocumentWidget;
       }
 
@@ -496,7 +473,6 @@ export function createGetCurrentFileTool(
         throw new Error('Widget is not a document');
       }
 
-      // Wait for context to be ready
       await widget.context.ready;
 
       const model = widget.context.model;
@@ -504,13 +480,11 @@ export function createGetCurrentFileTool(
         throw new Error('Document model not available');
       }
 
-      // Get content using shared model
       const sharedModel = model.sharedModel;
       const content = sharedModel.getSource();
       const resolvedFilePath = widget.context.path;
       const fileName = widget.title.label;
 
-      // Determine file type based on path extension using PathExt
       const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
 
       return JSON.stringify({
