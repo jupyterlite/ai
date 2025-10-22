@@ -1,5 +1,6 @@
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
+import { Debouncer } from '@lumino/polling';
 import Add from '@mui/icons-material/Add';
 import Cable from '@mui/icons-material/Cable';
 import CheckCircle from '@mui/icons-material/CheckCircle';
@@ -42,7 +43,7 @@ import {
   createTheme
 } from '@mui/material';
 import { ISecretsManager } from 'jupyter-secrets-manager';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AgentManagerFactory } from '../agent';
 import {
   AISettingsModel,
@@ -162,6 +163,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   >();
   const [mcpMenuAnchor, setMcpMenuAnchor] = useState<null | HTMLElement>(null);
   const [mcpMenuServerId, setMcpMenuServerId] = useState<string>('');
+  const [systemPromptValue, setSystemPromptValue] = useState(
+    config.systemPrompt
+  );
+  const systemPromptValueRef = React.useRef(config.systemPrompt);
+  const [completionPromptValue, setCompletionPromptValue] = useState(
+    config.completionSystemPrompt
+  );
+  const completionPromptValueRef = React.useRef(config.completionSystemPrompt);
 
   /**
    * Effect to listen for model state changes and update config
@@ -219,6 +228,47 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
       );
     };
   }, [agentManagerFactory]);
+
+  // Sync local state when config changes externally
+  useEffect(() => {
+    setSystemPromptValue(config.systemPrompt);
+    systemPromptValueRef.current = config.systemPrompt;
+  }, [config.systemPrompt]);
+
+  useEffect(() => {
+    setCompletionPromptValue(config.completionSystemPrompt);
+    completionPromptValueRef.current = config.completionSystemPrompt;
+  }, [config.completionSystemPrompt]);
+
+  const promptDebouncer = useMemo(
+    () =>
+      new Debouncer(async () => {
+        await handleConfigUpdate({
+          systemPrompt: systemPromptValueRef.current,
+          completionSystemPrompt: completionPromptValueRef.current
+        });
+      }, 1000),
+    []
+  );
+
+  // Cleanup debouncer on unmount
+  useEffect(() => {
+    return () => {
+      promptDebouncer.dispose();
+    };
+  }, [promptDebouncer]);
+
+  const handleSystemPromptChange = (value: string) => {
+    setSystemPromptValue(value);
+    systemPromptValueRef.current = value;
+    void promptDebouncer.invoke();
+  };
+
+  const handleCompletionPromptChange = (value: string) => {
+    setCompletionPromptValue(value);
+    completionPromptValueRef.current = value;
+    void promptDebouncer.invoke();
+  };
 
   const getSecretFromManager = async (
     provider: string,
@@ -816,10 +866,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   multiline
                   rows={3}
                   label="System Prompt"
-                  value={config.systemPrompt}
-                  onChange={e =>
-                    handleConfigUpdate({ systemPrompt: e.target.value })
-                  }
+                  value={systemPromptValue}
+                  onChange={e => handleSystemPromptChange(e.target.value)}
                   placeholder="Define the AI's behavior and personality..."
                   helperText="Instructions that define how the AI should behave and respond"
                 />
@@ -829,12 +877,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   multiline
                   rows={3}
                   label="Completion System Prompt"
-                  value={config.completionSystemPrompt}
-                  onChange={e =>
-                    handleConfigUpdate({
-                      completionSystemPrompt: e.target.value
-                    })
-                  }
+                  value={completionPromptValue}
+                  onChange={e => handleCompletionPromptChange(e.target.value)}
                   placeholder="Define how the AI should generate code completions..."
                   helperText="Instructions that define how the AI should generate code completions"
                 />
