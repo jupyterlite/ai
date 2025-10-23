@@ -855,7 +855,10 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const copyFileTool = createCopyFileTool(docManager);
     const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
     const getFileContentTool = createGetFileContentTool(docManager);
-    const setFileContentTool = createSetFileContentTool(docManager, app.commands);
+    const setFileContentTool = createSetFileContentTool(
+      docManager,
+      app.commands
+    );
 
     toolRegistry.add('create_file', newFileTool);
     toolRegistry.add('open_file', openFileTool);
