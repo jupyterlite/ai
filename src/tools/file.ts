@@ -52,11 +52,10 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
       const { fileName, content = '', cwd, fileType = 'text' } = input;
 
       const registeredFileType = docManager.registry.getFileType(fileType);
-      const extWithDot = registeredFileType?.extensions[0] || '.txt';
-      const ext = extWithDot.slice(1);
+      const ext = registeredFileType?.extensions[0] || '.txt';
 
       const existingExt = PathExt.extname(fileName);
-      const fullFileName = existingExt ? fileName : `${fileName}.${ext}`;
+      const fullFileName = existingExt ? fileName : `${fileName}${ext}`;
 
       const fullPath = cwd ? `${cwd}/${fullFileName}` : fullFileName;
 
