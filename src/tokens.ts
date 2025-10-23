@@ -250,3 +250,27 @@ export interface IChatModelRegistry {
 export const IChatModelRegistry = new Token<IChatModelRegistry>(
   '@jupyterlite/ai:chat-model-registry'
 );
+
+/**
+ * Interface for managing diff operations
+ */
+export interface IDiffManager {
+  /**
+   * Show diff between original and modified cell content
+   */
+  showCellDiff(params: {
+    original: string;
+    modified: string;
+    cellId?: string;
+    showActionButtons?: boolean;
+    openDiff?: boolean;
+    notebookPath?: string;
+  }): Promise<void>;
+}
+
+/**
+ * Token for the diff manager.
+ */
+export const IDiffManager = new Token<IDiffManager>(
+  '@jupyterlite/ai:diff-manager'
+);

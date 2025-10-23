@@ -61,7 +61,8 @@ import {
   IToolRegistry,
   SECRETS_NAMESPACE,
   IAISettingsModel,
-  IChatModelRegistry
+  IChatModelRegistry,
+  IDiffManager
 } from './tokens';
 
 import {
@@ -84,6 +85,8 @@ import {
 } from './components';
 
 import { AISettingsModel } from './models/settings-model';
+
+import { DiffManager } from './diff-manager';
 
 import { ToolRegistry } from './tools/tool-registry';
 
@@ -763,21 +766,41 @@ const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   }
 };
 
+/**
+ * Diff manager plugin
+ */
+const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
+  id: '@jupyterlite/ai:diff-manager',
+  description: 'Provide the diff manager for notebook cell diffs',
+  autoStart: true,
+  provides: IDiffManager,
+  requires: [IAISettingsModel],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel
+  ): IDiffManager => {
+    return new DiffManager({
+      commands: app.commands,
+      settingsModel
+    });
+  }
+};
+
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
-  optional: [INotebookTracker],
+  optional: [INotebookTracker, IDiffManager],
   provides: IToolRegistry,
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
     docManager: IDocumentManager,
     kernelSpecManager: KernelSpec.IManager,
-    notebookTracker?: INotebookTracker
+    notebookTracker?: INotebookTracker,
+    diffManager?: IDiffManager
   ) => {
-    const { commands } = app;
     const toolRegistry = new ToolRegistry();
 
     const notebookCreationTool = createNotebookCreationTool(
@@ -795,8 +818,8 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
     const setCellContentTool = createSetCellContentTool(
       docManager,
-      commands,
-      notebookTracker
+      notebookTracker,
+      diffManager
     );
     const runCellTool = createRunCellTool(docManager, notebookTracker);
     const deleteCellTool = createDeleteCellTool(docManager, notebookTracker);
@@ -904,6 +927,7 @@ export default [
   ollamaProviderPlugin,
   genericProviderPlugin,
   settingsModel,
+  diffManager,
   chatModelRegistry,
   plugin,
   toolRegistry,

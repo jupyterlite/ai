@@ -859,6 +859,46 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                 />
 
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={config.showDiff}
+                      onChange={e =>
+                        handleConfigUpdate({
+                          showDiff: e.target.checked
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">Show Cell Diff</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Show diff view when AI modifies cell content
+                      </Typography>
+                    </Box>
+                  }
+                />
+
+                {config.showDiff && (
+                  <FormControl sx={{ ml: 4 }}>
+                    <InputLabel>Diff Display Mode</InputLabel>
+                    <Select
+                      value={config.diffDisplayMode}
+                      label="Diff Display Mode"
+                      onChange={e =>
+                        handleConfigUpdate({
+                          diffDisplayMode: e.target.value as 'split' | 'unified'
+                        })
+                      }
+                    >
+                      <MenuItem value="split">Split View</MenuItem>
+                      <MenuItem value="unified">Unified View</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+
                 <Divider sx={{ my: 1 }} />
 
                 <TextField

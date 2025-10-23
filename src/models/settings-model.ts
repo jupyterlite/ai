@@ -56,6 +56,9 @@ export interface IAIConfig {
   showTokenUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
+  // Diff display settings
+  showDiff: boolean;
+  diffDisplayMode: 'split' | 'unified';
 }
 
 export class AISettingsModel extends VDomModel {
@@ -71,6 +74,8 @@ export class AISettingsModel extends VDomModel {
     toolsEnabled: true,
     sendWithShiftEnter: false,
     showTokenUsage: false,
+    showDiff: true,
+    diffDisplayMode: 'split',
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',

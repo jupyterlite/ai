@@ -3,13 +3,12 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { KernelSpec } from '@jupyterlab/services';
-import { CommandRegistry } from '@lumino/commands';
 
 import { tool } from '@openai/agents';
 
 import { z } from 'zod';
 
-import { ITool } from '../tokens';
+import { IDiffManager, ITool } from '../tokens';
 
 /**
  * Find a kernel name that matches the specified language
@@ -460,8 +459,8 @@ export function createGetCellInfoTool(
  */
 export function createSetCellContentTool(
   docManager: IDocumentManager,
-  commands: CommandRegistry,
-  notebookTracker?: INotebookTracker
+  notebookTracker?: INotebookTracker,
+  diffManager?: IDiffManager
 ): ITool {
   return tool({
     name: 'set_cell_content',
@@ -581,16 +580,15 @@ export function createSetCellContentTool(
 
         sharedModel.setSource(content);
 
-        // Show the cell diff using jupyterlab-cell-diff if available
-        const showDiffCommandId = 'jupyterlab-cell-diff:show-codemirror';
-        void commands.execute(showDiffCommandId, {
-          originalSource: previousContent,
-          newSource: content,
-          cellId: retrievedCellId,
-          showActionButtons: true,
-          openDiff: true,
-          notebookPath: targetNotebookPath
-        });
+        // Show the cell diff using the diff manager if available
+        if (diffManager) {
+          await diffManager.showCellDiff({
+            original: previousContent,
+            modified: content,
+            cellId: retrievedCellId,
+            notebookPath: targetNotebookPath
+          });
+        }
 
         return JSON.stringify({
           success: true,
