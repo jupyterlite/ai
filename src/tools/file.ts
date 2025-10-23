@@ -268,37 +268,57 @@ export function createNavigateToDirectoryTool(
 }
 
 /**
- * Create a tool for getting the content of a file
+ * Create a tool for getting file information and content
  */
-export function createGetFileContentTool(docManager: IDocumentManager): ITool {
+export function createGetFileInfoTool(
+  docManager: IDocumentManager,
+  editorTracker?: IEditorTracker
+): ITool {
   return tool({
-    name: 'get_file_content',
+    name: 'get_file_info',
     description:
-      'Get the content of a file by its path. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead.',
+      'Get information about a file including its path, name, extension, and content. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead. If no file path is provided, returns information about the currently active file in the editor.',
     parameters: z.object({
       filePath: z
         .string()
+        .optional()
+        .nullable()
         .describe(
-          'Path to the file to read (e.g., "script.py", "README.md", "config.json")'
+          'Path to the file to read (e.g., "script.py", "README.md", "config.json"). If not provided, uses the currently active file in the editor.'
         )
     }),
     errorFunction: (context, error) => {
       return JSON.stringify({
         success: false,
-        error: `Failed to read file content: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to get file info: ${error instanceof Error ? error.message : String(error)}`
       });
     },
-    execute: async (input: { filePath: string }) => {
+    execute: async (input: { filePath?: string | null }) => {
       const { filePath } = input;
 
-      let widget = docManager.findWidget(filePath);
+      let widget: IDocumentWidget | null = null;
 
-      if (!widget) {
-        widget = docManager.openOrReveal(filePath);
+      if (filePath) {
+        widget =
+          docManager.findWidget(filePath) ??
+          docManager.openOrReveal(filePath) ??
+          null;
+
+        if (!widget) {
+          throw new Error(`Failed to open file at path: ${filePath}`);
+        }
+      } else {
+        widget = editorTracker?.currentWidget ?? null;
+
+        if (!widget) {
+          throw new Error(
+            'No active file in the editor and no file path provided'
+          );
+        }
       }
 
-      if (!widget) {
-        throw new Error(`Failed to open file at path: ${filePath}`);
+      if (!widget.context) {
+        throw new Error('Widget is not a document');
       }
 
       await widget.context.ready;
@@ -311,14 +331,19 @@ export function createGetFileContentTool(docManager: IDocumentManager): ITool {
 
       const sharedModel = model.sharedModel;
       const content = sharedModel.getSource();
+      const resolvedFilePath = widget.context.path;
+      const fileName = widget.title.label;
+      const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
 
       return JSON.stringify({
         success: true,
-        filePath,
-        fileName: widget.title.label,
+        filePath: resolvedFilePath,
+        fileName,
+        fileExtension,
         content,
         isDirty: model.dirty,
-        readOnly: model.readOnly
+        readOnly: model.readOnly,
+        widgetType: widget.constructor.name
       });
     }
   });
@@ -408,89 +433,6 @@ export function createSetFileContentTool(
         contentLength: content.length,
         saved: save,
         isDirty: model.dirty
-      });
-    }
-  });
-}
-
-/**
- * Create a tool for getting information about the currently active file
- */
-export function createGetCurrentFileTool(
-  docManager: IDocumentManager,
-  editorTracker?: IEditorTracker
-): ITool {
-  return tool({
-    name: 'get_current_file',
-    description:
-      'Get information about the currently active file in the editor, including its path, name, and content',
-    parameters: z.object({
-      filePath: z
-        .string()
-        .optional()
-        .nullable()
-        .describe(
-          'Path to the file. If not provided, uses the currently active file'
-        )
-    }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to get file info: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
-    execute: async (input: { filePath?: string | null }) => {
-      const { filePath } = input;
-
-      let widget: IDocumentWidget | null = null;
-
-      if (filePath) {
-        widget = docManager.findWidget(filePath) || null;
-
-        if (!widget) {
-          widget = docManager.openOrReveal(filePath) || null;
-        }
-
-        if (!widget) {
-          throw new Error(`Failed to open file at path: ${filePath}`);
-        }
-      } else {
-        const currentWidget = editorTracker?.currentWidget;
-
-        if (!currentWidget) {
-          throw new Error('No active file or widget and no file path provided');
-        }
-
-        widget = currentWidget as IDocumentWidget;
-      }
-
-      if (!widget.context) {
-        throw new Error('Widget is not a document');
-      }
-
-      await widget.context.ready;
-
-      const model = widget.context.model;
-      if (!model) {
-        throw new Error('Document model not available');
-      }
-
-      const sharedModel = model.sharedModel;
-      const content = sharedModel.getSource();
-      const resolvedFilePath = widget.context.path;
-      const fileName = widget.title.label;
-
-      const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
-
-      return JSON.stringify({
-        success: true,
-        filePath: resolvedFilePath,
-        fileName,
-        fileExtension,
-        content,
-        isDirty: model.dirty,
-        readOnly: model.readOnly,
-        widgetType: widget.constructor.name
       });
     }
   });

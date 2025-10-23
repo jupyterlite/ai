@@ -107,8 +107,7 @@ import {
 import {
   createCopyFileTool,
   createDeleteFileTool,
-  createGetCurrentFileTool,
-  createGetFileContentTool,
+  createGetFileInfoTool,
   createNavigateToDirectoryTool,
   createNewFileTool,
   createOpenFileTool,
@@ -854,7 +853,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const renameFileTool = createRenameFileTool(docManager);
     const copyFileTool = createCopyFileTool(docManager);
     const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
-    const getFileContentTool = createGetFileContentTool(docManager);
+    const getFileInfoTool = createGetFileInfoTool(docManager, editorTracker);
     const setFileContentTool = createSetFileContentTool(
       docManager,
       diffManager
@@ -866,17 +865,8 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     toolRegistry.add('rename_file', renameFileTool);
     toolRegistry.add('copy_file', copyFileTool);
     toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
-    toolRegistry.add('get_file_content', getFileContentTool);
+    toolRegistry.add('get_file_info', getFileInfoTool);
     toolRegistry.add('set_file_content', setFileContentTool);
-
-    // Add current file tool if editor tracker is available
-    if (editorTracker) {
-      const getCurrentFileTool = createGetCurrentFileTool(
-        docManager,
-        editorTracker
-      );
-      toolRegistry.add('get_current_file', getCurrentFileTool);
-    }
 
     // Add command operation tools
     const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
