@@ -8,7 +8,7 @@ import { tool } from '@openai/agents';
 
 import { z } from 'zod';
 
-import { ITool } from '../tokens';
+import { IDiffManager, ITool } from '../tokens';
 
 /**
  * Create a tool for creating new files of various types
@@ -329,7 +329,7 @@ export function createGetFileContentTool(docManager: IDocumentManager): ITool {
  */
 export function createSetFileContentTool(
   docManager: IDocumentManager,
-  commands: CommandRegistry
+  diffManager?: IDiffManager
 ): ITool {
   return tool({
     name: 'set_file_content',
@@ -388,12 +388,14 @@ export function createSetFileContentTool(
 
       sharedModel.setSource(content);
 
-      const diffCommandId = 'jupyterlab-cell-diff:diff-file';
-      void commands.execute(diffCommandId, {
-        filePath,
-        originalSource: originalContent,
-        newSource: content
-      });
+      // Show the file diff using the diff manager if available
+      if (diffManager) {
+        await diffManager.showFileDiff({
+          original: String(originalContent),
+          modified: content,
+          filePath
+        });
+      }
 
       if (save) {
         await widget.context.save();

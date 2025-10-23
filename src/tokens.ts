@@ -282,6 +282,28 @@ export interface IShowCellDiffParams {
 }
 
 /**
+ * Parameters for showing file diff
+ */
+export interface IShowFileDiffParams {
+  /**
+   * Original file content
+   */
+  original: string;
+  /**
+   * Modified file content
+   */
+  modified: string;
+  /**
+   * Optional file path
+   */
+  filePath?: string;
+  /**
+   * Whether to show action buttons in the diff view
+   */
+  showActionButtons?: boolean;
+}
+
+/**
  * Interface for managing diff operations
  */
 export interface IDiffManager {
@@ -289,6 +311,10 @@ export interface IDiffManager {
    * Show diff between original and modified cell content
    */
   showCellDiff(params: IShowCellDiffParams): Promise<void>;
+  /**
+   * Show diff between original and modified file content
+   */
+  showFileDiff(params: IShowFileDiffParams): Promise<void>;
 }
 
 /**

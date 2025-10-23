@@ -857,7 +857,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
     const getFileContentTool = createGetFileContentTool(docManager);
     const setFileContentTool = createSetFileContentTool(
       docManager,
-      app.commands
+      diffManager
     );
 
     toolRegistry.add('create_file', newFileTool);
