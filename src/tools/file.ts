@@ -51,7 +51,6 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
     }) => {
       const { fileName, content = '', cwd, fileType = 'text' } = input;
 
-      // Registry extensions include the dot (e.g., '.py'), so we remove it
       const registeredFileType = docManager.registry.getFileType(fileType);
       const extWithDot = registeredFileType?.extensions[0] || '.txt';
       const ext = extWithDot.slice(1);
@@ -59,13 +58,7 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
       const existingExt = PathExt.extname(fileName);
       const fullFileName = existingExt ? fileName : `${fileName}.${ext}`;
 
-      // For Python files, ensure .py extension if fileType is python
-      const finalFileName =
-        fileType === 'python' && !fileName.endsWith('.py') && !existingExt
-          ? `${fileName}.py`
-          : fullFileName;
-
-      const fullPath = cwd ? `${cwd}/${finalFileName}` : finalFileName;
+      const fullPath = cwd ? `${cwd}/${fullFileName}` : fullFileName;
 
       const model = await docManager.services.contents.newUntitled({
         path: cwd || '',
@@ -74,7 +67,7 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
       });
 
       let finalPath = model.path;
-      if (model.name !== finalFileName) {
+      if (model.name !== fullFileName) {
         const renamed = await docManager.services.contents.rename(
           model.path,
           fullPath
@@ -98,8 +91,8 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
 
       return {
         success: true,
-        message: `${fileType} file '${finalFileName}' created and opened successfully`,
-        fileName: finalFileName,
+        message: `${fileType} file '${fullFileName}' created and opened successfully`,
+        fileName: fullFileName,
         filePath: finalPath,
         fileType,
         hasContent: !!content,
