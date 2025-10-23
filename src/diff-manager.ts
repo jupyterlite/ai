@@ -1,6 +1,6 @@
 import { CommandRegistry } from '@lumino/commands';
-import { IDiffManager } from './tokens';
 import { AISettingsModel } from './models/settings-model';
+import { IDiffManager, IShowCellDiffParams } from './tokens';
 
 /**
  * Command IDs for unified cell diffs
@@ -27,14 +27,7 @@ export class DiffManager implements IDiffManager {
   /**
    * Show diff between original and modified cell content
    */
-  async showCellDiff(params: {
-    original: string;
-    modified: string;
-    cellId?: string;
-    showActionButtons?: boolean;
-    openDiff?: boolean;
-    notebookPath?: string;
-  }): Promise<void> {
+  async showCellDiff(params: IShowCellDiffParams): Promise<void> {
     if (!this._settingsModel.config.showDiff) {
       return;
     }

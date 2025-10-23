@@ -252,20 +252,43 @@ export const IChatModelRegistry = new Token<IChatModelRegistry>(
 );
 
 /**
+ * Parameters for showing cell diff
+ */
+export interface IShowCellDiffParams {
+  /**
+   * Original cell content
+   */
+  original: string;
+  /**
+   * Modified cell content
+   */
+  modified: string;
+  /**
+   * Optional cell ID
+   */
+  cellId?: string;
+  /**
+   * Whether to show action buttons in the diff view
+   */
+  showActionButtons?: boolean;
+  /**
+   * Whether to open the diff view
+   */
+  openDiff?: boolean;
+  /**
+   * Optional path to the notebook
+   */
+  notebookPath?: string;
+}
+
+/**
  * Interface for managing diff operations
  */
 export interface IDiffManager {
   /**
    * Show diff between original and modified cell content
    */
-  showCellDiff(params: {
-    original: string;
-    modified: string;
-    cellId?: string;
-    showActionButtons?: boolean;
-    openDiff?: boolean;
-    notebookPath?: string;
-  }): Promise<void>;
+  showCellDiff(params: IShowCellDiffParams): Promise<void>;
 }
 
 /**
