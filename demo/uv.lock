@@ -7,9 +7,6 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
-[options]
-prerelease-mode = "allow"
-
 [[package]]
 name = "anyio"
 version = "4.11.0"
@@ -877,6 +874,15 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyterlab-day"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/21/ac7496a8241c7842630712d89513932221485df101db504323e33ebbb8d9/jupyterlab_day-0.2.0.tar.gz", hash = "sha256:c42b435b1c088d6782cc47de6370018c268d288442941cf4a6f5891bc4d24575", size = 426405, upload-time = "2024-12-16T14:07:40.873Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e9/9b/fda10f27464816a9a77633f82af4fdf395189eae02eeae3f637657beaccf/jupyterlab_day-0.2.0-py3-none-any.whl", hash = "sha256:13461bb39d25ad249376039e51fd7ac589d6778f04403e184d12fa01a2c0f026", size = 16366, upload-time = "2024-12-16T14:07:38.089Z" },
+]
+
+[[package]]
 name = "jupyterlab-diff"
 version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -896,6 +902,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0e/6a/b6af21fdf86eca5b8a24a9d2e051c5336435978a5d098b68f1d4fc5f916e/jupyterlab_eventlistener-0.4.0.tar.gz", hash = "sha256:2f7a28add00db89d4f2c86485181c1d0e187a03e80573babcfb06bfb35cfbdf9", size = 179389, upload-time = "2024-12-19T19:05:21.802Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/63/3f/b134971e57cd67fe42343ffa8d84d3c5efaed89367740028ec4db7f81f00/jupyterlab_eventlistener-0.4.0-py3-none-any.whl", hash = "sha256:7b4a1dbd602d148791692dc40a35b902734557021fce5c3d274424039f4d9620", size = 18123, upload-time = "2024-12-19T19:05:19.94Z" },
+]
+
+[[package]]
+name = "jupyterlab-night"
+version = "0.5.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/32/8c995aeaece95b72fe4aab4447e87179944f5faedf7a9a4ebd4ad34d608d/jupyterlab_night-0.5.2.tar.gz", hash = "sha256:347e3397d4b38c475fa11cd1a8c34a4ca99266448c726f8958c90626c292c188", size = 327595, upload-time = "2025-08-28T08:49:24.928Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/0d/dc7de6951c3b08cf3f4a4c57e1780ecdd2431181c8024b316a63cc99321b/jupyterlab_night-0.5.2-py3-none-any.whl", hash = "sha256:0da536f614954590d528314573036c1f3b641f69dcf1bcdd532e9ef86734845e", size = 16862, upload-time = "2025-08-28T08:49:23.469Z" },
 ]
 
 [[package]]
@@ -961,6 +976,8 @@ source = { virtual = "." }
 dependencies = [
     { name = "ipywidgets" },
     { name = "jupyterlab" },
+    { name = "jupyterlab-day" },
+    { name = "jupyterlab-night" },
     { name = "jupyterlite-ai" },
     { name = "jupyterlite-core" },
     { name = "jupyterlite-pyodide-kernel" },
@@ -970,6 +987,8 @@ dependencies = [
 requires-dist = [
     { name = "ipywidgets", specifier = ">=8.1.7" },
     { name = "jupyterlab", specifier = ">=4.5.0b1" },
+    { name = "jupyterlab-day", specifier = ">=0.2.0" },
+    { name = "jupyterlab-night", specifier = ">=0.5.2" },
     { name = "jupyterlite-ai", directory = "../" },
     { name = "jupyterlite-core", specifier = ">=0.7.0b0" },
     { name = "jupyterlite-pyodide-kernel", specifier = ">=0.7.0b0" },
