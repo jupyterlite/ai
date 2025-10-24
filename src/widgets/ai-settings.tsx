@@ -886,10 +886,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={config.showDiff}
+                      checked={config.showCellDiff}
                       onChange={e =>
                         handleConfigUpdate({
-                          showDiff: e.target.checked
+                          showCellDiff: e.target.checked
                         })
                       }
                       color="primary"
@@ -905,7 +905,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                 />
 
-                {config.showDiff && (
+                {config.showCellDiff && (
                   <FormControl sx={{ ml: 4 }}>
                     <InputLabel>Diff Display Mode</InputLabel>
                     <Select
@@ -922,6 +922,28 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     </Select>
                   </FormControl>
                 )}
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={config.showFileDiff}
+                      onChange={e =>
+                        handleConfigUpdate({
+                          showFileDiff: e.target.checked
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">Show File Diff</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Show diff view when AI modifies file content
+                      </Typography>
+                    </Box>
+                  }
+                />
 
                 <Divider sx={{ my: 1 }} />
 

@@ -170,9 +170,15 @@
       "type": "string",
       "default": "You are an AI code completion assistant. Complete the given code fragment with appropriate code.\nRules:\n- Return only the completion text, no explanations or comments\n- Do not include code block markers (``` or similar)\n- Make completions contextually relevant to the surrounding code and notebook context\n- Follow the language-specific conventions and style guidelines for the detected programming language\n- Keep completions concise but functional\n- Do not repeat the existing code that comes before the cursor\n- Use variables, imports, functions, and other definitions from previous notebook cells when relevant"
     },
-    "showDiff": {
+    "showCellDiff": {
       "title": "Show Cell Diff",
       "description": "Show diff view when AI modifies cell content",
+      "type": "boolean",
+      "default": true
+    },
+    "showFileDiff": {
+      "title": "Show File Diff",
+      "description": "Show diff view when AI modifies file content",
       "type": "boolean",
       "default": true
     },

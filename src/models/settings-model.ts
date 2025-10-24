@@ -57,7 +57,8 @@ export interface IAIConfig {
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Diff display settings
-  showDiff: boolean;
+  showCellDiff: boolean;
+  showFileDiff: boolean;
   diffDisplayMode: 'split' | 'unified';
 }
 
@@ -74,7 +75,8 @@ export class AISettingsModel extends VDomModel {
     toolsEnabled: true,
     sendWithShiftEnter: false,
     showTokenUsage: false,
-    showDiff: true,
+    showCellDiff: true,
+    showFileDiff: true,
     diffDisplayMode: 'split',
     commandsRequiringApproval: [
       'notebook:restart-run-all',
