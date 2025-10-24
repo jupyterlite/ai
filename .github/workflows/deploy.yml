@@ -13,28 +13,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
-      - name: Install the dependencies
+          version: "0.9.5"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+        working-directory: ./demo
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+        working-directory: ./demo
+
+      - name: Copy files
         run: |
-          # install the JupyterLite dependencies
-          python -m pip install jupyterlite-pyodide-kernel jupyterlite-core --pre
+          mkdir contents
+          cp README.md contents
 
-          # install a couple of other useful packages for the demo
-          python -m pip install ipywidgets
-
-          # install a dev version of the extension
-          python -m pip install .
       - name: Build the JupyterLite site
         run: |
-          jupyter lite build --output-dir dist
+          uv run jupyter lite build
+        working-directory: ./demo
+
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: ./dist
+          path: ./demo/dist
 
   deploy:
     needs: build
