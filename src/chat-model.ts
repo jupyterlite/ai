@@ -381,7 +381,7 @@ export class AIChatModel extends AbstractChatModel {
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${JSON.stringify(event.data.input, null, 2)}</code></pre>
+<pre class="jp-ai-tool-code"><code>${event.data.input}</code></pre>
 </div>
 </div>
 </details>`,
@@ -479,7 +479,7 @@ export class AIChatModel extends AbstractChatModel {
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">${assistantName} wants to execute this tool. Do you approve?</div>
-<pre class="jp-ai-tool-code"><code>${JSON.stringify(event.data.toolInput, null, 2)}</code></pre>
+<pre class="jp-ai-tool-code"><code>${event.data.toolInput}</code></pre>
 </div>
 [APPROVAL_BUTTONS:${event.data.interruptionId}]
 </div>
@@ -502,7 +502,9 @@ export class AIChatModel extends AbstractChatModel {
 
 ${assistantName} wants to execute this tool. Do you approve?
 
-${JSON.stringify(event.data.toolInput, null, 2)}
+\`\`\`json
+${event.data.toolInput}
+\`\`\`
 
 [APPROVAL_BUTTONS:${event.data.interruptionId}]`,
       sender: this._getAIUser(),
@@ -529,7 +531,7 @@ ${JSON.stringify(event.data.toolInput, null, 2)}
     const toolsList = event.data.approvals
       .map(
         (info, index) =>
-          `**${index + 1}. ${info.toolName}**\n${JSON.stringify(info.toolInput, null, 2)}\n`
+          `**${index + 1}. ${info.toolName}**\n\`\`\`json\n${info.toolInput}\n\`\`\`\n`
       )
       .join('\n\n');
 

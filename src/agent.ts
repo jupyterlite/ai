@@ -184,18 +184,18 @@ export interface IAgentEventTypeMap {
   tool_call_start: {
     callId: string;
     toolName: string;
-    input: any;
+    input: string;
   };
   tool_call_complete: {
     callId: string;
     toolName: string;
-    output: any;
+    output: string;
     isError: boolean;
   };
   tool_approval_required: {
     interruptionId: string;
     toolName: string;
-    toolInput: any;
+    toolInput: string;
     callId?: string;
   };
   grouped_approval_required: {
@@ -203,7 +203,7 @@ export interface IAgentEventTypeMap {
     approvals: Array<{
       interruptionId: string;
       toolName: string;
-      toolInput: any;
+      toolInput: string;
     }>;
   };
   error: {
@@ -719,6 +719,22 @@ export class AgentManager {
   }
 
   /**
+   * Formats tool input for display by pretty-printing JSON strings.
+   * @param input The tool input string to format
+   * @returns Pretty-printed JSON string
+   */
+  private _formatToolInput(input: string): string {
+    try {
+      // Parse and re-stringify with formatting
+      const parsed = JSON.parse(input);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      // If parsing fails, return the string as-is
+      return input;
+    }
+  }
+
+  /**
    * Handles the start of a tool call from the model event.
    * @param modelEvent The model event containing tool call information
    */
@@ -726,19 +742,13 @@ export class AgentManager {
     const toolCallId = modelEvent.toolCallId;
     const toolName = modelEvent.toolName;
     const toolInput = modelEvent.input;
-    let parsedToolInput;
-    try {
-      parsedToolInput = JSON.parse(toolInput);
-    } catch (error) {
-      parsedToolInput = {};
-    }
 
     this._agentEvent.emit({
       type: 'tool_call_start',
       data: {
         callId: toolCallId,
         toolName,
-        input: parsedToolInput
+        input: this._formatToolInput(toolInput)
       }
     });
   }
@@ -758,7 +768,7 @@ export class AgentManager {
 
     const isError =
       toolCallOutput.rawItem.type === 'function_call_result' &&
-      (toolCallOutput.rawItem as any).error;
+      toolCallOutput.rawItem.status === 'incomplete';
 
     const toolName =
       toolCallOutput.rawItem.type === 'function_call_result'
@@ -783,10 +793,13 @@ export class AgentManager {
   private async _handleSingleToolApproval(
     interruption: RunToolApprovalItem
   ): Promise<void> {
-    const toolName = (interruption.rawItem as any)?.name || 'Unknown Tool';
-    const toolInput = (interruption.rawItem as any)?.arguments || {};
+    const toolName = interruption.rawItem.name || 'Unknown Tool';
+    const toolInput = interruption.rawItem.arguments || '{}';
     const interruptionId = `int-${Date.now()}-${Math.random()}`;
-    const callId = (interruption.rawItem as any)?.callId;
+    const callId =
+      interruption.rawItem.type === 'function_call'
+        ? interruption.rawItem.callId
+        : undefined;
 
     this._pendingApprovals.set(interruptionId, { interruption });
 
@@ -795,7 +808,7 @@ export class AgentManager {
       data: {
         interruptionId,
         toolName,
-        toolInput,
+        toolInput: this._formatToolInput(toolInput),
         callId
       }
     });
@@ -810,8 +823,8 @@ export class AgentManager {
   ): Promise<void> {
     const groupId = `group-${Date.now()}-${Math.random()}`;
     const approvals = interruptions.map(interruption => {
-      const toolName = (interruption.rawItem as any)?.name || 'Unknown Tool';
-      const toolInput = (interruption.rawItem as any)?.arguments || {};
+      const toolName = interruption.rawItem.name || 'Unknown Tool';
+      const toolInput = interruption.rawItem.arguments || '{}';
       const interruptionId = `int-${Date.now()}-${Math.random()}`;
 
       this._pendingApprovals.set(interruptionId, { interruption, groupId });
@@ -819,7 +832,7 @@ export class AgentManager {
       return {
         interruptionId,
         toolName,
-        toolInput
+        toolInput: this._formatToolInput(toolInput)
       };
     });
 
