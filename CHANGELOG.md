@@ -2,6 +2,42 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0a4
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a3...72563be35fc0f3fbfb31b6391516660f2ba3b9f2))
+
+### Enhancements made
+
+- Split and unified cell diffs [#213](https://github.com/jupyterlite/ai/pull/213) ([@jtpio](https://github.com/jtpio))
+- Making Ai Agent able to Reading content for attached cells [#209](https://github.com/jupyterlite/ai/pull/209) ([@nakul-py](https://github.com/nakul-py))
+- Better file tools [#206](https://github.com/jupyterlite/ai/pull/206) ([@jtpio](https://github.com/jtpio))
+- Show completion prompt in the AI Settings panel [#203](https://github.com/jupyterlite/ai/pull/203) ([@jtpio](https://github.com/jtpio))
+- Support Claude Haiku 4.5 [#202](https://github.com/jupyterlite/ai/pull/202) ([@jtpio](https://github.com/jtpio))
+- Move the secrets manager toggle below the providers [#200](https://github.com/jupyterlite/ai/pull/200) ([@jtpio](https://github.com/jtpio))
+- Better format tool calls that need approval [#198](https://github.com/jupyterlite/ai/pull/198) ([@jtpio](https://github.com/jtpio))
+- Support discovering commands with a query [#195](https://github.com/jupyterlite/ai/pull/195) ([@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Fixing attachments attaches to old messages bug [#208](https://github.com/jupyterlite/ai/pull/208) ([@nakul-py](https://github.com/nakul-py))
+- Debounce settings updates when editing the system prompt [#204](https://github.com/jupyterlite/ai/pull/204) ([@jtpio](https://github.com/jtpio))
+- Copy the keys to secrets manager when switching [#201](https://github.com/jupyterlite/ai/pull/201) ([@brichet](https://github.com/brichet))
+- Fixing clear attachments bug [#196](https://github.com/jupyterlite/ai/pull/196) ([@nakul-py](https://github.com/nakul-py))
+
+### Maintenance and upkeep improvements
+
+- Drop `skipLibCheck` [#214](https://github.com/jupyterlite/ai/pull/214) ([@jtpio](https://github.com/jtpio))
+- Increase timeout for the code completion tests [#212](https://github.com/jupyterlite/ai/pull/212) ([@jtpio](https://github.com/jtpio))
+- Minor fixes and clean up [#197](https://github.com/jupyterlite/ai/pull/197) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-10-15&to=2025-10-24&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-10-15..2025-10-24&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-10-15..2025-10-24&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-10-15..2025-10-24&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0a3
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a2...3fbe54ef55d08c0d4042804fe98774ed9b9efc1f))
@@ -39,8 +75,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-09-26&to=2025-10-15&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-09-26..2025-10-15&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-09-26..2025-10-15&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0a2
 
