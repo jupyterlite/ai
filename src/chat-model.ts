@@ -626,6 +626,11 @@ ${toolsList}
         return null;
       }
 
+      const kernelLang =
+        model.content?.metadata?.language_info?.name ||
+        model.content?.metadata?.kernelspec?.language ||
+        'text';
+
       const selectedCells = attachment.cells
         .map(cellInfo => {
           const cell = model.content.cells.find(
@@ -637,7 +642,9 @@ ${toolsList}
 
           const code = cell.source || '';
           const cellType = cell.cell_type;
-          return `**Cell [${cellInfo.id}] (${cellType}):**\n\`\`\`${cellType === 'code' ? 'python' : ''}\n${code}\n\`\`\``;
+          const lang = cellType === 'code' ? kernelLang : cellType;
+
+          return `**Cell [${cellInfo.id}] (${cellType}):**\n\`\`\`${lang}\n${code}\n\`\`\``;
         })
         .filter(Boolean)
         .join('\n\n');
