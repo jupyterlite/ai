@@ -580,14 +580,22 @@ ${toolsList}
 
     for (const attachment of attachments) {
       try {
-        const fileContent = await this._readFileAttachment(attachment);
-        if (fileContent) {
-          // Get file extension for syntax highlighting
-          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
-          const language = fileExtension === '.ipynb' ? 'json' : '';
-          contents.push(
-            `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
-          );
+        if (attachment.type === 'notebook' && attachment.cells?.length) {
+          const cellContents = await this._readNotebookCells(attachment);
+          if (cellContents) {
+            contents.push(cellContents);
+          }
+        } else {
+          const fileContent = await this._readFileAttachment(attachment);
+          if (fileContent) {
+            const fileExtension = PathExt.extname(
+              attachment.value
+            ).toLowerCase();
+            const language = fileExtension === '.ipynb' ? 'json' : '';
+            contents.push(
+              `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+            );
+          }
         }
       } catch (error) {
         console.warn(`Failed to read attachment ${attachment.value}:`, error);
@@ -596,6 +604,59 @@ ${toolsList}
     }
 
     return contents;
+  }
+
+  /**
+   * Reads the content of a notebook cell.
+   * @param attachment The notebook attachment to read
+   * @returns Cell content as string or null if unable to read
+   */
+  private async _readNotebookCells(
+    attachment: IAttachment
+  ): Promise<string | null> {
+    if (attachment.type !== 'notebook' || !attachment.cells) {
+      return null;
+    }
+
+    try {
+      const model = await this.input.documentManager?.services.contents.get(
+        attachment.value
+      );
+      if (!model || model.type !== 'notebook') {
+        return null;
+      }
+
+      const kernelLang =
+        model.content?.metadata?.language_info?.name ||
+        model.content?.metadata?.kernelspec?.language ||
+        'text';
+
+      const selectedCells = attachment.cells
+        .map(cellInfo => {
+          const cell = model.content.cells.find(
+            (c: any) => c.id === cellInfo.id
+          );
+          if (!cell) {
+            return null;
+          }
+
+          const code = cell.source || '';
+          const cellType = cell.cell_type;
+          const lang = cellType === 'code' ? kernelLang : cellType;
+
+          return `**Cell [${cellInfo.id}] (${cellType}):**\n\`\`\`${lang}\n${code}\n\`\`\``;
+        })
+        .filter(Boolean)
+        .join('\n\n');
+
+      return `**Notebook: ${attachment.value}**\n${selectedCells}`;
+    } catch (error) {
+      console.warn(
+        `Failed to read notebook cells from ${attachment.value}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
