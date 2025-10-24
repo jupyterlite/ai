@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir contents
           cp README.md contents
+        working-directory: ./demo
 
       - name: Build the JupyterLite site
         run: |
