@@ -1,4 +1,4 @@
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { InputToolbarRegistry } from '@jupyter/chat';
 
 import type { TranslationBundle } from '@jupyterlab/translation';
 
@@ -6,7 +6,7 @@ import BuildIcon from '@mui/icons-material/Build';
 
 import CheckIcon from '@mui/icons-material/Check';
 
-import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Button, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -119,28 +119,26 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
 
   return (
     <>
-      <TooltippedButton
+      <Button
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        tooltip={trans.__(
+        aria-label={trans.__(
           'Tools (%1/%2 selected)',
           selectedToolNames.length.toString(),
           tools.length.toString()
         )}
-        buttonProps={{
-          size: 'small',
-          variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
-          color: 'primary',
-          title: trans.__('Select AI Tools'),
-          onKeyDown: e => {
-            if (e.key !== 'Enter' && e.key !== ' ') {
-              return;
-            }
-            openMenu(e.currentTarget);
-            // Stop propagation to prevent sending message
-            e.stopPropagation();
+        size={'small'}
+        variant={selectedToolNames.length > 0 ? 'contained' : 'outlined'}
+        color={'primary'}
+        title={trans.__('Select AI Tools')}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') {
+            return;
           }
+          openMenu(e.currentTarget);
+          // Stop propagation to prevent sending message
+          e.stopPropagation();
         }}
         sx={
           selectedToolNames.length === 0
@@ -149,7 +147,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         }
       >
         <BuildIcon />
-      </TooltippedButton>
+      </Button>
 
       <Menu
         open={menuOpen}
