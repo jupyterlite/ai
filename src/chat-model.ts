@@ -73,6 +73,10 @@ interface IToolExecutionContext {
    * Current status.
    */
   status: ToolStatus;
+  /**
+   * Human-readable summary extracted from tool input for display.
+   */
+  summary?: string;
 }
 
 /**
@@ -342,6 +346,34 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Extracts a human-readable summary from tool input for display in the header.
+   * @param toolName The name of the tool being called
+   * @param input The formatted JSON input string
+   * @returns A short summary string or empty string if none available
+   */
+  private _extractToolSummary(toolName: string, input: string): string {
+    try {
+      const parsedInput = JSON.parse(input);
+
+      switch (toolName) {
+        case 'execute_command':
+          if (parsedInput.commandId) {
+            return parsedInput.commandId;
+          }
+          break;
+        case 'discover_commands':
+          if (parsedInput.query) {
+            return `query: "${parsedInput.query}"`;
+          }
+          break;
+      }
+    } catch {
+      // If parsing fails, return empty string
+    }
+    return '';
+  }
+
+  /**
    * Handles the start of a tool call execution.
    * @param event Event containing the tool call start data
    */
@@ -349,12 +381,17 @@ export class AIChatModel extends AbstractChatModel {
     event: IAgentEvent<'tool_call_start'>
   ): void {
     const messageId = UUID.uuid4();
+    const summary = this._extractToolSummary(
+      event.data.toolName,
+      event.data.input
+    );
     const context: IToolExecutionContext = {
       toolCallId: event.data.callId,
       messageId,
       toolName: event.data.toolName,
       input: event.data.input,
-      status: 'pending'
+      status: 'pending',
+      summary
     };
 
     this._toolContexts.set(event.data.callId, context);
@@ -364,6 +401,7 @@ export class AIChatModel extends AbstractChatModel {
         toolName: context.toolName,
         input: context.input,
         status: context.status,
+        summary: context.summary,
         trans: this._trans
       }),
       sender: this._getAIUser(),
@@ -464,6 +502,7 @@ export class AIChatModel extends AbstractChatModel {
         toolName: context.toolName,
         input: context.input,
         status: context.status,
+        summary: context.summary,
         output,
         approvalId: context.approvalId,
         trans: this._trans
@@ -845,6 +884,7 @@ namespace Private {
     toolName: string;
     input: string;
     status: ToolStatus;
+    summary?: string;
     output?: string;
     approvalId?: string;
     trans: TranslationBundle;
@@ -854,12 +894,16 @@ namespace Private {
    * Builds HTML for a tool call display.
    */
   export function buildToolCallHtml(options: IToolCallHtmlOptions): string {
-    const { toolName, input, status, output, approvalId, trans } = options;
+    const { toolName, input, status, summary, output, approvalId, trans } =
+      options;
     const config = STATUS_CONFIG[status];
     const statusText = getStatusText(status, trans);
     const escapedToolName = escapeHtml(toolName);
     const escapedInput = escapeHtml(input);
     const openAttr = config.open ? ' open' : '';
+    const summaryHtml = summary
+      ? `<span class="jp-ai-tool-summary">${escapeHtml(summary)}</span>`
+      : '';
 
     let bodyContent = `
 <div class="jp-ai-tool-section">
@@ -890,7 +934,7 @@ namespace Private {
     return `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${escapedToolName}</div>
+<div class="jp-ai-tool-title">${escapedToolName}${summaryHtml}</div>
 <div class="jp-ai-tool-status ${config.statusClass}">${statusText}</div>
 </summary>
 <div class="jp-ai-tool-body">${bodyContent}

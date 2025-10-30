@@ -113,18 +113,12 @@ export function createExecuteCommandTool(
       // Execute the command
       const result = await commands.execute(commandId, args);
 
-      // Handle Widget objects specially (including subclasses like DocumentWidget)
+      // Handle Widget objects specially by extracting id and title
       let serializedResult;
-      if (
-        result &&
-        typeof result === 'object' &&
-        (result.constructor?.name?.includes('Widget') || result.id)
-      ) {
+      if (result && typeof result === 'object' && result.id) {
         serializedResult = {
-          type: result.constructor?.name || 'Widget',
           id: result.id,
-          title: result.title?.label || result.title,
-          className: result.className
+          title: result.title?.label || result.title
         };
       } else {
         // For other objects, try JSON serialization with fallback

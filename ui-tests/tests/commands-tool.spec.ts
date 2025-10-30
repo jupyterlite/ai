@@ -55,8 +55,10 @@ test.describe('#commandsTool', () => {
     const toolCall = panel.locator('.jp-ai-tool-call');
     await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
-    // Verify the tool was called
     await expect(toolCall).toContainText('discover_commands', {
+      timeout: EXPECT_TIMEOUT
+    });
+    await expect(toolCall).toContainText('query: "notebook"', {
       timeout: EXPECT_TIMEOUT
     });
 
@@ -111,6 +113,11 @@ test.describe('#commandsTool', () => {
       timeout: EXPECT_TIMEOUT
     });
 
+    // Verify no query is displayed when not provided
+    await expect(toolCall).not.toContainText('query:', {
+      timeout: EXPECT_TIMEOUT
+    });
+
     // Click to expand the tool call
     await toolCall.click();
 
@@ -124,5 +131,43 @@ test.describe('#commandsTool', () => {
 
     // Should have many commands (typically 400+)
     expect(count).toBeGreaterThan(400);
+  });
+
+  test('should display command name when executing command', async ({
+    page
+  }) => {
+    test.setTimeout(120 * 1000);
+
+    const panel = await openChatPanel(page);
+    const input = panel
+      .locator('.jp-chat-input-container')
+      .getByRole('combobox');
+    const sendButton = panel.locator(
+      '.jp-chat-input-container .jp-chat-send-button'
+    );
+
+    // Prompt to execute a specific command
+    const PROMPT =
+      'Use the execute_command tool with commandId parameter set to "notebook:create-new" to create a new notebook';
+
+    await input.pressSequentially(PROMPT);
+    await sendButton.click();
+
+    // Wait for AI response
+    await expect(
+      panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
+    ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
+
+    // Wait for tool call to appear
+    const toolCall = panel.locator('.jp-ai-tool-call');
+    await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
+
+    // Verify the tool was called and the command name is displayed in the summary
+    await expect(toolCall).toContainText('execute_command', {
+      timeout: EXPECT_TIMEOUT
+    });
+    await expect(toolCall).toContainText('notebook:create-new', {
+      timeout: EXPECT_TIMEOUT
+    });
   });
 });
