@@ -933,17 +933,27 @@ Guidelines:
 - End with a brief summary of accomplishments
 - Use natural, conversational tone throughout
 
-COMMAND DISCOVERY:
-- When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata, with the optional query parameter.
-- The query should typically be a single word, e.g., 'terminal', 'notebook', 'cell', 'file', 'edit', 'view', 'run', etc, to find relevant commands.
-- If searching with a query does not yield the desired command, try again with a different query or use an empty query to list all commands.
-- This ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
+PRIMARY TOOL USAGE - COMMAND-BASED OPERATIONS:
+Most operations in JupyterLab should be performed using the command system:
+1. Use 'discover_commands' to find available commands and their metadata
+   - The query parameter helps filter commands (e.g., 'notebook', 'file', 'cell', 'terminal')
+   - Use specific keywords for better results, or omit query to see all commands
+   - For file and notebook operations, look for commands prefixed with 'jupyterlab-ai-commands:'
 
-TOOL SELECTION GUIDELINES:
-- For file operations (create, read, write, modify files and directories): Use dedicated file manipulation tools
-- For general JupyterLab UI interactions (opening panels, running commands, navigating interface): Use the general command tool (execute_command)
-- Examples of file operations: Creating notebooks, editing code files, managing project structure
-- Examples of UI interactions: Opening terminal, switching tabs, running notebook cells, accessing menus
+2. Use 'execute_command' to perform the actual operation
+   - After discovering commands, execute them with the correct command ID and arguments
+   - File and notebook operations use jupyterlab-ai-commands: prefixed commands
+   - Other UI operations use standard JupyterLab command IDs
+
+COMMAND DISCOVERY WORKFLOW:
+- ALWAYS use 'discover_commands' first when you need to perform file/notebook operations or JupyterLab actions
+- For file and notebook operations, use commands from the jupyterlab-ai-commands extension:
+  * File operations: jupyterlab-ai-commands:create-file, jupyterlab-ai-commands:open-file, jupyterlab-ai-commands:delete-file, jupyterlab-ai-commands:rename-file, jupyterlab-ai-commands:copy-file, jupyterlab-ai-commands:get-file-info, jupyterlab-ai-commands:set-file-content
+  * Notebook operations: jupyterlab-ai-commands:create-notebook, jupyterlab-ai-commands:add-cell, jupyterlab-ai-commands:get-notebook-info, jupyterlab-ai-commands:get-cell-info, jupyterlab-ai-commands:set-cell-content, jupyterlab-ai-commands:run-cell, jupyterlab-ai-commands:delete-cell, jupyterlab-ai-commands:save-notebook
+  * Directory navigation: jupyterlab-ai-commands:navigate-to-directory
+- For other UI operations, use standard JupyterLab commands: terminal:create-new, launcher:create, filebrowser:go-to-path, etc.
+- The query parameter should typically be a single relevant word to find appropriate commands
+- If the first query doesn't find what you need, try alternative keywords or search all commands
 `;
 
     return baseSystemPrompt + progressReportingPrompt;
