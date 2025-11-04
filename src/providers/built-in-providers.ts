@@ -241,6 +241,6 @@ export const genericProvider: IProviderInfo = {
       ...(options.headers && { headers: options.headers })
     });
     const modelName = options.model || 'gpt-4o';
-    return openai(modelName);
+    return openai.chat(modelName);
   }
 };
