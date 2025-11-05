@@ -6,7 +6,7 @@
 import { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import { Locator } from '@playwright/test';
 
-export const DEFAULT_MODEL_NAME = 'Qwen2.5';
+export const DEFAULT_MODEL_NAME = 'Qwen3';
 
 export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
   '@jupyterlite/ai:settings-model': {
@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS_MODEL_SETTINGS = {
         id: 'ollama-1759407012872',
         name: DEFAULT_MODEL_NAME,
         provider: 'ollama',
-        model: 'qwen2.5:0.5b'
+        model: 'qwen3:0.6b'
       }
     ],
     showTokenUsage: false,
