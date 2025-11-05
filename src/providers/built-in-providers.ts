@@ -2,6 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOllama } from 'ollama-ai-provider-v2';
 
 import type { IProviderInfo } from '../tokens';
@@ -235,12 +236,13 @@ export const genericProvider: IProviderInfo = {
   supportsToolCalling: true,
   description: 'Uses /chat/completions endpoint',
   factory: (options: IModelOptions) => {
-    const openai = createOpenAI({
+    const openaiCompatible = createOpenAICompatible({
+      name: options.provider,
       apiKey: options.apiKey || 'dummy',
-      ...(options.baseURL && { baseURL: options.baseURL }),
+      baseURL: options.baseURL ?? '',
       ...(options.headers && { headers: options.headers })
     });
     const modelName = options.model || 'gpt-4o';
-    return openai.chat(modelName);
+    return openaiCompatible(modelName);
   }
 };

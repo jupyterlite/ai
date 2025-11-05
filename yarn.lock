@@ -54,6 +54,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/openai-compatible@npm:^1.0.26":
+  version: 1.0.26
+  resolution: "@ai-sdk/openai-compatible@npm:1.0.26"
+  dependencies:
+    "@ai-sdk/provider": 2.0.0
+    "@ai-sdk/provider-utils": 3.0.16
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 43657cf7d0d587affd4406e6ce246384cacc20dc8f3da6a656b69b2dfaeaf9eae64ead3ab130670e4b9efd546b318c1253f13d3a7c36623155dfde2ed25e9922
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/openai@npm:^2.0.44":
   version: 2.0.44
   resolution: "@ai-sdk/openai@npm:2.0.44"
@@ -102,6 +114,19 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: 0787ede346d4cf5d83fc5870125d27f1e746a7b26cde25566faebf82142f7ba5228ec3d5341cac06167dc81070bebf1076504aa279fa0bf10b5d1c501d6b40b5
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider-utils@npm:3.0.16":
+  version: 3.0.16
+  resolution: "@ai-sdk/provider-utils@npm:3.0.16"
+  dependencies:
+    "@ai-sdk/provider": 2.0.0
+    "@standard-schema/spec": ^1.0.0
+    eventsource-parser: ^3.0.6
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 5d9071f9e5acf79361c2c9c2df43bc4e7b0c40fb47c73b263bbf930a208b766dd22321a2cb8266659e4c0b590e3004fbcc9199d426621c42aed982da30f33442
   languageName: node
   linkType: hard
 
@@ -3032,6 +3057,7 @@ __metadata:
     "@ai-sdk/google": ^2.0.19
     "@ai-sdk/mistral": ^2.0.17
     "@ai-sdk/openai": ^2.0.44
+    "@ai-sdk/openai-compatible": ^1.0.26
     "@jupyter/chat": ^0.18.2
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/apputils": ^4.5.6
@@ -6065,7 +6091,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eventsource-parser@npm:^3.0.0, eventsource-parser@npm:^3.0.1, eventsource-parser@npm:^3.0.5":
+"eventsource-parser@npm:^3.0.0, eventsource-parser@npm:^3.0.1, eventsource-parser@npm:^3.0.5, eventsource-parser@npm:^3.0.6":
   version: 3.0.6
   resolution: "eventsource-parser@npm:3.0.6"
   checksum: b90ec27f8d992afa7df171db202faaedb1782214f64e50690cbf78bc2629f7751575aa27a72d8ae447e5a7094938406b1a3ea1d89e5f0f2d6916cc8a694b6587
