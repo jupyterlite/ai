@@ -6,7 +6,7 @@
 import { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import { Locator } from '@playwright/test';
 
-export const DEFAULT_MODEL_NAME = 'Qwen2.5';
+export const DEFAULT_MODEL_NAME = 'Qwen3';
 
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
   '@jupyterlite/ai:settings-model': {
@@ -17,7 +17,7 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
         id: 'generic-1759407012872',
         name: DEFAULT_MODEL_NAME,
         provider: 'generic',
-        model: 'qwen2.5:0.5b',
+        model: 'qwen3:0.6b',
         baseURL: 'http://localhost:11434/v1'
       }
     ],
