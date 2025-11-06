@@ -1,6 +1,8 @@
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { InputToolbarRegistry } from '@jupyter/chat';
 
 import ClearIcon from '@mui/icons-material/Clear';
+
+import { Button } from '@mui/material';
 
 import React from 'react';
 
@@ -23,18 +25,16 @@ export interface IClearButtonProps
 export function ClearButton(props: IClearButtonProps): JSX.Element {
   const tooltip = 'Clear chat';
   return (
-    <TooltippedButton
+    <Button
       onClick={props.clearMessages}
-      tooltip={tooltip}
-      buttonProps={{
-        size: 'small',
-        variant: 'outlined',
-        color: 'secondary',
-        title: tooltip
-      }}
+      aria-label={tooltip}
+      size={'small'}
+      variant={'outlined'}
+      color={'secondary'}
+      title={tooltip}
     >
       <ClearIcon />
-    </TooltippedButton>
+    </Button>
   );
 }
 
