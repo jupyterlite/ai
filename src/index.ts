@@ -941,14 +941,18 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    statusBar: IStatusBar,
+    statusBar: IStatusBar
   ) => {
     const div = document.createElement('div');
     div.style.width = '50px';
     div.style.height = '100%';
     div.style.backgroundColor = 'red';
     const item = new CompletionStatusWidget({ settingsModel });
-    statusBar.registerStatusItem('completionState', { item , align: 'right', rank: 10 });
+    statusBar.registerStatusItem('completionState', {
+      item,
+      align: 'right',
+      rank: 10
+    });
   }
 };
 
