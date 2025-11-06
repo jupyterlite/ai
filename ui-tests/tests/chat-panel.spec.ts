@@ -8,21 +8,9 @@ import {
   DEFAULT_MODEL_NAME,
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
-  DEFAULT_SETTINGS_MODEL_SETTINGS,
-  openChatPanel
+  TEST_PROVIDERS,
+  openChatPanel,
 } from './test-utils';
-
-test.use({
-  mockSettings: {
-    ...galata.DEFAULT_SETTINGS,
-    ...DEFAULT_SETTINGS_MODEL_SETTINGS,
-    '@jupyterlab/apputils-extension:notification': {
-      checkForUpdates: false,
-      fetchNews: 'false',
-      doNotDisturbMode: true
-    }
-  }
-});
 
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
 
@@ -39,21 +27,10 @@ test.describe('#withoutModel', () => {
     await expect(page.locator(`[id="${CHAT_PANEL_ID}"]`)).toBeVisible();
   });
 
-  test('should receive an error message', async ({ page }) => {
+  test('should receive an error message without model', async ({ page }) => {
     const content = 'Hello';
     const panel = await openChatPanel(page);
-
-    const settingsButton = panel.getByTitle('Open AI Settings');
-    await settingsButton.click();
-
-    const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
-    await expect(aiSettingsWidget).toBeVisible();
-
-    // Remove the existing default provider for this test only
-    const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
-    await providerMenu.click();
-    const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
-    await deleteMenuItem.click();
+    await panel.getByTitle('Add a new chat').click();
 
     // Now send a message in the chat
     const input = panel
@@ -78,7 +55,19 @@ test.describe('#withoutModel', () => {
   });
 });
 
-test.describe('#withModel', () => {
+TEST_PROVIDERS.forEach(({name, settings}) => test.describe(`#chatWithModel${name}`, () => {
+  test.use({
+    mockSettings: {
+      ...galata.DEFAULT_SETTINGS,
+      ...settings,
+      '@jupyterlab/apputils-extension:notification': {
+        checkForUpdates: false,
+        fetchNews: 'false',
+        doNotDisturbMode: true
+      }
+    }
+  });
+
   test('should have a default chat', async ({ page }) => {
     const panel = await openChatPanel(page);
 
@@ -129,6 +118,44 @@ test.describe('#withModel', () => {
     ).not.toHaveText(NOT_CONFIGURED_TEXT);
   });
 
+  test('should receive an error message when removing the model', async ({ page }) => {
+    const content = 'Hello';
+    const panel = await openChatPanel(page);
+
+    const settingsButton = panel.getByTitle('Open AI Settings');
+    await settingsButton.click();
+
+    const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+    await expect(aiSettingsWidget).toBeVisible();
+
+    // Remove the existing default provider for this test only
+    const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
+    await providerMenu.click();
+    const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
+    await deleteMenuItem.click();
+
+    // Now send a message in the chat
+    const input = panel
+      .locator('.jp-chat-input-container')
+      .getByRole('combobox');
+    const sendButton = panel.locator(
+      '.jp-chat-input-container .jp-chat-send-button'
+    );
+    const messages = panel.locator('.jp-chat-message');
+
+    await input.pressSequentially(content);
+    await sendButton.click();
+    await expect(messages).toHaveCount(2);
+
+    await expect(
+      messages.first().locator('.jp-chat-rendered-markdown')
+    ).toHaveText(content);
+
+    await expect(
+      messages.last().locator('.jp-chat-rendered-markdown')
+    ).toContainText(NOT_CONFIGURED_TEXT);
+  });
+
   test('should rename the chat', async ({ page }) => {
     const newName = 'My chat';
     const panel = await openChatPanel(page);
@@ -174,4 +201,4 @@ test.describe('#withModel', () => {
     await expect(chatTabs).toHaveCount(1);
     await expect(mainAreaTab).toHaveCount(0);
   });
-});
+}));
