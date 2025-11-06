@@ -2930,7 +2930,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/statusbar@npm:^4.4.7":
+"@jupyterlab/statusbar@npm:^4.4.6, @jupyterlab/statusbar@npm:^4.4.7":
   version: 4.4.7
   resolution: "@jupyterlab/statusbar@npm:4.4.7"
   dependencies:
@@ -3072,6 +3072,7 @@ __metadata:
     "@jupyterlab/rendermime": ^4.4.6
     "@jupyterlab/services": ^7.4.6
     "@jupyterlab/settingregistry": ^4.0.0
+    "@jupyterlab/statusbar": ^4.4.6
     "@jupyterlab/testutils": ^4.0.0
     "@jupyterlab/ui-components": ^4.4.6
     "@lumino/commands": ^2.3.2
