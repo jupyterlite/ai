@@ -34,8 +34,6 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       page.on('request', data => {
         if (data.method() === 'POST') {
           const url = new URL(data.url());
-          console.log('hostname', url.hostname);
-          console.log('pathname', url.pathname);
           if (
             ['127.0.0.1', 'localhost'].includes(url.hostname) &&
             ['/api/chat', '/v1/chat/completions'].includes(url.pathname)
