@@ -32,12 +32,16 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const cell = await page.notebook.getCellInputLocator(0);
 
       page.on('request', data => {
-        if (
-          data.method() === 'POST' &&
-          ['127.0.0.1', 'localhost'].includes(new URL(data.url()).hostname) &&
-          new URL(data.url()).pathname === '/api/chat'
-        ) {
-          requestBody = JSON.parse(data.postData() ?? '{}');
+        if (data.method() === 'POST') {
+          const url = new URL(data.url());
+          console.log('hostname', url.hostname);
+          console.log('pathname', url.pathname);
+          if (
+            ['127.0.0.1', 'localhost'].includes(url.hostname) &&
+            ['/api/chat', '/v1/chat/completions'].includes(url.pathname)
+          ) {
+            requestBody = JSON.parse(data.postData() ?? '{}');
+          }
         }
       });
       await cell?.pressSequentially(content);
