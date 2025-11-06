@@ -311,6 +311,11 @@ Rules:
     }
 
     Object.assign(provider, updates);
+    Object.keys(provider).forEach(key => {
+      if (key !== 'id' && updates[key] === undefined) {
+        delete provider[key];
+      }
+    });
     await this.saveSetting('providers', this._config.providers);
   }
 
