@@ -4,7 +4,7 @@
  */
 
 import { expect, galata, test } from '@jupyterlab/galata';
-import { DEFAULT_SETTINGS_MODEL_SETTINGS, openChatPanel } from './test-utils';
+import { DEFAULT_OLLAMA_MODEL_SETTINGS, openChatPanel } from './test-utils';
 
 const EXPECT_TIMEOUT = 120000;
 
@@ -17,7 +17,7 @@ test.use({
       doNotDisturbMode: true
     },
     '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_SETTINGS_MODEL_SETTINGS['@jupyterlite/ai:settings-model'],
+      ...DEFAULT_OLLAMA_MODEL_SETTINGS['@jupyterlite/ai:settings-model'],
       toolsEnabled: true,
       // To nudge the model to call the tool with specific parameters
       systemPrompt:
