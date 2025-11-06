@@ -4,7 +4,10 @@
  */
 
 import { expect, galata, test } from '@jupyterlab/galata';
-import { TEST_PROVIDERS } from './test-utils';
+import {
+  DEFAULT_GENERIC_PROVIDER_SETTINGS,
+  TEST_PROVIDERS
+} from './test-utils';
 
 const TIMEOUT = 120000;
 
@@ -77,3 +80,76 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
     });
   })
 );
+
+test.describe('#CompletionStatus', () => {
+  test.use({
+    mockSettings: {
+      ...galata.DEFAULT_SETTINGS,
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
+      '@jupyterlab/apputils-extension:notification': {
+        checkForUpdates: false,
+        fetchNews: 'false',
+        doNotDisturbMode: true
+      }
+    }
+  });
+
+  test('should have a completion status indicator', async ({ page }) => {
+    await expect(page.locator('.jp-ai-completion-status')).toBeVisible();
+  });
+
+  test('completion status indicator should be enabled', async ({ page }) => {
+    const model =
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+        .providers[0].model;
+    const component = page.locator(
+      '.jp-ai-completion-status > div:first-child'
+    );
+    await expect(component).not.toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).toHaveAttribute(
+      'title',
+      `Completion using ${model}`
+    );
+  });
+
+  test('completion status should toggle', async ({ page }) => {
+    const model =
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+        .providers[0].model;
+    const name =
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+        .providers[0].name;
+    const component = page.locator(
+      '.jp-ai-completion-status > div:first-child'
+    );
+
+    // Open the settings panel
+    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    await page.keyboard.press('Control+Shift+c');
+    await page
+      .locator(
+        '#modal-command-palette li[data-command="@jupyterlite/ai:open-settings"]'
+      )
+      .click();
+    // Do not use the same provider for chat and completion
+    await settingsPanel.getByRole('switch').first().click();
+
+    // Expect the completion to be disabled
+    await expect(component).toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).toHaveAttribute('title', 'No completion');
+
+    // Select back a model and expect the completion to be enabled
+    await settingsPanel.locator('.jp-ai-completion-provider-select').click();
+    await page.getByRole('option', { name }).click();
+    await expect(component).not.toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).toHaveAttribute(
+      'title',
+      `Completion using ${model}`
+    );
+
+    // Disable manually the completion
+    await settingsPanel.locator('.jp-ai-completion-provider-select').click();
+    await page.getByRole('option', { name: 'No completion' }).click();
+    await expect(component).toHaveClass(/jp-ai-completion-disabled/);
+  });
+});

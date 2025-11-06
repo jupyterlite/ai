@@ -381,10 +381,10 @@
 }
 
 /* Disabled color for the completion status */
-.jp-ai-status-completion-disabled circle {
+.jp-ai-completion-status .jp-ai-completion-disabled circle {
   fill: var(--jp-layout-color3);
 }
 
-.jp-ai-status-completion-disabled path {
+.jp-ai-completion-status .jp-ai-completion-disabled path {
   fill: var(--jp-layout-color2);
 }

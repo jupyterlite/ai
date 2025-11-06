@@ -3,7 +3,8 @@ import { AISettingsModel } from '../models/settings-model';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import { jupyternautIcon } from '../icons';
 
-const STATUS_DISABLED_CLASS = 'jp-ai-status-completion-disabled';
+const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
+const COMPLETION_DISABLED_CLASS = 'jp-ai-completion-disabled';
 
 /**
  * The completion status props.
@@ -51,7 +52,7 @@ function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
 
   return (
     <jupyternautIcon.react
-      className={disabled ? STATUS_DISABLED_CLASS : ''}
+      className={disabled ? COMPLETION_DISABLED_CLASS : ''}
       top={'2px'}
       width={'16px'}
       stylesheet={'statusBar'}
@@ -66,6 +67,7 @@ function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
 export class CompletionStatusWidget extends ReactWidget {
   constructor(options: ICompletionStatusProps) {
     super();
+    this.addClass(COMPLETION_STATUS_CLASS);
     this._props = options;
   }
 
