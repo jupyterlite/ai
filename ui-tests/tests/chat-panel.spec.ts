@@ -9,7 +9,7 @@ import {
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
   TEST_PROVIDERS,
-  openChatPanel,
+  openChatPanel
 } from './test-utils';
 
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
@@ -55,150 +55,154 @@ test.describe('#withoutModel', () => {
   });
 });
 
-TEST_PROVIDERS.forEach(({name, settings}) => test.describe(`#chatWithModel${name}`, () => {
-  test.use({
-    mockSettings: {
-      ...galata.DEFAULT_SETTINGS,
-      ...settings,
-      '@jupyterlab/apputils-extension:notification': {
-        checkForUpdates: false,
-        fetchNews: 'false',
-        doNotDisturbMode: true
+TEST_PROVIDERS.forEach(({ name, settings }) =>
+  test.describe(`#chatWithModel${name}`, () => {
+    test.use({
+      mockSettings: {
+        ...galata.DEFAULT_SETTINGS,
+        ...settings,
+        '@jupyterlab/apputils-extension:notification': {
+          checkForUpdates: false,
+          fetchNews: 'false',
+          doNotDisturbMode: true
+        }
       }
-    }
-  });
+    });
 
-  test('should have a default chat', async ({ page }) => {
-    const panel = await openChatPanel(page);
+    test('should have a default chat', async ({ page }) => {
+      const panel = await openChatPanel(page);
 
-    // Check that the chat panel is visible
-    await expect(panel).toBeVisible();
+      // Check that the chat panel is visible
+      await expect(panel).toBeVisible();
 
-    // Check that there's a default chat created and opened
-    const chatTabs = page.locator(
-      `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
-    );
-    await expect(chatTabs).toHaveCount(1);
+      // Check that there's a default chat created and opened
+      const chatTabs = page.locator(
+        `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
+      );
+      await expect(chatTabs).toHaveCount(1);
 
-    // Check that the default chat is expanded
-    const defaultChatTab = chatTabs.first();
-    await expect(defaultChatTab).toHaveClass(/lm-mod-expanded/);
+      // Check that the default chat is expanded
+      const defaultChatTab = chatTabs.first();
+      await expect(defaultChatTab).toHaveClass(/lm-mod-expanded/);
 
-    // Check that the default chat has the name of the default model
-    await expect(
-      defaultChatTab.locator('.lm-AccordionPanel-titleLabel')
-    ).toContainText(DEFAULT_MODEL_NAME, { ignoreCase: true });
-  });
+      // Check that the default chat has the name of the default model
+      await expect(
+        defaultChatTab.locator('.lm-AccordionPanel-titleLabel')
+      ).toContainText(DEFAULT_MODEL_NAME, { ignoreCase: true });
+    });
 
-  test('should have a model', async ({ page }) => {
-    test.setTimeout(60 * 1000);
+    test('should have a model', async ({ page }) => {
+      test.setTimeout(60 * 1000);
 
-    const content = 'Which model are you built from ?';
-    const panel = await openChatPanel(page);
-    const input = panel
-      .locator('.jp-chat-input-container')
-      .getByRole('combobox');
-    const sendButton = panel.locator(
-      '.jp-chat-input-container .jp-chat-send-button'
-    );
-    const messages = panel.locator('.jp-chat-message');
+      const content = 'Which model are you built from ?';
+      const panel = await openChatPanel(page);
+      const input = panel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+      const sendButton = panel.locator(
+        '.jp-chat-input-container .jp-chat-send-button'
+      );
+      const messages = panel.locator('.jp-chat-message');
 
-    await input.pressSequentially(content);
-    await sendButton.click();
-    await expect(
-      panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
-    ).toHaveCount(1, { timeout: 60000 });
-    await expect(messages).toHaveCount(2);
+      await input.pressSequentially(content);
+      await sendButton.click();
+      await expect(
+        panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
+      ).toHaveCount(1, { timeout: 60000 });
+      await expect(messages).toHaveCount(2);
 
-    await expect(messages.last().locator('.jp-chat-message-header')).toHaveText(
-      /Jupyternaut/
-    );
-    await expect(
-      messages.last().locator('.jp-chat-rendered-markdown')
-    ).not.toHaveText(NOT_CONFIGURED_TEXT);
-  });
+      await expect(
+        messages.last().locator('.jp-chat-message-header')
+      ).toHaveText(/Jupyternaut/);
+      await expect(
+        messages.last().locator('.jp-chat-rendered-markdown')
+      ).not.toHaveText(NOT_CONFIGURED_TEXT);
+    });
 
-  test('should receive an error message when removing the model', async ({ page }) => {
-    const content = 'Hello';
-    const panel = await openChatPanel(page);
+    test('should receive an error message when removing the model', async ({
+      page
+    }) => {
+      const content = 'Hello';
+      const panel = await openChatPanel(page);
 
-    const settingsButton = panel.getByTitle('Open AI Settings');
-    await settingsButton.click();
+      const settingsButton = panel.getByTitle('Open AI Settings');
+      await settingsButton.click();
 
-    const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
-    await expect(aiSettingsWidget).toBeVisible();
+      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      await expect(aiSettingsWidget).toBeVisible();
 
-    // Remove the existing default provider for this test only
-    const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
-    await providerMenu.click();
-    const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
-    await deleteMenuItem.click();
+      // Remove the existing default provider for this test only
+      const providerMenu = aiSettingsWidget.getByTestId('MoreVertIcon').first();
+      await providerMenu.click();
+      const deleteMenuItem = page.getByRole('menuitem', { name: /Delete/i });
+      await deleteMenuItem.click();
 
-    // Now send a message in the chat
-    const input = panel
-      .locator('.jp-chat-input-container')
-      .getByRole('combobox');
-    const sendButton = panel.locator(
-      '.jp-chat-input-container .jp-chat-send-button'
-    );
-    const messages = panel.locator('.jp-chat-message');
+      // Now send a message in the chat
+      const input = panel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+      const sendButton = panel.locator(
+        '.jp-chat-input-container .jp-chat-send-button'
+      );
+      const messages = panel.locator('.jp-chat-message');
 
-    await input.pressSequentially(content);
-    await sendButton.click();
-    await expect(messages).toHaveCount(2);
+      await input.pressSequentially(content);
+      await sendButton.click();
+      await expect(messages).toHaveCount(2);
 
-    await expect(
-      messages.first().locator('.jp-chat-rendered-markdown')
-    ).toHaveText(content);
+      await expect(
+        messages.first().locator('.jp-chat-rendered-markdown')
+      ).toHaveText(content);
 
-    await expect(
-      messages.last().locator('.jp-chat-rendered-markdown')
-    ).toContainText(NOT_CONFIGURED_TEXT);
-  });
+      await expect(
+        messages.last().locator('.jp-chat-rendered-markdown')
+      ).toContainText(NOT_CONFIGURED_TEXT);
+    });
 
-  test('should rename the chat', async ({ page }) => {
-    const newName = 'My chat';
-    const panel = await openChatPanel(page);
+    test('should rename the chat', async ({ page }) => {
+      const newName = 'My chat';
+      const panel = await openChatPanel(page);
 
-    // Check that the chat panel is visible
-    await expect(panel).toBeVisible();
+      // Check that the chat panel is visible
+      await expect(panel).toBeVisible();
 
-    // Rename the chat
-    const chatTabs = page.locator(
-      `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
-    );
-    const defaultChatTab = chatTabs.first();
-    await defaultChatTab.getByTitle('Rename chat').click();
-    await page.waitForSelector('.jp-Dialog input');
-    await page.locator('.jp-Dialog input').pressSequentially(newName);
-    await page.locator('.jp-Dialog .jp-mod-accept').click();
-    await expect(
-      defaultChatTab.locator('.lm-AccordionPanel-titleLabel')
-    ).toContainText(newName, { ignoreCase: true });
-  });
+      // Rename the chat
+      const chatTabs = page.locator(
+        `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
+      );
+      const defaultChatTab = chatTabs.first();
+      await defaultChatTab.getByTitle('Rename chat').click();
+      await page.waitForSelector('.jp-Dialog input');
+      await page.locator('.jp-Dialog input').pressSequentially(newName);
+      await page.locator('.jp-Dialog .jp-mod-accept').click();
+      await expect(
+        defaultChatTab.locator('.lm-AccordionPanel-titleLabel')
+      ).toContainText(newName, { ignoreCase: true });
+    });
 
-  test('should move the chat between areas', async ({ page }) => {
-    const panel = await openChatPanel(page);
+    test('should move the chat between areas', async ({ page }) => {
+      const panel = await openChatPanel(page);
 
-    // Check that the chat panel is visible
-    await expect(panel).toBeVisible();
+      // Check that the chat panel is visible
+      await expect(panel).toBeVisible();
 
-    // Rename the chat
-    const chatTabs = page.locator(
-      `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
-    );
-    const defaultChatTab = chatTabs.first();
-    await defaultChatTab.getByTitle('Move the chat to the main area').click();
-    await expect(chatTabs).toHaveCount(0);
+      // Rename the chat
+      const chatTabs = page.locator(
+        `[id="${CHAT_PANEL_ID}"] .lm-AccordionPanel-title`
+      );
+      const defaultChatTab = chatTabs.first();
+      await defaultChatTab.getByTitle('Move the chat to the main area').click();
+      await expect(chatTabs).toHaveCount(0);
 
-    const mainAreaTab = await page.activity.getTabLocator(DEFAULT_MODEL_NAME);
-    await expect(mainAreaTab).toHaveCount(1);
-    const mainAreaPanel =
-      await page.activity.getPanelLocator(DEFAULT_MODEL_NAME);
-    await mainAreaPanel
-      ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
-      .click();
-    await expect(chatTabs).toHaveCount(1);
-    await expect(mainAreaTab).toHaveCount(0);
-  });
-}));
+      const mainAreaTab = await page.activity.getTabLocator(DEFAULT_MODEL_NAME);
+      await expect(mainAreaTab).toHaveCount(1);
+      const mainAreaPanel =
+        await page.activity.getPanelLocator(DEFAULT_MODEL_NAME);
+      await mainAreaPanel
+        ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
+        .click();
+      await expect(chatTabs).toHaveCount(1);
+      await expect(mainAreaTab).toHaveCount(0);
+    });
+  })
+);

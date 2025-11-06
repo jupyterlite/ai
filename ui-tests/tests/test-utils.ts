@@ -49,7 +49,7 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
 
 export const TEST_PROVIDERS = [
   { name: 'Ollama', settings: DEFAULT_OLLAMA_MODEL_SETTINGS },
-  { name: 'Generic', settings: DEFAULT_GENERIC_PROVIDER_SETTINGS}
+  { name: 'Generic', settings: DEFAULT_GENERIC_PROVIDER_SETTINGS }
 ];
 
 export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
