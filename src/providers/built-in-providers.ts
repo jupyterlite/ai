@@ -212,7 +212,12 @@ export const ollamaProvider: IProviderInfo = {
   apiKeyRequirement: 'none',
   defaultModels: [],
   supportsBaseURL: true,
-  supportsHeaders: true,
+  URLS: [
+    {
+      url: 'http://localhost:11434',
+      description: 'Default local Ollama'
+    }
+  ],
   factory: (options: IModelOptions) => {
     const ollama = createOllama({
       baseURL: options.baseURL || 'http://localhost:11434/api',
@@ -235,6 +240,16 @@ export const genericProvider: IProviderInfo = {
   supportsHeaders: true,
   supportsToolCalling: true,
   description: 'Uses /chat/completions endpoint',
+  URLS: [
+    {
+      url: 'http://localhost:4000',
+      description: 'Default for local LiteLLM server'
+    },
+    {
+      url: 'http://localhost:11434/v1',
+      description: 'Default for local Ollama server'
+    }
+  ],
   factory: (options: IModelOptions) => {
     const openaiCompatible = createOpenAICompatible({
       name: options.provider,
