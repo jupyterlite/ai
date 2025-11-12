@@ -58,12 +58,12 @@ The process is different for each provider, so you may refer to their documentat
 
 #### Setting up Ollama
 
-1. Install Ollama following the instructions at https://ollama.com/download
+1. Install Ollama following the instructions at <https://ollama.com/download>
 2. Pull a model, for example:
 
-```bash
-ollama pull llama3.2
-```
+    ```bash
+    ollama pull llama3.2
+    ```
 
 3. Start the Ollama server (it typically runs on `http://localhost:11434`)
 
@@ -97,22 +97,22 @@ Using LiteLLM Proxy with jupyterlite-ai provides flexibility to switch between d
 
 1. Install LiteLLM:
 
-Follow the instructions at https://docs.litellm.ai/docs/simple_proxy.
+    Follow the instructions at <https://docs.litellm.ai/docs/simple_proxy>.
 
 2. Create a `litellm_config.yaml` file with your model configuration:
 
-```yaml
-model_list:
-  - model_name: gpt-5
-    litellm_params:
-      model: gpt-5
-      api_key: os.environ/OPENAI_API_KEY
+    ```yaml
+      model_list:
+        - model_name: gpt-5
+          litellm_params:
+            model: gpt-5
+            api_key: os.environ/OPENAI_API_KEY
 
-  - model_name: claude-sonnet
-    litellm_params:
-      model: claude-sonnet-4-5-20250929
-      api_key: os.environ/ANTHROPIC_API_KEY
-```
+        - model_name: claude-sonnet
+          litellm_params:
+            model: claude-sonnet-4-5-20250929
+            api_key: os.environ/ANTHROPIC_API_KEY
+    ```
 
 3. Start the proxy server, for example:
 
@@ -132,7 +132,7 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 
 > [!IMPORTANT]
 > The API key must be configured on the LiteLLM Proxy server (in the `litellm_config.yaml` file). Providing an API key via the AI provider settings UI will not have any effect, as the proxy server handles authentication with the upstream AI providers.
-
+<!-- Space -->
 > [!NOTE]
 > For more information about LiteLLM Proxy configuration, see the [LiteLLM documentation](https://docs.litellm.ai/docs/simple_proxy).
 
@@ -144,7 +144,7 @@ Providers are based on the [Vercel AI SDK](https://sdk.vercel.ai/docs/introducti
 
 ### Registering a Custom Provider
 
-**Example: Registering a custom OpenAI-compatible provider**
+#### Example: Registering a custom OpenAI-compatible provider
 
 ```typescript
 import {
@@ -192,7 +192,7 @@ The provider configuration object requires the following properties:
 - `supportsBaseURL`: Whether the provider supports a custom base URL
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
-**Example: Using a custom fetch function**
+#### Example: Using a custom fetch function
 
 You can provide a custom `fetch` function to the provider, which is useful for adding custom headers, handling authentication, or routing requests through a proxy:
 
@@ -228,12 +228,12 @@ To prevent the keys from being reset on reload, there are two options:
 
 1. use a connector that fetches the keys on a remote server (using secure rest API, or web socket)
 
-This is the recommended method, as it ensures the security of the keys and makes them accessible only to logged-in users. \
-But it requires some frontend and backend deployments:
+    This is the recommended method, as it ensures the security of the keys and makes them accessible only to logged-in users. \
+    But it requires some frontend and backend deployments:
 
-- a server that can store and send the keys on demand
-- a way to get authenticated to the server
-- a frontend extension providing the connector, able to connect to the server side
+    - a server that can store and send the keys on demand
+    - a way to get authenticated to the server
+    - a frontend extension providing the connector, able to connect to the server side
 
 2. disable the use of the secrets manager from the AI settings panel
 
@@ -253,75 +253,8 @@ pip uninstall jupyterlite-ai
 
 ## Contributing
 
-### Development install
+See [CONTRIBUTING](CONTRIBUTING.md)
 
-Note: You will need NodeJS to build the extension package.
-
-The `jlpm` command is JupyterLab's pinned version of
-[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
-`yarn` or `npm` in lieu of `jlpm` below.
-
-```bash
-# Clone the repo to your local environment
-# Change directory to the jupyterlite_ai directory
-# Install package in development mode
-pip install -e "."
-# Link your development version of the extension with JupyterLab
-jupyter labextension develop . --overwrite
-# Rebuild extension Typescript source after making changes
-jlpm build
-```
-
-You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
-
-```bash
-# Watch the source directory in one terminal, automatically rebuilding when needed
-jlpm watch
-# Run JupyterLab in another terminal
-jupyter lab
-```
-
-With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
-
-By default, the `jlpm build` command generates the source maps for this extension to make it easier to debug using the browser dev tools. To also generate source maps for the JupyterLab core extensions, you can run the following command:
-
-```bash
-jupyter lab build --minimize=False
-```
-
-### Running UI tests
-
-The UI tests use Playwright and can be configured with environment variables:
-
-- `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
-  - `on`: Record video for all tests
-  - `off`: Do not record video
-  - `retain-on-failure`: Only keep videos for failed tests
-- `PWSLOWMO`: Adds a delay (in milliseconds) between Playwright actions for debugging (default: `0`)
-
-Example usage:
-
-```bash
-# Record all test videos
-PWVIDEO=on jlpm playwright test
-
-# Slow down test execution by 500ms per action
-PWSLOWMO=500 jlpm playwright test
-
-# Combine both options
-PWVIDEO=on PWSLOWMO=1000 jlpm playwright test
-```
-
-### Development uninstall
-
-```bash
-pip uninstall jupyterlite-ai
-```
-
-In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
-command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `@jupyterlite/ai` within that folder.
-
-### Packaging the extension
+## Packaging the extension
 
 See [RELEASE](RELEASE.md)
