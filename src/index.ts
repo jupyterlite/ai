@@ -934,7 +934,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
   };
 
 const completionStatus: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:completion status',
+  id: '@jupyterlite/ai:completion-status',
   description: 'The completion status displayed in the status bar',
   autoStart: true,
   requires: [IAISettingsModel, IStatusBar],
