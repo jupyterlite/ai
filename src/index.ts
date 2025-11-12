@@ -937,18 +937,18 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:completion-status',
   description: 'The completion status displayed in the status bar',
   autoStart: true,
-  requires: [IAISettingsModel, IStatusBar],
+  requires: [IAISettingsModel],
+  optional: [IStatusBar],
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    statusBar: IStatusBar
+    statusBar: IStatusBar | null
   ) => {
-    const div = document.createElement('div');
-    div.style.width = '50px';
-    div.style.height = '100%';
-    div.style.backgroundColor = 'red';
+    if (!statusBar) {
+      return;
+    }
     const item = new CompletionStatusWidget({ settingsModel });
-    statusBar.registerStatusItem('completionState', {
+    statusBar?.registerStatusItem('completionState', {
       item,
       align: 'right',
       rank: 10
