@@ -36,6 +36,8 @@ import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+import { IStatusBar } from '@jupyterlab/statusbar';
+
 import {
   settingsIcon,
   Toolbar,
@@ -83,6 +85,7 @@ import {
   createModelSelectItem,
   createToolSelectItem,
   stopItem,
+  CompletionStatusWidget,
   TokenUsageWidget
 } from './components';
 
@@ -930,6 +933,29 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     }
   };
 
+const completionStatus: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:completion-status',
+  description: 'The completion status displayed in the status bar',
+  autoStart: true,
+  requires: [IAISettingsModel],
+  optional: [IStatusBar],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    statusBar: IStatusBar | null
+  ) => {
+    if (!statusBar) {
+      return;
+    }
+    const item = new CompletionStatusWidget({ settingsModel });
+    statusBar?.registerStatusItem('completionState', {
+      item,
+      align: 'right',
+      rank: 10
+    });
+  }
+};
+
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
@@ -944,7 +970,8 @@ export default [
   plugin,
   toolRegistry,
   agentManagerFactory,
-  inputToolbarFactory
+  inputToolbarFactory,
+  completionStatus
 ];
 
 // Export extension points for other extensions to use

@@ -241,7 +241,7 @@ Rules:
     }
     return this._config.activeCompleterProvider
       ? this.getProvider(this._config.activeCompleterProvider)
-      : this.getDefaultProvider();
+      : undefined;
   }
 
   async addProvider(
@@ -421,6 +421,8 @@ Rules:
         // Only save the specific setting that changed
         if (value !== undefined) {
           await this._settings.set(key, value as any);
+        } else {
+          await this._settings.remove(key);
         }
       }
     } catch (error) {

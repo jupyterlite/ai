@@ -600,6 +600,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         <Select
                           value={config.activeCompleterProvider || ''}
                           label="Completion Provider"
+                          className="jp-ai-completion-provider-select"
                           onChange={e =>
                             model.setActiveCompleterProvider(
                               e.target.value || undefined
@@ -607,7 +608,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           }
                         >
                           <MenuItem value="">
-                            <em>Use chat provider</em>
+                            <em>No completion</em>
                           </MenuItem>
                           {config.providers.map(provider => (
                             <MenuItem key={provider.id} value={provider.id}>

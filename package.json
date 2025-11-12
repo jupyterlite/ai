@@ -72,6 +72,7 @@
         "@jupyterlab/rendermime": "^4.4.6",
         "@jupyterlab/services": "^7.4.6",
         "@jupyterlab/settingregistry": "^4.0.0",
+        "@jupyterlab/statusbar": "^4.4.6",
         "@jupyterlab/ui-components": "^4.4.6",
         "@lumino/commands": "^2.3.2",
         "@lumino/coreutils": "^2.2.1",
