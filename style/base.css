@@ -371,6 +371,11 @@
   transform: rotate(180deg);
 }
 
+.jp-ai-settings-icon {
+  align-items: center;
+  display: flex;
+}
+
 .jp-chat-sidepanel .jp-chat-add span.jp-ToolbarButtonComponent-label {
   display: none;
 }

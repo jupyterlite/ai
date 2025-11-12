@@ -527,6 +527,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           overflow: 'auto',
           p: 2,
           pb: 4,
+          boxSizing: 'border-box',
           fontSize: '0.9rem'
         }}
       >
@@ -794,9 +795,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 label={
                   <div>
                     <span>Use the secrets manager to manage API keys</span>
-                    {config.useSecretsManager && (
+                    {!config.useSecretsManager && (
                       <Alert severity="warning" icon={<Error />} sx={{ mb: 2 }}>
-                        The secrets will be stored in plain text in settings
+                        The secrets are stored in plain text in settings
                       </Alert>
                     )}
                   </div>

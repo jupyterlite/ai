@@ -701,6 +701,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       });
       settingsWidget.id = 'jupyterlite-ai-settings';
       settingsWidget.title.icon = settingsIcon;
+      settingsWidget.title.iconClass = 'jp-ai-settings-icon';
 
       // Build the completion provider
       if (completionManager) {
@@ -726,6 +727,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
         label: 'AI Settings',
         caption: 'Configure AI providers and behavior',
         icon: settingsIcon,
+        iconClass: 'jp-ai-settings-icon',
         execute: () => {
           // Check if the widget already exists in shell
           let widget = Array.from(app.shell.widgets('main')).find(
