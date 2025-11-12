@@ -527,6 +527,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           overflow: 'auto',
           p: 2,
           pb: 4,
+          boxSizing: 'border-box',
           fontSize: '0.9rem'
         }}
       >
