@@ -646,7 +646,45 @@ ${toolsList}
           const cellType = cell.cell_type;
           const lang = cellType === 'code' ? kernelLang : cellType;
 
-          return `**Cell [${cellInfo.id}] (${cellType}):**\n\`\`\`${lang}\n${code}\n\`\`\``;
+          let outputs = '';
+          if (cellType === 'code' && Array.isArray(cell.outputs)) {
+            outputs = cell.outputs
+              .map(
+                (output: {
+                  output_type: string;
+                  text: any;
+                  traceback: any[];
+                  data: any;
+                }) => {
+                  if (output.output_type === 'stream') {
+                    return output.text;
+                  } else if (output.output_type === 'error') {
+                    return output.traceback.join('\n');
+                  } else if (
+                    output.output_type === 'execute_result' ||
+                    output.output_type === 'display_data'
+                  ) {
+                    const data = output.data;
+                    if (data && typeof data['text/plain'] === 'string') {
+                      return data['text/plain'];
+                    }
+                  }
+                  return '';
+                }
+              )
+              .filter(Boolean)
+              .join('\n---\n');
+
+            if (outputs.length > 2000) {
+              outputs = outputs.slice(0, 2000) + '\n...[truncated]';
+            }
+          }
+
+          return (
+            `**Cell [${cellInfo.id}] (${cellType}):**\n` +
+            `\`\`\`${lang}\n${code}\n\`\`\`` +
+            (outputs ? `\n**Outputs:**\n\`\`\`text\n${outputs}\n\`\`\`` : '')
+          );
         })
         .filter(Boolean)
         .join('\n\n');
