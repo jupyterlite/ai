@@ -672,6 +672,20 @@ ${toolsList}
                     }
                     return text;
                   }
+                  if (typeof data['image/png'] === 'string') {
+                    return `![image](data:image/png;base64,${data['image/png'].slice(0, 100)}...)`;
+                  }
+                  const widgetData =
+                    data['application/vnd.jupyter.widget-view+json'];
+                  if (
+                    widgetData &&
+                    typeof widgetData === 'object' &&
+                    'model_id' in widgetData
+                  ) {
+                    const modelId = (widgetData as { model_id?: string })
+                      .model_id;
+                    return `Widget: ${modelId ?? 'unknown model'}`;
+                  }
                 }
                 return '';
               })
