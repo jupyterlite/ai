@@ -24,6 +24,8 @@ import { AISettingsModel } from './models/settings-model';
 
 import { ITokenUsage } from './tokens';
 
+import * as nbformat from '@jupyterlab/nbformat';
+
 /**
  * AI Chat Model implementation that provides chat functionality with OpenAI agents,
  * tool integration, and MCP server support.
@@ -649,29 +651,30 @@ ${toolsList}
           let outputs = '';
           if (cellType === 'code' && Array.isArray(cell.outputs)) {
             outputs = cell.outputs
-              .map(
-                (output: {
-                  output_type: string;
-                  text: any;
-                  traceback: any[];
-                  data: any;
-                }) => {
-                  if (output.output_type === 'stream') {
-                    return output.text;
-                  } else if (output.output_type === 'error') {
-                    return output.traceback.join('\n');
-                  } else if (
-                    output.output_type === 'execute_result' ||
-                    output.output_type === 'display_data'
-                  ) {
-                    const data = output.data;
-                    if (data && typeof data['text/plain'] === 'string') {
-                      return data['text/plain'];
-                    }
+              .map((output: nbformat.IOutput) => {
+                if (output.output_type === 'stream') {
+                  return (output as nbformat.IStream).text;
+                } else if (output.output_type === 'error') {
+                  const err = output as nbformat.IError;
+                  return `${err.ename}: ${err.evalue}\n${(err.traceback || []).join('\n')}`;
+                } else if (
+                  output.output_type === 'execute_result' ||
+                  output.output_type === 'display_data'
+                ) {
+                  const data = (output as nbformat.IDisplayData).data;
+                  if (!data) {
+                    return '';
                   }
-                  return '';
+                  if (typeof data['text/plain'] === 'string') {
+                    let text = data['text/plain'];
+                    if (text.length > 2000) {
+                      text = text.slice(0, 2000) + '\n...[truncated]';
+                    }
+                    return text;
+                  }
                 }
-              )
+                return '';
+              })
               .filter(Boolean)
               .join('\n---\n');
 
@@ -689,6 +692,7 @@ ${toolsList}
         .filter(Boolean)
         .join('\n\n');
 
+      console.log('Selected notebook cells content:', selectedCells);
       return `**Notebook: ${attachment.value}**\n${selectedCells}`;
     } catch (error) {
       console.warn(
