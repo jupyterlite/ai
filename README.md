@@ -61,9 +61,9 @@ The process is different for each provider, so you may refer to their documentat
 1. Install Ollama following the instructions at <https://ollama.com/download>
 2. Pull a model, for example:
 
-   ```bash
-   ollama pull llama3.2
-   ```
+```bash
+ollama pull llama3.2
+```
 
 3. Start the Ollama server (it typically runs on `http://localhost:11434`)
 
@@ -97,22 +97,22 @@ Using LiteLLM Proxy with jupyterlite-ai provides flexibility to switch between d
 
 1. Install LiteLLM:
 
-   Follow the instructions at <https://docs.litellm.ai/docs/simple_proxy>.
+Follow the instructions at <https://docs.litellm.ai/docs/simple_proxy>.
 
 2. Create a `litellm_config.yaml` file with your model configuration:
 
-   ```yaml
-   model_list:
-     - model_name: gpt-5
-       litellm_params:
-         model: gpt-5
-         api_key: os.environ/OPENAI_API_KEY
+```yaml
+model_list:
+  - model_name: gpt-5
+    litellm_params:
+      model: gpt-5
+      api_key: os.environ/OPENAI_API_KEY
 
-     - model_name: claude-sonnet
-       litellm_params:
-         model: claude-sonnet-4-5-20250929
-         api_key: os.environ/ANTHROPIC_API_KEY
-   ```
+  - model_name: claude-sonnet
+    litellm_params:
+      model: claude-sonnet-4-5-20250929
+      api_key: os.environ/ANTHROPIC_API_KEY
+```
 
 3. Start the proxy server, for example:
 
@@ -133,7 +133,7 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 > [!IMPORTANT]
 > The API key must be configured on the LiteLLM Proxy server (in the `litellm_config.yaml` file). Providing an API key via the AI provider settings UI will not have any effect, as the proxy server handles authentication with the upstream AI providers.
 
-<!-- markdownlint-disable-file MD033 -->
+<!-- markdownlint-disable-file MD033 MD029 -->
 
 > [!NOTE]
 > For more information about LiteLLM Proxy configuration, see the [LiteLLM documentation](https://docs.litellm.ai/docs/simple_proxy).
@@ -255,10 +255,6 @@ pip uninstall jupyterlite-ai
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md)
-
-## Packaging the extension
-
-See [RELEASE](RELEASE.md)
 
 <p align="center">
   <img src="style/readme-image/image.png" alt="alt text" />
