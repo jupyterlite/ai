@@ -133,8 +133,6 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 > [!IMPORTANT]
 > The API key must be configured on the LiteLLM Proxy server (in the `litellm_config.yaml` file). Providing an API key via the AI provider settings UI will not have any effect, as the proxy server handles authentication with the upstream AI providers.
 
-<!-- markdownlint-disable-file MD033 MD029 -->
-
 > [!NOTE]
 > For more information about LiteLLM Proxy configuration, see the [LiteLLM documentation](https://docs.litellm.ai/docs/simple_proxy).
 
@@ -230,11 +228,12 @@ To prevent the keys from being reset on reload, there are two options:
 
 1. use a connector that fetches the keys on a remote server (using secure rest API, or web socket)
 
-   This is the recommended method, as it ensures the security of the keys and makes them accessible only to logged-in users. \
-   But it requires some frontend and backend deployments:
-   - a server that can store and send the keys on demand
-   - a way to get authenticated to the server
-   - a frontend extension providing the connector, able to connect to the server side
+This is the recommended method, as it ensures the security of the keys and makes them accessible only to logged-in users. \
+But it requires some frontend and backend deployments:
+
+- a server that can store and send the keys on demand
+- a way to get authenticated to the server
+- a frontend extension providing the connector, able to connect to the server side
 
 2. disable the use of the secrets manager from the AI settings panel
 
@@ -255,9 +254,3 @@ pip uninstall jupyterlite-ai
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md)
-
-<p align="center">
-  <img src="style/readme-image/image.png" alt="alt text" />
-  <br>
-  You made it to the end!
-</p>
