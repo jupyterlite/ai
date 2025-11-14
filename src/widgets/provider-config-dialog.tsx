@@ -87,7 +87,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
         supportsBaseURL: info.supportsBaseURL,
         description: info.description,
-        URLS: info.URLS
+        baseUrls: info.baseUrls
       };
     });
   }, [providerRegistry]);
@@ -284,7 +284,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             <Autocomplete
               freeSolo
               fullWidth
-              options={(selectedProvider.URLS ?? []).map(option => option.url)}
+              options={(selectedProvider.baseUrls ?? []).map(
+                option => option.url
+              )}
               value={baseURL || ''}
               onChange={(_, value) => {
                 if (value && typeof value === 'string') {
@@ -293,7 +295,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
               }}
               inputValue={baseURL || ''}
               renderOption={(props, option) => {
-                const urlOption = (selectedProvider.URLS ?? []).find(
+                const urlOption = (selectedProvider.baseUrls ?? []).find(
                   u => u.url === option
                 );
                 return (

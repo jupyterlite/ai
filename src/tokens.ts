@@ -162,7 +162,7 @@ export interface IProviderInfo {
   /**
    * Optional URL suggestions
    */
-  URLS?: { url: string; description?: string }[];
+  baseUrls?: { url: string; description?: string }[];
 
   /**
    * Factory function for creating language models

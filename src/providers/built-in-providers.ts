@@ -212,7 +212,7 @@ export const ollamaProvider: IProviderInfo = {
   apiKeyRequirement: 'none',
   defaultModels: [],
   supportsBaseURL: true,
-  URLS: [
+  baseUrls: [
     {
       url: 'http://localhost:11434',
       description: 'Default local Ollama'
@@ -240,7 +240,7 @@ export const genericProvider: IProviderInfo = {
   supportsHeaders: true,
   supportsToolCalling: true,
   description: 'Uses /chat/completions endpoint',
-  URLS: [
+  baseUrls: [
     {
       url: 'http://localhost:4000',
       description: 'Default for local LiteLLM server'
