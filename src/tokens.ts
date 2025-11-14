@@ -160,6 +160,11 @@ export interface IProviderInfo {
   description?: string;
 
   /**
+   * Optional URL suggestions
+   */
+  baseUrls?: { url: string; description?: string }[];
+
+  /**
    * Factory function for creating language models
    */
   factory: IProviderFactory;

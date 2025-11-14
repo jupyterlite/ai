@@ -5,6 +5,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -85,7 +86,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         apiKeyRequirement: info.apiKeyRequirement,
         allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
         supportsBaseURL: info.supportsBaseURL,
-        description: info.description
+        description: info.description,
+        baseUrls: info.baseUrls
       };
     });
   }, [providerRegistry]);
@@ -279,21 +281,46 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             )}
 
           {selectedProvider?.supportsBaseURL && (
-            <TextField
+            <Autocomplete
+              freeSolo
               fullWidth
-              label="Base URL (Optional)"
-              value={baseURL}
-              onChange={e => setBaseURL(e.target.value)}
-              placeholder={
-                provider === 'ollama'
-                  ? 'http://localhost:11434/api'
-                  : 'Custom API endpoint'
-              }
-              helperText={
-                provider === 'ollama'
-                  ? 'Ollama server endpoint'
-                  : 'Custom API base URL (e.g., for LiteLLM proxy). Leave empty to use default provider endpoint.'
-              }
+              options={(selectedProvider.baseUrls ?? []).map(
+                option => option.url
+              )}
+              value={baseURL || ''}
+              onChange={(_, value) => {
+                if (value && typeof value === 'string') {
+                  setBaseURL(value);
+                }
+              }}
+              inputValue={baseURL || ''}
+              renderOption={(props, option) => {
+                const urlOption = (selectedProvider.baseUrls ?? []).find(
+                  u => u.url === option
+                );
+                return (
+                  <Box component="li" {...props} key={option}>
+                    <Box>
+                      <Typography variant="body2">{option}</Typography>
+                      {urlOption?.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {urlOption.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              }}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Base URL"
+                  placeholder="https://api.example.com/v1"
+                  onChange={e => setBaseURL(e.target.value)}
+                />
+              )}
+              clearOnBlur={false}
             />
           )}
 
