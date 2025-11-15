@@ -151,6 +151,17 @@
   flex: 1;
 }
 
+.jp-ai-tool-summary {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-ai-tool-summary::before {
+  content: ' ';
+  white-space: pre;
+}
+
 .jp-ai-tool-status {
   font-size: var(--jp-ui-font-size0);
   font-weight: 500;

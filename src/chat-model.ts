@@ -364,6 +364,34 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Extracts a human-readable summary from tool input for display in the header.
+   * @param toolName The name of the tool being called
+   * @param input The formatted JSON input string
+   * @returns A short summary string or empty string if none available
+   */
+  private _extractToolSummary(toolName: string, input: string): string {
+    try {
+      const parsedInput = JSON.parse(input);
+
+      switch (toolName) {
+        case 'execute_command':
+          if (parsedInput.commandId) {
+            return parsedInput.commandId;
+          }
+          break;
+        case 'discover_commands':
+          if (parsedInput.query) {
+            return `query: "${parsedInput.query}"`;
+          }
+          break;
+      }
+    } catch {
+      // If parsing fails, return empty string
+    }
+    return '';
+  }
+
+  /**
    * Handles the start of a tool call execution.
    * @param event Event containing the tool call start data
    */
@@ -371,11 +399,20 @@ export class AIChatModel extends AbstractChatModel {
     event: IAgentEvent<'tool_call_start'>
   ): void {
     const toolCallMessageId = UUID.uuid4();
+    const toolSummary = this._extractToolSummary(
+      event.data.toolName,
+      event.data.input
+    );
+
+    const toolTitleHtml = toolSummary
+      ? `<div class="jp-ai-tool-title">${event.data.toolName} <span class="jp-ai-tool-summary">${toolSummary}</span></div>`
+      : `<div class="jp-ai-tool-title">${event.data.toolName}</div>`;
+
     const toolCallMessage: IChatMessage = {
       body: `<details class="jp-ai-tool-call jp-ai-tool-pending">
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+${toolTitleHtml}
 <div class="jp-ai-tool-status jp-ai-tool-status-pending">Running...</div>
 </summary>
 <div class="jp-ai-tool-body">
@@ -423,12 +460,21 @@ export class AIChatModel extends AbstractChatModel {
           ? 'jp-ai-tool-status-error'
           : 'jp-ai-tool-status-completed';
 
+        // Extract tool summary from the input
+        const toolSummary = this._extractToolSummary(
+          event.data.toolName,
+          inputJson
+        );
+        const toolTitleHtml = toolSummary
+          ? `<div class="jp-ai-tool-title">${event.data.toolName} <span class="jp-ai-tool-summary">${toolSummary}</span></div>`
+          : `<div class="jp-ai-tool-title">${event.data.toolName}</div>`;
+
         const updatedMessage: IChatMessage = {
           ...existingMessage,
           body: `<details class="jp-ai-tool-call ${statusClass}">
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+${toolTitleHtml}
 <div class="jp-ai-tool-status ${statusColor}">${statusText}</div>
 </summary>
 <div class="jp-ai-tool-body">
@@ -468,12 +514,21 @@ export class AIChatModel extends AbstractChatModel {
           const existingMessage = this.messages[existingMessageIndex];
           const assistantName = this._getAIUser().display_name;
 
+          // Extract tool summary from the input
+          const toolSummary = this._extractToolSummary(
+            event.data.toolName,
+            event.data.toolInput
+          );
+          const toolTitleHtml = toolSummary
+            ? `<div class="jp-ai-tool-title">${event.data.toolName} <span class="jp-ai-tool-summary">${toolSummary}</span></div>`
+            : `<div class="jp-ai-tool-title">${event.data.toolName}</div>`;
+
           const updatedMessage: IChatMessage = {
             ...existingMessage,
             body: `<details class="jp-ai-tool-call jp-ai-tool-pending" open>
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+${toolTitleHtml}
 <div class="jp-ai-tool-status jp-ai-tool-status-pending">Needs Approval</div>
 </summary>
 <div class="jp-ai-tool-body">
@@ -769,11 +824,13 @@ Status: ${status}
     if (existingMessageIndex !== -1) {
       const existingMessage = this.messages[existingMessageIndex];
 
-      // Extract tool name and input from existing message
-      const toolNameMatch = existingMessage.body.match(
-        /<div class="jp-ai-tool-title">([^<]+)<\/div>/
+      // Extract the entire tool title div (including any summary span)
+      const toolTitleMatch = existingMessage.body.match(
+        /<div class="jp-ai-tool-title">([^<]+(?:<span class="jp-ai-tool-summary">[^<]*<\/span>)?)<\/div>/
       );
-      const toolName = toolNameMatch ? toolNameMatch[1] : 'Unknown Tool';
+      const toolTitleHtml = toolTitleMatch
+        ? `<div class="jp-ai-tool-title">${toolTitleMatch[1]}</div>`
+        : '<div class="jp-ai-tool-title">Unknown Tool</div>';
 
       const codeMatch = existingMessage.body.match(/<code>([\s\S]*?)<\/code>/);
       const toolInput = codeMatch ? codeMatch[1] : '{}';
@@ -791,7 +848,7 @@ Status: ${status}
         body: `<details class="jp-ai-tool-call ${statusClass}">
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${toolName}</div>
+${toolTitleHtml}
 <div class="jp-ai-tool-status ${statusColor}">${status}</div>
 </summary>
 <div class="jp-ai-tool-body">
