@@ -2255,7 +2255,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/chat@npm:^0.19.0-alpha.0":
+"@jupyter/chat@npm:^0.19.0-alpha.1":
   version: 0.19.0-alpha.3
   resolution: "@jupyter/chat@npm:0.19.0-alpha.3"
   dependencies:
@@ -3300,7 +3300,7 @@ __metadata:
     "@ai-sdk/mistral": ^3.0.12
     "@ai-sdk/openai": ^3.0.18
     "@ai-sdk/openai-compatible": ^2.0.18
-    "@jupyter/chat": ^0.19.0-alpha.0
+    "@jupyter/chat": ^0.19.0-alpha.1
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/apputils": ^4.5.6
     "@jupyterlab/builder": ^4.0.0
