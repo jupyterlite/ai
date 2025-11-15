@@ -104,7 +104,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:3.0.12, @ai-sdk/provider-utils@npm:^3.0.7":
+"@ai-sdk/provider-utils@npm:3.0.12":
   version: 3.0.12
   resolution: "@ai-sdk/provider-utils@npm:3.0.12"
   dependencies:
@@ -3100,7 +3100,6 @@ __metadata:
     eslint-plugin-prettier: ^5.0.0
     jupyter-secrets-manager: ^0.4.0
     npm-run-all2: ^7.0.1
-    ollama-ai-provider-v2: ^1.4.1
     prettier: ^3.0.0
     rimraf: ^5.0.1
     source-map-loader: ^1.0.2
@@ -8592,18 +8591,6 @@ __metadata:
   version: 1.13.4
   resolution: "object-inspect@npm:1.13.4"
   checksum: 582810c6a8d2ef988ea0a39e69e115a138dad8f42dd445383b394877e5816eb4268489f316a6f74ee9c4e0a984b3eab1028e3e79d62b1ed67c726661d55c7a8b
-  languageName: node
-  linkType: hard
-
-"ollama-ai-provider-v2@npm:^1.4.1":
-  version: 1.4.1
-  resolution: "ollama-ai-provider-v2@npm:1.4.1"
-  dependencies:
-    "@ai-sdk/provider": ^2.0.0
-    "@ai-sdk/provider-utils": ^3.0.7
-  peerDependencies:
-    zod: ^4.0.16
-  checksum: deeac0a3ff2b1a21f1d412e8550715523bdcdea33b4e70e57b1bfb84921202c3414785b6c4b21a5ba98dc2ac8a004d3b9580acccc2abb429316ac76aee521973
   languageName: node
   linkType: hard
 

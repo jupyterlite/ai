@@ -52,6 +52,18 @@ The process is different for each provider, so you may refer to their documentat
 
 ![screenshot showing the dialog to add a new provider](https://github.com/user-attachments/assets/823c71c6-5807-44c8-80b6-2e59379a65d5)
 
+### Using a generic OpenAI-compatible provider
+
+The Generic provider allows you to connect to any OpenAI-compatible API endpoint, including local servers like Ollama and LiteLLM.
+
+1. In JupyterLab, open the AI settings panel and go to the **Providers** section
+2. Click on "Add a new provider"
+3. Select the **Generic (OpenAI-compatible)** provider
+4. Configure the following settings:
+   - **Base URL**: The base URL of your API endpoint (suggestions are provided for common local servers)
+   - **Model**: The model name to use
+   - **API Key**: Your API key (if required by the provider)
+
 ### Using Ollama
 
 [Ollama](https://ollama.com/) allows you to run open-weight LLMs locally on your machine.
@@ -71,21 +83,11 @@ ollama pull llama3.2
 
 1. In JupyterLab, open the AI settings panel and go to the **Providers** section
 2. Click on "Add a new provider"
-3. Select the **Ollama** provider
+3. Select the **Generic (OpenAI-compatible)** provider
 4. Configure the following settings:
+   - **Base URL**: Select `http://localhost:11434/v1` from the suggestions (or enter manually)
    - **Model**: The model name you pulled (e.g., `llama3.2`)
-
-### Using a generic OpenAI-compatible provider
-
-The Generic provider allows you to connect to any OpenAI-compatible API endpoint.
-
-1. In JupyterLab, open the AI settings panel and go to the **Providers** section
-2. Click on "Add a new provider"
-3. Select the **Generic** provider
-4. Configure the following settings:
-   - **Base URL**: The base URL of your API endpoint
-   - **Model**: The model name to use
-   - **API Key**: Your API key (if required by the provider)
+   - **API Key**: Leave empty (not required for Ollama)
 
 ### Using LiteLLM Proxy
 

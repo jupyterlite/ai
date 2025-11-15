@@ -74,7 +74,6 @@ import {
   googleProvider,
   mistralProvider,
   openaiProvider,
-  ollamaProvider,
   genericProvider
 } from './providers/built-in-providers';
 
@@ -189,19 +188,6 @@ const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IProviderRegistry],
   activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
     providerRegistry.registerProvider(openaiProvider);
-  }
-};
-
-/**
- * Ollama provider plugin
- */
-const ollamaProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:ollama-provider',
-  description: 'Register Ollama provider',
-  autoStart: true,
-  requires: [IProviderRegistry],
-  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
-    providerRegistry.registerProvider(ollamaProvider);
   }
 };
 
@@ -964,7 +950,6 @@ export default [
   googleProviderPlugin,
   mistralProviderPlugin,
   openaiProviderPlugin,
-  ollamaProviderPlugin,
   genericProviderPlugin,
   settingsModel,
   diffManager,
