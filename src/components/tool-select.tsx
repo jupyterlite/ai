@@ -1,10 +1,10 @@
-import { InputToolbarRegistry } from '@jupyter/chat';
+import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
 import BuildIcon from '@mui/icons-material/Build';
 
 import CheckIcon from '@mui/icons-material/Check';
 
-import { Button, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -107,22 +107,24 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
 
   return (
     <>
-      <Button
+      <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        aria-label={`Tools (${selectedToolNames.length}/${tools.length} selected)`}
-        size={'small'}
-        variant={selectedToolNames.length > 0 ? 'contained' : 'outlined'}
-        color={'primary'}
-        title={'Select AI Tools'}
-        onKeyDown={e => {
-          if (e.key !== 'Enter' && e.key !== ' ') {
-            return;
+        tooltip={`Tools (${selectedToolNames.length}/${tools.length} selected)`}
+        buttonProps={{
+          size: 'small',
+          variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
+          color: 'primary',
+          title: 'Select AI Tools',
+          onKeyDown: e => {
+            if (e.key !== 'Enter' && e.key !== ' ') {
+              return;
+            }
+            openMenu(e.currentTarget);
+            // Stop propagation to prevent sending message
+            e.stopPropagation();
           }
-          openMenu(e.currentTarget);
-          // Stop propagation to prevent sending message
-          e.stopPropagation();
         }}
         sx={
           selectedToolNames.length === 0
@@ -131,7 +133,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         }
       >
         <BuildIcon />
-      </Button>
+      </TooltippedButton>
 
       <Menu
         open={menuOpen}

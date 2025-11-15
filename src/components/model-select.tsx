@@ -1,6 +1,6 @@
-import { InputToolbarRegistry } from '@jupyter/chat';
+import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import CheckIcon from '@mui/icons-material/Check';
-import { Button, Menu, MenuItem, Typography } from '@mui/material';
+import { Menu, MenuItem, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
@@ -97,14 +97,16 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
   // Show a message if no providers are configured
   if (availableModels.length === 0) {
     return (
-      <Button
+      <TooltippedButton
         onClick={() => {}}
-        aria-label="No providers configured. Please go to AI Settings to add a provider."
-        size={'small'}
-        variant={'outlined'}
-        color={'warning'}
-        disabled={true}
-        title={'No Providers Available'}
+        tooltip="No providers configured. Please go to AI Settings to add a provider."
+        buttonProps={{
+          size: 'small',
+          variant: 'outlined',
+          color: 'warning',
+          disabled: true,
+          title: 'No Providers Available'
+        }}
         sx={{
           minWidth: 'auto',
           display: 'flex',
@@ -118,28 +120,30 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         >
           No Providers
         </Typography>
-      </Button>
+      </TooltippedButton>
     );
   }
 
   return (
     <>
-      <Button
+      <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        aria-label={`Current Model: ${currentProviderLabel} - ${currentModel}`}
-        size={'small'}
-        variant={'contained'}
-        color={'primary'}
-        title={'Select AI Model'}
-        onKeyDown={e => {
-          if (e.key !== 'Enter' && e.key !== ' ') {
-            return;
+        tooltip={`Current Model: ${currentProviderLabel} - ${currentModel}`}
+        buttonProps={{
+          size: 'small',
+          variant: 'contained',
+          color: 'primary',
+          title: 'Select AI Model',
+          onKeyDown: e => {
+            if (e.key !== 'Enter' && e.key !== ' ') {
+              return;
+            }
+            openMenu(e.currentTarget);
+            // Stop propagation to prevent sending message
+            e.stopPropagation();
           }
-          openMenu(e.currentTarget);
-          // Stop propagation to prevent sending message
-          e.stopPropagation();
         }}
         sx={{
           minWidth: 'auto',
@@ -154,7 +158,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         >
           {currentProviderLabel}
         </Typography>
-      </Button>
+      </TooltippedButton>
 
       <Menu
         open={menuOpen}
