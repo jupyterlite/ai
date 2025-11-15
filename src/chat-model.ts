@@ -727,7 +727,12 @@ ${toolsList}
                   if (!data) {
                     return '';
                   }
-                  return extractDisplay(data);
+                  try {
+                    return extractDisplay(data);
+                  } catch (e) {
+                    console.error('Cannot extract cell output', e);
+                    return '';
+                  }
                 }
                 return '';
               })
