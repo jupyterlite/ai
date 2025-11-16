@@ -24,6 +24,8 @@ import { AISettingsModel } from './models/settings-model';
 
 import { ITokenUsage } from './tokens';
 
+import * as nbformat from '@jupyterlab/nbformat';
+
 /**
  * AI Chat Model implementation that provides chat functionality with OpenAI agents,
  * tool integration, and MCP server support.
@@ -646,7 +648,107 @@ ${toolsList}
           const cellType = cell.cell_type;
           const lang = cellType === 'code' ? kernelLang : cellType;
 
-          return `**Cell [${cellInfo.id}] (${cellType}):**\n\`\`\`${lang}\n${code}\n\`\`\``;
+          const DISPLAY_PRIORITY = [
+            'application/vnd.jupyter.widget-view+json',
+            'application/javascript',
+            'text/html',
+            'image/svg+xml',
+            'image/png',
+            'image/jpeg',
+            'text/markdown',
+            'text/latex',
+            'text/plain'
+          ];
+
+          function extractDisplay(data: any): string {
+            for (const mime of DISPLAY_PRIORITY) {
+              if (!(mime in data)) {
+                continue;
+              }
+
+              const value = data[mime];
+              if (!value) {
+                continue;
+              }
+
+              switch (mime) {
+                case 'application/vnd.jupyter.widget-view+json':
+                  return `Widget: ${(value as any).model_id ?? 'unknown model'}`;
+
+                case 'image/png':
+                  return `![image](data:image/png;base64,${value.slice(0, 100)}...)`;
+
+                case 'image/jpeg':
+                  return `![image](data:image/jpeg;base64,${value.slice(0, 100)}...)`;
+
+                case 'image/svg+xml':
+                  return String(value).slice(0, 500) + '...\n[svg truncated]';
+
+                case 'text/html':
+                  return (
+                    String(value).slice(0, 1000) +
+                    (String(value).length > 1000 ? '\n...[truncated]' : '')
+                  );
+
+                case 'text/markdown':
+                case 'text/latex':
+                case 'text/plain': {
+                  let text = Array.isArray(value)
+                    ? value.join('')
+                    : String(value);
+                  if (text.length > 2000) {
+                    text = text.slice(0, 2000) + '\n...[truncated]';
+                  }
+                  return text;
+                }
+
+                default:
+                  return JSON.stringify(value).slice(0, 2000);
+              }
+            }
+
+            return JSON.stringify(data).slice(0, 2000);
+          }
+
+          let outputs = '';
+          if (cellType === 'code' && Array.isArray(cell.outputs)) {
+            outputs = cell.outputs
+              .map((output: nbformat.IOutput) => {
+                if (output.output_type === 'stream') {
+                  return (output as nbformat.IStream).text;
+                } else if (output.output_type === 'error') {
+                  const err = output as nbformat.IError;
+                  return `${err.ename}: ${err.evalue}\n${(err.traceback || []).join('\n')}`;
+                } else if (
+                  output.output_type === 'execute_result' ||
+                  output.output_type === 'display_data'
+                ) {
+                  const data = (output as nbformat.IDisplayData).data;
+                  if (!data) {
+                    return '';
+                  }
+                  try {
+                    return extractDisplay(data);
+                  } catch (e) {
+                    console.error('Cannot extract cell output', e);
+                    return '';
+                  }
+                }
+                return '';
+              })
+              .filter(Boolean)
+              .join('\n---\n');
+
+            if (outputs.length > 2000) {
+              outputs = outputs.slice(0, 2000) + '\n...[truncated]';
+            }
+          }
+
+          return (
+            `**Cell [${cellInfo.id}] (${cellType}):**\n` +
+            `\`\`\`${lang}\n${code}\n\`\`\`` +
+            (outputs ? `\n**Outputs:**\n\`\`\`text\n${outputs}\n\`\`\`` : '')
+          );
         })
         .filter(Boolean)
         .join('\n\n');
