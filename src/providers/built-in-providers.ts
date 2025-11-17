@@ -3,7 +3,6 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { createOllama } from 'ollama-ai-provider-v2';
 
 import type { IProviderInfo } from '../tokens';
 import type { IModelOptions } from './models';
@@ -200,31 +199,6 @@ export const openaiProvider: IProviderInfo = {
     });
     const modelName = options.model || 'gpt-4o';
     return openai(modelName);
-  }
-};
-
-/**
- * Ollama provider
- */
-export const ollamaProvider: IProviderInfo = {
-  id: 'ollama',
-  name: 'Ollama',
-  apiKeyRequirement: 'none',
-  defaultModels: [],
-  supportsBaseURL: true,
-  baseUrls: [
-    {
-      url: 'http://localhost:11434',
-      description: 'Default local Ollama'
-    }
-  ],
-  factory: (options: IModelOptions) => {
-    const ollama = createOllama({
-      baseURL: options.baseURL || 'http://localhost:11434/api',
-      ...(options.headers && { headers: options.headers })
-    });
-    const modelName = options.model || 'phi3';
-    return ollama(modelName);
   }
 };
 
