@@ -2,6 +2,41 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a4...d3ffd58075cb495aeea2fce70f4ccd9b276a8c49))
+
+### Enhancements made
+
+- Add optional URL suggestions to provider info [#230](https://github.com/jupyterlite/ai/pull/230) ([@brichet](https://github.com/brichet))
+- Adding Cell Outputs as a part of attachments [#226](https://github.com/jupyterlite/ai/pull/226) ([@nakul-py](https://github.com/nakul-py))
+- Completion indicator [#224](https://github.com/jupyterlite/ai/pull/224) ([@brichet](https://github.com/brichet))
+- Use OpenAI compatible provider [#221](https://github.com/jupyterlite/ai/pull/221) ([@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Settings UI improvements [#225](https://github.com/jupyterlite/ai/pull/225) ([@brichet](https://github.com/brichet))
+- Save empty field in the provider settings [#223](https://github.com/jupyterlite/ai/pull/223) ([@brichet](https://github.com/brichet))
+- Fix the type of response for the generic provider [#220](https://github.com/jupyterlite/ai/pull/220) ([@jtpio](https://github.com/jtpio))
+
+### Maintenance and upkeep improvements
+
+- Use the generic provider for Ollama [#233](https://github.com/jupyterlite/ai/pull/233) ([@jtpio](https://github.com/jtpio))
+- Restore `strictNullChecks` [#217](https://github.com/jupyterlite/ai/pull/217) ([@jtpio](https://github.com/jtpio))
+- Improve handling of dependencies for the demo [#216](https://github.com/jupyterlite/ai/pull/216) ([@jtpio](https://github.com/jtpio))
+
+### Documentation improvements
+
+- Adding separate contributing documentation file. [#228](https://github.com/jupyterlite/ai/pull/228) ([@nakul-py](https://github.com/nakul-py))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-10-24&to=2025-11-17&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-10-24..2025-11-17&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-10-24..2025-11-17&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-10-24..2025-11-17&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0a4
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a3...72563be35fc0f3fbfb31b6391516660f2ba3b9f2))
@@ -35,8 +70,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-10-15&to=2025-10-24&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-10-15..2025-10-24&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-10-15..2025-10-24&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-10-15..2025-10-24&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0a3
 
