@@ -4,7 +4,7 @@
  */
 
 import { expect, galata, test } from '@jupyterlab/galata';
-import { DEFAULT_OLLAMA_MODEL_SETTINGS, openChatPanel } from './test-utils';
+import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
 const MCP_SERVER_PORT = 8765;
 const MCP_SERVER_URL = `http://0.0.0.0:${MCP_SERVER_PORT}/mcp`;
@@ -18,7 +18,7 @@ test.use({
       doNotDisturbMode: true
     },
     '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_OLLAMA_MODEL_SETTINGS['@jupyterlite/ai:settings-model'],
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
       toolsEnabled: true,
       // To nudge the (relatively small) model to call the tools
       systemPrompt: 'Just call the tools you are asked to call',
