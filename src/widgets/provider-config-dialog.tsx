@@ -84,7 +84,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         label: info.name,
         models: info.defaultModels,
         apiKeyRequirement: info.apiKeyRequirement,
-        allowCustomModel: id === 'ollama' || id === 'generic', // Ollama and Generic allow custom models
+        allowCustomModel: id === 'generic', // Generic allows custom models
         supportsBaseURL: info.supportsBaseURL,
         description: info.description,
         baseUrls: info.baseUrls
