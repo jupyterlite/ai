@@ -505,6 +505,11 @@ function registerCommands(
       execute: async (args): Promise<boolean> => {
         const area = (args.area as string) === 'main' ? 'main' : 'side';
         const provider = (args.provider as string) ?? undefined;
+
+        // Do not open the chat if the provider in args does not exists in settings.
+        if (provider && !settingsModel.getProvider(provider)) {
+          return false;
+        }
         const model = modelRegistry.createModel(
           args.name ? (args.name as string) : undefined,
           provider
