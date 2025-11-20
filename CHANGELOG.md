@@ -2,6 +2,22 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.9.1
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0...3a915f27824d2a4963abd22d3d6239c8da861907))
+
+### Bugs fixed
+
+- Avoid opening a chat if the expected provider is not in settings [#235](https://github.com/jupyterlite/ai/pull/235) ([@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-11-17&to=2025-11-20&type=c))
+
+[@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-11-17..2025-11-20&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0a4...d3ffd58075cb495aeea2fce70f4ccd9b276a8c49))
@@ -34,8 +50,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-10-24&to=2025-11-17&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-10-24..2025-11-17&type=Issues) | [@jtpio](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-10-24..2025-11-17&type=Issues) | [@nakul-py](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-10-24..2025-11-17&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0a4
 
