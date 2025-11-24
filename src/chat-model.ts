@@ -623,23 +623,39 @@ ${toolsList}
     }
 
     try {
-      const model = await this.input.documentManager?.services.contents.get(
-        attachment.value
-      );
-      if (!model || model.type !== 'notebook') {
-        return null;
-      }
+      // Try reading from live notebook if open
+      const widget = this.input.documentManager?.findWidget(attachment.value);
+      let cellData: any[] | null = null;
+      let kernelLang = 'text';
 
-      const kernelLang =
-        model.content?.metadata?.language_info?.name ||
-        model.content?.metadata?.kernelspec?.language ||
-        'text';
+      const shared = widget?.context?.model?.sharedModel as any;
+
+      if (shared?.cells) {
+        cellData = shared.cells.map((c: any) => c.toJSON());
+
+        kernelLang =
+          shared?.metadata?.language_info?.name ||
+          shared?.metadata?.kernelspec?.language ||
+          'text';
+      } else {
+        // Fallback: reading from disk
+        const model = await this.input.documentManager?.services.contents.get(
+          attachment.value
+        );
+        if (!model || model.type !== 'notebook') {
+          return null;
+        }
+        cellData = model.content.cells;
+
+        kernelLang =
+          model.content?.metadata?.language_info?.name ||
+          model.content?.metadata?.kernelspec?.language ||
+          'text';
+      }
 
       const selectedCells = attachment.cells
         .map(cellInfo => {
-          const cell = model.content.cells.find(
-            (c: any) => c.id === cellInfo.id
-          );
+          const cell = cellData!.find(c => c.id === cellInfo.id);
           if (!cell) {
             return null;
           }
@@ -777,36 +793,58 @@ ${toolsList}
     }
 
     try {
-      const model = await this.input.documentManager?.services.contents.get(
+      // Try reading from an open widget first
+      const widget = this.input.documentManager?.findWidget(attachment.value);
+
+      if (widget && widget.context && widget.context.model) {
+        const model = widget.context.model;
+
+        if ((model as any).sharedModel?.getSource) {
+          return (model as any).sharedModel.getSource();
+        }
+
+        if ((model as any).sharedModel?.getCells) {
+          const sharedModel = (model as any).sharedModel;
+          const cells = sharedModel.getCells().map((cell: any) => ({
+            ...cell,
+            outputs: [],
+            execution_count: null
+          }));
+
+          return JSON.stringify({
+            cells,
+            metadata: sharedModel.metadata || {},
+            nbformat: 4,
+            nbformat_minor: 5
+          });
+        }
+      }
+
+      // If not open, load from disk
+      const diskModel = await this.input.documentManager?.services.contents.get(
         attachment.value
       );
-      if (!model?.content) {
+
+      if (!diskModel?.content) {
         return null;
       }
-      if (model.type === 'file') {
-        // Regular file content
-        return model.content;
-      } else if (model.type === 'notebook') {
-        // Clear outputs from notebook cells before sending to LLM
-        // TODO: make this configurable?
-        const cells = model.content.cells.map((cell: any) => {
-          const cleanCell = { ...cell };
-          if (cleanCell.outputs) {
-            cleanCell.outputs = [];
-          }
-          if (cleanCell.execution_count) {
-            cleanCell.execution_count = null;
-          }
-          return cleanCell;
-        });
 
-        const notebookModel = {
-          cells,
-          metadata: (model as any).metadata || {},
-          nbformat: (model as any).nbformat || 4,
-          nbformat_minor: (model as any).nbformat_minor || 4
+      if (diskModel.type === 'file') {
+        // Regular file content
+        return diskModel.content;
+      }
+
+      if (diskModel.type === 'notebook') {
+        const cleaned = {
+          ...diskModel,
+          cells: diskModel.content.cells.map((cell: any) => ({
+            ...cell,
+            outputs: [],
+            execution_count: null
+          }))
         };
-        return JSON.stringify(notebookModel);
+
+        return JSON.stringify(cleaned);
       }
       return null;
     } catch (error) {
