@@ -1,5 +1,7 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
+import type { TranslationBundle } from '@jupyterlab/translation';
+
 import BuildIcon from '@mui/icons-material/Build';
 
 import CheckIcon from '@mui/icons-material/Check';
@@ -32,13 +34,23 @@ export interface IToolSelectProps
    * Function to handle tool selection changes.
    */
   onToolSelectionChange: (selectedToolNames: string[]) => void;
+
+  /**
+   * The application language translator.
+   */
+  translator: TranslationBundle;
 }
 
 /**
  * The tool select component for choosing AI tools.
  */
 export function ToolSelect(props: IToolSelectProps): JSX.Element {
-  const { toolRegistry, onToolSelectionChange, toolsEnabled } = props;
+  const {
+    toolRegistry,
+    onToolSelectionChange,
+    toolsEnabled,
+    translator: trans
+  } = props;
 
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [tools, setTools] = useState<INamedTool[]>(
@@ -111,12 +123,16 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        tooltip={`Tools (${selectedToolNames.length}/${tools.length} selected)`}
+        tooltip={trans.__(
+          'Tools (%1/%2 selected)',
+          selectedToolNames.length.toString(),
+          tools.length.toString()
+        )}
         buttonProps={{
           size: 'small',
           variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
           color: 'primary',
-          title: 'Select AI Tools',
+          title: trans.__('Select AI Tools'),
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {
               return;
@@ -192,7 +208,8 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
  */
 export function createToolSelectItem(
   toolRegistry: IToolRegistry,
-  toolsEnabled: boolean = true
+  toolsEnabled: boolean = true,
+  translator: TranslationBundle
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
@@ -209,7 +226,8 @@ export function createToolSelectItem(
         ...props,
         toolRegistry,
         onToolSelectionChange,
-        toolsEnabled
+        toolsEnabled,
+        translator
       };
       return <ToolSelect {...toolSelectProps} />;
     },

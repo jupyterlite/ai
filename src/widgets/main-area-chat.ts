@@ -1,6 +1,7 @@
 import { ChatWidget } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import { launchIcon } from '@jupyterlab/ui-components';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
 import { ApprovalButtons } from '../approval-buttons';
@@ -13,6 +14,7 @@ export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
     commands: CommandRegistry;
     settingsModel: AISettingsModel;
+    trans: TranslationBundle;
   }
 }
 
@@ -23,6 +25,8 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   constructor(options: MainAreaChat.IOptions) {
     super(options);
     this.title.label = this.content.model.name;
+
+    const { trans } = options;
 
     // add the move to side button.
     this.toolbar.addItem(
@@ -42,13 +46,15 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     const tokenUsageWidget = new TokenUsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,
       settingsModel: options.settingsModel,
-      initialTokenUsage: this.model.agentManager.tokenUsage
+      initialTokenUsage: this.model.agentManager.tokenUsage,
+      translator: trans
     });
     this.toolbar.addItem('token-usage', tokenUsageWidget);
 
     // Add the approval button, tied to the chat widget.
     this._approvalButtons = new ApprovalButtons({
-      chatPanel: this.content
+      chatPanel: this.content,
+      trans
     });
   }
 

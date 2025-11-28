@@ -25,6 +25,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
 import { IProviderConfig, IProviderParameters } from '../models/settings-model';
 import type { IProviderRegistry } from '../tokens';
@@ -47,6 +48,7 @@ interface IProviderConfigDialogProps {
     provider: string,
     fieldName: string
   ) => Promise<void>;
+  trans: TranslationBundle;
 }
 
 export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
@@ -56,7 +58,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   initialConfig,
   mode,
   providerRegistry,
-  handleSecretField
+  handleSecretField,
+  trans
 }) => {
   const apiKeyRef = React.useRef<HTMLInputElement>();
   const [name, setName] = React.useState(initialConfig?.name || '');
@@ -158,25 +161,29 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {mode === 'add' ? 'Add New Provider' : 'Edit Provider'}
+        {mode === 'add'
+          ? trans.__('Add New Provider')
+          : trans.__('Edit Provider')}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField
             fullWidth
-            label="Provider Name"
+            label={trans.__('Provider Name')}
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="e.g., My Anthropic Config, Work Provider"
-            helperText="A friendly name to identify this provider configuration"
+            placeholder={trans.__('e.g., My Anthropic Config, Work Provider')}
+            helperText={trans.__(
+              'A friendly name to identify this provider configuration'
+            )}
             required
           />
 
           <FormControl fullWidth required>
-            <InputLabel>Provider Type</InputLabel>
+            <InputLabel>{trans.__('Provider Type')}</InputLabel>
             <Select
               value={provider}
-              label="Provider Type"
+              label={trans.__('Provider Type')}
               onChange={e =>
                 setProvider(e.target.value as IProviderConfig['provider'])
               }
@@ -189,7 +196,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                       {option.apiKeyRequirement === 'required' && (
                         <Chip
                           size="small"
-                          label="API Key"
+                          label={trans.__('API Key')}
                           color="default"
                           variant="outlined"
                         />
@@ -209,19 +216,19 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
           {selectedProvider?.allowCustomModel ? (
             <TextField
               fullWidth
-              label="Model"
+              label={trans.__('Model')}
               value={model}
               onChange={e => setModel(e.target.value)}
-              placeholder="Enter model name"
-              helperText="Enter any compatible model name"
+              placeholder={trans.__('Enter model name')}
+              helperText={trans.__('Enter any compatible model name')}
               required
             />
           ) : (
             <FormControl fullWidth required>
-              <InputLabel>Model</InputLabel>
+              <InputLabel>{trans.__('Model')}</InputLabel>
               <Select
                 value={model}
-                label="Model"
+                label={trans.__('Model')}
                 onChange={e => setModel(e.target.value)}
               >
                 {selectedProvider?.models.map(modelOption => (
@@ -230,18 +237,18 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                       <Typography variant="body1">{modelOption}</Typography>
                       <Typography variant="caption" color="text.secondary">
                         {modelOption.includes('sonnet')
-                          ? 'Balanced performance'
+                          ? trans.__('Balanced performance')
                           : modelOption.includes('opus')
-                            ? 'Advanced reasoning'
+                            ? trans.__('Advanced reasoning')
                             : modelOption.includes('haiku')
-                              ? 'Fast and lightweight'
+                              ? trans.__('Fast and lightweight')
                               : modelOption.includes('large')
-                                ? 'Most capable model'
+                                ? trans.__('Most capable model')
                                 : modelOption.includes('small')
-                                  ? 'Fast and efficient'
+                                  ? trans.__('Fast and efficient')
                                   : modelOption.includes('codestral')
-                                    ? 'Code-specialized'
-                                    : 'General purpose'}
+                                    ? trans.__('Code-specialized')
+                                    : trans.__('General purpose')}
                       </Typography>
                     </Box>
                   </MenuItem>
@@ -257,13 +264,13 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                 inputRef={apiKeyRef}
                 label={
                   selectedProvider?.apiKeyRequirement === 'required'
-                    ? 'API Key'
-                    : 'API Key (Optional)'
+                    ? trans.__('API Key')
+                    : trans.__('API Key (Optional)')
                 }
                 type={showApiKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
-                placeholder="Enter your API key..."
+                placeholder={trans.__('Enter your API key...')}
                 required={selectedProvider?.apiKeyRequirement === 'required'}
                 InputProps={{
                   endAdornment: (
@@ -315,7 +322,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                 <TextField
                   {...params}
                   fullWidth
-                  label="Base URL"
+                  label={trans.__('Base URL')}
                   placeholder="https://api.example.com/v1"
                   onChange={e => setBaseURL(e.target.value)}
                 />
@@ -339,14 +346,17 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
           >
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="subtitle1" fontWeight="medium">
-                Advanced Settings
+                {trans.__('Advanced Settings')}
               </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ bgcolor: 'transparent' }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box>
                   <Typography gutterBottom>
-                    Temperature: {parameters.temperature ?? 'Default'}
+                    {trans.__(
+                      'Temperature: %1',
+                      parameters.temperature ?? trans.__('Default')
+                    )}
                   </Typography>
                   <Slider
                     value={parameters.temperature ?? DEFAULT_TEMPERATURE}
@@ -362,14 +372,15 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                     valueLabelDisplay="auto"
                   />
                   <Typography variant="caption" color="text.secondary">
-                    Temperature for the model (lower values are more
-                    deterministic)
+                    {trans.__(
+                      'Temperature for the model (lower values are more deterministic)'
+                    )}
                   </Typography>
                 </Box>
 
                 <TextField
                   fullWidth
-                  label="Max Tokens (Optional)"
+                  label={trans.__('Max Tokens (Optional)')}
                   type="number"
                   value={parameters.maxTokens ?? ''}
                   onChange={e =>
@@ -380,14 +391,14 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                         : undefined
                     })
                   }
-                  placeholder="Leave empty for provider default"
-                  helperText="Maximum length of AI responses"
+                  placeholder={trans.__('Leave empty for provider default')}
+                  helperText={trans.__('Maximum length of AI responses')}
                   inputProps={{ min: 1 }}
                 />
 
                 <TextField
                   fullWidth
-                  label="Max Turns (Optional)"
+                  label={trans.__('Max Turns (Optional)')}
                   type="number"
                   value={parameters.maxTurns ?? ''}
                   onChange={e =>
@@ -398,8 +409,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                         : undefined
                     })
                   }
-                  placeholder={`Default: ${DEFAULT_MAX_TURNS}`}
-                  helperText="Maximum number of tool execution turns"
+                  placeholder={trans.__('Default: %1', DEFAULT_MAX_TURNS)}
+                  helperText={trans.__(
+                    'Maximum number of tool execution turns'
+                  )}
                   inputProps={{ min: 1, max: 100 }}
                 />
 
@@ -408,7 +421,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   color="text.secondary"
                   sx={{ mt: 2, mb: 1 }}
                 >
-                  Completion Options
+                  {trans.__('Completion Options')}
                 </Typography>
 
                 <FormControlLabel
@@ -423,7 +436,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                       }
                     />
                   }
-                  label="Fill-in-the-middle support"
+                  label={trans.__('Fill-in-the-middle support')}
                 />
 
                 <FormControlLabel
@@ -438,7 +451,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                       }
                     />
                   }
-                  label="Use filter text"
+                  label={trans.__('Use filter text')}
                 />
               </Box>
             </AccordionDetails>
@@ -446,9 +459,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{trans.__('Cancel')}</Button>
         <Button onClick={handleSave} variant="contained" disabled={!isValid}>
-          {mode === 'add' ? 'Add Provider' : 'Save Changes'}
+          {mode === 'add' ? trans.__('Add Provider') : trans.__('Save Changes')}
         </Button>
       </DialogActions>
     </Dialog>

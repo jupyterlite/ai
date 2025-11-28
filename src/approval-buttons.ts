@@ -1,11 +1,13 @@
 import { ChatWidget } from '@jupyter/chat';
 import { IDisposable } from '@lumino/disposable';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import { AIChatModel } from './chat-model';
 
 export class ApprovalButtons implements IDisposable {
   constructor(options: ApprovalButtons.IOptions) {
     this._chatPanel = options.chatPanel;
     this._chatModel = this._chatPanel.model as AIChatModel;
+    this._trans = options.trans;
 
     // Set up approval button event handling
     this._setupApprovalHandlers();
@@ -201,7 +203,9 @@ export class ApprovalButtons implements IDisposable {
     icon.textContent = isApprove ? '✅' : '❌';
 
     const text = document.createElement('span');
-    text.textContent = isApprove ? 'Tools approved' : 'Tools rejected';
+    text.textContent = isApprove
+      ? this._trans.__('Tools approved')
+      : this._trans.__('Tools rejected');
 
     statusDiv.appendChild(icon);
     statusDiv.appendChild(text);
@@ -230,7 +234,9 @@ export class ApprovalButtons implements IDisposable {
     icon.textContent = isApprove ? '✅' : '❌';
 
     const text = document.createElement('span');
-    text.textContent = isApprove ? 'Tools approved' : 'Tools rejected';
+    text.textContent = isApprove
+      ? this._trans.__('Tools approved')
+      : this._trans.__('Tools rejected');
 
     statusDiv.appendChild(icon);
     statusDiv.appendChild(text);
@@ -346,8 +352,14 @@ export class ApprovalButtons implements IDisposable {
       buttonContainer.setAttribute('data-message-id', messageId);
     }
 
-    const approveBtn = this._createApprovalButton('Approve', true);
-    const rejectBtn = this._createApprovalButton('Reject', false);
+    const approveBtn = this._createApprovalButton(
+      this._trans.__('Approve'),
+      true
+    );
+    const rejectBtn = this._createApprovalButton(
+      this._trans.__('Reject'),
+      false
+    );
 
     // Add click handlers directly to the buttons
     this._addButtonHandler(approveBtn);
@@ -388,12 +400,12 @@ export class ApprovalButtons implements IDisposable {
     }
 
     const approveBtn = this._createApprovalButton(
-      'Approve',
+      this._trans.__('Approve'),
       true,
       'jp-ai-group-approve-all'
     );
     const rejectBtn = this._createApprovalButton(
-      'Reject',
+      this._trans.__('Reject'),
       false,
       'jp-ai-group-reject-all'
     );
@@ -443,6 +455,7 @@ export class ApprovalButtons implements IDisposable {
   private _chatModel: AIChatModel;
   private _isDisposed: boolean = false;
   private _mutationObserver?: MutationObserver;
+  private _trans: TranslationBundle;
 }
 
 /**
@@ -457,5 +470,9 @@ export namespace ApprovalButtons {
      * The chat panel widget to wrap.
      */
     chatPanel: ChatWidget;
+    /**
+     * The application language translation bundle.
+     */
+    trans: TranslationBundle;
   }
 }

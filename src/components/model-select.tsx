@@ -1,4 +1,5 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -14,13 +15,17 @@ export interface IModelSelectProps
    * The settings model to get available models and current selection from.
    */
   settingsModel: AISettingsModel;
+  /**
+   * The application language translator.
+   */
+  translator: TranslationBundle;
 }
 
 /**
  * The model select component for choosing AI models.
  */
 export function ModelSelect(props: IModelSelectProps): JSX.Element {
-  const { settingsModel, model } = props;
+  const { settingsModel, model, translator: trans } = props;
   const agentManager = (model.chatContext as AIChatModel.IAIChatContext)
     .agentManager;
 
@@ -97,13 +102,15 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
     return (
       <TooltippedButton
         onClick={() => {}}
-        tooltip="No providers configured. Please go to AI Settings to add a provider."
+        tooltip={trans.__(
+          'No providers configured. Please go to AI Settings to add a provider.'
+        )}
         buttonProps={{
           size: 'small',
           variant: 'outlined',
           color: 'warning',
           disabled: true,
-          title: 'No Providers Available'
+          title: trans.__('No Providers Available')
         }}
         sx={{
           minWidth: 'auto',
@@ -116,7 +123,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
           variant="caption"
           sx={{ fontSize: '0.7rem', fontWeight: 500 }}
         >
-          No Providers
+          {trans.__('No Providers')}
         </Typography>
       </TooltippedButton>
     );
@@ -128,12 +135,16 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         onClick={e => {
           openMenu(e.currentTarget);
         }}
-        tooltip={`Current Model: ${currentProviderLabel} - ${currentModel}`}
+        tooltip={trans.__(
+          'Current Model: %1 - %2',
+          currentProviderLabel,
+          currentModel
+        )}
         buttonProps={{
           size: 'small',
           variant: 'contained',
           color: 'primary',
-          title: 'Select AI Model',
+          title: trans.__('Select AI Model'),
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {
               return;
@@ -237,7 +248,8 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
  * Factory function returning the toolbar item for model selection.
  */
 export function createModelSelectItem(
-  settingsModel: AISettingsModel
+  settingsModel: AISettingsModel,
+  translator: TranslationBundle
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
@@ -247,7 +259,8 @@ export function createModelSelectItem(
       }
       const modelSelectProps: IModelSelectProps = {
         ...props,
-        settingsModel
+        settingsModel,
+        translator
       };
       return <ModelSelect {...modelSelectProps} />;
     },
