@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AISettingsModel } from '../models/settings-model';
 import { ReactWidget } from '@jupyterlab/ui-components';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import { jupyternautIcon } from '../icons';
 
 const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
@@ -14,12 +15,17 @@ interface ICompletionStatusProps {
    * The settings model.
    */
   settingsModel: AISettingsModel;
+  /**
+   * The application language translator.
+   */
+  translator: TranslationBundle;
 }
 
 /**
  * The completion status component.
  */
 function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
+  const { translator: trans } = props;
   const [disabled, setDisabled] = useState<boolean>(true);
   const [title, setTitle] = useState<string>('');
 
@@ -30,15 +36,23 @@ function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
     const stateChanged = (model: AISettingsModel) => {
       if (model.config.useSameProviderForChatAndCompleter) {
         setDisabled(false);
-        setTitle(`Completion using ${model.getDefaultProvider()?.model}`);
+        setTitle(
+          trans.__(
+            'Completion using %1',
+            model.getDefaultProvider()?.model ?? ''
+          )
+        );
       } else if (model.config.activeCompleterProvider) {
         setDisabled(false);
         setTitle(
-          `Completion using ${model.getProvider(model.config.activeCompleterProvider)?.model}`
+          trans.__(
+            'Completion using %1',
+            model.getProvider(model.config.activeCompleterProvider)?.model ?? ''
+          )
         );
       } else {
         setDisabled(true);
-        setTitle('No completion');
+        setTitle(trans.__('No completion'));
       }
     };
 
@@ -48,7 +62,7 @@ function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
     return () => {
       props.settingsModel.stateChanged.disconnect(stateChanged);
     };
-  }, [props.settingsModel]);
+  }, [props.settingsModel, trans]);
 
   return (
     <jupyternautIcon.react

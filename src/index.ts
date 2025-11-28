@@ -38,6 +38,8 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { IStatusBar } from '@jupyterlab/statusbar';
 
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+
 import {
   settingsIcon,
   Toolbar,
@@ -255,7 +257,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IChatModelRegistry,
     IAISettingsModel
   ],
-  optional: [IThemeManager, ILayoutRestorer, ILabShell],
+  optional: [IThemeManager, ILayoutRestorer, ILabShell, ITranslator],
   activate: (
     app: JupyterFrontEnd,
     rmRegistry: IRenderMimeRegistry,
@@ -264,8 +266,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
     settingsModel: AISettingsModel,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
-    labShell?: ILabShell
+    labShell?: ILabShell,
+    translator?: ITranslator
   ): void => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
     attachmentOpenerRegistry.set('file', attachment => {
@@ -304,7 +308,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     chatPanel.id = '@jupyterlite/ai:chat-panel';
     chatPanel.title.icon = chatIcon;
-    chatPanel.title.caption = 'Chat with AI assistant'; // TODO: i18n/
+    chatPanel.title.caption = trans.__('Chat with AI assistant');
 
     chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
     chatPanel.toolbar.addItem(
@@ -314,7 +318,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         onClick: () => {
           app.commands.execute('@jupyterlite/ai:open-settings');
         },
-        tooltip: 'Open AI Settings'
+        tooltip: trans.__('Open AI Settings')
       })
     );
 
@@ -335,7 +339,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const tokenUsageWidget = new TokenUsageWidget({
         tokenUsageChanged: model.tokenUsageChanged,
         settingsModel,
-        initialTokenUsage: model.agentManager.tokenUsage
+        initialTokenUsage: model.agentManager.tokenUsage,
+        translator: trans
       });
       section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
@@ -355,7 +360,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Associate an approval buttons object to the chat.
       const approvalButton = new ApprovalButtons({
-        chatPanel: widget
+        chatPanel: widget,
+        trans
       });
 
       widget.disposed.connect(() => {
@@ -407,8 +413,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       settingsModel,
       tracker,
       modelRegistry,
+      trans,
       themeManager,
-      labShell
+      labShell,
+      translator
     );
   }
 };
@@ -422,14 +430,16 @@ function registerCommands(
   settingsModel: AISettingsModel,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
+  trans: any,
   themeManager?: IThemeManager,
-  labShell?: ILabShell
+  labShell?: ILabShell,
+  translator?: ITranslator
 ) {
   const { commands } = app;
 
   if (labShell) {
     commands.addCommand(CommandIds.reposition, {
-      label: 'Reposition Widget',
+      label: trans.__('Reposition Widget'),
       execute: (args: any) => {
         const { widgetId, area, mode } = args;
         const widget = widgetId
@@ -456,17 +466,22 @@ function registerCommands(
           properties: {
             widgetId: {
               type: 'string',
-              description:
+              description: trans.__(
                 'The widget ID to reposition in the application shell'
+              )
             },
             area: {
               type: 'string',
-              description: 'The name of the area to reposition the widget to'
+              description: trans.__(
+                'The name of the area to reposition the widget to'
+              )
             },
             mode: {
               type: 'string',
               enum: ['split-left', 'split-right', 'split-top', 'split-bottom'],
-              description: 'The mode to use when repositioning the widget'
+              description: trans.__(
+                'The mode to use when repositioning the widget'
+              )
             }
           }
         }
@@ -481,7 +496,12 @@ function registerCommands(
         inputToolbarRegistry: inputToolbarFactory.create(),
         attachmentOpenerRegistry
       });
-      const widget = new MainAreaChat({ content, commands, settingsModel });
+      const widget = new MainAreaChat({
+        content,
+        commands,
+        settingsModel,
+        trans
+      });
       app.shell.add(widget, 'main');
 
       // Add the widget to the tracker.
@@ -501,7 +521,7 @@ function registerCommands(
     };
 
     commands.addCommand(CommandIds.openChat, {
-      label: 'Open a chat',
+      label: trans.__('Open a chat'),
       execute: async (args): Promise<boolean> => {
         const area = (args.area as string) === 'main' ? 'main' : 'side';
         const provider = (args.provider as string) ?? undefined;
@@ -532,15 +552,15 @@ function registerCommands(
             area: {
               type: 'string',
               enum: ['main', 'side'],
-              description: 'The name of the area to open the chat to'
+              description: trans.__('The name of the area to open the chat to')
             },
             name: {
               type: 'string',
-              description: 'The name of the chat'
+              description: trans.__('The name of the chat')
             },
             provider: {
               type: 'string',
-              description: 'The provider/model to use with this chat'
+              description: trans.__('The provider/model to use with this chat')
             }
           }
         }
@@ -548,7 +568,7 @@ function registerCommands(
     });
 
     commands.addCommand(CommandIds.moveChat, {
-      caption: 'Move chat between area',
+      caption: trans.__('Move chat between area'),
       execute: async (args): Promise<boolean> => {
         const area = args.area as string;
         if (!['side', 'main'].includes(area)) {
@@ -634,11 +654,11 @@ function registerCommands(
             area: {
               type: 'string',
               enum: ['main', 'side'],
-              description: 'The name of the area to move the chat to'
+              description: trans.__('The name of the area to move the chat to')
             },
             name: {
               type: 'string',
-              description: 'The name of the chat to move'
+              description: trans.__('The name of the chat to move')
             }
           },
           requires: ['area', 'name']
@@ -663,7 +683,8 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       ICompletionProviderManager,
       ILayoutRestorer,
       ISecretsManager,
-      IThemeManager
+      IThemeManager,
+      ITranslator
     ],
     activate: (
       app: JupyterFrontEnd,
@@ -673,8 +694,10 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       completionManager?: ICompletionProviderManager,
       restorer?: ILayoutRestorer,
       secretsManager?: ISecretsManager,
-      themeManager?: IThemeManager
+      themeManager?: IThemeManager,
+      translator?: ITranslator
     ): AgentManagerFactory => {
+      const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const agentManagerFactory = new AgentManagerFactory({
         settingsModel,
         secretsManager,
@@ -688,7 +711,8 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
         themeManager,
         providerRegistry,
         secretsManager,
-        token
+        token,
+        trans
       });
       settingsWidget.id = 'jupyterlite-ai-settings';
       settingsWidget.title.icon = settingsIcon;
@@ -715,8 +739,8 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       }
 
       app.commands.addCommand(CommandIds.openSettings, {
-        label: 'AI Settings',
-        caption: 'Configure AI providers and behavior',
+        label: trans.__('AI Settings'),
+        caption: trans.__('Configure AI providers and behavior'),
         icon: settingsIcon,
         iconClass: 'jp-ai-settings-icon',
         execute: () => {
@@ -744,7 +768,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       if (palette) {
         palette.addItem({
           command: CommandIds.openSettings,
-          category: 'AI Assistant'
+          category: trans.__('AI Assistant')
         });
       }
 
@@ -888,18 +912,22 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
     requires: [IAISettingsModel, IToolRegistry],
+    optional: [ITranslator],
     activate: (
       app: JupyterFrontEnd,
       settingsModel: AISettingsModel,
-      toolRegistry: IToolRegistry
+      toolRegistry: IToolRegistry,
+      translator?: ITranslator
     ): IInputToolbarRegistryFactory => {
-      const stopButton = stopItem();
-      const clearButton = clearItem();
+      const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+      const stopButton = stopItem(trans);
+      const clearButton = clearItem(trans);
       const toolSelectButton = createToolSelectItem(
         toolRegistry,
-        settingsModel.config.toolsEnabled
+        settingsModel.config.toolsEnabled,
+        trans
       );
-      const modelSelectButton = createModelSelectItem(settingsModel);
+      const modelSelectButton = createModelSelectItem(settingsModel, trans);
 
       return {
         create() {
@@ -931,16 +959,21 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   description: 'The completion status displayed in the status bar',
   autoStart: true,
   requires: [IAISettingsModel],
-  optional: [IStatusBar],
+  optional: [IStatusBar, ITranslator],
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    statusBar: IStatusBar | null
+    statusBar: IStatusBar | null,
+    translator?: ITranslator
   ) => {
     if (!statusBar) {
       return;
     }
-    const item = new CompletionStatusWidget({ settingsModel });
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const item = new CompletionStatusWidget({
+      settingsModel,
+      translator: trans
+    });
     statusBar?.registerStatusItem('completionState', {
       item,
       align: 'right',
