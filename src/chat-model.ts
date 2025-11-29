@@ -800,7 +800,10 @@ ${toolsList}
         const model = widget.context.model;
 
         if ((model as any).sharedModel?.getSource) {
-          return (model as any).sharedModel.getSource();
+          const source = (model as any).sharedModel.getSource();
+          return typeof source === 'string'
+            ? source
+            : JSON.stringify(source, null, 2);
         }
 
         if ((model as any).sharedModel?.getCells) {
@@ -811,12 +814,16 @@ ${toolsList}
             execution_count: null
           }));
 
-          return JSON.stringify({
-            cells,
-            metadata: sharedModel.metadata || {},
-            nbformat: 4,
-            nbformat_minor: 5
-          });
+          return JSON.stringify(
+            {
+              cells,
+              metadata: sharedModel.metadata || {},
+              nbformat: 4,
+              nbformat_minor: 5
+            },
+            null,
+            2
+          );
         }
       }
 
