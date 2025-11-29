@@ -808,16 +808,17 @@ ${toolsList}
 
         if ((model as any).sharedModel?.getCells) {
           const sharedModel = (model as any).sharedModel;
-          const cells = sharedModel.getCells().map((cell: any) => ({
+          const cells = sharedModel.getCells().map((cell: nbformat.ICell) => ({
             ...cell,
-            outputs: [],
+            outputs: [] as nbformat.IOutput[],
             execution_count: null
           }));
 
           return JSON.stringify(
             {
               cells,
-              metadata: sharedModel.metadata || {},
+              metadata:
+                sharedModel.metadata || ({} as nbformat.INotebookMetadata),
               nbformat: 4,
               nbformat_minor: 5
             },
@@ -844,9 +845,9 @@ ${toolsList}
       if (diskModel.type === 'notebook') {
         const cleaned = {
           ...diskModel,
-          cells: diskModel.content.cells.map((cell: any) => ({
+          cells: diskModel.content.cells.map((cell: nbformat.ICell) => ({
             ...cell,
-            outputs: [],
+            outputs: [] as nbformat.IOutput[],
             execution_count: null
           }))
         };
