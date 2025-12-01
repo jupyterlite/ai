@@ -633,18 +633,22 @@ ${toolsList}
       const widget = this.input.documentManager?.findWidget(
         attachment.value
       ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
-      let cellData: any[] | null = null;
+      let cellData: nbformat.ICell[] | null = null;
       let kernelLang = 'text';
 
-      const shared = widget?.context?.model?.sharedModel as any;
+      const ymodel = widget?.context?.model?.sharedModel as YNotebook;
 
-      if (shared?.cells) {
-        cellData = shared.cells.map((c: any) => c.toJSON());
+      if (ymodel) {
+        const nb = ymodel.toJSON();
 
-        kernelLang =
-          shared?.metadata?.language_info?.name ||
-          shared?.metadata?.kernelspec?.language ||
+        cellData = nb.cells;
+
+        const lang =
+          nb.metadata?.language_info?.name ||
+          nb.metadata?.kernelspec?.language ||
           'text';
+
+        kernelLang = String(lang);
       } else {
         // Fallback: reading from disk
         const model = await this.input.documentManager?.services.contents.get(
@@ -684,7 +688,7 @@ ${toolsList}
             'text/plain'
           ];
 
-          function extractDisplay(data: any): string {
+          function extractDisplay(data: nbformat.IMimeBundle): string {
             for (const mime of DISPLAY_PRIORITY) {
               if (!(mime in data)) {
                 continue;
@@ -697,13 +701,13 @@ ${toolsList}
 
               switch (mime) {
                 case 'application/vnd.jupyter.widget-view+json':
-                  return `Widget: ${(value as any).model_id ?? 'unknown model'}`;
+                  return `Widget: ${(value as { model_id?: string }).model_id ?? 'unknown model'}`;
 
                 case 'image/png':
-                  return `![image](data:image/png;base64,${value.slice(0, 100)}...)`;
+                  return `![image](data:image/png;base64,${String(value).slice(0, 100)}...)`;
 
                 case 'image/jpeg':
-                  return `![image](data:image/jpeg;base64,${value.slice(0, 100)}...)`;
+                  return `![image](data:image/jpeg;base64,${String(value).slice(0, 100)}...)`;
 
                 case 'image/svg+xml':
                   return String(value).slice(0, 500) + '...\n[svg truncated]';
@@ -736,8 +740,9 @@ ${toolsList}
 
           let outputs = '';
           if (cellType === 'code' && Array.isArray(cell.outputs)) {
-            outputs = cell.outputs
-              .map((output: nbformat.IOutput) => {
+            const outputsArray = cell.outputs as nbformat.IOutput[];
+            outputs = outputsArray
+              .map(output => {
                 if (output.output_type === 'stream') {
                   return (output as nbformat.IStream).text;
                 } else if (output.output_type === 'error') {
