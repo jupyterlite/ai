@@ -38,7 +38,11 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { IStatusBar } from '@jupyterlab/statusbar';
 
-import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+import {
+  ITranslator,
+  nullTranslator,
+  TranslationBundle
+} from '@jupyterlab/translation';
 
 import {
   settingsIcon,
@@ -429,7 +433,7 @@ function registerCommands(
   settingsModel: AISettingsModel,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
-  trans: IRenderMime.TranslationBundle,
+  trans: TranslationBundle,
   themeManager?: IThemeManager,
   labShell?: ILabShell
 ) {
