@@ -12,6 +12,10 @@ import { PathExt } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
+import { IDocumentWidget } from '@jupyterlab/docregistry';
+
+import { INotebookModel, Notebook } from '@jupyterlab/notebook';
+
 import { UUID } from '@lumino/coreutils';
 
 import { ISignal, Signal } from '@lumino/signaling';
@@ -23,6 +27,8 @@ import { AI_AVATAR } from './icons';
 import { AISettingsModel } from './models/settings-model';
 
 import { ITokenUsage } from './tokens';
+
+import { YNotebook } from '@jupyter/ydoc';
 
 import * as nbformat from '@jupyterlab/nbformat';
 
@@ -624,7 +630,9 @@ ${toolsList}
 
     try {
       // Try reading from live notebook if open
-      const widget = this.input.documentManager?.findWidget(attachment.value);
+      const widget = this.input.documentManager?.findWidget(
+        attachment.value
+      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
       let cellData: any[] | null = null;
       let kernelLang = 'text';
 
@@ -794,37 +802,34 @@ ${toolsList}
 
     try {
       // Try reading from an open widget first
-      const widget = this.input.documentManager?.findWidget(attachment.value);
+      const widget = this.input.documentManager?.findWidget(
+        attachment.value
+      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
 
       if (widget && widget.context && widget.context.model) {
         const model = widget.context.model;
+        const ymodel = model.sharedModel as YNotebook;
 
-        if ((model as any).sharedModel?.getSource) {
-          const source = (model as any).sharedModel.getSource();
+        if (typeof ymodel.getSource === 'function') {
+          const source = ymodel.getSource();
           return typeof source === 'string'
             ? source
             : JSON.stringify(source, null, 2);
         }
 
-        if ((model as any).sharedModel?.getCells) {
-          const sharedModel = (model as any).sharedModel;
-          const cells = sharedModel.getCells().map((cell: nbformat.ICell) => ({
-            ...cell,
-            outputs: [] as nbformat.IOutput[],
-            execution_count: null
-          }));
+        if (typeof ymodel.toJSON === 'function') {
+          const nb = ymodel.toJSON();
 
-          return JSON.stringify(
-            {
-              cells,
-              metadata:
-                sharedModel.metadata || ({} as nbformat.INotebookMetadata),
-              nbformat: 4,
-              nbformat_minor: 5
-            },
-            null,
-            2
-          );
+          const cleaned = {
+            ...nb,
+            cells: nb.cells.map(cell => ({
+              ...cell,
+              outputs: [],
+              execution_count: null
+            }))
+          };
+
+          return JSON.stringify(cleaned, null, 2);
         }
       }
 
