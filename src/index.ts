@@ -415,8 +415,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       modelRegistry,
       trans,
       themeManager,
-      labShell,
-      translator
+      labShell
     );
   }
 };
@@ -430,10 +429,9 @@ function registerCommands(
   settingsModel: AISettingsModel,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
-  trans: any,
+  trans: IRenderMime.TranslationBundle,
   themeManager?: IThemeManager,
-  labShell?: ILabShell,
-  translator?: ITranslator
+  labShell?: ILabShell
 ) {
   const { commands } = app;
 
