@@ -633,10 +633,10 @@ ${toolsList}
       const widget = this.input.documentManager?.findWidget(
         attachment.value
       ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
-      let cellData: nbformat.ICell[] | null = null;
+      let cellData: nbformat.ICell[];
       let kernelLang = 'text';
 
-      const ymodel = widget?.context?.model?.sharedModel as YNotebook;
+      const ymodel = widget?.context.model.sharedModel as YNotebook;
 
       if (ymodel) {
         const nb = ymodel.toJSON();
@@ -644,8 +644,8 @@ ${toolsList}
         cellData = nb.cells;
 
         const lang =
-          nb.metadata?.language_info?.name ||
-          nb.metadata?.kernelspec?.language ||
+          nb.metadata.language_info?.name ||
+          nb.metadata.kernelspec?.language ||
           'text';
 
         kernelLang = String(lang);
@@ -657,17 +657,17 @@ ${toolsList}
         if (!model || model.type !== 'notebook') {
           return null;
         }
-        cellData = model.content.cells;
+        cellData = model.content.cells ?? [];
 
         kernelLang =
-          model.content?.metadata?.language_info?.name ||
-          model.content?.metadata?.kernelspec?.language ||
+          model.content.metadata.language_info?.name ||
+          model.content.metadata.kernelspec?.language ||
           'text';
       }
 
       const selectedCells = attachment.cells
         .map(cellInfo => {
-          const cell = cellData!.find(c => c.id === cellInfo.id);
+          const cell = cellData.find(c => c.id === cellInfo.id);
           if (!cell) {
             return null;
           }
@@ -820,21 +820,6 @@ ${toolsList}
           return typeof source === 'string'
             ? source
             : JSON.stringify(source, null, 2);
-        }
-
-        if (typeof ymodel.toJSON === 'function') {
-          const nb = ymodel.toJSON();
-
-          const cleaned = {
-            ...nb,
-            cells: nb.cells.map(cell => ({
-              ...cell,
-              outputs: [],
-              execution_count: null
-            }))
-          };
-
-          return JSON.stringify(cleaned, null, 2);
         }
       }
 
