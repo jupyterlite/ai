@@ -1,5 +1,6 @@
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import { Debouncer } from '@lumino/polling';
 import Add from '@mui/icons-material/Add';
 import Cable from '@mui/icons-material/Cable';
@@ -92,9 +93,10 @@ export class AISettingsWidget extends ReactWidget {
     this._themeManager = options.themeManager;
     this._providerRegistry = options.providerRegistry;
     this._secretsManager = options.secretsManager;
+    this._trans = options.trans;
     this.id = 'jupyterlite-ai-settings';
-    this.title.label = 'AI Settings';
-    this.title.caption = 'Configure AI providers and behavior';
+    this.title.label = this._trans.__('AI Settings');
+    this.title.caption = this._trans.__('Configure AI providers and behavior');
     this.title.closable = true;
   }
 
@@ -110,6 +112,7 @@ export class AISettingsWidget extends ReactWidget {
         themeManager={this._themeManager}
         providerRegistry={this._providerRegistry}
         secretsManager={this._secretsManager}
+        trans={this._trans}
       />
     );
   }
@@ -119,6 +122,7 @@ export class AISettingsWidget extends ReactWidget {
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
+  private _trans: TranslationBundle;
 }
 
 /**
@@ -130,6 +134,7 @@ interface IAISettingsComponentProps {
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
   secretsManager?: ISecretsManager;
+  trans: TranslationBundle;
 }
 
 /**
@@ -142,10 +147,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   agentManagerFactory,
   themeManager,
   providerRegistry,
-  secretsManager
+  secretsManager,
+  trans
 }) => {
   if (!model) {
-    return <div>Settings model not available</div>;
+    return <div>{trans.__('Settings model not available')}</div>;
   }
 
   const [config, setConfig] = useState(model.config || {});
@@ -535,7 +541,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Settings color="primary" sx={{ fontSize: 24 }} />
           <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
-            AI Settings
+            {trans.__('AI Settings')}
           </Typography>
         </Box>
         {/* Tabs */}
@@ -544,9 +550,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             value={activeTab}
             onChange={(_, newValue) => setActiveTab(newValue)}
           >
-            <Tab label="Providers" />
-            <Tab label="Behavior" />
-            <Tab label="MCP Servers" />
+            <Tab label={trans.__('Providers')} />
+            <Tab label={trans.__('Behavior')} />
+            <Tab label={trans.__('MCP Servers')} />
           </Tabs>
         </Box>
 
@@ -558,17 +564,17 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
               <Card elevation={2}>
                 <CardContent>
                   <Typography variant="h6" component="h2" gutterBottom>
-                    Default Providers
+                    {trans.__('Default Providers')}
                   </Typography>
 
                   <Box
                     sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                   >
                     <FormControl fullWidth>
-                      <InputLabel>Chat Provider</InputLabel>
+                      <InputLabel>{trans.__('Chat Provider')}</InputLabel>
                       <Select
                         value={config.defaultProvider}
-                        label="Chat Provider"
+                        label={trans.__('Chat Provider')}
                         onChange={e => model.setActiveProvider(e.target.value)}
                       >
                         {config.providers.map(provider => (
@@ -592,15 +598,19 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           color="primary"
                         />
                       }
-                      label="Use same provider for chat and completions"
+                      label={trans.__(
+                        'Use same provider for chat and completions'
+                      )}
                     />
 
                     {!config.useSameProviderForChatAndCompleter && (
                       <FormControl fullWidth>
-                        <InputLabel>Completion Provider</InputLabel>
+                        <InputLabel>
+                          {trans.__('Completion Provider')}
+                        </InputLabel>
                         <Select
                           value={config.activeCompleterProvider || ''}
-                          label="Completion Provider"
+                          label={trans.__('Completion Provider')}
                           className="jp-ai-completion-provider-select"
                           onChange={e =>
                             model.setActiveCompleterProvider(
@@ -609,7 +619,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           }
                         >
                           <MenuItem value="">
-                            <em>No completion</em>
+                            <em>{trans.__('No completion')}</em>
                           </MenuItem>
                           {config.providers.map(provider => (
                             <MenuItem key={provider.id} value={provider.id}>
@@ -637,7 +647,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="h6" component="h2">
-                      Configured Providers
+                      {trans.__('Configured Providers')}
                     </Typography>
                   </Box>
                   <Button
@@ -646,14 +656,15 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     onClick={openAddDialog}
                     size="small"
                   >
-                    Add Provider
+                    {trans.__('Add Provider')}
                   </Button>
                 </Box>
 
                 {config.providers.length === 0 ? (
                   <Alert severity="info">
-                    No providers configured yet. Click "Add Provider" to get
-                    started.
+                    {trans.__(
+                      'No providers configured yet. Click "Add Provider" to get started.'
+                    )}
                   </Alert>
                 ) : (
                   <List>
@@ -700,7 +711,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                 </Typography>
                                 {isActive && (
                                   <Chip
-                                    label="Chat"
+                                    label={trans.__('Chat')}
                                     size="small"
                                     color="primary"
                                     icon={<CheckCircle />}
@@ -708,7 +719,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                 )}
                                 {isActiveCompleter && (
                                   <Chip
-                                    label="Completion"
+                                    label={trans.__('Completion')}
                                     size="small"
                                     color="secondary"
                                     icon={<CheckCircle />}
@@ -740,21 +751,30 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                   >
                                     {params.temperature !== undefined && (
                                       <Chip
-                                        label={`Temp: ${params.temperature}`}
+                                        label={trans.__(
+                                          'Temp: %1',
+                                          params.temperature
+                                        )}
                                         size="small"
                                         variant="outlined"
                                       />
                                     )}
                                     {params.maxTokens !== undefined && (
                                       <Chip
-                                        label={`Tokens: ${params.maxTokens}`}
+                                        label={trans.__(
+                                          'Tokens: %1',
+                                          params.maxTokens
+                                        )}
                                         size="small"
                                         variant="outlined"
                                       />
                                     )}
                                     {params.maxTurns !== undefined && (
                                       <Chip
-                                        label={`Turns: ${params.maxTurns}`}
+                                        label={trans.__(
+                                          'Turns: %1',
+                                          params.maxTurns
+                                        )}
                                         size="small"
                                         variant="outlined"
                                       />
@@ -794,10 +814,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 }
                 label={
                   <div>
-                    <span>Use the secrets manager to manage API keys</span>
+                    <span>
+                      {trans.__('Use the secrets manager to manage API keys')}
+                    </span>
                     {!config.useSecretsManager && (
                       <Alert severity="warning" icon={<Error />} sx={{ mb: 2 }}>
-                        The secrets are stored in plain text in settings
+                        {trans.__(
+                          'The secrets are stored in plain text in settings'
+                        )}
                       </Alert>
                     )}
                   </div>
@@ -811,7 +835,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" component="h2" gutterBottom>
-                Behavior Settings
+                {trans.__('Behavior Settings')}
               </Typography>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -829,10 +853,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                   label={
                     <Box>
-                      <Typography variant="body1">Enable Tools</Typography>
+                      <Typography variant="body1">
+                        {trans.__('Enable Tools')}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Allow the AI to use tools like notebook operations, code
-                        execution, and file management
+                        {trans.__(
+                          'Allow the AI to use tools like notebook operations, code execution, and file management'
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -853,11 +880,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   label={
                     <Box>
                       <Typography variant="body1">
-                        Send with Shift+Enter
+                        {trans.__('Send with Shift+Enter')}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Use Shift+Enter to send messages (Enter creates new
-                        line)
+                        {trans.__(
+                          'Use Shift+Enter to send messages (Enter creates new line)'
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -877,9 +905,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                   label={
                     <Box>
-                      <Typography variant="body1">Show Token Usage</Typography>
+                      <Typography variant="body1">
+                        {trans.__('Show Token Usage')}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Display token usage information in the chat toolbar
+                        {trans.__(
+                          'Display token usage information in the chat toolbar'
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -899,9 +931,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                   label={
                     <Box>
-                      <Typography variant="body1">Show Cell Diff</Typography>
+                      <Typography variant="body1">
+                        {trans.__('Show Cell Diff')}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Show diff view when AI modifies cell content
+                        {trans.__(
+                          'Show diff view when AI modifies cell content'
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -909,18 +945,22 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
 
                 {config.showCellDiff && (
                   <FormControl sx={{ ml: 4 }}>
-                    <InputLabel>Diff Display Mode</InputLabel>
+                    <InputLabel>{trans.__('Diff Display Mode')}</InputLabel>
                     <Select
                       value={config.diffDisplayMode}
-                      label="Diff Display Mode"
+                      label={trans.__('Diff Display Mode')}
                       onChange={e =>
                         handleConfigUpdate({
                           diffDisplayMode: e.target.value as 'split' | 'unified'
                         })
                       }
                     >
-                      <MenuItem value="split">Split View</MenuItem>
-                      <MenuItem value="unified">Unified View</MenuItem>
+                      <MenuItem value="split">
+                        {trans.__('Split View')}
+                      </MenuItem>
+                      <MenuItem value="unified">
+                        {trans.__('Unified View')}
+                      </MenuItem>
                     </Select>
                   </FormControl>
                 )}
@@ -939,9 +979,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                   label={
                     <Box>
-                      <Typography variant="body1">Show File Diff</Typography>
+                      <Typography variant="body1">
+                        {trans.__('Show File Diff')}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Show diff view when AI modifies file content
+                        {trans.__(
+                          'Show diff view when AI modifies file content'
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -953,29 +997,37 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   fullWidth
                   multiline
                   rows={3}
-                  label="System Prompt"
+                  label={trans.__('System Prompt')}
                   value={systemPromptValue}
                   onChange={e => handleSystemPromptChange(e.target.value)}
-                  placeholder="Define the AI's behavior and personality..."
-                  helperText="Instructions that define how the AI should behave and respond"
+                  placeholder={trans.__(
+                    "Define the AI's behavior and personality..."
+                  )}
+                  helperText={trans.__(
+                    'Instructions that define how the AI should behave and respond'
+                  )}
                 />
 
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  label="Completion System Prompt"
+                  label={trans.__('Completion System Prompt')}
                   value={completionPromptValue}
                   onChange={e => handleCompletionPromptChange(e.target.value)}
-                  placeholder="Define how the AI should generate code completions..."
-                  helperText="Instructions that define how the AI should generate code completions"
+                  placeholder={trans.__(
+                    'Define how the AI should generate code completions...'
+                  )}
+                  helperText={trans.__(
+                    'Instructions that define how the AI should generate code completions'
+                  )}
                 />
 
                 <Divider sx={{ my: 2 }} />
 
                 <Box>
                   <Typography variant="body1" gutterBottom>
-                    Commands Requiring Approval
+                    {trans.__('Commands Requiring Approval')}
                   </Typography>
                   <Typography
                     variant="caption"
@@ -983,8 +1035,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     gutterBottom
                     sx={{ display: 'block' }}
                   >
-                    Commands that require user approval before AI can execute
-                    them
+                    {trans.__(
+                      'Commands that require user approval before AI can execute them'
+                    )}
                   </Typography>
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
@@ -1013,8 +1066,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
 
                   <TextField
                     fullWidth
-                    label="Add New Command"
-                    placeholder="e.g., notebook:run-cell"
+                    label={trans.__('Add New Command')}
+                    placeholder={trans.__('e.g., notebook:run-cell')}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
                         const value = (
@@ -1035,7 +1088,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         }
                       }
                     }}
-                    helperText="Press Enter to add a command. Common commands: notebook:run-cell, console:execute, fileeditor:run-code"
+                    helperText={trans.__(
+                      'Press Enter to add a command. Common commands: notebook:run-cell, console:execute, fileeditor:run-code'
+                    )}
                   />
                 </Box>
               </Box>
@@ -1057,7 +1112,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Cable color="primary" />
                   <Typography variant="h6" component="h2">
-                    Remote MCP Servers
+                    {trans.__('Remote MCP Servers')}
                   </Typography>
                 </Box>
                 <Button
@@ -1066,19 +1121,21 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   onClick={openAddMCPDialog}
                   size="small"
                 >
-                  Add Server
+                  {trans.__('Add Server')}
                 </Button>
               </Box>
 
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Configure remote Model Context Protocol (MCP) servers to extend
-                the AI's capabilities with external tools and data sources.
+                {trans.__(
+                  "Configure remote Model Context Protocol (MCP) servers to extend the AI's capabilities with external tools and data sources."
+                )}
               </Typography>
 
               {config.mcpServers.length === 0 ? (
                 <Alert severity="info">
-                  No MCP servers configured yet. Click "Add Server" to connect
-                  to remote MCP services.
+                  {trans.__(
+                    'No MCP servers configured yet. Click "Add Server" to connect to remote MCP services.'
+                  )}
                 </Alert>
               ) : (
                 <List>
@@ -1134,12 +1191,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                Status:{' '}
-                                {agentManagerFactory.isMCPServerConnected(
-                                  server.name
-                                )
-                                  ? 'Connected'
-                                  : 'Connection failed'}
+                                {trans.__(
+                                  'Status: %1',
+                                  agentManagerFactory.isMCPServerConnected(
+                                    server.name
+                                  )
+                                    ? trans.__('Connected')
+                                    : trans.__('Connection failed')
+                                )}
                               </Typography>
                             )}
                           </Box>
@@ -1170,6 +1229,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           mode={editingProvider ? 'edit' : 'add'}
           providerRegistry={providerRegistry}
           handleSecretField={handleSecretField}
+          trans={trans}
         />
 
         {/* Provider Menu */}
@@ -1189,14 +1249,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             }}
           >
             <Edit sx={{ mr: 1 }} />
-            Edit
+            {trans.__('Edit')}
           </MenuItem>
           <MenuItem
             onClick={() => handleDeleteProvider(menuProviderId)}
             sx={{ color: 'error.main' }}
           >
             <Delete sx={{ mr: 1 }} />
-            Delete
+            {trans.__('Delete')}
           </MenuItem>
         </Menu>
 
@@ -1207,6 +1267,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           onSave={editingMCPServer ? handleEditMCPServer : handleAddMCPServer}
           initialConfig={editingMCPServer}
           mode={editingMCPServer ? 'edit' : 'add'}
+          trans={trans}
         />
 
         {/* MCP Server Menu */}
@@ -1226,14 +1287,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             }}
           >
             <Edit sx={{ mr: 1 }} />
-            Edit
+            {trans.__('Edit')}
           </MenuItem>
           <MenuItem
             onClick={() => handleDeleteMCPServer(mcpMenuServerId)}
             sx={{ color: 'error.main' }}
           >
             <Delete sx={{ mr: 1 }} />
-            Delete
+            {trans.__('Delete')}
           </MenuItem>
         </Menu>
       </Box>
@@ -1250,6 +1311,7 @@ interface IMCPServerDialogProps {
   onSave: (config: Omit<IMCPServerConfig, 'id'>) => void;
   initialConfig?: IMCPServerConfig;
   mode: 'add' | 'edit';
+  trans: TranslationBundle;
 }
 
 /**
@@ -1262,7 +1324,8 @@ const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
   onClose,
   onSave,
   initialConfig,
-  mode
+  mode,
+  trans
 }) => {
   const [name, setName] = useState(initialConfig?.name || '');
   const [url, setUrl] = useState(initialConfig?.url || '');
@@ -1314,26 +1377,28 @@ const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {mode === 'add' ? 'Add MCP Server' : 'Edit MCP Server'}
+        {mode === 'add'
+          ? trans.__('Add MCP Server')
+          : trans.__('Edit MCP Server')}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField
             autoFocus
             fullWidth
-            label="Server Name"
+            label={trans.__('Server Name')}
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="My MCP Server"
-            helperText="A friendly name to identify this MCP server"
+            placeholder={trans.__('My MCP Server')}
+            helperText={trans.__('A friendly name to identify this MCP server')}
           />
           <TextField
             fullWidth
-            label="Server URL"
+            label={trans.__('Server URL')}
             value={url}
             onChange={e => setUrl(e.target.value)}
-            placeholder="https://example.com/mcp"
-            helperText="The HTTP/HTTPS URL of the MCP server"
+            placeholder={trans.__('https://example.com/mcp')}
+            helperText={trans.__('The HTTP/HTTPS URL of the MCP server')}
             error={Boolean(url.trim() && !_isValidUrl(url.trim()))}
           />
           <FormControlLabel
@@ -1344,14 +1409,14 @@ const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
                 color="primary"
               />
             }
-            label="Enable this server"
+            label={trans.__('Enable this server')}
           />
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{trans.__('Cancel')}</Button>
         <Button onClick={handleSave} variant="contained" disabled={!canSave}>
-          {mode === 'add' ? 'Add' : 'Save'}
+          {mode === 'add' ? trans.__('Add') : trans.__('Save')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -1378,6 +1443,10 @@ export namespace AISettingsWidget {
      * The token used to request the secrets manager.
      */
     token: symbol;
+    /**
+     * The application language translation bundle.
+     */
+    trans: TranslationBundle;
   }
 }
 

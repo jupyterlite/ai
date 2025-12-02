@@ -1,4 +1,5 @@
 import { ReactWidget, UseSignal } from '@jupyterlab/ui-components';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
 import { ISignal } from '@lumino/signaling';
 import { AISettingsModel } from '../models/settings-model';
@@ -22,6 +23,11 @@ export interface ITokenUsageDisplayProps {
    * Initial token usage.
    */
   initialTokenUsage?: ITokenUsage;
+
+  /**
+   * The application language translator.
+   */
+  translator: TranslationBundle;
 }
 
 /**
@@ -32,7 +38,8 @@ export interface ITokenUsageDisplayProps {
 export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
   tokenUsageChanged,
   settingsModel,
-  initialTokenUsage
+  initialTokenUsage,
+  translator: trans
 }) => {
   return (
     <UseSignal signal={settingsModel.stateChanged} initialArgs={undefined}>
@@ -68,7 +75,12 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
                     borderRadius: '4px',
                     whiteSpace: 'nowrap'
                   }}
-                  title={`Token Usage - Sent: ${tokenUsage.inputTokens.toLocaleString()}, Received: ${tokenUsage.outputTokens.toLocaleString()}, Total: ${total.toLocaleString()}`}
+                  title={trans.__(
+                    'Token Usage - Sent: %1, Received: %2, Total: %3',
+                    tokenUsage.inputTokens.toLocaleString(),
+                    tokenUsage.outputTokens.toLocaleString(),
+                    total.toLocaleString()
+                  )}
                 >
                   <span
                     style={{

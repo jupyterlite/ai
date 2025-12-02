@@ -1,5 +1,7 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
+import type { TranslationBundle } from '@jupyterlab/translation';
+
 import StopIcon from '@mui/icons-material/Stop';
 
 import React from 'react';
@@ -15,13 +17,18 @@ export interface IStopButtonProps
    * The function to stop streaming.
    */
   stopStreaming: () => void;
+  /**
+   * The application language translator.
+   */
+  translator: TranslationBundle;
 }
 
 /**
  * The stop button component.
  */
 export function StopButton(props: IStopButtonProps): JSX.Element {
-  const tooltip = 'Stop streaming';
+  const { translator: trans } = props;
+  const tooltip = trans.__('Stop streaming');
   return (
     <TooltippedButton
       onClick={props.stopStreaming}
@@ -41,13 +48,19 @@ export function StopButton(props: IStopButtonProps): JSX.Element {
 /**
  * Factory returning the stop button toolbar item.
  */
-export function stopItem(): InputToolbarRegistry.IToolbarItem {
+export function stopItem(
+  translator: TranslationBundle
+): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
       const { model } = props;
       const stopStreaming = () =>
         (model.chatContext as AIChatModel.IAIChatContext).stopStreaming();
-      const stopProps: IStopButtonProps = { ...props, stopStreaming };
+      const stopProps: IStopButtonProps = {
+        ...props,
+        stopStreaming,
+        translator
+      };
       return StopButton(stopProps);
     },
     position: 50,
