@@ -5,7 +5,8 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
 
-:::{figure} https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b
+:::{iframe} https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b
+:width: 100%
 A screencast showing the JupyterLite AI extension in JupyterLite.
 :::
 
