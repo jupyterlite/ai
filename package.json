@@ -53,7 +53,7 @@
         "watch:src": "tsc -w --sourceMap",
         "watch:labextension": "jupyter labextension watch .",
         "docs": "jupyter book start",
-        "docs:build": "jupyter book build --html"
+        "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html"
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^2.0.30",

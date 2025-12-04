@@ -139,3 +139,4 @@ litellm_config.yaml
 
 # MyST build outputs
 _build
+docs/_changelog_content.md

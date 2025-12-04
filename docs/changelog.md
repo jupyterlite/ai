@@ -1,3 +1,3 @@
-```{include} ../CHANGELOG.md
+```{include} _changelog_content.md
 
 ```
