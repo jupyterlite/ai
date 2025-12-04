@@ -31,19 +31,6 @@ To install requirements (JupyterLab, JupyterLite and Notebook):
 pip install jupyterlite-ai[jupyter]
 ```
 
-## Documentation
-
-For detailed documentation, see the [JupyterLite AI Documentation](https://jupyterlite.github.io/ai/docs/).
-
-The documentation includes:
-
-- [Installation](https://jupyterlite.github.io/ai/docs/install)
-- [Usage Guide](https://jupyterlite.github.io/ai/docs/usage)
-- [Using Ollama](https://jupyterlite.github.io/ai/docs/ollama)
-- [Using LiteLLM Proxy](https://jupyterlite.github.io/ai/docs/litellm)
-- [Custom Providers](https://jupyterlite.github.io/ai/docs/custom-providers)
-- [API Key Management](https://jupyterlite.github.io/ai/docs/api-keys)
-
 ## Uninstall
 
 To remove the extension, execute:

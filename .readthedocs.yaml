@@ -13,3 +13,4 @@ build:
     - jupyter book build --html
     - mkdir -p $READTHEDOCS_OUTPUT/html/
     - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
+    - rm -rf _build
