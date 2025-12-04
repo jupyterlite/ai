@@ -10,7 +10,7 @@ build:
     nodejs: "22"
   commands:
     - pip install jupyter-book
-    - jupyter book build --html
+    - npm run docs:build
     - mkdir -p $READTHEDOCS_OUTPUT/html/
     - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
     - rm -rf _build
