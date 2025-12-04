@@ -28,4 +28,4 @@ The API keys will be stored in plain text using the settings system of JupyterLa
 
 - Using JupyterLab, the settings are stored in a [directory](https://jupyterlab.readthedocs.io/en/stable/user/directories.html#jupyterlab-user-settings-directory) on the server
 - Using JupyterLite, the settings are stored in the [browser](https://jupyterlite.readthedocs.io/en/latest/howto/configure/storage.html#configure-the-browser-storage)
-:::
+  :::
