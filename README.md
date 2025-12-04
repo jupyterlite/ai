@@ -171,7 +171,19 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 
 - **Base URL**: `http://localhost:8000` (or your gateway server URL)
 - **Model**: The model name with provider prefix (e.g., `openai:gpt-4`, `anthropic:claude-sonnet-4-5-20250929`)
-- **API Key**: Your gateway master key or virtual API key
+- **API Key**: Your gateway virtual API key or master key
+
+> [!TIP]
+> **Using virtual API keys**: The master key requires a `user` field in each request, which the generic OpenAI provider doesn't send by default. To use the gateway seamlessly with jupyterlite-ai, create a virtual API key:
+>
+> ```bash
+> curl -X POST http://localhost:8000/v1/keys \
+>   -H "X-AnyLLM-Key: Bearer ${GATEWAY_MASTER_KEY}" \
+>   -H "Content-Type: application/json" \
+>   -d '{"key_name": "jupyterlite-ai"}'
+> ```
+>
+> The response will contain a key starting with `gw-`. Use this virtual key as your API key in jupyterlite-ai. Virtual keys automatically track usage without requiring the `user` field.
 
 > [!NOTE]
 > any-llm-gateway uses the `provider:model` format for model names (e.g., `openai:gpt-4`). Check your gateway configuration for available models.
