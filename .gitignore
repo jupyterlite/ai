@@ -136,3 +136,6 @@ ui-tests/playwright-report/
 
 # LiteLLM config
 litellm_config.yaml
+
+# MyST build outputs
+_build

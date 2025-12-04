@@ -1,0 +1,34 @@
+# See docs at: https://mystmd.org/guide/frontmatter
+version: 1
+project:
+  id: 2cd0dbd8-7ff6-40c3-b74e-7057b3ebec65
+  title: JupyterLite AI
+  description: AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite
+  keywords:
+    - jupyter
+    - jupyterlab
+    - jupyterlite
+    - ai
+    - llm
+    - code-completion
+    - chat
+  github: https://github.com/jupyterlite/ai
+  toc:
+    - file: docs/index.md
+    - file: docs/install.md
+    - title: Usage
+      children:
+        - file: docs/usage.md
+        - file: docs/ollama.md
+        - file: docs/litellm.md
+    - file: docs/custom-providers.md
+    - file: docs/api-keys.md
+    - title: Development
+      children:
+        - file: docs/contributing.md
+        - file: docs/release.md
+    - file: docs/changelog.md
+site:
+  template: book-theme
+  options:
+    logo_text: JupyterLite AI
