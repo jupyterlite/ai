@@ -26,13 +26,9 @@ import { ICompletionProviderManager } from '@jupyterlab/completer';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
-import { IEditorTracker } from '@jupyterlab/fileeditor';
-
 import { INotebookTracker } from '@jupyterlab/notebook';
 
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-
-import { IKernelSpecManager, KernelSpec } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
@@ -71,8 +67,7 @@ import {
   IToolRegistry,
   SECRETS_NAMESPACE,
   IAISettingsModel,
-  IChatModelRegistry,
-  IDiffManager
+  IChatModelRegistry
 } from './tokens';
 
 import {
@@ -96,32 +91,7 @@ import {
 
 import { AISettingsModel } from './models/settings-model';
 
-import { DiffManager } from './diff-manager';
-
 import { ToolRegistry } from './tools/tool-registry';
-
-import {
-  createAddCellTool,
-  createDeleteCellTool,
-  createExecuteActiveCellTool,
-  createGetCellInfoTool,
-  createGetNotebookInfoTool,
-  createNotebookCreationTool,
-  createRunCellTool,
-  createSaveNotebookTool,
-  createSetCellContentTool
-} from './tools/notebook';
-
-import {
-  createCopyFileTool,
-  createDeleteFileTool,
-  createGetFileInfoTool,
-  createNavigateToDirectoryTool,
-  createNewFileTool,
-  createOpenFileTool,
-  createRenameFileTool,
-  createSetFileContentTool
-} from './tools/file';
 
 import {
   createDiscoverCommandsTool,
@@ -792,103 +762,14 @@ const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   }
 };
 
-/**
- * Diff manager plugin
- */
-const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
-  id: '@jupyterlite/ai:diff-manager',
-  description: 'Provide the diff manager for notebook cell diffs',
-  autoStart: true,
-  provides: IDiffManager,
-  requires: [IAISettingsModel],
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: AISettingsModel
-  ): IDiffManager => {
-    return new DiffManager({
-      commands: app.commands,
-      settingsModel
-    });
-  }
-};
-
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
-  requires: [IAISettingsModel, IDocumentManager, IKernelSpecManager],
-  optional: [INotebookTracker, IDiffManager, IEditorTracker],
+  requires: [IAISettingsModel],
   provides: IToolRegistry,
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
-    docManager: IDocumentManager,
-    kernelSpecManager: KernelSpec.IManager,
-    notebookTracker?: INotebookTracker,
-    diffManager?: IDiffManager,
-    editorTracker?: IEditorTracker
-  ) => {
+  activate: (app: JupyterFrontEnd, settingsModel: AISettingsModel) => {
     const toolRegistry = new ToolRegistry();
-
-    const notebookCreationTool = createNotebookCreationTool(
-      docManager,
-      kernelSpecManager
-    );
-    toolRegistry.add('create_notebook', notebookCreationTool);
-
-    // Add high-level notebook operation tools
-    const addCellTool = createAddCellTool(docManager, notebookTracker);
-    const getNotebookInfoTool = createGetNotebookInfoTool(
-      docManager,
-      notebookTracker
-    );
-    const getCellInfoTool = createGetCellInfoTool(docManager, notebookTracker);
-    const setCellContentTool = createSetCellContentTool(
-      docManager,
-      notebookTracker,
-      diffManager
-    );
-    const runCellTool = createRunCellTool(docManager, notebookTracker);
-    const deleteCellTool = createDeleteCellTool(docManager, notebookTracker);
-    const saveNotebookTool = createSaveNotebookTool(
-      docManager,
-      notebookTracker
-    );
-    const executeActiveCellTool = createExecuteActiveCellTool(
-      docManager,
-      notebookTracker
-    );
-
-    toolRegistry.add('add_cell', addCellTool);
-    toolRegistry.add('get_notebook_info', getNotebookInfoTool);
-    toolRegistry.add('get_cell_info', getCellInfoTool);
-    toolRegistry.add('set_cell_content', setCellContentTool);
-    toolRegistry.add('run_cell', runCellTool);
-    toolRegistry.add('delete_cell', deleteCellTool);
-    toolRegistry.add('save_notebook', saveNotebookTool);
-    toolRegistry.add('execute_active_cell', executeActiveCellTool);
-
-    // Add file operation tools
-    const newFileTool = createNewFileTool(docManager);
-    const openFileTool = createOpenFileTool(docManager);
-    const deleteFileTool = createDeleteFileTool(docManager);
-    const renameFileTool = createRenameFileTool(docManager);
-    const copyFileTool = createCopyFileTool(docManager);
-    const navigateToDirectoryTool = createNavigateToDirectoryTool(app.commands);
-    const getFileInfoTool = createGetFileInfoTool(docManager, editorTracker);
-    const setFileContentTool = createSetFileContentTool(
-      docManager,
-      diffManager
-    );
-
-    toolRegistry.add('create_file', newFileTool);
-    toolRegistry.add('open_file', openFileTool);
-    toolRegistry.add('delete_file', deleteFileTool);
-    toolRegistry.add('rename_file', renameFileTool);
-    toolRegistry.add('copy_file', copyFileTool);
-    toolRegistry.add('navigate_to_directory', navigateToDirectoryTool);
-    toolRegistry.add('get_file_info', getFileInfoTool);
-    toolRegistry.add('set_file_content', setFileContentTool);
 
     // Add command operation tools
     const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
@@ -992,7 +873,6 @@ export default [
   openaiProviderPlugin,
   genericProviderPlugin,
   settingsModel,
-  diffManager,
   chatModelRegistry,
   plugin,
   toolRegistry,
