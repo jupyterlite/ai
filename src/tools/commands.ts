@@ -101,7 +101,23 @@ export function createExecuteCommandTool(
       );
     },
     execute: async (input: { commandId: string; args?: any }) => {
-      const { commandId, args } = input;
+      const { commandId } = input;
+      let { args } = input;
+
+      // Inject diff settings for set-cell-content and set-file-content commands
+      if (commandId === 'jupyterlab-ai-commands:set-cell-content') {
+        args = {
+          ...args,
+          showDiff: settingsModel.config.showCellDiff,
+          diffMode: settingsModel.config.diffDisplayMode
+        };
+      } else if (commandId === 'jupyterlab-ai-commands:set-file-content') {
+        args = {
+          ...args,
+          showDiff: settingsModel.config.showFileDiff,
+          diffMode: settingsModel.config.diffDisplayMode
+        };
+      }
 
       // Check if command exists
       if (!commands.hasCommand(commandId)) {

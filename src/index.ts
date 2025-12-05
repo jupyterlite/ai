@@ -67,8 +67,7 @@ import {
   IToolRegistry,
   SECRETS_NAMESPACE,
   IAISettingsModel,
-  IChatModelRegistry,
-  IDiffManager
+  IChatModelRegistry
 } from './tokens';
 
 import {
@@ -91,8 +90,6 @@ import {
 } from './components';
 
 import { AISettingsModel } from './models/settings-model';
-
-import { DiffManager } from './diff-manager';
 
 import { ToolRegistry } from './tools/tool-registry';
 
@@ -765,26 +762,6 @@ const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
   }
 };
 
-/**
- * Diff manager plugin
- */
-const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
-  id: '@jupyterlite/ai:diff-manager',
-  description: 'Provide the diff manager for notebook cell diffs',
-  autoStart: true,
-  provides: IDiffManager,
-  requires: [IAISettingsModel],
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: AISettingsModel
-  ): IDiffManager => {
-    return new DiffManager({
-      commands: app.commands,
-      settingsModel
-    });
-  }
-};
-
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
   description: 'Provide the AI tool registry',
@@ -896,7 +873,6 @@ export default [
   openaiProviderPlugin,
   genericProviderPlugin,
   settingsModel,
-  diffManager,
   chatModelRegistry,
   plugin,
   toolRegistry,
