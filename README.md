@@ -1,6 +1,7 @@
 # jupyterlite-ai
 
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
+[![Documentation Status](https://readthedocs.org/projects/jupyterlite-ai/badge/?version=latest)](https://jupyterlite-ai.readthedocs.io/en/latest/?badge=latest)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyterlite.github.io/ai/lab/index.html)
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
@@ -30,6 +31,10 @@ To install requirements (JupyterLab, JupyterLite and Notebook):
 ```bash
 pip install jupyterlite-ai[jupyter]
 ```
+
+## Documentation
+
+For detailed usage instructions, including how to configure AI providers, see the [documentation](https://jupyterlite-ai.readthedocs.io/).
 
 ## Uninstall
 
