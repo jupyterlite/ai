@@ -1,11 +1,14 @@
-# jupyterlite-ai
+# JupyterLite AI
 
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyterlite.github.io/ai/lab/index.html)
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
 
-[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
+:::{iframe} https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b
+:width: 100%
+A screencast showing the JupyterLite AI extension in JupyterLite.
+:::
 
 ## Requirements
 
@@ -17,28 +20,4 @@ You can try the extension in your browser using JupyterLite:
 
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyterlite.github.io/ai/lab/index.html)
 
-## Install
-
-To install the extension, execute:
-
-```bash
-pip install jupyterlite-ai
-```
-
-To install requirements (JupyterLab, JupyterLite and Notebook):
-
-```bash
-pip install jupyterlite-ai[jupyter]
-```
-
-## Uninstall
-
-To remove the extension, execute:
-
-```bash
-pip uninstall jupyterlite-ai
-```
-
-## Contributing
-
-See [CONTRIBUTING](CONTRIBUTING.md)
+See the [Usage](./usage.md) section for more information on how to provide your API key.

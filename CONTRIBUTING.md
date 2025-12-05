@@ -59,6 +59,23 @@ PWSLOWMO=500 jlpm playwright test
 PWVIDEO=on PWSLOWMO=1000 jlpm playwright test
 ```
 
+## Contributing to documentation
+
+The documentation is built using [MyST](https://mystmd.org/) and [Jupyter Book](https://jupyterbook.org/). The source files are located in the `docs/` folder.
+
+To preview the documentation locally:
+
+```bash
+# Start a local development server with live reload
+jlpm docs
+```
+
+To build the documentation as static HTML:
+
+```bash
+jlpm docs:build
+```
+
 ## Development uninstall
 
 ```bash

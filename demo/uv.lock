@@ -960,6 +960,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=2.12.4,<3" },
+    { name = "jupyter-book", marker = "extra == 'docs'" },
     { name = "jupyter-secrets-manager", specifier = ">=0.4,<0.5" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
     { name = "jupyterlab-diff", specifier = ">=0.6.0,<0.7" },
@@ -967,7 +968,7 @@ requires-dist = [
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.4.0" },
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
 ]
-provides-extras = ["jupyter", "test"]
+provides-extras = ["docs", "jupyter", "test"]
 
 [[package]]
 name = "jupyterlite-ai-demo"

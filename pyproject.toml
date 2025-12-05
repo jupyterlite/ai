@@ -39,6 +39,9 @@ test = [
     "fastmcp>=2.12.4,<3",
     "starlette>=0.48.0,<0.49",
 ]
+docs = [
+    "jupyter-book",
+]
 
 [tool.hatch.version]
 source = "nodejs"

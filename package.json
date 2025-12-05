@@ -51,7 +51,9 @@
         "stylelint:check": "stylelint --cache \"style/**/*.css\"",
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "tsc -w --sourceMap",
-        "watch:labextension": "jupyter labextension watch ."
+        "watch:labextension": "jupyter labextension watch .",
+        "docs": "jupyter book start",
+        "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html"
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^2.0.30",
