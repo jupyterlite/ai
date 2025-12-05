@@ -35,9 +35,9 @@ curl http://localhost:8000/health
 
 Configure the [Generic provider (OpenAI-compatible)](./usage.md#using-a-generic-openai-compatible-provider) with the following settings:
 
-- **Base URL**: `http://localhost:8000` (or your gateway server URL)
+- **Base URL**: `http://localhost:8000/v1` (or your gateway server URL)
 - **Model**: The model name with provider prefix (e.g., `openai:gpt-4`, `anthropic:claude-sonnet-4-5-20250929`)
-- **API Key**: Your gateway virtual API key or master key
+- **API Key**: Your gateway virtual API key
 
 :::{tip}
 **Using virtual API keys**: The master key requires a `user` field in each request, which the generic OpenAI provider doesn't send by default. To use the gateway seamlessly with jupyterlite-ai, create a virtual API key:
