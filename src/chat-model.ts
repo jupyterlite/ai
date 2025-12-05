@@ -12,6 +12,10 @@ import { PathExt } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
+import { IDocumentWidget } from '@jupyterlab/docregistry';
+
+import { INotebookModel, Notebook } from '@jupyterlab/notebook';
+
 import { UUID } from '@lumino/coreutils';
 
 import { ISignal, Signal } from '@lumino/signaling';
@@ -23,6 +27,8 @@ import { AI_AVATAR } from './icons';
 import { AISettingsModel } from './models/settings-model';
 
 import { ITokenUsage } from './tokens';
+
+import { YNotebook } from '@jupyter/ydoc';
 
 import * as nbformat from '@jupyterlab/nbformat';
 
@@ -623,23 +629,45 @@ ${toolsList}
     }
 
     try {
-      const model = await this.input.documentManager?.services.contents.get(
+      // Try reading from live notebook if open
+      const widget = this.input.documentManager?.findWidget(
         attachment.value
-      );
-      if (!model || model.type !== 'notebook') {
-        return null;
-      }
+      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      let cellData: nbformat.ICell[];
+      let kernelLang = 'text';
 
-      const kernelLang =
-        model.content?.metadata?.language_info?.name ||
-        model.content?.metadata?.kernelspec?.language ||
-        'text';
+      const ymodel = widget?.context.model.sharedModel as YNotebook;
+
+      if (ymodel) {
+        const nb = ymodel.toJSON();
+
+        cellData = nb.cells;
+
+        const lang =
+          nb.metadata.language_info?.name ||
+          nb.metadata.kernelspec?.language ||
+          'text';
+
+        kernelLang = String(lang);
+      } else {
+        // Fallback: reading from disk
+        const model = await this.input.documentManager?.services.contents.get(
+          attachment.value
+        );
+        if (!model || model.type !== 'notebook') {
+          return null;
+        }
+        cellData = model.content.cells ?? [];
+
+        kernelLang =
+          model.content.metadata.language_info?.name ||
+          model.content.metadata.kernelspec?.language ||
+          'text';
+      }
 
       const selectedCells = attachment.cells
         .map(cellInfo => {
-          const cell = model.content.cells.find(
-            (c: any) => c.id === cellInfo.id
-          );
+          const cell = cellData.find(c => c.id === cellInfo.id);
           if (!cell) {
             return null;
           }
@@ -660,7 +688,7 @@ ${toolsList}
             'text/plain'
           ];
 
-          function extractDisplay(data: any): string {
+          function extractDisplay(data: nbformat.IMimeBundle): string {
             for (const mime of DISPLAY_PRIORITY) {
               if (!(mime in data)) {
                 continue;
@@ -673,13 +701,13 @@ ${toolsList}
 
               switch (mime) {
                 case 'application/vnd.jupyter.widget-view+json':
-                  return `Widget: ${(value as any).model_id ?? 'unknown model'}`;
+                  return `Widget: ${(value as { model_id?: string }).model_id ?? 'unknown model'}`;
 
                 case 'image/png':
-                  return `![image](data:image/png;base64,${value.slice(0, 100)}...)`;
+                  return `![image](data:image/png;base64,${String(value).slice(0, 100)}...)`;
 
                 case 'image/jpeg':
-                  return `![image](data:image/jpeg;base64,${value.slice(0, 100)}...)`;
+                  return `![image](data:image/jpeg;base64,${String(value).slice(0, 100)}...)`;
 
                 case 'image/svg+xml':
                   return String(value).slice(0, 500) + '...\n[svg truncated]';
@@ -712,8 +740,9 @@ ${toolsList}
 
           let outputs = '';
           if (cellType === 'code' && Array.isArray(cell.outputs)) {
-            outputs = cell.outputs
-              .map((output: nbformat.IOutput) => {
+            const outputsArray = cell.outputs as nbformat.IOutput[];
+            outputs = outputsArray
+              .map(output => {
                 if (output.output_type === 'stream') {
                   return (output as nbformat.IStream).text;
                 } else if (output.output_type === 'error') {
@@ -777,36 +806,48 @@ ${toolsList}
     }
 
     try {
-      const model = await this.input.documentManager?.services.contents.get(
+      // Try reading from an open widget first
+      const widget = this.input.documentManager?.findWidget(
+        attachment.value
+      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+
+      if (widget && widget.context && widget.context.model) {
+        const model = widget.context.model;
+        const ymodel = model.sharedModel as YNotebook;
+
+        if (typeof ymodel.getSource === 'function') {
+          const source = ymodel.getSource();
+          return typeof source === 'string'
+            ? source
+            : JSON.stringify(source, null, 2);
+        }
+      }
+
+      // If not open, load from disk
+      const diskModel = await this.input.documentManager?.services.contents.get(
         attachment.value
       );
-      if (!model?.content) {
+
+      if (!diskModel?.content) {
         return null;
       }
-      if (model.type === 'file') {
-        // Regular file content
-        return model.content;
-      } else if (model.type === 'notebook') {
-        // Clear outputs from notebook cells before sending to LLM
-        // TODO: make this configurable?
-        const cells = model.content.cells.map((cell: any) => {
-          const cleanCell = { ...cell };
-          if (cleanCell.outputs) {
-            cleanCell.outputs = [];
-          }
-          if (cleanCell.execution_count) {
-            cleanCell.execution_count = null;
-          }
-          return cleanCell;
-        });
 
-        const notebookModel = {
-          cells,
-          metadata: (model as any).metadata || {},
-          nbformat: (model as any).nbformat || 4,
-          nbformat_minor: (model as any).nbformat_minor || 4
+      if (diskModel.type === 'file') {
+        // Regular file content
+        return diskModel.content;
+      }
+
+      if (diskModel.type === 'notebook') {
+        const cleaned = {
+          ...diskModel,
+          cells: diskModel.content.cells.map((cell: nbformat.ICell) => ({
+            ...cell,
+            outputs: [] as nbformat.IOutput[],
+            execution_count: null
+          }))
         };
-        return JSON.stringify(notebookModel);
+
+        return JSON.stringify(cleaned);
       }
       return null;
     } catch (error) {
