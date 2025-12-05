@@ -862,6 +862,18 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyterlab-ai-commands"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jupyterlab-diff" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9a/88/2de5e94131b8314aa88e57ad65d3ae5450d80d847cee1ac2c70f2abd9180/jupyterlab_ai_commands-0.1.2.tar.gz", hash = "sha256:b8a184f42bcba2c7d80eaa2d7bbf0f2b5aea94604ef5f81286bbe1c526c7edae", size = 106051, upload-time = "2025-10-31T10:31:47.962Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/55/96c25e14a8fb0a88ad1903e1924b76c3903b01696eaee937fccf6ba5b797/jupyterlab_ai_commands-0.1.2-py3-none-any.whl", hash = "sha256:00f9edd67c2217594887586dc07c430439ae726138327a133e552cb2f5851c6f", size = 24459, upload-time = "2025-10-31T10:31:45.793Z" },
+]
+
+[[package]]
 name = "jupyterlab-cell-input-footer"
 version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -954,7 +966,7 @@ name = "jupyterlite-ai"
 source = { directory = "../" }
 dependencies = [
     { name = "jupyter-secrets-manager" },
-    { name = "jupyterlab-diff" },
+    { name = "jupyterlab-ai-commands" },
 ]
 
 [package.metadata]
@@ -963,7 +975,7 @@ requires-dist = [
     { name = "jupyter-book", marker = "extra == 'docs'" },
     { name = "jupyter-secrets-manager", specifier = ">=0.4,<0.5" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
-    { name = "jupyterlab-diff", specifier = ">=0.6.0,<0.7" },
+    { name = "jupyterlab-ai-commands", specifier = ">=0.1.1,<0.2" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.6.0a0" },
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.4.0" },
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
