@@ -142,6 +142,9 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 
 #### Setting up any-llm-gateway
 
+> [!NOTE]
+> You must first clone the [any-llm repository](https://github.com/mozilla-ai/any-llm) before following the setup steps below.
+
 1. Install and configure the gateway following the instructions at <https://mozilla-ai.github.io/any-llm/gateway/quickstart/>
 
 2. Generate a master key:
