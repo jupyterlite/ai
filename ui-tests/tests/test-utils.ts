@@ -17,7 +17,7 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
         id: 'generic-1759407012872',
         name: DEFAULT_MODEL_NAME,
         provider: 'generic',
-        model: 'qwen3:0.6b',
+        model: 'qwen2.5:0.5b',
         baseURL: 'http://localhost:11434/v1'
       }
     ],
