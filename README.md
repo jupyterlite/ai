@@ -178,7 +178,7 @@ Configure the [Generic provider (OpenAI-compatible)](#using-a-generic-openai-com
 >
 > ```bash
 > curl -X POST http://localhost:8000/v1/keys \
->   -H "X-AnyLLM-Key: Bearer ${GATEWAY_MASTER_KEY}" \
+>   -H "Authorization: Bearer ${GATEWAY_MASTER_KEY}" \
 >   -H "Content-Type: application/json" \
 >   -d '{"key_name": "jupyterlite-ai"}'
 > ```
