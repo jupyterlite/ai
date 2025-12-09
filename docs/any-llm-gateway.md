@@ -4,11 +4,7 @@
 
 ## Setting up any-llm-gateway
 
-:::{note}
-You must first clone the [any-llm repository](https://github.com/mozilla-ai/any-llm) before following the setup steps below.
-:::
-
-1. Install and configure the gateway following the instructions at <https://mozilla-ai.github.io/any-llm/gateway/quickstart/>
+1. **Installation:** Install and configure the gateway following the [Quick Start guide](https://mozilla-ai.github.io/any-llm/gateway/quickstart/). This involves creating a directory, downloading the `docker-compose.yml`, and setting up your `config.yml`.
 
 2. Generate a master key:
 
@@ -16,12 +12,12 @@ You must first clone the [any-llm repository](https://github.com/mozilla-ai/any-
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-3. Configure your providers in `config.yml` with your API keys and model pricing
+3. **Configuration:** Configure your providers in `config.yml` with your API keys and model pricing.
 
-4. Start the gateway:
+4. Start the gateway: Navigate you your gateway directory and run: 
 
 ```bash
-docker-compose -f docker/docker-compose.yml up -d --build
+docker compose up -d
 ```
 
 5. Verify the gateway is running:
