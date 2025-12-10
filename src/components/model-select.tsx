@@ -106,7 +106,6 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
           'No providers configured. Please go to AI Settings to add a provider.'
         )}
         buttonProps={{
-          size: 'small',
           variant: 'outlined',
           color: 'warning',
           disabled: true,
@@ -114,9 +113,9 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         }}
         sx={{
           minWidth: 'auto',
+          width: 'unset',
           display: 'flex',
-          alignItems: 'center',
-          height: '29px'
+          alignItems: 'center'
         }}
       >
         <Typography
@@ -141,9 +140,6 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
           currentModel
         )}
         buttonProps={{
-          size: 'small',
-          variant: 'contained',
-          color: 'primary',
           title: trans.__('Select AI Model'),
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {
@@ -156,9 +152,9 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         }}
         sx={{
           minWidth: 'auto',
+          width: 'unset',
           display: 'flex',
-          alignItems: 'center',
-          height: '29px'
+          alignItems: 'center'
         }}
       >
         <Typography
