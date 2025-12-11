@@ -292,13 +292,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
       attachmentOpenerRegistry,
       createModel: async (name?: string) => {
         const model = modelRegistry.createModel(name);
+        chatPanel.updateChatList();
         return { model };
+      },
+      getChatNames: async () => {
+        const names = modelRegistry.getAll().map(model => model.name);
+        console.log('Names of the chat', names);
+        const arr: { [key: string]: string } = {};
+        for (const name of names) {
+          arr[name] = name;
+        }
+        return arr;
       },
       renameChat: async (oldName: string, newName: string) => {
         const model = modelRegistry.get(oldName);
         const concurrencyModel = modelRegistry.get(newName);
         if (model && !concurrencyModel) {
           model.name = newName;
+          chatPanel.updateChatList();
           return true;
         }
         return false;
