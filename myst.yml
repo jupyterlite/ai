@@ -33,3 +33,4 @@ site:
   template: book-theme
   options:
     logo_text: JupyterLite AI
+    favicon: docs/favicon.ico
