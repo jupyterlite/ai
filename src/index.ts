@@ -291,13 +291,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
       inputToolbarFactory,
       attachmentOpenerRegistry,
       createModel: async (name?: string) => {
-        const model = modelRegistry.createModel(name);
+        let model = name ? modelRegistry.get(name) : undefined;
+        if (!model) {
+          model = modelRegistry.createModel(name);
+        }
         chatPanel.updateChatList();
         return { model };
       },
       getChatNames: async () => {
         const names = modelRegistry.getAll().map(model => model.name);
-        console.log('Names of the chat', names);
         const arr: { [key: string]: string } = {};
         for (const name of names) {
           arr[name] = name;
