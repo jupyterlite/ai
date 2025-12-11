@@ -14,7 +14,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 3. **Configuration:** Configure your providers in `config.yml` with your API keys and model pricing.
 
-4. Start the gateway: Navigate you your gateway directory and run: 
+4. Start the gateway: Navigate you your gateway directory and run:
 
 ```bash
 docker compose up -d
