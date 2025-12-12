@@ -1,0 +1,8 @@
+.dark .myst-home-link-logo {
+  background-color: transparent !important;
+}
+
+/* Hide redundant home link in TOC (already in logo) */
+.myst-toc-item[href='/'] {
+  display: none;
+}

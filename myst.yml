@@ -32,4 +32,7 @@ project:
 site:
   template: book-theme
   options:
+    logo: style/icons/jupyternaut-lite.svg
     logo_text: JupyterLite AI
+    favicon: docs/favicon.ico
+    style: docs/custom.css
