@@ -34,5 +34,5 @@ site:
   options:
     logo: style/icons/jupyternaut-lite.svg
     logo_text: JupyterLite AI
-    favicon: style/icons/jupyternaut-lite.svg
+    favicon: docs/favicon.ico
     style: docs/custom.css
