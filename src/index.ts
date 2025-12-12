@@ -384,8 +384,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       widget.disposed.connect(() => {
         // Dispose of the approval buttons widget when the chat is disposed.
         approvalButton.dispose();
-        // Remove the model from the registry when the widget is disposed.
-        modelRegistry.remove(model.name);
       });
     });
 
@@ -528,11 +526,6 @@ function registerCommands(
       model.agentManager.activeProviderChanged.connect(() =>
         tracker.save(widget)
       );
-
-      // Remove the model from the registry when the widget is disposed.
-      widget.disposed.connect(() => {
-        modelRegistry.remove(model.name);
-      });
     };
 
     commands.addCommand(CommandIds.openChat, {
