@@ -3,6 +3,6 @@
 }
 
 /* Hide redundant home link in TOC (already in logo) */
-.myst-toc-item[href="/"] {
+.myst-toc-item[href='/'] {
   display: none;
 }
