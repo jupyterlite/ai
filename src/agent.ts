@@ -1,11 +1,5 @@
 import { ISignal, Signal } from '@lumino/signaling';
-import {
-  ToolLoopAgent,
-  type ModelMessage,
-  stepCountIs,
-  type Tool,
-  type LanguageModel
-} from 'ai';
+import { ToolLoopAgent, type ModelMessage, stepCountIs, type Tool } from 'ai';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -643,7 +637,7 @@ export class AgentManager {
         : config.systemPrompt || 'You are a helpful assistant.';
 
       this._agent = new ToolLoopAgent({
-        model: model as LanguageModel,
+        model,
         instructions,
         tools,
         temperature,

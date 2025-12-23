@@ -12,7 +12,6 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
-      // currently unused, but could be used to filter commands by a search term
       query: z
         .string()
         .optional()
@@ -98,7 +97,6 @@ export function createExecuteCommandTool(
         .optional()
         .describe('Optional arguments to pass to the command')
     }),
-    // Check if the command requires approval based on settings
     needsApproval: (input: { commandId: string; args?: any }) => {
       const commandsRequiringApproval =
         settingsModel.config.commandsRequiringApproval || [];

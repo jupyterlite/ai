@@ -1,7 +1,6 @@
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
-import type { Tool } from 'ai';
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { Tool, LanguageModel } from 'ai';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
@@ -109,7 +108,7 @@ export const IProviderRegistry = new Token<IProviderRegistry>(
  * Interface for a provider factory function that creates language models
  */
 export interface IProviderFactory {
-  (options: IModelOptions): LanguageModelV3;
+  (options: IModelOptions): LanguageModel;
 }
 
 /**
@@ -197,7 +196,7 @@ export interface IProviderRegistry {
   /**
    * Create a chat model instance for the given provider.
    */
-  createChatModel(id: string, options: IModelOptions): LanguageModelV3 | null;
+  createChatModel(id: string, options: IModelOptions): LanguageModel | null;
 
   /**
    * Create a completion model instance for the given provider.
@@ -205,7 +204,7 @@ export interface IProviderRegistry {
   createCompletionModel(
     id: string,
     options: IModelOptions
-  ): LanguageModelV3 | null;
+  ): LanguageModel | null;
 
   /**
    * Get all available provider IDs.
