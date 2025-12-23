@@ -1,5 +1,5 @@
 import { ISignal, Signal } from '@lumino/signaling';
-import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 import type { IModelOptions } from './models';
 import { IProviderInfo, IProviderRegistry } from '../tokens';
 
@@ -48,7 +48,7 @@ export class ProviderRegistry implements IProviderRegistry {
    * @param options Model configuration options
    * @returns Chat model instance or null if creation fails
    */
-  createChatModel(id: string, options: IModelOptions): LanguageModelV2 | null {
+  createChatModel(id: string, options: IModelOptions): LanguageModelV3 | null {
     const provider = this._providers[id];
     if (!provider) {
       return null;
@@ -66,7 +66,7 @@ export class ProviderRegistry implements IProviderRegistry {
   createCompletionModel(
     id: string,
     options: IModelOptions
-  ): LanguageModelV2 | null {
+  ): LanguageModelV3 | null {
     const provider = this._providers[id];
     if (!provider) {
       return null;
