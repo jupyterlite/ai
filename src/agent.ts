@@ -586,34 +586,140 @@ export class AgentManager {
   /**
    * Processes the stream result from agent execution.
    * Handles message streaming, tool calls, and emits appropriate events.
+   * Uses fullStream for interleaved text and tool call events.
    * @param result The stream result from agent execution
    */
   private async _processStreamResult(result: any): Promise<void> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
 
-    // Stream text chunks
-    for await (const chunk of result.textStream) {
-      if (!currentMessageId) {
-        currentMessageId = `msg-${Date.now()}-${Math.random()}`;
-        this._agentEvent.emit({
-          type: 'message_start',
-          data: { messageId: currentMessageId }
-        });
-      }
+    // Use fullStream for interleaved text and tool call events
+    for await (const part of result.fullStream) {
+      switch (part.type) {
+        case 'text-delta': {
+          // Start message if needed
+          if (!currentMessageId) {
+            currentMessageId = `msg-${Date.now()}-${Math.random()}`;
+            this._agentEvent.emit({
+              type: 'message_start',
+              data: { messageId: currentMessageId }
+            });
+          }
 
-      fullResponse += chunk;
-      this._agentEvent.emit({
-        type: 'message_chunk',
-        data: {
-          messageId: currentMessageId,
-          chunk,
-          fullContent: fullResponse
+          fullResponse += part.text;
+          this._agentEvent.emit({
+            type: 'message_chunk',
+            data: {
+              messageId: currentMessageId,
+              chunk: part.text,
+              fullContent: fullResponse
+            }
+          });
+          break;
         }
-      });
+
+        case 'tool-call': {
+          // Complete current message before tool call if we have content
+          if (currentMessageId && fullResponse) {
+            this._agentEvent.emit({
+              type: 'message_complete',
+              data: {
+                messageId: currentMessageId,
+                content: fullResponse
+              }
+            });
+            // Reset for potential next message segment
+            currentMessageId = null;
+            fullResponse = '';
+          }
+
+          const input = this._formatToolInput(JSON.stringify(part.input));
+          this._agentEvent.emit({
+            type: 'tool_call_start',
+            data: {
+              callId: part.toolCallId,
+              toolName: part.toolName,
+              input
+            }
+          });
+          break;
+        }
+
+        case 'tool-result': {
+          const outputValue = part.output;
+          const output =
+            typeof outputValue === 'string'
+              ? outputValue
+              : JSON.stringify(outputValue, null, 2);
+          const isError =
+            typeof outputValue === 'object' &&
+            outputValue !== null &&
+            'success' in outputValue &&
+            outputValue.success === false;
+
+          this._agentEvent.emit({
+            type: 'tool_call_complete',
+            data: {
+              callId: part.toolCallId,
+              toolName: part.toolName,
+              output,
+              isError
+            }
+          });
+          break;
+        }
+
+        case 'tool-approval-request': {
+          // Complete current message before approval request
+          if (currentMessageId && fullResponse) {
+            this._agentEvent.emit({
+              type: 'message_complete',
+              data: {
+                messageId: currentMessageId,
+                content: fullResponse
+              }
+            });
+            currentMessageId = null;
+            fullResponse = '';
+          }
+
+          const approvalPart = part as {
+            type: 'tool-approval-request';
+            approvalId: string;
+            toolCall: { toolCallId: string; toolName: string; input: unknown };
+          };
+
+          // Emit approval request event
+          this._agentEvent.emit({
+            type: 'tool_approval_request',
+            data: {
+              approvalId: approvalPart.approvalId,
+              toolCallId: approvalPart.toolCall.toolCallId,
+              toolName: approvalPart.toolCall.toolName,
+              args: approvalPart.toolCall.input
+            }
+          });
+
+          // Wait for user approval
+          const approved = await this._waitForApproval(approvalPart.approvalId);
+
+          // Add approval response to history
+          this._history.push({
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: approvalPart.approvalId,
+                approved
+              }
+            ]
+          });
+          break;
+        }
+      }
     }
 
-    // Emit message complete
+    // Complete final message if we have remaining content
     if (currentMessageId && fullResponse) {
       this._agentEvent.emit({
         type: 'message_complete',
@@ -622,90 +728,6 @@ export class AgentManager {
           content: fullResponse
         }
       });
-    }
-
-    // Process tool calls from steps
-    const steps = await result.steps;
-    for (const step of steps) {
-      // Check for tool approval requests in step content
-      if (step.content) {
-        for (const part of step.content) {
-          if (part.type === 'tool-approval-request') {
-            const approvalPart = part as {
-              type: 'tool-approval-request';
-              approvalId: string;
-              toolCall: { toolCallId: string; toolName: string; args: unknown };
-            };
-
-            // Emit approval request event
-            this._agentEvent.emit({
-              type: 'tool_approval_request',
-              data: {
-                approvalId: approvalPart.approvalId,
-                toolCallId: approvalPart.toolCall.toolCallId,
-                toolName: approvalPart.toolCall.toolName,
-                args: approvalPart.toolCall.args
-              }
-            });
-
-            // Wait for user approval
-            const approved = await this._waitForApproval(
-              approvalPart.approvalId
-            );
-
-            // Add approval response to history
-            this._history.push({
-              role: 'tool',
-              content: [
-                {
-                  type: 'tool-approval-response',
-                  approvalId: approvalPart.approvalId,
-                  approved
-                }
-              ]
-            });
-          }
-        }
-      }
-
-      if (step.toolCalls) {
-        for (const toolCall of step.toolCalls) {
-          const callId = toolCall.toolCallId;
-          const toolName = toolCall.toolName;
-          const input = this._formatToolInput(JSON.stringify(toolCall.args));
-
-          this._agentEvent.emit({
-            type: 'tool_call_start',
-            data: {
-              callId,
-              toolName,
-              input
-            }
-          });
-        }
-      }
-
-      if (step.toolResults) {
-        for (const toolResult of step.toolResults) {
-          const callId = toolResult.toolCallId;
-          const toolName = toolResult.toolName;
-          const output =
-            typeof toolResult.result === 'string'
-              ? toolResult.result
-              : JSON.stringify(toolResult.result, null, 2);
-          const isError = toolResult.result?.success === false;
-
-          this._agentEvent.emit({
-            type: 'tool_call_complete',
-            data: {
-              callId,
-              toolName,
-              output,
-              isError
-            }
-          });
-        }
-      }
     }
   }
 
