@@ -241,6 +241,9 @@ export class AIChatModel extends AbstractChatModel {
       case 'tool_call_complete':
         this._handleToolCallCompleteEvent(event);
         break;
+      case 'tool_approval_request':
+        this._handleToolApprovalRequest(event);
+        break;
       case 'error':
         this._handleErrorEvent(event);
         break;
@@ -394,6 +397,45 @@ export class AIChatModel extends AbstractChatModel {
       raw_time: false
     };
     this.messageAdded(errorMessage);
+  }
+
+  /**
+   * Handles tool approval request events from the AI agent.
+   * @param event Event containing the approval request data
+   */
+  private _handleToolApprovalRequest(
+    event: IAgentEvent<'tool_approval_request'>
+  ): void {
+    const approvalMessageId = UUID.uuid4();
+    const inputJson = JSON.stringify(event.data.args, null, 2);
+
+    const approvalMessage: IChatMessage = {
+      body: `<details class="jp-ai-tool-call jp-ai-tool-approval" open>
+<summary class="jp-ai-tool-header">
+<div class="jp-ai-tool-icon">⚠️</div>
+<div class="jp-ai-tool-title">${event.data.toolName}</div>
+<div class="jp-ai-tool-status jp-ai-tool-status-approval">Approval Required</div>
+</summary>
+<div class="jp-ai-tool-body">
+<div class="jp-ai-tool-section">
+<div class="jp-ai-tool-label">Input</div>
+<pre class="jp-ai-tool-code"><code>${inputJson}</code></pre>
+</div>
+<div class="jp-ai-tool-approval-buttons" data-approval-id="${event.data.approvalId}">
+[APPROVAL_BUTTONS:${event.data.approvalId}]
+</div>
+</div>
+</details>`,
+      sender: this._getAIUser(),
+      id: approvalMessageId,
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+    this.messageAdded(approvalMessage);
+
+    // Store the pending approval for later status updates
+    this._pendingToolCalls.set(event.data.approvalId, approvalMessageId);
   }
 
   /**

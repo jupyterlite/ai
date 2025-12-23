@@ -365,7 +365,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Associate an approval buttons object to the chat.
       const approvalButton = new ApprovalButtons({
         chatPanel: widget,
-        trans
+        trans,
+        agentManager: model.agentManager
       });
 
       widget.disposed.connect(() => {

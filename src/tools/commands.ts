@@ -82,7 +82,7 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
 
 /**
  * Create a tool to execute a specific JupyterLab command.
- * Note: Commands requiring approval should be handled at the agent level.
+ * Commands in the settings' commandsRequiringApproval list will need approval.
  */
 export function createExecuteCommandTool(
   commands: CommandRegistry,
@@ -98,6 +98,12 @@ export function createExecuteCommandTool(
         .optional()
         .describe('Optional arguments to pass to the command')
     }),
+    // Check if the command requires approval based on settings
+    needsApproval: (input: { commandId: string; args?: any }) => {
+      const commandsRequiringApproval =
+        settingsModel.config.commandsRequiringApproval || [];
+      return commandsRequiringApproval.includes(input.commandId);
+    },
     execute: async (input: { commandId: string; args?: any }) => {
       const { commandId, args } = input;
 

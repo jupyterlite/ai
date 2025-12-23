@@ -84,7 +84,6 @@
         "@lumino/polling": "^2.1.4",
         "@lumino/signaling": "^2.1.4",
         "@lumino/widgets": "^2.7.1",
-        "@modelcontextprotocol/sdk": "^1.19.1",
         "@mui/icons-material": "^7",
         "@mui/material": "^7",
         "ai": "^6.0.0",

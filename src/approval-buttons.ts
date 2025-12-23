@@ -1,11 +1,13 @@
 import { ChatWidget } from '@jupyter/chat';
 import { IDisposable } from '@lumino/disposable';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import type { AgentManager } from './agent';
 
 export class ApprovalButtons implements IDisposable {
   constructor(options: ApprovalButtons.IOptions) {
     this._chatPanel = options.chatPanel;
     this._trans = options.trans;
+    this._agentManager = options.agentManager;
 
     // Set up approval button event handling
     this._setupApprovalHandlers();
@@ -79,8 +81,7 @@ export class ApprovalButtons implements IDisposable {
 
   /**
    * Handles click events for individual approval buttons.
-   * Note: Tool approval is not currently supported with AI SDK v6.
-   * This handler shows a status message but doesn't perform any action.
+   * Calls the agent manager to approve or reject the tool call.
    *
    * @param event - The click event
    */
@@ -94,12 +95,22 @@ export class ApprovalButtons implements IDisposable {
       return;
     }
 
+    const approvalId = buttonsContainer.getAttribute('data-approval-id');
+    if (!approvalId) {
+      console.warn('No approval ID found for button');
+      return;
+    }
+
     // Hide buttons immediately and show status
     const isApprove = target.classList.contains('jp-ai-approval-approve');
     this._showApprovalStatus(buttonsContainer, isApprove);
 
-    // Tool approval is not currently supported with AI SDK v6
-    console.warn('Tool approval is not currently supported');
+    // Call the agent manager to approve or reject
+    if (isApprove) {
+      this._agentManager.approveToolCall(approvalId);
+    } else {
+      this._agentManager.rejectToolCall(approvalId);
+    }
   };
 
   /**
@@ -115,8 +126,7 @@ export class ApprovalButtons implements IDisposable {
 
   /**
    * Handles click events for grouped approval buttons.
-   * Note: Tool approval is not currently supported with AI SDK v6.
-   * This handler shows a status message but doesn't perform any action.
+   * Approves or rejects all tool calls in the group.
    *
    * @param event - The click event
    */
@@ -130,12 +140,25 @@ export class ApprovalButtons implements IDisposable {
       return;
     }
 
+    const approvalIds = buttonsContainer.getAttribute('data-approval-ids');
+    if (!approvalIds) {
+      console.warn('No approval IDs found for grouped button');
+      return;
+    }
+
     // Hide buttons immediately and show status
     const isApprove = target.classList.contains('jp-ai-group-approve-all');
     this._showGroupApprovalStatus(buttonsContainer, isApprove);
 
-    // Tool approval is not currently supported with AI SDK v6
-    console.warn('Tool approval is not currently supported');
+    // Approve or reject all tool calls in the group
+    const ids = approvalIds.split(',');
+    for (const approvalId of ids) {
+      if (isApprove) {
+        this._agentManager.approveToolCall(approvalId.trim());
+      } else {
+        this._agentManager.rejectToolCall(approvalId.trim());
+      }
+    }
   };
 
   /**
@@ -411,14 +434,15 @@ export class ApprovalButtons implements IDisposable {
   private _isDisposed: boolean = false;
   private _mutationObserver?: MutationObserver;
   private _trans: TranslationBundle;
+  private _agentManager: AgentManager;
 }
 
 /**
- * Namespace for ChatWrapperWidget statics.
+ * Namespace for ApprovalButtons statics.
  */
 export namespace ApprovalButtons {
   /**
-   * The options for the constructor of the chat wrapper widget.
+   * The options for the constructor of the approval buttons.
    */
   export interface IOptions {
     /**
@@ -429,5 +453,9 @@ export namespace ApprovalButtons {
      * The application language translation bundle.
      */
     trans: TranslationBundle;
+    /**
+     * The agent manager for handling approvals.
+     */
+    agentManager: AgentManager;
   }
 }

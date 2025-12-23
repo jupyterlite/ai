@@ -6,11 +6,7 @@ import {
   type Tool,
   type LanguageModel
 } from 'ai';
-import {
-  experimental_createMCPClient as createMCPClient,
-  type MCPTransport
-} from '@ai-sdk/mcp';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createMCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from './models/settings-model';
@@ -134,22 +130,14 @@ export class AgentManagerFactory {
     }
     this._mcpClients = [];
 
-    // Initialize new clients
+    // Initialize new clients using built-in AI SDK MCP transport
     for (const serverConfig of enabledServers) {
       try {
-        // Create transport for browser-compatible HTTP streaming
-        const transport = new StreamableHTTPClientTransport(
-          new URL(serverConfig.url),
-          {
-            requestInit: {
-              mode: 'cors' as RequestMode,
-              credentials: 'omit' as RequestCredentials
-            }
-          }
-        ) as unknown as MCPTransport;
-
         const client = await createMCPClient({
-          transport
+          transport: {
+            type: 'http',
+            url: serverConfig.url
+          }
         });
 
         this._mcpClients.push({
@@ -235,6 +223,12 @@ export interface IAgentEventTypeMap {
     toolName: string;
     output: string;
     isError: boolean;
+  };
+  tool_approval_request: {
+    approvalId: string;
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
   };
   error: {
     error: Error;
@@ -445,6 +439,32 @@ export class AgentManager {
   }
 
   /**
+   * Approves a pending tool call.
+   * @param approvalId The approval ID to approve
+   * @param reason Optional reason for approval
+   */
+  approveToolCall(approvalId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(approvalId);
+    if (pending) {
+      pending.resolve(true, reason);
+      this._pendingApprovals.delete(approvalId);
+    }
+  }
+
+  /**
+   * Rejects a pending tool call.
+   * @param approvalId The approval ID to reject
+   * @param reason Optional reason for rejection
+   */
+  rejectToolCall(approvalId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(approvalId);
+    if (pending) {
+      pending.resolve(false, reason);
+      this._pendingApprovals.delete(approvalId);
+    }
+  }
+
+  /**
    * Generates AI response to user message using the agent.
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
@@ -608,6 +628,47 @@ export class AgentManager {
     // Process tool calls from steps
     const steps = await result.steps;
     for (const step of steps) {
+      // Check for tool approval requests in step content
+      if (step.content) {
+        for (const part of step.content) {
+          if (part.type === 'tool-approval-request') {
+            const approvalPart = part as {
+              type: 'tool-approval-request';
+              approvalId: string;
+              toolCall: { toolCallId: string; toolName: string; args: unknown };
+            };
+
+            // Emit approval request event
+            this._agentEvent.emit({
+              type: 'tool_approval_request',
+              data: {
+                approvalId: approvalPart.approvalId,
+                toolCallId: approvalPart.toolCall.toolCallId,
+                toolName: approvalPart.toolCall.toolName,
+                args: approvalPart.toolCall.args
+              }
+            });
+
+            // Wait for user approval
+            const approved = await this._waitForApproval(
+              approvalPart.approvalId
+            );
+
+            // Add approval response to history
+            this._history.push({
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: approvalPart.approvalId,
+                  approved
+                }
+              ]
+            });
+          }
+        }
+      }
+
       if (step.toolCalls) {
         for (const toolCall of step.toolCalls) {
           const callId = toolCall.toolCallId;
@@ -647,6 +708,19 @@ export class AgentManager {
         }
       }
     }
+  }
+
+  /**
+   * Waits for user approval of a tool call.
+   * @param approvalId The approval ID to wait for
+   * @returns Promise that resolves to true if approved, false if rejected
+   */
+  private _waitForApproval(approvalId: string): Promise<boolean> {
+    return new Promise(resolve => {
+      this._pendingApprovals.set(approvalId, {
+        resolve: (approved: boolean) => resolve(approved)
+      });
+    });
   }
 
   /**
@@ -785,6 +859,10 @@ TOOL SELECTION GUIDELINES:
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
+  private _pendingApprovals: Map<
+    string,
+    { resolve: (approved: boolean, reason?: string) => void }
+  > = new Map();
 }
 
 namespace Private {
