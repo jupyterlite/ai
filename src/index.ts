@@ -624,7 +624,7 @@ function registerCommands(
           trackerUpdated.promise,
           new Promise<boolean>(r =>
             setTimeout(() => {
-              return false;
+              r(false);
             }, 2000)
           )
         ]);

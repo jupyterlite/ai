@@ -33,9 +33,8 @@ import { YNotebook } from '@jupyter/ydoc';
 import * as nbformat from '@jupyterlab/nbformat';
 
 /**
- * AI Chat Model implementation that provides chat functionality with OpenAI agents,
- * tool integration, and MCP server support.
- * Extends the base AbstractChatModel to provide AI-powered conversations.
+ * AI Chat Model implementation that provides chat functionality tool integration,
+ * and MCP server support.
  */
 export class AIChatModel extends AbstractChatModel {
   /**
@@ -172,7 +171,6 @@ export class AIChatModel extends AbstractChatModel {
         const attachmentContents = await this._processAttachments(
           this.input.attachments
         );
-        // Clear attachments right after  processing
         this.input.clearAttachments();
 
         if (attachmentContents.length > 0) {
@@ -307,18 +305,20 @@ export class AIChatModel extends AbstractChatModel {
   private _handleToolCallStartEvent(
     event: IAgentEvent<'tool_call_start'>
   ): void {
+    const toolName = Private.escapeHtml(event.data.toolName);
+    const input = Private.escapeHtml(event.data.input);
     const toolCallMessageId = UUID.uuid4();
     const toolCallMessage: IChatMessage = {
       body: `<details class="jp-ai-tool-call jp-ai-tool-pending">
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+<div class="jp-ai-tool-title">${toolName}</div>
 <div class="jp-ai-tool-status jp-ai-tool-status-pending">Running...</div>
 </summary>
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${event.data.input}</code></pre>
+<pre class="jp-ai-tool-code"><code>${input}</code></pre>
 </div>
 </div>
 </details>`,
@@ -352,6 +352,9 @@ export class AIChatModel extends AbstractChatModel {
         const inputJson =
           existingMessage.body.match(/<code>([\s\S]*?)<\/code>/)?.[1] || '';
 
+        const toolName = Private.escapeHtml(event.data.toolName);
+        const output = Private.escapeHtml(event.data.output);
+
         const statusClass = event.data.isError
           ? 'jp-ai-tool-error'
           : 'jp-ai-tool-completed';
@@ -365,7 +368,7 @@ export class AIChatModel extends AbstractChatModel {
           body: `<details class="jp-ai-tool-call ${statusClass}">
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+      <div class="jp-ai-tool-title">${toolName}</div>
 <div class="jp-ai-tool-status ${statusColor}">${statusText}</div>
 </summary>
 <div class="jp-ai-tool-body">
@@ -375,7 +378,7 @@ export class AIChatModel extends AbstractChatModel {
 </div>
 <div class="jp-ai-tool-section">
 <div class="jp-ai-tool-label">${event.data.isError ? 'Error' : 'Result'}</div>
-<pre class="jp-ai-tool-code"><code>${event.data.output}</code></pre>
+      <pre class="jp-ai-tool-code"><code>${output}</code></pre>
 </div>
 </div>
 </details>`
@@ -422,7 +425,11 @@ export class AIChatModel extends AbstractChatModel {
       return;
     }
 
-    const inputJson = JSON.stringify(event.data.args, null, 2);
+    const inputJson = Private.escapeHtml(
+      JSON.stringify(event.data.args, null, 2)
+    );
+
+    const toolName = Private.escapeHtml(event.data.toolName);
 
     // Update the existing message to show approval UI
     const updatedMessage: IChatMessage = {
@@ -430,7 +437,7 @@ export class AIChatModel extends AbstractChatModel {
       body: `<details class="jp-ai-tool-call jp-ai-tool-pending" open>
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
+    <div class="jp-ai-tool-title">${toolName}</div>
 <div class="jp-ai-tool-status jp-ai-tool-status-approval">Awaiting Approval</div>
 </summary>
 <div class="jp-ai-tool-body">
@@ -805,6 +812,26 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IChatMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
+}
+
+namespace Private {
+  export function escapeHtml(value: string): string {
+    // Prefer the same native escaping approach used in JupyterLab itself
+    // (e.g. `@jupyterlab/completer`).
+    if (typeof document !== 'undefined') {
+      const node = document.createElement('span');
+      node.textContent = value;
+      return node.innerHTML;
+    }
+
+    // Fallback
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 }
 
 /**

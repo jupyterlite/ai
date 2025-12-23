@@ -74,7 +74,7 @@
 /* Enhanced tool select menu styles */
 .jp-AIToolSelect-menu {
   max-width: 300px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z6);
   border: 1px solid var(--jp-border-color2);
 }
 
@@ -94,14 +94,14 @@
   border: 1px solid var(--jp-border-color1);
   border-radius: 6px;
   background: var(--jp-layout-color0);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  box-shadow: var(--jp-elevation-z2);
   transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .jp-ai-tool-call:hover {
   border-color: var(--jp-border-color2);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 /* Tool Header - clickable summary */
@@ -280,24 +280,24 @@
 
 .jp-ai-approval-approve {
   background: var(--jp-success-color1);
-  color: white;
+  color: var(--jp-ui-inverse-font-color1);
 }
 
 .jp-ai-approval-approve:hover:not(:disabled) {
   background: var(--jp-success-color0);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 .jp-ai-approval-reject {
   background: var(--jp-error-color1);
-  color: white;
+  color: var(--jp-ui-inverse-font-color1);
 }
 
 .jp-ai-approval-reject:hover:not(:disabled) {
   background: var(--jp-error-color0);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 .jp-ai-approval-btn:disabled {

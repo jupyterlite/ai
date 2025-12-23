@@ -1,5 +1,11 @@
 import { ISignal, Signal } from '@lumino/signaling';
-import { ToolLoopAgent, type ModelMessage, stepCountIs, type Tool } from 'ai';
+import {
+  ToolLoopAgent,
+  type ModelMessage,
+  stepCountIs,
+  type StreamTextResult,
+  type Tool
+} from 'ai';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -14,6 +20,18 @@ import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
 interface IMCPClientWrapper {
   name: string;
   client: MCPClient;
+}
+
+type ToolMap = Record<string, Tool>;
+
+function isToolCallPart(
+  part: unknown
+): part is { type: 'tool-call'; toolCallId: string } {
+  if (!part || typeof part !== 'object') {
+    return false;
+  }
+  const record = part as Record<string, unknown>;
+  return record.type === 'tool-call' && typeof record.toolCallId === 'string';
 }
 
 export namespace AgentManagerFactory {
@@ -77,8 +95,8 @@ export class AgentManagerFactory {
   /**
    * Gets the MCP tools from connected servers
    */
-  async getMCPTools(): Promise<Record<string, Tool<any, any>>> {
-    const mcpTools: Record<string, Tool<any, any>> = {};
+  async getMCPTools(): Promise<ToolMap> {
+    const mcpTools: ToolMap = {};
 
     for (const wrapper of this._mcpClients) {
       try {
@@ -423,7 +441,6 @@ export class AgentManager {
    */
   clearHistory(): void {
     this._history = [];
-    // Reset token usage
     this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
     this._tokenUsageChanged.emit(this._tokenUsage);
   }
@@ -493,11 +510,8 @@ export class AgentManager {
         content: message
       });
 
-      // Stream the response using ToolLoopAgent
-      // Loop to handle approvals - after approval, we need to call the agent again
       let continueLoop = true;
       while (continueLoop) {
-        // Note: AgentCallParameters expects either prompt OR messages, not both
         const result = await this._agent.stream({
           messages: this._history, // Pass full history including current message
           abortSignal: this._controller.signal
@@ -542,13 +556,11 @@ export class AgentManager {
                 msg.role === 'assistant' &&
                 Array.isArray(msg.content) &&
                 msg.content.some(
-                  (part: any) =>
-                    part.type === 'tool-call' && part.toolCallId === toolCallId
+                  part => isToolCallPart(part) && part.toolCallId === toolCallId
                 )
             );
 
             if (!toolCallExists) {
-              // Tool call not in history, add it
               this._history.push({
                 role: 'assistant',
                 content: [
@@ -564,12 +576,10 @@ export class AgentManager {
             this._lastApprovalPart = null;
           }
 
-          // Re-add the approval/rejection response (was popped earlier)
           if (approvalResponse) {
             this._history.push(approvalResponse);
           }
         } else {
-          // Update history with the full response only when we're done
           if (
             responseMessages.messages &&
             responseMessages.messages.length > 0
@@ -594,9 +604,7 @@ export class AgentManager {
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP tools.
    */
-  initializeAgent = async (
-    mcpTools?: Record<string, Tool<any, any>>
-  ): Promise<void> => {
+  initializeAgent = async (mcpTools?: ToolMap): Promise<void> => {
     if (this._isInitializing) {
       return;
     }
@@ -617,7 +625,6 @@ export class AgentManager {
         Object.keys(this._toolRegistry.tools).length > 0 &&
         this._supportsToolCalling();
 
-      // Combine selected tools with MCP tools
       const tools = shouldUseTools
         ? { ...this.selectedAgentTools, ...this._mcpTools }
         : this._mcpTools;
@@ -659,16 +666,24 @@ export class AgentManager {
    * @param result The stream result from agent execution
    * @returns true if an approval was processed and we should continue the loop
    */
-  private async _processStreamResult(result: any): Promise<boolean> {
+  private async _processStreamResult(
+    result: StreamTextResult<ToolMap, never>
+  ): Promise<boolean> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
     let approvalProcessed = false;
 
-    // Use fullStream for interleaved text and tool call events
     for await (const part of result.fullStream) {
       switch (part.type) {
+        case 'text-start':
+        case 'text-end':
+        case 'finish':
+        case 'error': {
+          // These parts aren't needed for our chat UI model.
+          break;
+        }
+
         case 'text-delta': {
-          // Start message if needed
           if (!currentMessageId) {
             currentMessageId = `msg-${Date.now()}-${Math.random()}`;
             this._agentEvent.emit({
@@ -760,7 +775,6 @@ export class AgentManager {
             toolCall: { toolCallId: string; toolName: string; input: unknown };
           };
 
-          // Emit approval request event
           this._agentEvent.emit({
             type: 'tool_approval_request',
             data: {
@@ -771,15 +785,11 @@ export class AgentManager {
             }
           });
 
-          // Wait for user approval
           const approved = await this._waitForApproval(approvalPart.approvalId);
 
-          // Store the approval part info for later use when building history
           this._lastApprovalPart = approvalPart;
 
-          // Add approval response to history
           if (approved) {
-            // For approved tools, use the standard approval response
             this._history.push({
               role: 'tool',
               content: [
@@ -791,25 +801,23 @@ export class AgentManager {
               ]
             });
           } else {
-            // For rejected tools, provide a tool result indicating rejection
-            // This is more universally understood by models
             this._history.push({
               role: 'tool',
               content: [
                 {
-                  type: 'tool-result',
-                  toolCallId: approvalPart.toolCall.toolCallId,
-                  toolName: approvalPart.toolCall.toolName,
-                  output: {
-                    type: 'text',
-                    value:
-                      'Tool call was rejected by the user. Please acknowledge this and continue without executing this tool.'
-                  }
+                  type: 'tool-approval-response',
+                  approvalId: approvalPart.approvalId,
+                  approved: false
                 }
               ]
             });
           }
           approvalProcessed = true;
+          break;
+        }
+
+        default: {
+          // Ignore other stream parts we don't explicitly render.
           break;
         }
       }
@@ -851,11 +859,9 @@ export class AgentManager {
    */
   private _formatToolInput(input: string): string {
     try {
-      // Parse and re-stringify with formatting
       const parsed = JSON.parse(input);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      // If parsing fails, return the string as-is
       return input;
     }
   }
@@ -970,9 +976,9 @@ TOOL SELECTION GUIDELINES:
   private _providerRegistry?: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
-  private _agent: ToolLoopAgent<never, Record<string, Tool<any, any>>> | null;
+  private _agent: ToolLoopAgent<never, ToolMap> | null;
   private _history: ModelMessage[];
-  private _mcpTools: Record<string, Tool<any, any>>;
+  private _mcpTools: ToolMap;
   private _isInitializing: boolean;
   private _controller: AbortController | null;
   private _agentEvent: Signal<this, IAgentEvent>;

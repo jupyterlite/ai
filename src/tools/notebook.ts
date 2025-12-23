@@ -1,4 +1,9 @@
-import { CodeCell, ICodeCellModel, MarkdownCell } from '@jupyterlab/cells';
+import {
+  CodeCell,
+  CodeCellModel,
+  ICodeCellModel,
+  MarkdownCell
+} from '@jupyterlab/cells';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
@@ -424,7 +429,7 @@ export function createGetCellInfoTool(
         source,
         outputs,
         executionCount:
-          cellType === 'code' ? (cell as any).executionCount : null
+          cellType === 'code' ? (cell as CodeCellModel).executionCount : null
       });
     }
   });

@@ -258,13 +258,13 @@ export class ApprovalButtons implements IDisposable {
    * Creates and inserts approval buttons for a single tool call.
    *
    * @param textNode - The text node to replace with buttons
-   * @param interruptionId - The interruption ID for the tool call
+   * @param approvalId - The approval ID for the tool call
    */
-  private _createSingleApprovalButtons(textNode: Text, interruptionId: string) {
+  private _createSingleApprovalButtons(textNode: Text, approvalId: string) {
     // Create approval buttons for single tool
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'jp-ai-tool-approval-buttons';
-    buttonContainer.setAttribute('data-approval-id', interruptionId);
+    buttonContainer.setAttribute('data-approval-id', approvalId);
 
     // Try to find the message ID from the closest message container
     const messageId = this._findMessageId(textNode);

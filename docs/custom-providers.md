@@ -2,7 +2,7 @@
 
 `jupyterlite-ai` supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
 
-Providers are based on the [Vercel AI SDK](https://sdk.vercel.ai/docs/introduction), which provides a unified interface for working with different AI models.
+Providers are based on the [AI SDK](https://ai-sdk.dev/), which provides a unified interface for working with different AI models.
 
 ## Registering a Custom Provider
 

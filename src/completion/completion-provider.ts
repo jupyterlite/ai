@@ -176,7 +176,6 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     }
 
     try {
-      // Cast to LanguageModel to handle type compatibility between different @ai-sdk/provider versions
       this._model = createCompletionModel(
         {
           provider,
@@ -185,7 +184,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
           baseURL
         },
         this._providerRegistry
-      ) as LanguageModel;
+      );
     } catch (error) {
       console.error(`Error creating model for ${provider}:`, error);
       this._model = null;

@@ -20,7 +20,7 @@ export namespace CommandIds {
 /**
  * Type definition for a tool
  */
-export type ITool = Tool<any, any>;
+export type ITool = Tool;
 
 /**
  * Interface for token usage statistics from AI model interactions
