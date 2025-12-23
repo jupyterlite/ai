@@ -1,6 +1,6 @@
 import { CommandRegistry } from '@lumino/commands';
 import { tool } from 'ai';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { ITool } from '../tokens';
 import { AISettingsModel } from '../models/settings-model';
 

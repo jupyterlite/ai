@@ -88,7 +88,7 @@
         "@mui/material": "^7",
         "ai": "^6.0.0",
         "jupyter-secrets-manager": "^0.4.0",
-        "zod": "^3.25.76"
+        "zod": "^4.2.1"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.0.0",

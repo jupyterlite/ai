@@ -6,7 +6,7 @@ import { KernelSpec } from '@jupyterlab/services';
 
 import { tool } from 'ai';
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 
 import { IDiffManager, ITool } from '../tokens';
 
