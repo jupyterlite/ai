@@ -6,7 +6,7 @@ import {
   type Tool,
   type LanguageModel
 } from 'ai';
-import { createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from './models/settings-model';
@@ -19,7 +19,7 @@ import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
  */
 interface IMCPClientWrapper {
   name: string;
-  client: Awaited<ReturnType<typeof createMCPClient>>;
+  client: MCPClient;
 }
 
 export namespace AgentManagerFactory {
@@ -130,12 +130,11 @@ export class AgentManagerFactory {
     }
     this._mcpClients = [];
 
-    // Initialize new clients using built-in AI SDK MCP transport
     for (const serverConfig of enabledServers) {
       try {
         const client = await createMCPClient({
           transport: {
-            type: 'http',
+            type: 'sse',
             url: serverConfig.url
           }
         });
