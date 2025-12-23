@@ -627,7 +627,7 @@ export class AgentManager {
 
       const temperature =
         activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
-      const maxTokens = activeProviderConfig?.parameters?.maxTokens;
+      const maxTokens = activeProviderConfig?.parameters?.maxOutputTokens;
 
       this._agent = new Agent({
         name: 'Assistant',
@@ -640,7 +640,7 @@ export class AgentManager {
         ...(temperature && {
           modelSettings: {
             temperature,
-            maxTokens
+            maxOutputTokens
           }
         })
       });

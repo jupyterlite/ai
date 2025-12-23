@@ -6,7 +6,7 @@ import { KernelSpec } from '@jupyterlab/services';
 
 import { tool } from '@openai/agents';
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 import { IDiffManager, ITool } from '../tokens';
 
@@ -94,7 +94,7 @@ export function createNotebookCreationTool(
     name: 'create_notebook',
     description:
       'Create a new Jupyter notebook with a kernel for the specified programming language',
-    parameters: z.object({
+    inputSchema: z.object({
       language: z
         .string()
         .optional()
@@ -178,7 +178,7 @@ export function createAddCellTool(
   return tool({
     name: 'add_cell',
     description: 'Add a cell to the current notebook with optional content',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -293,7 +293,7 @@ export function createGetNotebookInfoTool(
     name: 'get_notebook_info',
     description:
       'Get information about a notebook including number of cells and active cell index',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -365,7 +365,7 @@ export function createGetCellInfoTool(
     name: 'get_cell_info',
     description:
       'Get information about a specific cell including its type, source content, and outputs',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -467,7 +467,7 @@ export function createSetCellContentTool(
     name: 'set_cell_content',
     description:
       'Set the content of a specific cell and return both the previous and new content',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -627,7 +627,7 @@ export function createRunCellTool(
   return tool({
     name: 'run_cell',
     description: 'Run a specific cell in the notebook by index',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -744,7 +744,7 @@ export function createDeleteCellTool(
   return tool({
     name: 'delete_cell',
     description: 'Delete a specific cell from the notebook by index',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -831,7 +831,7 @@ export function createExecuteActiveCellTool(
     name: 'execute_active_cell',
     description:
       'Execute the currently active cell in the notebook without disrupting user focus',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()
@@ -940,7 +940,7 @@ export function createSaveNotebookTool(
   return tool({
     name: 'save_notebook',
     description: 'Save a specific notebook to disk',
-    parameters: z.object({
+    inputSchema: z.object({
       notebookPath: z
         .string()
         .optional()

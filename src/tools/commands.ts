@@ -1,6 +1,6 @@
 import { CommandRegistry } from '@lumino/commands';
 import { tool } from '@openai/agents';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { ITool } from '../tokens';
 import { AISettingsModel } from '../models/settings-model';
 
@@ -12,7 +12,7 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
     name: 'discover_commands',
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
-    parameters: z.object({
+    inputSchema: z.object({
       // currently unused, but could be used to filter commands by a search term
       query: z
         .string()
@@ -85,7 +85,7 @@ export function createExecuteCommandTool(
     name: 'execute_command',
     description:
       'Execute a specific JupyterLab command with optional arguments',
-    parameters: z.object({
+    inputSchema: z.object({
       commandId: z.string().describe('The ID of the command to execute'),
       args: z
         .any()

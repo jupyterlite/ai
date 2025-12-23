@@ -6,7 +6,7 @@ import { IEditorTracker } from '@jupyterlab/fileeditor';
 
 import { tool } from '@openai/agents';
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 import { IDiffManager, ITool } from '../tokens';
 
@@ -18,7 +18,7 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
     name: 'create_file',
     description:
       'Create a new file of specified type (text, python, markdown, json, etc.)',
-    parameters: z.object({
+    inputSchema: z.object({
       fileName: z.string().describe('Name of the file to create'),
       fileType: z
         .string()
@@ -108,7 +108,7 @@ export function createOpenFileTool(docManager: IDocumentManager): ITool {
   return tool({
     name: 'open_file',
     description: 'Open a file in the editor',
-    parameters: z.object({
+    inputSchema: z.object({
       filePath: z.string().describe('Path to the file to open')
     }),
     errorFunction: (context, error) => {
@@ -143,7 +143,7 @@ export function createDeleteFileTool(docManager: IDocumentManager): ITool {
   return tool({
     name: 'delete_file',
     description: 'Delete a file from the file system',
-    parameters: z.object({
+    inputSchema: z.object({
       filePath: z.string().describe('Path to the file to delete')
     }),
     errorFunction: (context, error) => {
@@ -173,7 +173,7 @@ export function createRenameFileTool(docManager: IDocumentManager): ITool {
   return tool({
     name: 'rename_file',
     description: 'Rename a file or move it to a different location',
-    parameters: z.object({
+    inputSchema: z.object({
       oldPath: z.string().describe('Current path of the file'),
       newPath: z.string().describe('New path/name for the file')
     }),
@@ -205,7 +205,7 @@ export function createCopyFileTool(docManager: IDocumentManager): ITool {
   return tool({
     name: 'copy_file',
     description: 'Copy a file to a new location',
-    parameters: z.object({
+    inputSchema: z.object({
       sourcePath: z.string().describe('Path of the file to copy'),
       destinationPath: z
         .string()
@@ -241,7 +241,7 @@ export function createNavigateToDirectoryTool(
   return tool({
     name: 'navigate_to_directory',
     description: 'Navigate to a specific directory in the file browser',
-    parameters: z.object({
+    inputSchema: z.object({
       directoryPath: z.string().describe('Path to the directory to navigate to')
     }),
     errorFunction: (context, error) => {
@@ -277,7 +277,7 @@ export function createGetFileInfoTool(
     name: 'get_file_info',
     description:
       'Get information about a file including its path, name, extension, and content. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead. If no file path is provided, returns information about the currently active file in the editor.',
-    parameters: z.object({
+    inputSchema: z.object({
       filePath: z
         .string()
         .optional()
@@ -359,7 +359,7 @@ export function createSetFileContentTool(
     name: 'set_file_content',
     description:
       'Set or update the content of an existing file. This will replace the entire content of the file. For Jupyter notebooks, use dedicated notebook tools instead.',
-    parameters: z.object({
+    inputSchema: z.object({
       filePath: z
         .string()
         .describe(

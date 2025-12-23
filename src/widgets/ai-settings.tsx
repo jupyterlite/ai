@@ -739,7 +739,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                               {/* Display parameters if set */}
                               {params &&
                                 (params.temperature !== undefined ||
-                                  params.maxTokens !== undefined ||
+                                  params.maxOutputTokens !== undefined ||
                                   params.maxTurns !== undefined) && (
                                   <Box
                                     sx={{
@@ -759,11 +759,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                         variant="outlined"
                                       />
                                     )}
-                                    {params.maxTokens !== undefined && (
+                                    {params.maxOutputTokens !== undefined && (
                                       <Chip
                                         label={trans.__(
                                           'Tokens: %1',
-                                          params.maxTokens
+                                          params.maxOutputTokens
                                         )}
                                         size="small"
                                         variant="outlined"
