@@ -244,6 +244,9 @@ export class AIChatModel extends AbstractChatModel {
       case 'tool_approval_request':
         this._handleToolApprovalRequest(event);
         break;
+      case 'tool_approval_resolved':
+        this._handleToolApprovalResolved(event);
+        break;
       case 'error':
         this._handleErrorEvent(event);
         break;
@@ -410,11 +413,11 @@ export class AIChatModel extends AbstractChatModel {
     const inputJson = JSON.stringify(event.data.args, null, 2);
 
     const approvalMessage: IChatMessage = {
-      body: `<details class="jp-ai-tool-call jp-ai-tool-approval" open>
+      body: `<details class="jp-ai-tool-call jp-ai-tool-pending" open>
 <summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚠️</div>
+<div class="jp-ai-tool-icon">⚡</div>
 <div class="jp-ai-tool-title">${event.data.toolName}</div>
-<div class="jp-ai-tool-status jp-ai-tool-status-approval">Approval Required</div>
+<div class="jp-ai-tool-status jp-ai-tool-status-approval">Awaiting Approval</div>
 </summary>
 <div class="jp-ai-tool-body">
 <div class="jp-ai-tool-section">
@@ -436,6 +439,54 @@ export class AIChatModel extends AbstractChatModel {
 
     // Store the pending approval for later status updates
     this._pendingToolCalls.set(event.data.approvalId, approvalMessageId);
+  }
+
+  /**
+   * Handles tool approval resolved events from the AI agent.
+   * Updates the approval message to show approved/rejected status.
+   * @param event Event containing the approval resolution data
+   */
+  private _handleToolApprovalResolved(
+    event: IAgentEvent<'tool_approval_resolved'>
+  ): void {
+    const messageId = this._pendingToolCalls.get(event.data.approvalId);
+    if (messageId) {
+      const existingMessage = this.messages.find(msg => msg.id === messageId);
+      if (existingMessage) {
+        const statusClass = event.data.approved
+          ? 'jp-ai-tool-status-completed'
+          : 'jp-ai-tool-status-error';
+        const statusText = event.data.approved ? 'Approved' : 'Rejected';
+        const borderClass = event.data.approved
+          ? 'jp-ai-tool-completed'
+          : 'jp-ai-tool-error';
+
+        // Update the message body with resolved status (collapsed)
+        const updatedBody = existingMessage.body
+          // Remove the open attribute to collapse
+          .replace(
+            '<details class="jp-ai-tool-call jp-ai-tool-pending" open>',
+            `<details class="jp-ai-tool-call ${borderClass}">`
+          )
+          // Update the status
+          .replace(
+            /<div class="jp-ai-tool-status jp-ai-tool-status-approval">Awaiting Approval<\/div>/,
+            `<div class="jp-ai-tool-status ${statusClass}">${statusText}</div>`
+          )
+          // Remove the approval buttons section
+          .replace(
+            /<div class="jp-ai-tool-approval-buttons"[^>]*>[\s\S]*?\[APPROVAL_BUTTONS:[^\]]+\][\s\S]*?<\/div>/,
+            ''
+          );
+
+        const updatedMessage: IChatMessage = {
+          ...existingMessage,
+          body: updatedBody
+        };
+        this.messageAdded(updatedMessage);
+      }
+      this._pendingToolCalls.delete(event.data.approvalId);
+    }
   }
 
   /**

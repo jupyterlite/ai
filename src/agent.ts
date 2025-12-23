@@ -229,6 +229,10 @@ export interface IAgentEventTypeMap {
     toolName: string;
     args: unknown;
   };
+  tool_approval_resolved: {
+    approvalId: string;
+    approved: boolean;
+  };
   error: {
     error: Error;
   };
@@ -447,6 +451,10 @@ export class AgentManager {
     if (pending) {
       pending.resolve(true, reason);
       this._pendingApprovals.delete(approvalId);
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: true }
+      });
     }
   }
 
@@ -460,6 +468,10 @@ export class AgentManager {
     if (pending) {
       pending.resolve(false, reason);
       this._pendingApprovals.delete(approvalId);
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
     }
   }
 
@@ -488,26 +500,89 @@ export class AgentManager {
       });
 
       // Stream the response using ToolLoopAgent
-      // Note: AgentCallParameters expects either prompt OR messages, not both
-      const result = await this._agent.stream({
-        messages: this._history, // Pass full history including current message
-        abortSignal: this._controller.signal
-      });
+      // Loop to handle approvals - after approval, we need to call the agent again
+      let continueLoop = true;
+      while (continueLoop) {
+        // Note: AgentCallParameters expects either prompt OR messages, not both
+        const result = await this._agent.stream({
+          messages: this._history, // Pass full history including current message
+          abortSignal: this._controller.signal
+        });
 
-      await this._processStreamResult(result);
+        const approvalProcessed = await this._processStreamResult(result);
 
-      // Update history with the full response
-      const responseMessages = await result.response;
-      if (responseMessages.messages && responseMessages.messages.length > 0) {
-        this._history = [...this._history, ...responseMessages.messages];
-      }
+        // Get the response messages from the stream
+        const responseMessages = await result.response;
 
-      // Update token usage
-      const usage = await result.usage;
-      if (usage) {
-        this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
-        this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
-        this._tokenUsageChanged.emit(this._tokenUsage);
+        // Update token usage
+        const usage = await result.usage;
+        if (usage) {
+          this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
+          this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
+          this._tokenUsageChanged.emit(this._tokenUsage);
+        }
+
+        // Continue the loop if an approval was processed
+        continueLoop = approvalProcessed;
+        if (continueLoop) {
+          // Add response messages to history BEFORE the approval response
+          // The approval response was added at the end of _processStreamResult
+          // We need to insert the response messages before it
+          // Remove the approval response we added
+          const approvalResponse = this._history.pop();
+
+          // Add response messages from the stream
+          if (
+            responseMessages.messages &&
+            responseMessages.messages.length > 0
+          ) {
+            this._history = [...this._history, ...responseMessages.messages];
+          }
+
+          // Check if the tool call that needs approval is already in the history
+          // (it might be included in responseMessages)
+          if (this._lastApprovalPart) {
+            const toolCallId = this._lastApprovalPart.toolCall.toolCallId;
+            const toolCallExists = this._history.some(
+              msg =>
+                msg.role === 'assistant' &&
+                Array.isArray(msg.content) &&
+                msg.content.some(
+                  (part: any) =>
+                    part.type === 'tool-call' && part.toolCallId === toolCallId
+                )
+            );
+
+            if (!toolCallExists) {
+              // Tool call not in history, add it
+              this._history.push({
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: this._lastApprovalPart.toolCall.toolCallId,
+                    toolName: this._lastApprovalPart.toolCall.toolName,
+                    input: this._lastApprovalPart.toolCall.input
+                  }
+                ]
+              });
+            }
+            this._lastApprovalPart = null;
+          }
+
+          // Re-add the approval/rejection response (was popped earlier)
+          if (approvalResponse) {
+            this._history.push(approvalResponse);
+          }
+        } else {
+          // Update history with the full response only when we're done
+          if (
+            responseMessages.messages &&
+            responseMessages.messages.length > 0
+          ) {
+            this._history = [...this._history, ...responseMessages.messages];
+          }
+        }
       }
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
@@ -588,10 +663,12 @@ export class AgentManager {
    * Handles message streaming, tool calls, and emits appropriate events.
    * Uses fullStream for interleaved text and tool call events.
    * @param result The stream result from agent execution
+   * @returns true if an approval was processed and we should continue the loop
    */
-  private async _processStreamResult(result: any): Promise<void> {
+  private async _processStreamResult(result: any): Promise<boolean> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
+    let approvalProcessed = false;
 
     // Use fullStream for interleaved text and tool call events
     for await (const part of result.fullStream) {
@@ -703,17 +780,42 @@ export class AgentManager {
           // Wait for user approval
           const approved = await this._waitForApproval(approvalPart.approvalId);
 
+          // Store the approval part info for later use when building history
+          this._lastApprovalPart = approvalPart;
+
           // Add approval response to history
-          this._history.push({
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-approval-response',
-                approvalId: approvalPart.approvalId,
-                approved
-              }
-            ]
-          });
+          if (approved) {
+            // For approved tools, use the standard approval response
+            this._history.push({
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: approvalPart.approvalId,
+                  approved: true
+                }
+              ]
+            });
+          } else {
+            // For rejected tools, provide a tool result indicating rejection
+            // This is more universally understood by models
+            this._history.push({
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: approvalPart.toolCall.toolCallId,
+                  toolName: approvalPart.toolCall.toolName,
+                  output: {
+                    type: 'text',
+                    value:
+                      'Tool call was rejected by the user. Please acknowledge this and continue without executing this tool.'
+                  }
+                }
+              ]
+            });
+          }
+          approvalProcessed = true;
           break;
         }
       }
@@ -729,6 +831,8 @@ export class AgentManager {
         }
       });
     }
+
+    return approvalProcessed;
   }
 
   /**
@@ -739,7 +843,9 @@ export class AgentManager {
   private _waitForApproval(approvalId: string): Promise<boolean> {
     return new Promise(resolve => {
       this._pendingApprovals.set(approvalId, {
-        resolve: (approved: boolean) => resolve(approved)
+        resolve: (approved: boolean) => {
+          resolve(approved);
+        }
       });
     });
   }
@@ -884,6 +990,11 @@ TOOL SELECTION GUIDELINES:
     string,
     { resolve: (approved: boolean, reason?: string) => void }
   > = new Map();
+  private _lastApprovalPart: {
+    type: 'tool-approval-request';
+    approvalId: string;
+    toolCall: { toolCallId: string; toolName: string; input: unknown };
+  } | null = null;
 }
 
 namespace Private {

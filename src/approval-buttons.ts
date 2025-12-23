@@ -101,11 +101,12 @@ export class ApprovalButtons implements IDisposable {
       return;
     }
 
-    // Hide buttons immediately and show status
-    const isApprove = target.classList.contains('jp-ai-approval-approve');
-    this._showApprovalStatus(buttonsContainer, isApprove);
+    // Disable buttons to prevent double-clicks
+    const buttons = buttonsContainer.querySelectorAll('button');
+    buttons.forEach(btn => btn.setAttribute('disabled', 'true'));
 
     // Call the agent manager to approve or reject
+    const isApprove = target.classList.contains('jp-ai-approval-approve');
     if (isApprove) {
       this._agentManager.approveToolCall(approvalId);
     } else {
@@ -146,11 +147,12 @@ export class ApprovalButtons implements IDisposable {
       return;
     }
 
-    // Hide buttons immediately and show status
-    const isApprove = target.classList.contains('jp-ai-group-approve-all');
-    this._showGroupApprovalStatus(buttonsContainer, isApprove);
+    // Disable buttons to prevent double-clicks
+    const buttons = buttonsContainer.querySelectorAll('button');
+    buttons.forEach(btn => btn.setAttribute('disabled', 'true'));
 
     // Approve or reject all tool calls in the group
+    const isApprove = target.classList.contains('jp-ai-group-approve-all');
     const ids = approvalIds.split(',');
     for (const approvalId of ids) {
       if (isApprove) {
@@ -160,67 +162,6 @@ export class ApprovalButtons implements IDisposable {
       }
     }
   };
-
-  /**
-   * Shows approval status by replacing buttons with status indicator.
-   *
-   * @param buttonsContainer - The container element holding the buttons
-   * @param isApprove - Whether the action was approval or rejection
-   */
-  private _showApprovalStatus(
-    buttonsContainer: Element,
-    isApprove: boolean
-  ): void {
-    // Clear the container and add status indicator
-    buttonsContainer.innerHTML = '';
-
-    const statusDiv = document.createElement('div');
-    statusDiv.className = `jp-ai-approval-status ${isApprove ? 'jp-ai-approval-status-approved' : 'jp-ai-approval-status-rejected'}`;
-
-    const icon = document.createElement('span');
-    icon.className = 'jp-ai-approval-icon';
-    icon.textContent = isApprove ? '✅' : '❌';
-
-    const text = document.createElement('span');
-    text.textContent = isApprove
-      ? this._trans.__('Tools approved')
-      : this._trans.__('Tools rejected');
-
-    statusDiv.appendChild(icon);
-    statusDiv.appendChild(text);
-    buttonsContainer.appendChild(statusDiv);
-  }
-
-  /**
-   * Shows group approval status by replacing buttons with status indicator.
-   *
-   * @param buttonsContainer - The container element holding the buttons
-   * @param isApprove - Whether the action was approval or rejection
-   * @param toolCount - The number of tools that were approved/rejected
-   */
-  private _showGroupApprovalStatus(
-    buttonsContainer: Element,
-    isApprove: boolean
-  ): void {
-    // Clear the container and add status indicator
-    buttonsContainer.innerHTML = '';
-
-    const statusDiv = document.createElement('div');
-    statusDiv.className = `jp-ai-group-approval-status ${isApprove ? 'jp-ai-group-approval-status-approved' : 'jp-ai-group-approval-status-rejected'}`;
-
-    const icon = document.createElement('span');
-    icon.className = 'jp-ai-approval-icon';
-    icon.textContent = isApprove ? '✅' : '❌';
-
-    const text = document.createElement('span');
-    text.textContent = isApprove
-      ? this._trans.__('Tools approved')
-      : this._trans.__('Tools rejected');
-
-    statusDiv.appendChild(icon);
-    statusDiv.appendChild(text);
-    buttonsContainer.appendChild(statusDiv);
-  }
 
   /**
    * Sets up mutation observer to watch for new messages and process approval buttons.
@@ -323,7 +264,7 @@ export class ApprovalButtons implements IDisposable {
     // Create approval buttons for single tool
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'jp-ai-tool-approval-buttons';
-    buttonContainer.setAttribute('data-interruption-id', interruptionId);
+    buttonContainer.setAttribute('data-approval-id', interruptionId);
 
     // Try to find the message ID from the closest message container
     const messageId = this._findMessageId(textNode);
@@ -370,7 +311,7 @@ export class ApprovalButtons implements IDisposable {
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'jp-ai-group-approval-buttons';
     buttonContainer.setAttribute('data-group-id', groupId);
-    buttonContainer.setAttribute('data-interruption-ids', interruptionIds);
+    buttonContainer.setAttribute('data-approval-ids', interruptionIds);
 
     // Try to find the message ID from the closest message container
     const messageId = this._findMessageId(textNode);
