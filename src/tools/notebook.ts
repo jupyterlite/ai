@@ -113,62 +113,55 @@ export function createNotebookCreationTool(
       language?: string | null;
       name?: string | null;
     }) => {
-      try {
-        const kernel = await findKernelByLanguage(
-          kernelSpecManager,
-          input.language
-        );
-        const { name } = input;
+      const kernel = await findKernelByLanguage(
+        kernelSpecManager,
+        input.language
+      );
+      const { name } = input;
 
-        if (!name) {
-          return {
-            success: false,
-            error: 'A name must be provided to create a notebook'
-          };
-        }
-
-        // TODO: handle cwd / path?
-        const fileName = name.endsWith('.ipynb') ? name : `${name}.ipynb`;
-
-        // Create untitled notebook first
-        const notebookModel = await docManager.newUntitled({
-          type: 'notebook'
-        });
-
-        // Rename to desired filename
-        await docManager.services.contents.rename(notebookModel.path, fileName);
-
-        // Create widget with specific kernel
-        const notebook = docManager.createNew(fileName, 'default', {
-          name: kernel
-        });
-
-        if (!(notebook instanceof DocumentWidget)) {
-          return {
-            success: false,
-            error: 'Failed to create notebook widget'
-          };
-        }
-
-        await notebook.context.ready;
-        await notebook.context.save();
-
-        docManager.openOrReveal(fileName);
-
-        return {
-          success: true,
-          message: `Successfully created notebook ${fileName} with ${kernel} kernel${input.language ? ` for ${input.language}` : ''}`,
-          notebookPath: fileName,
-          notebookName: fileName,
-          kernel,
-          language: input.language
-        };
-      } catch (error) {
+      if (!name) {
         return {
           success: false,
-          error: `Failed to create notebook: ${(error as Error).message}`
+          error: 'A name must be provided to create a notebook'
         };
       }
+
+      // TODO: handle cwd / path?
+      const fileName = name.endsWith('.ipynb') ? name : `${name}.ipynb`;
+
+      // Create untitled notebook first
+      const notebookModel = await docManager.newUntitled({
+        type: 'notebook'
+      });
+
+      // Rename to desired filename
+      await docManager.services.contents.rename(notebookModel.path, fileName);
+
+      // Create widget with specific kernel
+      const notebook = docManager.createNew(fileName, 'default', {
+        name: kernel
+      });
+
+      if (!(notebook instanceof DocumentWidget)) {
+        return {
+          success: false,
+          error: 'Failed to create notebook widget'
+        };
+      }
+
+      await notebook.context.ready;
+      await notebook.context.save();
+
+      docManager.openOrReveal(fileName);
+
+      return {
+        success: true,
+        message: `Successfully created notebook ${fileName} with ${kernel} kernel${input.language ? ` for ${input.language}` : ''}`,
+        notebookPath: fileName,
+        notebookName: fileName,
+        kernel,
+        language: input.language
+      };
     }
   });
 }
@@ -211,77 +204,70 @@ export function createAddCellTool(
       cellType = 'code',
       position = 'below'
     }) => {
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return {
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          };
-        }
-
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-
-        if (!model) {
-          return {
-            success: false,
-            error: 'No notebook model available'
-          };
-        }
-
-        // Check if we should replace the first empty cell instead of adding
-        const shouldReplaceFirstCell =
-          model.cells.length === 1 &&
-          model.cells.get(0).sharedModel.getSource().trim() === '';
-
-        if (shouldReplaceFirstCell) {
-          // Replace the first empty cell by removing it and adding new one
-          model.sharedModel.deleteCell(0);
-        }
-
-        // Create the new cell using shared model
-        const newCellData = {
-          cell_type: cellType,
-          source: content || '',
-          metadata: cellType === 'code' ? { trusted: true } : {}
-        };
-
-        model.sharedModel.addCell(newCellData);
-
-        // Execute markdown cells after creation to render them
-        if (cellType === 'markdown' && content) {
-          const cellIndex = model.cells.length - 1;
-          const cellWidget = notebook.widgets[cellIndex];
-          if (cellWidget && cellWidget instanceof MarkdownCell) {
-            try {
-              await cellWidget.ready;
-              cellWidget.rendered = true;
-            } catch (error) {
-              console.warn('Failed to render markdown cell:', error);
-            }
-          }
-        }
-
-        return {
-          success: true,
-          message: `${cellType} cell added successfully`,
-          content: content || '',
-          cellType,
-          position
-        };
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return {
           success: false,
-          error: `Failed to add ${cellType} cell: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         };
       }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+
+      if (!model) {
+        return {
+          success: false,
+          error: 'No notebook model available'
+        };
+      }
+
+      // Check if we should replace the first empty cell instead of adding
+      const shouldReplaceFirstCell =
+        model.cells.length === 1 &&
+        model.cells.get(0).sharedModel.getSource().trim() === '';
+
+      if (shouldReplaceFirstCell) {
+        // Replace the first empty cell by removing it and adding new one
+        model.sharedModel.deleteCell(0);
+      }
+
+      // Create the new cell using shared model
+      const newCellData = {
+        cell_type: cellType,
+        source: content || '',
+        metadata: cellType === 'code' ? { trusted: true } : {}
+      };
+
+      model.sharedModel.addCell(newCellData);
+
+      // Execute markdown cells after creation to render them
+      if (cellType === 'markdown' && content) {
+        const cellIndex = model.cells.length - 1;
+        const cellWidget = notebook.widgets[cellIndex];
+        if (cellWidget && cellWidget instanceof MarkdownCell) {
+          try {
+            await cellWidget.ready;
+            cellWidget.rendered = true;
+          } catch (error) {
+            console.warn('Failed to render markdown cell:', error);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: `${cellType} cell added successfully`,
+        content: content || '',
+        cellType,
+        position
+      };
     }
   });
 }
@@ -308,51 +294,44 @@ export function createGetNotebookInfoTool(
     execute: async (input: { notebookPath?: string | null }) => {
       const { notebookPath } = input;
 
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-
-        if (!model) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model available'
-          });
-        }
-
-        const cellCount = model.cells.length;
-        const activeCellIndex = notebook.activeCellIndex;
-        const activeCell = notebook.activeCell;
-        const activeCellType = activeCell?.model.type || 'unknown';
-
-        return JSON.stringify({
-          success: true,
-          notebookName: currentWidget.title.label,
-          notebookPath: currentWidget.context.path,
-          cellCount,
-          activeCellIndex,
-          activeCellType,
-          isDirty: model.dirty
-        });
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to get notebook info: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+
+      if (!model) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model available'
+        });
+      }
+
+      const cellCount = model.cells.length;
+      const activeCellIndex = notebook.activeCellIndex;
+      const activeCell = notebook.activeCell;
+      const activeCellType = activeCell?.model.type || 'unknown';
+
+      return JSON.stringify({
+        success: true,
+        notebookName: currentWidget.title.label,
+        notebookPath: currentWidget.context.path,
+        cellCount,
+        activeCellIndex,
+        activeCellType,
+        isDirty: model.dirty
+      });
     }
   });
 }
@@ -389,70 +368,64 @@ export function createGetCellInfoTool(
     }) => {
       const { notebookPath } = input;
       let { cellIndex } = input;
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
 
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-
-        if (!model) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model available'
-          });
-        }
-
-        if (cellIndex === undefined || cellIndex === null) {
-          cellIndex = notebook.activeCellIndex;
-        }
-
-        if (cellIndex < 0 || cellIndex >= model.cells.length) {
-          return JSON.stringify({
-            success: false,
-            error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
-          });
-        }
-
-        const cell = model.cells.get(cellIndex);
-        const cellType = cell.type;
-        const sharedModel = cell.sharedModel;
-        const source = sharedModel.getSource();
-
-        // Get outputs for code cells
-        let outputs: any[] = [];
-        if (cellType === 'code') {
-          const rawOutputs = sharedModel.toJSON().outputs;
-          outputs = Array.isArray(rawOutputs) ? rawOutputs : [];
-        }
-
-        return JSON.stringify({
-          success: true,
-          cellId: cell.id,
-          cellIndex,
-          cellType,
-          source,
-          outputs,
-          executionCount:
-            cellType === 'code' ? (cell as any).executionCount : null
-        });
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to get cell info: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+
+      if (!model) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model available'
+        });
+      }
+
+      if (cellIndex === undefined || cellIndex === null) {
+        cellIndex = notebook.activeCellIndex;
+      }
+
+      if (cellIndex < 0 || cellIndex >= model.cells.length) {
+        return JSON.stringify({
+          success: false,
+          error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
+        });
+      }
+
+      const cell = model.cells.get(cellIndex);
+      const cellType = cell.type;
+      const sharedModel = cell.sharedModel;
+      const source = sharedModel.getSource();
+
+      // Get outputs for code cells
+      let outputs: any[] = [];
+      if (cellType === 'code') {
+        const rawOutputs = sharedModel.toJSON().outputs;
+        outputs = Array.isArray(rawOutputs) ? rawOutputs : [];
+      }
+
+      return JSON.stringify({
+        success: true,
+        cellId: cell.id,
+        cellIndex,
+        cellType,
+        source,
+        outputs,
+        executionCount:
+          cellType === 'code' ? (cell as any).executionCount : null
+      });
     }
   });
 }
@@ -500,120 +473,113 @@ export function createSetCellContentTool(
     }) => {
       const { notebookPath, cellId, cellIndex, content } = input;
 
-      try {
-        const notebookWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!notebookWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        const notebook = notebookWidget.content;
-        const targetNotebookPath = notebookWidget.context.path;
-
-        const model = notebook.model;
-
-        if (!model) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model available'
-          });
-        }
-
-        // Determine target cell index
-        let targetCellIndex: number;
-        if (cellId !== undefined && cellId !== null) {
-          // Find cell by ID
-          targetCellIndex = -1;
-          for (let i = 0; i < model.cells.length; i++) {
-            if (model.cells.get(i).id === cellId) {
-              targetCellIndex = i;
-              break;
-            }
-          }
-          if (targetCellIndex === -1) {
-            return JSON.stringify({
-              success: false,
-              error: `Cell with ID '${cellId}' not found in notebook`
-            });
-          }
-        } else if (cellIndex !== undefined && cellIndex !== null) {
-          // Use provided cell index
-          if (cellIndex < 0 || cellIndex >= model.cells.length) {
-            return JSON.stringify({
-              success: false,
-              error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
-            });
-          }
-          targetCellIndex = cellIndex;
-        } else {
-          // Use active cell
-          targetCellIndex = notebook.activeCellIndex;
-          if (targetCellIndex === -1 || targetCellIndex >= model.cells.length) {
-            return JSON.stringify({
-              success: false,
-              error: 'No active cell or invalid active cell index'
-            });
-          }
-        }
-
-        // Get the target cell
-        const targetCell = model.cells.get(targetCellIndex);
-        if (!targetCell) {
-          return JSON.stringify({
-            success: false,
-            error: `Cell at index ${targetCellIndex} not found`
-          });
-        }
-
-        const sharedModel = targetCell.sharedModel;
-
-        // Get previous content and type
-        const previousContent = sharedModel.getSource();
-        const previousCellType = targetCell.type;
-        const retrievedCellId = targetCell.id;
-
-        sharedModel.setSource(content);
-
-        // Show the cell diff using the diff manager if available
-        if (diffManager) {
-          await diffManager.showCellDiff({
-            original: previousContent,
-            modified: content,
-            cellId: retrievedCellId,
-            notebookPath: targetNotebookPath
-          });
-        }
-
-        return JSON.stringify({
-          success: true,
-          message:
-            cellId !== undefined && cellId !== null
-              ? `Cell with ID '${cellId}' content replaced successfully`
-              : cellIndex !== undefined && cellIndex !== null
-                ? `Cell ${targetCellIndex} content replaced successfully`
-                : 'Active cell content replaced successfully',
-          notebookPath: targetNotebookPath,
-          cellId: retrievedCellId,
-          cellIndex: targetCellIndex,
-          previousContent,
-          previousCellType,
-          newContent: content,
-          wasActiveCell: cellId === undefined && cellIndex === undefined
-        });
-      } catch (error) {
+      const notebookWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!notebookWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to replace cell content: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      const notebook = notebookWidget.content;
+      const targetNotebookPath = notebookWidget.context.path;
+
+      const model = notebook.model;
+
+      if (!model) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model available'
+        });
+      }
+
+      // Determine target cell index
+      let targetCellIndex: number;
+      if (cellId !== undefined && cellId !== null) {
+        // Find cell by ID
+        targetCellIndex = -1;
+        for (let i = 0; i < model.cells.length; i++) {
+          if (model.cells.get(i).id === cellId) {
+            targetCellIndex = i;
+            break;
+          }
+        }
+        if (targetCellIndex === -1) {
+          return JSON.stringify({
+            success: false,
+            error: `Cell with ID '${cellId}' not found in notebook`
+          });
+        }
+      } else if (cellIndex !== undefined && cellIndex !== null) {
+        // Use provided cell index
+        if (cellIndex < 0 || cellIndex >= model.cells.length) {
+          return JSON.stringify({
+            success: false,
+            error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
+          });
+        }
+        targetCellIndex = cellIndex;
+      } else {
+        // Use active cell
+        targetCellIndex = notebook.activeCellIndex;
+        if (targetCellIndex === -1 || targetCellIndex >= model.cells.length) {
+          return JSON.stringify({
+            success: false,
+            error: 'No active cell or invalid active cell index'
+          });
+        }
+      }
+
+      // Get the target cell
+      const targetCell = model.cells.get(targetCellIndex);
+      if (!targetCell) {
+        return JSON.stringify({
+          success: false,
+          error: `Cell at index ${targetCellIndex} not found`
+        });
+      }
+
+      const sharedModel = targetCell.sharedModel;
+
+      // Get previous content and type
+      const previousContent = sharedModel.getSource();
+      const previousCellType = targetCell.type;
+      const retrievedCellId = targetCell.id;
+
+      sharedModel.setSource(content);
+
+      // Show the cell diff using the diff manager if available
+      if (diffManager) {
+        await diffManager.showCellDiff({
+          original: previousContent,
+          modified: content,
+          cellId: retrievedCellId,
+          notebookPath: targetNotebookPath
+        });
+      }
+
+      return JSON.stringify({
+        success: true,
+        message:
+          cellId !== undefined && cellId !== null
+            ? `Cell with ID '${cellId}' content replaced successfully`
+            : cellIndex !== undefined && cellIndex !== null
+              ? `Cell ${targetCellIndex} content replaced successfully`
+              : 'Active cell content replaced successfully',
+        notebookPath: targetNotebookPath,
+        cellId: retrievedCellId,
+        cellIndex: targetCellIndex,
+        previousContent,
+        previousCellType,
+        newContent: content,
+        wasActiveCell: cellId === undefined && cellIndex === undefined
+      });
     }
   });
 }
@@ -648,85 +614,70 @@ export function createRunCellTool(
     }) => {
       const { notebookPath, cellIndex, recordTiming = true } = input;
 
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-
-        if (!model) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model available'
-          });
-        }
-
-        if (cellIndex < 0 || cellIndex >= model.cells.length) {
-          return JSON.stringify({
-            success: false,
-            error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
-          });
-        }
-
-        // Get the target cell widget
-        const cellWidget = notebook.widgets[cellIndex];
-        if (!cellWidget) {
-          return JSON.stringify({
-            success: false,
-            error: `Cell widget at index ${cellIndex} not found`
-          });
-        }
-
-        // Execute using shared model approach (non-disruptive)
-        try {
-          if (cellWidget instanceof CodeCell) {
-            // Use direct CodeCell.execute() method
-            const sessionCtx = currentWidget.sessionContext;
-            await CodeCell.execute(cellWidget, sessionCtx, {
-              recordTiming,
-              deletedCells: model.deletedCells
-            });
-
-            const codeModel = cellWidget.model as ICodeCellModel;
-            return JSON.stringify({
-              success: true,
-              message: `Cell ${cellIndex} executed successfully`,
-              cellIndex,
-              executionCount: codeModel.executionCount,
-              hasOutput: codeModel.outputs.length > 0
-            });
-          } else {
-            // For non-code cells, just return success
-            return JSON.stringify({
-              success: true,
-              message: `Cell ${cellIndex} is not a code cell, no execution needed`,
-              cellIndex,
-              cellType: cellWidget.model.type
-            });
-          }
-        } catch (error) {
-          return JSON.stringify({
-            success: false,
-            error: `Failed to execute cell: ${(error as Error).message}`,
-            cellIndex
-          });
-        }
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to run cell: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
+        });
+      }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+
+      if (!model) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model available'
+        });
+      }
+
+      if (cellIndex < 0 || cellIndex >= model.cells.length) {
+        return JSON.stringify({
+          success: false,
+          error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
+        });
+      }
+
+      // Get the target cell widget
+      const cellWidget = notebook.widgets[cellIndex];
+      if (!cellWidget) {
+        return JSON.stringify({
+          success: false,
+          error: `Cell widget at index ${cellIndex} not found`
+        });
+      }
+
+      // Execute using shared model approach (non-disruptive)
+      if (cellWidget instanceof CodeCell) {
+        // Use direct CodeCell.execute() method
+        const sessionCtx = currentWidget.sessionContext;
+        await CodeCell.execute(cellWidget, sessionCtx, {
+          recordTiming,
+          deletedCells: model.deletedCells
+        });
+
+        const codeModel = cellWidget.model as ICodeCellModel;
+        return JSON.stringify({
+          success: true,
+          message: `Cell ${cellIndex} executed successfully`,
+          cellIndex,
+          executionCount: codeModel.executionCount,
+          hasOutput: codeModel.outputs.length > 0
+        });
+      } else {
+        // For non-code cells, just return success
+        return JSON.stringify({
+          success: true,
+          message: `Cell ${cellIndex} is not a code cell, no execution needed`,
+          cellIndex,
+          cellType: cellWidget.model.type
         });
       }
     }
@@ -758,62 +709,55 @@ export function createDeleteCellTool(
     }) => {
       const { notebookPath, cellIndex } = input;
 
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-
-        if (!model) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model available'
-          });
-        }
-
-        if (cellIndex < 0 || cellIndex >= model.cells.length) {
-          return JSON.stringify({
-            success: false,
-            error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
-          });
-        }
-
-        // Validate cell exists
-        const targetCell = model.cells.get(cellIndex);
-        if (!targetCell) {
-          return JSON.stringify({
-            success: false,
-            error: `Cell at index ${cellIndex} not found`
-          });
-        }
-
-        // Delete cell using shared model (non-disruptive)
-        model.sharedModel.deleteCell(cellIndex);
-
-        return JSON.stringify({
-          success: true,
-          message: `Cell ${cellIndex} deleted successfully`,
-          cellIndex,
-          remainingCells: model.cells.length
-        });
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to delete cell: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+
+      if (!model) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model available'
+        });
+      }
+
+      if (cellIndex < 0 || cellIndex >= model.cells.length) {
+        return JSON.stringify({
+          success: false,
+          error: `Invalid cell index: ${cellIndex}. Notebook has ${model.cells.length} cells.`
+        });
+      }
+
+      // Validate cell exists
+      const targetCell = model.cells.get(cellIndex);
+      if (!targetCell) {
+        return JSON.stringify({
+          success: false,
+          error: `Cell at index ${cellIndex} not found`
+        });
+      }
+
+      // Delete cell using shared model (non-disruptive)
+      model.sharedModel.deleteCell(cellIndex);
+
+      return JSON.stringify({
+        success: true,
+        message: `Cell ${cellIndex} deleted successfully`,
+        cellIndex,
+        remainingCells: model.cells.length
+      });
     }
   });
 }
@@ -853,76 +797,69 @@ export function createExecuteActiveCellTool(
     }) => {
       const { notebookPath, code, recordTiming = true } = input;
 
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        const notebook = currentWidget.content;
-        const model = notebook.model;
-        const activeCellIndex = notebook.activeCellIndex;
-
-        if (!model || activeCellIndex === -1) {
-          return JSON.stringify({
-            success: false,
-            error: 'No notebook model or active cell available'
-          });
-        }
-
-        const activeCell = model.cells.get(activeCellIndex);
-        if (!activeCell) {
-          return JSON.stringify({
-            success: false,
-            error: 'Active cell not found'
-          });
-        }
-
-        // Set code content if provided
-        if (code) {
-          activeCell.sharedModel.setSource(code);
-        }
-
-        // Get the cell widget for execution
-        const cellWidget = notebook.widgets[activeCellIndex];
-        if (!cellWidget || !(cellWidget instanceof CodeCell)) {
-          return JSON.stringify({
-            success: false,
-            error: 'Active cell is not a code cell'
-          });
-        }
-
-        // Execute using shared model approach (non-disruptive)
-        const sessionCtx = currentWidget.sessionContext;
-        await CodeCell.execute(cellWidget, sessionCtx, {
-          recordTiming,
-          deletedCells: model.deletedCells
-        });
-
-        const codeModel = cellWidget.model as ICodeCellModel;
-        return JSON.stringify({
-          success: true,
-          message: 'Code executed successfully in active cell',
-          cellIndex: activeCellIndex,
-          executionCount: codeModel.executionCount,
-          hasOutput: codeModel.outputs.length > 0,
-          code: code || activeCell.sharedModel.getSource()
-        });
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to execute code: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      const notebook = currentWidget.content;
+      const model = notebook.model;
+      const activeCellIndex = notebook.activeCellIndex;
+
+      if (!model || activeCellIndex === -1) {
+        return JSON.stringify({
+          success: false,
+          error: 'No notebook model or active cell available'
+        });
+      }
+
+      const activeCell = model.cells.get(activeCellIndex);
+      if (!activeCell) {
+        return JSON.stringify({
+          success: false,
+          error: 'Active cell not found'
+        });
+      }
+
+      // Set code content if provided
+      if (code) {
+        activeCell.sharedModel.setSource(code);
+      }
+
+      // Get the cell widget for execution
+      const cellWidget = notebook.widgets[activeCellIndex];
+      if (!cellWidget || !(cellWidget instanceof CodeCell)) {
+        return JSON.stringify({
+          success: false,
+          error: 'Active cell is not a code cell'
+        });
+      }
+
+      // Execute using shared model approach (non-disruptive)
+      const sessionCtx = currentWidget.sessionContext;
+      await CodeCell.execute(cellWidget, sessionCtx, {
+        recordTiming,
+        deletedCells: model.deletedCells
+      });
+
+      const codeModel = cellWidget.model as ICodeCellModel;
+      return JSON.stringify({
+        success: true,
+        message: 'Code executed successfully in active cell',
+        cellIndex: activeCellIndex,
+        executionCount: codeModel.executionCount,
+        hasOutput: codeModel.outputs.length > 0,
+        code: code || activeCell.sharedModel.getSource()
+      });
     }
   });
 }
@@ -948,35 +885,28 @@ export function createSaveNotebookTool(
     execute: async (input: { notebookPath?: string | null }) => {
       const { notebookPath } = input;
 
-      try {
-        const currentWidget = await getNotebookWidget(
-          notebookPath,
-          docManager,
-          notebookTracker
-        );
-        if (!currentWidget) {
-          return JSON.stringify({
-            success: false,
-            error: notebookPath
-              ? `Failed to open notebook at path: ${notebookPath}`
-              : 'No active notebook and no notebook path provided'
-          });
-        }
-
-        await currentWidget.context.save();
-
-        return JSON.stringify({
-          success: true,
-          message: 'Notebook saved successfully',
-          notebookName: currentWidget.title.label,
-          notebookPath: currentWidget.context.path
-        });
-      } catch (error) {
+      const currentWidget = await getNotebookWidget(
+        notebookPath,
+        docManager,
+        notebookTracker
+      );
+      if (!currentWidget) {
         return JSON.stringify({
           success: false,
-          error: `Failed to save notebook: ${(error as Error).message}`
+          error: notebookPath
+            ? `Failed to open notebook at path: ${notebookPath}`
+            : 'No active notebook and no notebook path provided'
         });
       }
+
+      await currentWidget.context.save();
+
+      return JSON.stringify({
+        success: true,
+        message: 'Notebook saved successfully',
+        notebookName: currentWidget.title.label,
+        notebookPath: currentWidget.context.path
+      });
     }
   });
 }

@@ -19,62 +19,55 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .describe('Optional search query to filter commands')
     }),
     execute: async (input: { query?: string | null }) => {
-      try {
-        const { query } = input;
-        const commandList: Array<{
-          id: string;
-          label?: string;
-          caption?: string;
-          description?: string;
-          args?: any;
-        }> = [];
+      const { query } = input;
+      const commandList: Array<{
+        id: string;
+        label?: string;
+        caption?: string;
+        description?: string;
+        args?: any;
+      }> = [];
 
-        // Get all command IDs
-        const commandIds = commands.listCommands();
+      // Get all command IDs
+      const commandIds = commands.listCommands();
 
-        for (const id of commandIds) {
-          // Get command metadata using various CommandRegistry methods
-          const description = await commands.describedBy(id);
-          const label = commands.label(id);
-          const caption = commands.caption(id);
-          const usage = commands.usage(id);
+      for (const id of commandIds) {
+        // Get command metadata using various CommandRegistry methods
+        const description = await commands.describedBy(id);
+        const label = commands.label(id);
+        const caption = commands.caption(id);
+        const usage = commands.usage(id);
 
-          const command = {
-            id,
-            label: label || undefined,
-            caption: caption || undefined,
-            description: usage || undefined,
-            args: description?.args || undefined
-          };
+        const command = {
+          id,
+          label: label || undefined,
+          caption: caption || undefined,
+          description: usage || undefined,
+          args: description?.args || undefined
+        };
 
-          // Filter by query if provided
-          if (query) {
-            const searchTerm = query.toLowerCase();
-            const matchesQuery =
-              id.toLowerCase().includes(searchTerm) ||
-              label?.toLowerCase().includes(searchTerm) ||
-              caption?.toLowerCase().includes(searchTerm) ||
-              usage?.toLowerCase().includes(searchTerm);
+        // Filter by query if provided
+        if (query) {
+          const searchTerm = query.toLowerCase();
+          const matchesQuery =
+            id.toLowerCase().includes(searchTerm) ||
+            label?.toLowerCase().includes(searchTerm) ||
+            caption?.toLowerCase().includes(searchTerm) ||
+            usage?.toLowerCase().includes(searchTerm);
 
-            if (matchesQuery) {
-              commandList.push(command);
-            }
-          } else {
+          if (matchesQuery) {
             commandList.push(command);
           }
+        } else {
+          commandList.push(command);
         }
-
-        return {
-          success: true,
-          commandCount: commandList.length,
-          commands: commandList
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: `Failed to discover commands: ${error instanceof Error ? error.message : String(error)}`
-        };
       }
+
+      return {
+        success: true,
+        commandCount: commandList.length,
+        commands: commandList
+      };
     }
   });
 }
@@ -113,45 +106,38 @@ export function createExecuteCommandTool(
         };
       }
 
-      try {
-        // Execute the command
-        const result = await commands.execute(commandId, args);
+      // Execute the command
+      const result = await commands.execute(commandId, args);
 
-        // Handle Widget objects specially (including subclasses like DocumentWidget)
-        let serializedResult;
-        if (
-          result &&
-          typeof result === 'object' &&
-          (result.constructor?.name?.includes('Widget') || result.id)
-        ) {
-          serializedResult = {
-            type: result.constructor?.name || 'Widget',
-            id: result.id,
-            title: result.title?.label || result.title,
-            className: result.className
-          };
-        } else {
-          // For other objects, try JSON serialization with fallback
-          try {
-            serializedResult = JSON.parse(JSON.stringify(result));
-          } catch {
-            serializedResult = result
-              ? '[Complex object - cannot serialize]'
-              : 'Command executed successfully';
-          }
+      // Handle Widget objects specially (including subclasses like DocumentWidget)
+      let serializedResult;
+      if (
+        result &&
+        typeof result === 'object' &&
+        (result.constructor?.name?.includes('Widget') || result.id)
+      ) {
+        serializedResult = {
+          type: result.constructor?.name || 'Widget',
+          id: result.id,
+          title: result.title?.label || result.title,
+          className: result.className
+        };
+      } else {
+        // For other objects, try JSON serialization with fallback
+        try {
+          serializedResult = JSON.parse(JSON.stringify(result));
+        } catch {
+          serializedResult = result
+            ? '[Complex object - cannot serialize]'
+            : 'Command executed successfully';
         }
-
-        return {
-          success: true,
-          commandId,
-          result: serializedResult
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: `Failed to execute command '${commandId}': ${error instanceof Error ? error.message : String(error)}`
-        };
       }
+
+      return {
+        success: true,
+        commandId,
+        result: serializedResult
+      };
     }
   });
 }
