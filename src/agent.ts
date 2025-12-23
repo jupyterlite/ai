@@ -134,7 +134,7 @@ export class AgentManagerFactory {
       try {
         const client = await createMCPClient({
           transport: {
-            type: 'sse',
+            type: 'http',
             url: serverConfig.url
           }
         });
