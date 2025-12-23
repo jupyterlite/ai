@@ -130,6 +130,7 @@ export class AIChatModel extends AbstractChatModel {
   clearMessages = (): void => {
     this.messagesDeleted(0, this.messages.length);
     this._pendingToolCalls.clear();
+    this._approvalToToolCall.clear();
     this._agentManager.clearHistory();
   };
 
@@ -404,15 +405,28 @@ export class AIChatModel extends AbstractChatModel {
 
   /**
    * Handles tool approval request events from the AI agent.
+   * Updates the existing tool call message to show approval UI.
    * @param event Event containing the approval request data
    */
   private _handleToolApprovalRequest(
     event: IAgentEvent<'tool_approval_request'>
   ): void {
-    const approvalMessageId = UUID.uuid4();
+    // Find the existing tool call message to update
+    const messageId = this._pendingToolCalls.get(event.data.toolCallId);
+    if (!messageId) {
+      return;
+    }
+
+    const existingMessage = this.messages.find(msg => msg.id === messageId);
+    if (!existingMessage) {
+      return;
+    }
+
     const inputJson = JSON.stringify(event.data.args, null, 2);
 
-    const approvalMessage: IChatMessage = {
+    // Update the existing message to show approval UI
+    const updatedMessage: IChatMessage = {
+      ...existingMessage,
       body: `<details class="jp-ai-tool-call jp-ai-tool-pending" open>
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
@@ -428,64 +442,80 @@ export class AIChatModel extends AbstractChatModel {
 [APPROVAL_BUTTONS:${event.data.approvalId}]
 </div>
 </div>
-</details>`,
-      sender: this._getAIUser(),
-      id: approvalMessageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
+</details>`
     };
-    this.messageAdded(approvalMessage);
+    this.messageAdded(updatedMessage);
 
-    // Store the pending approval for later status updates
-    this._pendingToolCalls.set(event.data.approvalId, approvalMessageId);
+    // Store mapping from approvalId to toolCallId for status updates
+    this._approvalToToolCall.set(event.data.approvalId, event.data.toolCallId);
   }
 
   /**
    * Handles tool approval resolved events from the AI agent.
-   * Updates the approval message to show approved/rejected status.
+   * Updates the tool call message to show approved/rejected status.
    * @param event Event containing the approval resolution data
    */
   private _handleToolApprovalResolved(
     event: IAgentEvent<'tool_approval_resolved'>
   ): void {
-    const messageId = this._pendingToolCalls.get(event.data.approvalId);
-    if (messageId) {
-      const existingMessage = this.messages.find(msg => msg.id === messageId);
-      if (existingMessage) {
-        const statusClass = event.data.approved
-          ? 'jp-ai-tool-status-completed'
-          : 'jp-ai-tool-status-error';
-        const statusText = event.data.approved ? 'Approved' : 'Rejected';
-        const borderClass = event.data.approved
-          ? 'jp-ai-tool-completed'
-          : 'jp-ai-tool-error';
+    // Get the tool call ID from the approval mapping
+    const toolCallId = this._approvalToToolCall.get(event.data.approvalId);
+    if (!toolCallId) {
+      return;
+    }
 
-        // Update the message body with resolved status (collapsed)
-        const updatedBody = existingMessage.body
-          // Remove the open attribute to collapse
-          .replace(
-            '<details class="jp-ai-tool-call jp-ai-tool-pending" open>',
-            `<details class="jp-ai-tool-call ${borderClass}">`
-          )
-          // Update the status
-          .replace(
-            /<div class="jp-ai-tool-status jp-ai-tool-status-approval">Awaiting Approval<\/div>/,
-            `<div class="jp-ai-tool-status ${statusClass}">${statusText}</div>`
-          )
-          // Remove the approval buttons section
-          .replace(
-            /<div class="jp-ai-tool-approval-buttons"[^>]*>[\s\S]*?\[APPROVAL_BUTTONS:[^\]]+\][\s\S]*?<\/div>/,
-            ''
-          );
+    const messageId = this._pendingToolCalls.get(toolCallId);
+    if (!messageId) {
+      this._approvalToToolCall.delete(event.data.approvalId);
+      return;
+    }
 
-        const updatedMessage: IChatMessage = {
-          ...existingMessage,
-          body: updatedBody
-        };
-        this.messageAdded(updatedMessage);
-      }
-      this._pendingToolCalls.delete(event.data.approvalId);
+    const existingMessage = this.messages.find(msg => msg.id === messageId);
+    if (!existingMessage) {
+      this._approvalToToolCall.delete(event.data.approvalId);
+      return;
+    }
+
+    const statusClass = event.data.approved
+      ? 'jp-ai-tool-status-completed'
+      : 'jp-ai-tool-status-error';
+    const statusText = event.data.approved
+      ? 'Approved - Executing...'
+      : 'Rejected';
+    const borderClass = event.data.approved
+      ? 'jp-ai-tool-pending'
+      : 'jp-ai-tool-error';
+
+    // Update the message body with resolved status (collapsed)
+    const updatedBody = existingMessage.body
+      // Remove the open attribute to collapse
+      .replace(
+        '<details class="jp-ai-tool-call jp-ai-tool-pending" open>',
+        `<details class="jp-ai-tool-call ${borderClass}">`
+      )
+      // Update the status
+      .replace(
+        /<div class="jp-ai-tool-status jp-ai-tool-status-approval">Awaiting Approval<\/div>/,
+        `<div class="jp-ai-tool-status ${statusClass}">${statusText}</div>`
+      )
+      // Remove the approval buttons section
+      .replace(
+        /<div class="jp-ai-tool-approval-buttons"[^>]*>[\s\S]*?\[APPROVAL_BUTTONS:[^\]]+\][\s\S]*?<\/div>/,
+        ''
+      );
+
+    const updatedMessage: IChatMessage = {
+      ...existingMessage,
+      body: updatedBody
+    };
+    this.messageAdded(updatedMessage);
+
+    // Clean up the approval mapping
+    this._approvalToToolCall.delete(event.data.approvalId);
+
+    // If rejected, remove from pending tool calls as it won't complete
+    if (!event.data.approved) {
+      this._pendingToolCalls.delete(toolCallId);
     }
   }
 
@@ -771,6 +801,7 @@ export class AIChatModel extends AbstractChatModel {
   private _settingsModel: AISettingsModel;
   private _user: IUser;
   private _pendingToolCalls: Map<string, string> = new Map();
+  private _approvalToToolCall: Map<string, string> = new Map();
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IChatMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
