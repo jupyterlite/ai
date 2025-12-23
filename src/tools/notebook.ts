@@ -4,7 +4,7 @@ import { DocumentWidget } from '@jupyterlab/docregistry';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { KernelSpec } from '@jupyterlab/services';
 
-import { tool } from '@openai/agents';
+import { tool } from 'ai';
 
 import { z } from 'zod/v3';
 
@@ -91,7 +91,6 @@ export function createNotebookCreationTool(
   kernelSpecManager: KernelSpec.IManager
 ): ITool {
   return tool({
-    name: 'create_notebook',
     description:
       'Create a new Jupyter notebook with a kernel for the specified programming language',
     inputSchema: z.object({
@@ -114,17 +113,20 @@ export function createNotebookCreationTool(
       language?: string | null;
       name?: string | null;
     }) => {
-      const kernel = await findKernelByLanguage(
-        kernelSpecManager,
-        input.language
-      );
-      const { name } = input;
-
-      if (!name) {
-        throw new Error('A name must be provided to create a notebook');
-      }
-
       try {
+        const kernel = await findKernelByLanguage(
+          kernelSpecManager,
+          input.language
+        );
+        const { name } = input;
+
+        if (!name) {
+          return {
+            success: false,
+            error: 'A name must be provided to create a notebook'
+          };
+        }
+
         // TODO: handle cwd / path?
         const fileName = name.endsWith('.ipynb') ? name : `${name}.ipynb`;
 
@@ -142,7 +144,10 @@ export function createNotebookCreationTool(
         });
 
         if (!(notebook instanceof DocumentWidget)) {
-          throw new Error('Failed to create notebook widget');
+          return {
+            success: false,
+            error: 'Failed to create notebook widget'
+          };
         }
 
         await notebook.context.ready;
@@ -176,7 +181,6 @@ export function createAddCellTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'add_cell',
     description: 'Add a cell to the current notebook with optional content',
     inputSchema: z.object({
       notebookPath: z
@@ -201,12 +205,12 @@ export function createAddCellTool(
         .default('below')
         .describe('Position relative to current cell')
     }),
-    async execute({
+    execute: async ({
       notebookPath,
       content,
       cellType = 'code',
       position = 'below'
-    }) {
+    }) => {
       try {
         const currentWidget = await getNotebookWidget(
           notebookPath,
@@ -290,7 +294,6 @@ export function createGetNotebookInfoTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'get_notebook_info',
     description:
       'Get information about a notebook including number of cells and active cell index',
     inputSchema: z.object({
@@ -362,7 +365,6 @@ export function createGetCellInfoTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'get_cell_info',
     description:
       'Get information about a specific cell including its type, source content, and outputs',
     inputSchema: z.object({
@@ -464,7 +466,6 @@ export function createSetCellContentTool(
   diffManager?: IDiffManager
 ): ITool {
   return tool({
-    name: 'set_cell_content',
     description:
       'Set the content of a specific cell and return both the previous and new content',
     inputSchema: z.object({
@@ -625,7 +626,6 @@ export function createRunCellTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'run_cell',
     description: 'Run a specific cell in the notebook by index',
     inputSchema: z.object({
       notebookPath: z
@@ -641,7 +641,6 @@ export function createRunCellTool(
         .default(true)
         .describe('Whether to record execution timing')
     }),
-    needsApproval: true,
     execute: async (input: {
       notebookPath?: string | null;
       cellIndex: number;
@@ -742,7 +741,6 @@ export function createDeleteCellTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'delete_cell',
     description: 'Delete a specific cell from the notebook by index',
     inputSchema: z.object({
       notebookPath: z
@@ -828,7 +826,6 @@ export function createExecuteActiveCellTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'execute_active_cell',
     description:
       'Execute the currently active cell in the notebook without disrupting user focus',
     inputSchema: z.object({
@@ -938,7 +935,6 @@ export function createSaveNotebookTool(
   notebookTracker?: INotebookTracker
 ): ITool {
   return tool({
-    name: 'save_notebook',
     description: 'Save a specific notebook to disk',
     inputSchema: z.object({
       notebookPath: z

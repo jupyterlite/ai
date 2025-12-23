@@ -4,7 +4,7 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IDocumentWidget } from '@jupyterlab/docregistry';
 import { IEditorTracker } from '@jupyterlab/fileeditor';
 
-import { tool } from '@openai/agents';
+import { tool } from 'ai';
 
 import { z } from 'zod/v3';
 
@@ -15,7 +15,6 @@ import { IDiffManager, ITool } from '../tokens';
  */
 export function createNewFileTool(docManager: IDocumentManager): ITool {
   return tool({
-    name: 'create_file',
     description:
       'Create a new file of specified type (text, python, markdown, json, etc.)',
     inputSchema: z.object({
@@ -37,66 +36,67 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
         .nullable()
         .describe('Directory where to create the file (optional)')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: {
       fileName: string;
       fileType?: string;
       content?: string | null;
       cwd?: string | null;
     }) => {
-      const { fileName, content = '', cwd, fileType = 'text' } = input;
+      try {
+        const { fileName, content = '', cwd, fileType = 'text' } = input;
 
-      const registeredFileType = docManager.registry.getFileType(fileType);
-      const ext = registeredFileType?.extensions[0] || '.txt';
+        const registeredFileType = docManager.registry.getFileType(fileType);
+        const ext = registeredFileType?.extensions[0] || '.txt';
 
-      const existingExt = PathExt.extname(fileName);
-      const fullFileName = existingExt ? fileName : `${fileName}${ext}`;
+        const existingExt = PathExt.extname(fileName);
+        const fullFileName = existingExt ? fileName : `${fileName}${ext}`;
 
-      const fullPath = cwd ? `${cwd}/${fullFileName}` : fullFileName;
+        const fullPath = cwd ? `${cwd}/${fullFileName}` : fullFileName;
 
-      const model = await docManager.services.contents.newUntitled({
-        path: cwd || '',
-        type: 'file',
-        ext
-      });
-
-      let finalPath = model.path;
-      if (model.name !== fullFileName) {
-        const renamed = await docManager.services.contents.rename(
-          model.path,
-          fullPath
-        );
-        finalPath = renamed.path;
-      }
-
-      if (content) {
-        await docManager.services.contents.save(finalPath, {
+        const model = await docManager.services.contents.newUntitled({
+          path: cwd || '',
           type: 'file',
-          format: 'text',
-          content
+          ext
         });
-      }
 
-      let opened = false;
-      if (!docManager.findWidget(finalPath)) {
-        docManager.openOrReveal(finalPath);
-        opened = true;
-      }
+        let finalPath = model.path;
+        if (model.name !== fullFileName) {
+          const renamed = await docManager.services.contents.rename(
+            model.path,
+            fullPath
+          );
+          finalPath = renamed.path;
+        }
 
-      return {
-        success: true,
-        message: `${fileType} file '${fullFileName}' created and opened successfully`,
-        fileName: fullFileName,
-        filePath: finalPath,
-        fileType,
-        hasContent: !!content,
-        opened
-      };
+        if (content) {
+          await docManager.services.contents.save(finalPath, {
+            type: 'file',
+            format: 'text',
+            content
+          });
+        }
+
+        let opened = false;
+        if (!docManager.findWidget(finalPath)) {
+          docManager.openOrReveal(finalPath);
+          opened = true;
+        }
+
+        return {
+          success: true,
+          message: `${fileType} file '${fullFileName}' created and opened successfully`,
+          fileName: fullFileName,
+          filePath: finalPath,
+          fileType,
+          hasContent: !!content,
+          opened
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
@@ -106,32 +106,35 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
  */
 export function createOpenFileTool(docManager: IDocumentManager): ITool {
   return tool({
-    name: 'open_file',
     description: 'Open a file in the editor',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file to open')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to open file: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { filePath: string }) => {
-      const { filePath } = input;
+      try {
+        const { filePath } = input;
 
-      const widget = docManager.openOrReveal(filePath);
+        const widget = docManager.openOrReveal(filePath);
 
-      if (!widget) {
-        throw new Error(`Could not open file: ${filePath}`);
+        if (!widget) {
+          return {
+            success: false,
+            error: `Could not open file: ${filePath}`
+          };
+        }
+
+        return {
+          success: true,
+          message: `File '${filePath}' opened successfully`,
+          filePath,
+          widgetId: widget.id
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to open file: ${error instanceof Error ? error.message : String(error)}`
+        };
       }
-
-      return {
-        success: true,
-        message: `File '${filePath}' opened successfully`,
-        filePath,
-        widgetId: widget.id
-      };
     }
   });
 }
@@ -141,27 +144,27 @@ export function createOpenFileTool(docManager: IDocumentManager): ITool {
  */
 export function createDeleteFileTool(docManager: IDocumentManager): ITool {
   return tool({
-    name: 'delete_file',
     description: 'Delete a file from the file system',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file to delete')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to delete file: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { filePath: string }) => {
-      const { filePath } = input;
+      try {
+        const { filePath } = input;
 
-      await docManager.services.contents.delete(filePath);
+        await docManager.services.contents.delete(filePath);
 
-      return {
-        success: true,
-        message: `File '${filePath}' deleted successfully`,
-        filePath
-      };
+        return {
+          success: true,
+          message: `File '${filePath}' deleted successfully`,
+          filePath
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to delete file: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
@@ -171,29 +174,29 @@ export function createDeleteFileTool(docManager: IDocumentManager): ITool {
  */
 export function createRenameFileTool(docManager: IDocumentManager): ITool {
   return tool({
-    name: 'rename_file',
     description: 'Rename a file or move it to a different location',
     inputSchema: z.object({
       oldPath: z.string().describe('Current path of the file'),
       newPath: z.string().describe('New path/name for the file')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to rename file: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { oldPath: string; newPath: string }) => {
-      const { oldPath, newPath } = input;
+      try {
+        const { oldPath, newPath } = input;
 
-      await docManager.services.contents.rename(oldPath, newPath);
+        await docManager.services.contents.rename(oldPath, newPath);
 
-      return {
-        success: true,
-        message: `File renamed from '${oldPath}' to '${newPath}' successfully`,
-        oldPath,
-        newPath
-      };
+        return {
+          success: true,
+          message: `File renamed from '${oldPath}' to '${newPath}' successfully`,
+          oldPath,
+          newPath
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to rename file: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
@@ -203,7 +206,6 @@ export function createRenameFileTool(docManager: IDocumentManager): ITool {
  */
 export function createCopyFileTool(docManager: IDocumentManager): ITool {
   return tool({
-    name: 'copy_file',
     description: 'Copy a file to a new location',
     inputSchema: z.object({
       sourcePath: z.string().describe('Path of the file to copy'),
@@ -211,23 +213,24 @@ export function createCopyFileTool(docManager: IDocumentManager): ITool {
         .string()
         .describe('Destination path for the copied file')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to copy file: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { sourcePath: string; destinationPath: string }) => {
-      const { sourcePath, destinationPath } = input;
+      try {
+        const { sourcePath, destinationPath } = input;
 
-      await docManager.services.contents.copy(sourcePath, destinationPath);
+        await docManager.services.contents.copy(sourcePath, destinationPath);
 
-      return {
-        success: true,
-        message: `File copied from '${sourcePath}' to '${destinationPath}' successfully`,
-        sourcePath,
-        destinationPath
-      };
+        return {
+          success: true,
+          message: `File copied from '${sourcePath}' to '${destinationPath}' successfully`,
+          sourcePath,
+          destinationPath
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to copy file: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
@@ -239,29 +242,29 @@ export function createNavigateToDirectoryTool(
   commands: CommandRegistry
 ): ITool {
   return tool({
-    name: 'navigate_to_directory',
     description: 'Navigate to a specific directory in the file browser',
     inputSchema: z.object({
       directoryPath: z.string().describe('Path to the directory to navigate to')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to navigate to directory: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { directoryPath: string }) => {
-      const { directoryPath } = input;
+      try {
+        const { directoryPath } = input;
 
-      await commands.execute('filebrowser:go-to-path', {
-        path: directoryPath
-      });
+        await commands.execute('filebrowser:go-to-path', {
+          path: directoryPath
+        });
 
-      return {
-        success: true,
-        message: `Navigated to directory '${directoryPath}' successfully`,
-        directoryPath
-      };
+        return {
+          success: true,
+          message: `Navigated to directory '${directoryPath}' successfully`,
+          directoryPath
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to navigate to directory: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
@@ -274,7 +277,6 @@ export function createGetFileInfoTool(
   editorTracker?: IEditorTracker
 ): ITool {
   return tool({
-    name: 'get_file_info',
     description:
       'Get information about a file including its path, name, extension, and content. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead. If no file path is provided, returns information about the currently active file in the editor.',
     inputSchema: z.object({
@@ -286,64 +288,75 @@ export function createGetFileInfoTool(
           'Path to the file to read (e.g., "script.py", "README.md", "config.json"). If not provided, uses the currently active file in the editor.'
         )
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to get file info: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: { filePath?: string | null }) => {
-      const { filePath } = input;
+      try {
+        const { filePath } = input;
 
-      let widget: IDocumentWidget | null = null;
+        let widget: IDocumentWidget | null = null;
 
-      if (filePath) {
-        widget =
-          docManager.findWidget(filePath) ??
-          docManager.openOrReveal(filePath) ??
-          null;
+        if (filePath) {
+          widget =
+            docManager.findWidget(filePath) ??
+            docManager.openOrReveal(filePath) ??
+            null;
 
-        if (!widget) {
-          throw new Error(`Failed to open file at path: ${filePath}`);
+          if (!widget) {
+            return JSON.stringify({
+              success: false,
+              error: `Failed to open file at path: ${filePath}`
+            });
+          }
+        } else {
+          widget = editorTracker?.currentWidget ?? null;
+
+          if (!widget) {
+            return JSON.stringify({
+              success: false,
+              error: 'No active file in the editor and no file path provided'
+            });
+          }
         }
-      } else {
-        widget = editorTracker?.currentWidget ?? null;
 
-        if (!widget) {
-          throw new Error(
-            'No active file in the editor and no file path provided'
-          );
+        if (!widget.context) {
+          return JSON.stringify({
+            success: false,
+            error: 'Widget is not a document'
+          });
         }
+
+        await widget.context.ready;
+
+        const model = widget.context.model;
+
+        if (!model) {
+          return JSON.stringify({
+            success: false,
+            error: 'File model not available'
+          });
+        }
+
+        const sharedModel = model.sharedModel;
+        const content = sharedModel.getSource();
+        const resolvedFilePath = widget.context.path;
+        const fileName = widget.title.label;
+        const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
+
+        return JSON.stringify({
+          success: true,
+          filePath: resolvedFilePath,
+          fileName,
+          fileExtension,
+          content,
+          isDirty: model.dirty,
+          readOnly: model.readOnly,
+          widgetType: widget.constructor.name
+        });
+      } catch (error) {
+        return JSON.stringify({
+          success: false,
+          error: `Failed to get file info: ${error instanceof Error ? error.message : String(error)}`
+        });
       }
-
-      if (!widget.context) {
-        throw new Error('Widget is not a document');
-      }
-
-      await widget.context.ready;
-
-      const model = widget.context.model;
-
-      if (!model) {
-        throw new Error('File model not available');
-      }
-
-      const sharedModel = model.sharedModel;
-      const content = sharedModel.getSource();
-      const resolvedFilePath = widget.context.path;
-      const fileName = widget.title.label;
-      const fileExtension = PathExt.extname(resolvedFilePath) || 'unknown';
-
-      return JSON.stringify({
-        success: true,
-        filePath: resolvedFilePath,
-        fileName,
-        fileExtension,
-        content,
-        isDirty: model.dirty,
-        readOnly: model.readOnly,
-        widgetType: widget.constructor.name
-      });
     }
   });
 }
@@ -356,7 +369,6 @@ export function createSetFileContentTool(
   diffManager?: IDiffManager
 ): ITool {
   return tool({
-    name: 'set_file_content',
     description:
       'Set or update the content of an existing file. This will replace the entire content of the file. For Jupyter notebooks, use dedicated notebook tools instead.',
     inputSchema: z.object({
@@ -372,67 +384,77 @@ export function createSetFileContentTool(
         .default(true)
         .describe('Whether to save the file after updating (default: true)')
     }),
-    errorFunction: (context, error) => {
-      return JSON.stringify({
-        success: false,
-        error: `Failed to set file content: ${error instanceof Error ? error.message : String(error)}`
-      });
-    },
     execute: async (input: {
       filePath: string;
       content: string;
       save?: boolean;
     }) => {
-      const { filePath, content, save = true } = input;
+      try {
+        const { filePath, content, save = true } = input;
 
-      let widget = docManager.findWidget(filePath);
+        let widget = docManager.findWidget(filePath);
 
-      if (!widget) {
-        widget = docManager.openOrReveal(filePath);
-      }
+        if (!widget) {
+          widget = docManager.openOrReveal(filePath);
+        }
 
-      if (!widget) {
-        throw new Error(`Failed to open file at path: ${filePath}`);
-      }
+        if (!widget) {
+          return JSON.stringify({
+            success: false,
+            error: `Failed to open file at path: ${filePath}`
+          });
+        }
 
-      await widget.context.ready;
+        await widget.context.ready;
 
-      const model = widget.context.model;
+        const model = widget.context.model;
 
-      if (!model) {
-        throw new Error('File model not available');
-      }
+        if (!model) {
+          return JSON.stringify({
+            success: false,
+            error: 'File model not available'
+          });
+        }
 
-      if (model.readOnly) {
-        throw new Error('File is read-only and cannot be modified');
-      }
+        if (model.readOnly) {
+          return JSON.stringify({
+            success: false,
+            error: 'File is read-only and cannot be modified'
+          });
+        }
 
-      const sharedModel = model.sharedModel;
-      const originalContent = sharedModel.getSource();
+        const sharedModel = model.sharedModel;
+        const originalContent = sharedModel.getSource();
 
-      sharedModel.setSource(content);
+        sharedModel.setSource(content);
 
-      // Show the file diff using the diff manager if available
-      if (diffManager) {
-        await diffManager.showFileDiff({
-          original: String(originalContent),
-          modified: content,
-          filePath
+        // Show the file diff using the diff manager if available
+        if (diffManager) {
+          await diffManager.showFileDiff({
+            original: String(originalContent),
+            modified: content,
+            filePath
+          });
+        }
+
+        if (save) {
+          await widget.context.save();
+        }
+
+        return JSON.stringify({
+          success: true,
+          filePath,
+          fileName: widget.title.label,
+          contentLength: content.length,
+          saved: save,
+          isDirty: model.dirty
+        });
+      } catch (error) {
+        return JSON.stringify({
+          success: false,
+          error: `Failed to set file content: ${error instanceof Error ? error.message : String(error)}`
         });
       }
-
-      if (save) {
-        await widget.context.save();
-      }
-
-      return JSON.stringify({
-        success: true,
-        filePath,
-        fileName: widget.title.label,
-        contentLength: content.length,
-        saved: save,
-        isDirty: model.dirty
-      });
     }
   });
 }

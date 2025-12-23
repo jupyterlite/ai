@@ -60,7 +60,7 @@ export function createCompletionModel(
 export function createModel(
   options: IModelOptions,
   registry?: IProviderRegistry
-) {
+): LanguageModelV2 {
   if (!registry) {
     throw new Error('Provider registry not available');
   }

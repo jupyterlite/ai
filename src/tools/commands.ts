@@ -1,5 +1,5 @@
 import { CommandRegistry } from '@lumino/commands';
-import { tool } from '@openai/agents';
+import { tool } from 'ai';
 import { z } from 'zod/v3';
 import { ITool } from '../tokens';
 import { AISettingsModel } from '../models/settings-model';
@@ -9,7 +9,6 @@ import { AISettingsModel } from '../models/settings-model';
  */
 export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
   return tool({
-    name: 'discover_commands',
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
@@ -21,68 +20,75 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .describe('Optional search query to filter commands')
     }),
     execute: async (input: { query?: string | null }) => {
-      const { query } = input;
-      const commandList: Array<{
-        id: string;
-        label?: string;
-        caption?: string;
-        description?: string;
-        args?: any;
-      }> = [];
+      try {
+        const { query } = input;
+        const commandList: Array<{
+          id: string;
+          label?: string;
+          caption?: string;
+          description?: string;
+          args?: any;
+        }> = [];
 
-      // Get all command IDs
-      const commandIds = commands.listCommands();
+        // Get all command IDs
+        const commandIds = commands.listCommands();
 
-      for (const id of commandIds) {
-        // Get command metadata using various CommandRegistry methods
-        const description = await commands.describedBy(id);
-        const label = commands.label(id);
-        const caption = commands.caption(id);
-        const usage = commands.usage(id);
+        for (const id of commandIds) {
+          // Get command metadata using various CommandRegistry methods
+          const description = await commands.describedBy(id);
+          const label = commands.label(id);
+          const caption = commands.caption(id);
+          const usage = commands.usage(id);
 
-        const command = {
-          id,
-          label: label || undefined,
-          caption: caption || undefined,
-          description: usage || undefined,
-          args: description?.args || undefined
-        };
+          const command = {
+            id,
+            label: label || undefined,
+            caption: caption || undefined,
+            description: usage || undefined,
+            args: description?.args || undefined
+          };
 
-        // Filter by query if provided
-        if (query) {
-          const searchTerm = query.toLowerCase();
-          const matchesQuery =
-            id.toLowerCase().includes(searchTerm) ||
-            label?.toLowerCase().includes(searchTerm) ||
-            caption?.toLowerCase().includes(searchTerm) ||
-            usage?.toLowerCase().includes(searchTerm);
+          // Filter by query if provided
+          if (query) {
+            const searchTerm = query.toLowerCase();
+            const matchesQuery =
+              id.toLowerCase().includes(searchTerm) ||
+              label?.toLowerCase().includes(searchTerm) ||
+              caption?.toLowerCase().includes(searchTerm) ||
+              usage?.toLowerCase().includes(searchTerm);
 
-          if (matchesQuery) {
+            if (matchesQuery) {
+              commandList.push(command);
+            }
+          } else {
             commandList.push(command);
           }
-        } else {
-          commandList.push(command);
         }
-      }
 
-      return {
-        success: true,
-        commandCount: commandList.length,
-        commands: commandList
-      };
+        return {
+          success: true,
+          commandCount: commandList.length,
+          commands: commandList
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Failed to discover commands: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
   });
 }
 
 /**
- * Create a tool to execute a specific JupyterLab command
+ * Create a tool to execute a specific JupyterLab command.
+ * Note: Commands requiring approval should be handled at the agent level.
  */
 export function createExecuteCommandTool(
   commands: CommandRegistry,
   settingsModel: AISettingsModel
 ): ITool {
   return tool({
-    name: 'execute_command',
     description:
       'Execute a specific JupyterLab command with optional arguments',
     inputSchema: z.object({
@@ -92,15 +98,6 @@ export function createExecuteCommandTool(
         .optional()
         .describe('Optional arguments to pass to the command')
     }),
-    needsApproval: async (context, { commandId }) => {
-      // Use configurable list of commands requiring approval
-      const commandsRequiringApproval =
-        settingsModel.config.commandsRequiringApproval;
-
-      return commandsRequiringApproval.some(
-        cmd => commandId.includes(cmd) || cmd.includes(commandId)
-      );
-    },
     execute: async (input: { commandId: string; args?: any }) => {
       const { commandId, args } = input;
 

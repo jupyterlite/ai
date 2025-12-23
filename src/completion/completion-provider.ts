@@ -5,8 +5,7 @@ import {
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
 import { NotebookPanel } from '@jupyterlab/notebook';
-import { LanguageModelV2 } from '@ai-sdk/provider';
-import { generateText } from 'ai';
+import { generateText, type LanguageModel } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from '../models/settings-model';
@@ -177,6 +176,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     }
 
     try {
+      // Cast to LanguageModel to handle type compatibility between different @ai-sdk/provider versions
       this._model = createCompletionModel(
         {
           provider,
@@ -185,7 +185,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
           baseURL
         },
         this._providerRegistry
-      );
+      ) as LanguageModel;
     } catch (error) {
       console.error(`Error creating model for ${provider}:`, error);
       this._model = null;
@@ -293,7 +293,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
   private _settingsModel: AISettingsModel;
   private _providerRegistry?: IProviderRegistry;
-  private _model: LanguageModelV2 | null = null;
+  private _model: LanguageModel | null = null;
   private _secretsManager?: ISecretsManager;
 }
 
