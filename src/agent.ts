@@ -24,14 +24,18 @@ interface IMCPClientWrapper {
 
 type ToolMap = Record<string, Tool>;
 
-function isToolCallPart(
-  part: unknown
-): part is { type: 'tool-call'; toolCallId: string } {
-  if (!part || typeof part !== 'object') {
-    return false;
-  }
-  const record = part as Record<string, unknown>;
-  return record.type === 'tool-call' && typeof record.toolCallId === 'string';
+/**
+ * Result from processing a stream, including approval info if applicable.
+ */
+interface IStreamProcessResult {
+  /**
+   * Whether an approval request was encountered and processed.
+   */
+  approvalProcessed: boolean;
+  /**
+   * The approval response message to add to history (if approval was processed).
+   */
+  approvalResponse?: ModelMessage;
 }
 
 export namespace AgentManagerFactory {
@@ -437,9 +441,22 @@ export class AgentManager {
 
   /**
    * Clears conversation history and resets agent state.
-   * Removes all conversation history.
    */
   clearHistory(): void {
+    // Stop any ongoing streaming
+    this.stopStreaming();
+
+    // Reject any pending approvals
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, 'Chat cleared');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+    this._pendingApprovals.clear();
+
+    // Clear history and token usage
     this._history = [];
     this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
     this._tokenUsageChanged.emit(this._tokenUsage);
@@ -513,80 +530,27 @@ export class AgentManager {
       let continueLoop = true;
       while (continueLoop) {
         const result = await this._agent.stream({
-          messages: this._history, // Pass full history including current message
+          messages: this._history,
           abortSignal: this._controller.signal
         });
 
-        const approvalProcessed = await this._processStreamResult(result);
+        const streamResult = await this._processStreamResult(result);
 
-        // Get the response messages from the stream
+        // Get response messages and update token usage
         const responseMessages = await result.response;
+        this._updateTokenUsage(await result.usage);
 
-        // Update token usage
-        const usage = await result.usage;
-        if (usage) {
-          this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
-          this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
-          this._tokenUsageChanged.emit(this._tokenUsage);
+        // Add response messages to history
+        if (responseMessages.messages?.length) {
+          this._history.push(...responseMessages.messages);
         }
 
-        // Continue the loop if an approval was processed
-        continueLoop = approvalProcessed;
-        if (continueLoop) {
-          // Add response messages to history BEFORE the approval response
-          // The approval response was added at the end of _processStreamResult
-          // We need to insert the response messages before it
-          // Remove the approval response we added
-          const approvalResponse = this._history.pop();
-
-          // Add response messages from the stream
-          if (
-            responseMessages.messages &&
-            responseMessages.messages.length > 0
-          ) {
-            this._history = [...this._history, ...responseMessages.messages];
-          }
-
-          // Check if the tool call that needs approval is already in the history
-          // (it might be included in responseMessages)
-          if (this._lastApprovalPart) {
-            const toolCallId = this._lastApprovalPart.toolCall.toolCallId;
-            const toolCallExists = this._history.some(
-              msg =>
-                msg.role === 'assistant' &&
-                Array.isArray(msg.content) &&
-                msg.content.some(
-                  part => isToolCallPart(part) && part.toolCallId === toolCallId
-                )
-            );
-
-            if (!toolCallExists) {
-              this._history.push({
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'tool-call',
-                    toolCallId: this._lastApprovalPart.toolCall.toolCallId,
-                    toolName: this._lastApprovalPart.toolCall.toolName,
-                    input: this._lastApprovalPart.toolCall.input
-                  }
-                ]
-              });
-            }
-            this._lastApprovalPart = null;
-          }
-
-          if (approvalResponse) {
-            this._history.push(approvalResponse);
-          }
-        } else {
-          if (
-            responseMessages.messages &&
-            responseMessages.messages.length > 0
-          ) {
-            this._history = [...this._history, ...responseMessages.messages];
-          }
+        // Add approval response if processed
+        if (streamResult.approvalResponse) {
+          this._history.push(streamResult.approvalResponse);
         }
+
+        continueLoop = streamResult.approvalProcessed;
       }
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
@@ -597,6 +561,19 @@ export class AgentManager {
       }
     } finally {
       this._controller = null;
+    }
+  }
+
+  /**
+   * Updates token usage statistics.
+   */
+  private _updateTokenUsage(
+    usage: { inputTokens?: number; outputTokens?: number } | undefined
+  ): void {
+    if (usage) {
+      this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
+      this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
+      this._tokenUsageChanged.emit(this._tokenUsage);
     }
   }
 
@@ -662,28 +639,19 @@ export class AgentManager {
   /**
    * Processes the stream result from agent execution.
    * Handles message streaming, tool calls, and emits appropriate events.
-   * Uses fullStream for interleaved text and tool call events.
    * @param result The stream result from agent execution
-   * @returns true if an approval was processed and we should continue the loop
+   * @returns Processing result including approval info if applicable
    */
   private async _processStreamResult(
     result: StreamTextResult<ToolMap, never>
-  ): Promise<boolean> {
+  ): Promise<IStreamProcessResult> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
-    let approvalProcessed = false;
+    const processResult: IStreamProcessResult = { approvalProcessed: false };
 
     for await (const part of result.fullStream) {
       switch (part.type) {
-        case 'text-start':
-        case 'text-end':
-        case 'finish':
-        case 'error': {
-          // These parts aren't needed for our chat UI model.
-          break;
-        }
-
-        case 'text-delta': {
+        case 'text-delta':
           if (!currentMessageId) {
             currentMessageId = `msg-${Date.now()}-${Math.random()}`;
             this._agentEvent.emit({
@@ -691,7 +659,6 @@ export class AgentManager {
               data: { messageId: currentMessageId }
             });
           }
-
           fullResponse += part.text;
           this._agentEvent.emit({
             type: 'message_chunk',
@@ -702,139 +669,126 @@ export class AgentManager {
             }
           });
           break;
-        }
 
-        case 'tool-call': {
-          // Complete current message before tool call if we have content
+        case 'tool-call':
+          // Complete current message before tool call
           if (currentMessageId && fullResponse) {
-            this._agentEvent.emit({
-              type: 'message_complete',
-              data: {
-                messageId: currentMessageId,
-                content: fullResponse
-              }
-            });
-            // Reset for potential next message segment
+            this._emitMessageComplete(currentMessageId, fullResponse);
             currentMessageId = null;
             fullResponse = '';
           }
-
-          const input = this._formatToolInput(JSON.stringify(part.input));
           this._agentEvent.emit({
             type: 'tool_call_start',
             data: {
               callId: part.toolCallId,
               toolName: part.toolName,
-              input
+              input: this._formatToolInput(JSON.stringify(part.input))
             }
           });
           break;
-        }
 
-        case 'tool-result': {
-          const outputValue = part.output;
-          const output =
-            typeof outputValue === 'string'
-              ? outputValue
-              : JSON.stringify(outputValue, null, 2);
-          const isError =
-            typeof outputValue === 'object' &&
-            outputValue !== null &&
-            'success' in outputValue &&
-            outputValue.success === false;
-
-          this._agentEvent.emit({
-            type: 'tool_call_complete',
-            data: {
-              callId: part.toolCallId,
-              toolName: part.toolName,
-              output,
-              isError
-            }
-          });
+        case 'tool-result':
+          this._handleToolResult(part);
           break;
-        }
 
-        case 'tool-approval-request': {
-          // Complete current message before approval request
+        case 'tool-approval-request':
+          // Complete current message before approval
           if (currentMessageId && fullResponse) {
-            this._agentEvent.emit({
-              type: 'message_complete',
-              data: {
-                messageId: currentMessageId,
-                content: fullResponse
-              }
-            });
+            this._emitMessageComplete(currentMessageId, fullResponse);
             currentMessageId = null;
             fullResponse = '';
           }
-
-          const approvalPart = part as {
-            type: 'tool-approval-request';
-            approvalId: string;
-            toolCall: { toolCallId: string; toolName: string; input: unknown };
-          };
-
-          this._agentEvent.emit({
-            type: 'tool_approval_request',
-            data: {
-              approvalId: approvalPart.approvalId,
-              toolCallId: approvalPart.toolCall.toolCallId,
-              toolName: approvalPart.toolCall.toolName,
-              args: approvalPart.toolCall.input
-            }
-          });
-
-          const approved = await this._waitForApproval(approvalPart.approvalId);
-
-          this._lastApprovalPart = approvalPart;
-
-          if (approved) {
-            this._history.push({
-              role: 'tool',
-              content: [
-                {
-                  type: 'tool-approval-response',
-                  approvalId: approvalPart.approvalId,
-                  approved: true
-                }
-              ]
-            });
-          } else {
-            this._history.push({
-              role: 'tool',
-              content: [
-                {
-                  type: 'tool-approval-response',
-                  approvalId: approvalPart.approvalId,
-                  approved: false
-                }
-              ]
-            });
-          }
-          approvalProcessed = true;
+          await this._handleApprovalRequest(part, processResult);
           break;
-        }
 
-        default: {
-          // Ignore other stream parts we don't explicitly render.
+        // Ignore: text-start, text-end, finish, error, and others
+        default:
           break;
-        }
       }
     }
 
-    // Complete final message if we have remaining content
+    // Complete final message if content remains
     if (currentMessageId && fullResponse) {
-      this._agentEvent.emit({
-        type: 'message_complete',
-        data: {
-          messageId: currentMessageId,
-          content: fullResponse
-        }
-      });
+      this._emitMessageComplete(currentMessageId, fullResponse);
     }
 
-    return approvalProcessed;
+    return processResult;
+  }
+
+  /**
+   * Emits a message_complete event.
+   */
+  private _emitMessageComplete(messageId: string, content: string): void {
+    this._agentEvent.emit({
+      type: 'message_complete',
+      data: { messageId, content }
+    });
+  }
+
+  /**
+   * Handles tool-result stream parts.
+   */
+  private _handleToolResult(part: {
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+  }): void {
+    const output =
+      typeof part.output === 'string'
+        ? part.output
+        : JSON.stringify(part.output, null, 2);
+    const isError =
+      typeof part.output === 'object' &&
+      part.output !== null &&
+      'success' in part.output &&
+      part.output.success === false;
+
+    this._agentEvent.emit({
+      type: 'tool_call_complete',
+      data: {
+        callId: part.toolCallId,
+        toolName: part.toolName,
+        output,
+        isError
+      }
+    });
+  }
+
+  /**
+   * Handles tool-approval-request stream parts.
+   */
+  private async _handleApprovalRequest(
+    part: unknown,
+    result: IStreamProcessResult
+  ): Promise<void> {
+    const approvalPart = part as {
+      approvalId: string;
+      toolCall: { toolCallId: string; toolName: string; input: unknown };
+    };
+
+    this._agentEvent.emit({
+      type: 'tool_approval_request',
+      data: {
+        approvalId: approvalPart.approvalId,
+        toolCallId: approvalPart.toolCall.toolCallId,
+        toolName: approvalPart.toolCall.toolName,
+        args: approvalPart.toolCall.input
+      }
+    });
+
+    const approved = await this._waitForApproval(approvalPart.approvalId);
+
+    result.approvalProcessed = true;
+    result.approvalResponse = {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId: approvalPart.approvalId,
+          approved
+        }
+      ]
+    };
   }
 
   /**
@@ -990,11 +944,6 @@ TOOL SELECTION GUIDELINES:
     string,
     { resolve: (approved: boolean, reason?: string) => void }
   > = new Map();
-  private _lastApprovalPart: {
-    type: 'tool-approval-request';
-    approvalId: string;
-    toolCall: { toolCallId: string; toolName: string; input: unknown };
-  } | null = null;
 }
 
 namespace Private {
