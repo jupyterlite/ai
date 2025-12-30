@@ -9,6 +9,7 @@ import { AISettingsModel } from '../models/settings-model';
  */
 export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
   return tool({
+    title: 'Discover Commands',
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
@@ -81,6 +82,7 @@ export function createExecuteCommandTool(
   settingsModel: AISettingsModel
 ): ITool {
   return tool({
+    title: 'Execute Command',
     description:
       'Execute a specific JupyterLab command with optional arguments',
     inputSchema: z.object({

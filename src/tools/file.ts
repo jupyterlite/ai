@@ -15,6 +15,7 @@ import { IDiffManager, ITool } from '../tokens';
  */
 export function createNewFileTool(docManager: IDocumentManager): ITool {
   return tool({
+    title: 'New File',
     description:
       'Create a new file of specified type (text, python, markdown, json, etc.)',
     inputSchema: z.object({
@@ -99,6 +100,7 @@ export function createNewFileTool(docManager: IDocumentManager): ITool {
  */
 export function createOpenFileTool(docManager: IDocumentManager): ITool {
   return tool({
+    title: 'Open File',
     description: 'Open a file in the editor',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file to open')
@@ -130,6 +132,7 @@ export function createOpenFileTool(docManager: IDocumentManager): ITool {
  */
 export function createDeleteFileTool(docManager: IDocumentManager): ITool {
   return tool({
+    title: 'Delete File',
     description: 'Delete a file from the file system',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file to delete')
@@ -153,6 +156,7 @@ export function createDeleteFileTool(docManager: IDocumentManager): ITool {
  */
 export function createRenameFileTool(docManager: IDocumentManager): ITool {
   return tool({
+    title: 'Rename File',
     description: 'Rename a file or move it to a different location',
     inputSchema: z.object({
       oldPath: z.string().describe('Current path of the file'),
@@ -178,6 +182,7 @@ export function createRenameFileTool(docManager: IDocumentManager): ITool {
  */
 export function createCopyFileTool(docManager: IDocumentManager): ITool {
   return tool({
+    title: 'Copy File',
     description: 'Copy a file to a new location',
     inputSchema: z.object({
       sourcePath: z.string().describe('Path of the file to copy'),
@@ -207,6 +212,7 @@ export function createNavigateToDirectoryTool(
   commands: CommandRegistry
 ): ITool {
   return tool({
+    title: 'Navigate to Directory',
     description: 'Navigate to a specific directory in the file browser',
     inputSchema: z.object({
       directoryPath: z.string().describe('Path to the directory to navigate to')
@@ -235,6 +241,7 @@ export function createGetFileInfoTool(
   editorTracker?: IEditorTracker
 ): ITool {
   return tool({
+    title: 'Get File Info',
     description:
       'Get information about a file including its path, name, extension, and content. Works with text-based files like Python files, markdown, JSON, etc. For Jupyter notebooks, use dedicated notebook tools instead. If no file path is provided, returns information about the currently active file in the editor.',
     inputSchema: z.object({
@@ -320,6 +327,7 @@ export function createSetFileContentTool(
   diffManager?: IDiffManager
 ): ITool {
   return tool({
+    title: 'Set File Content',
     description:
       'Set or update the content of an existing file. This will replace the entire content of the file. For Jupyter notebooks, use dedicated notebook tools instead.',
     inputSchema: z.object({
