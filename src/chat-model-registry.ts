@@ -1,4 +1,5 @@
 import { ActiveCellManager } from '@jupyter/chat';
+import { TranslationBundle } from '@jupyterlab/translation';
 import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 import { AISettingsModel } from './models/settings-model';
@@ -22,6 +23,7 @@ export class ChatModelRegistry implements IChatModelRegistry {
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
     this._activeCellManager = options.activeCellManager;
+    this._trans = options.trans;
   }
 
   createModel(
@@ -44,7 +46,8 @@ export class ChatModelRegistry implements IChatModelRegistry {
       settingsModel: this._settingsModel,
       agentManager,
       activeCellManager: this._activeCellManager,
-      documentManager: this._docManager
+      documentManager: this._docManager,
+      trans: this._trans
     });
 
     // Set the name of the chat if not provided.
@@ -97,6 +100,7 @@ export class ChatModelRegistry implements IChatModelRegistry {
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
   private _activeCellManager?: ActiveCellManager;
+  private _trans: TranslationBundle;
 }
 
 export namespace ChatModelRegistry {
@@ -125,5 +129,9 @@ export namespace ChatModelRegistry {
      * The active cell manager.
      */
     activeCellManager: ActiveCellManager | undefined;
+    /**
+     * The application language translation bundle.
+     */
+    trans: TranslationBundle;
   }
 }

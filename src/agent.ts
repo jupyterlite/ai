@@ -547,7 +547,20 @@ export class AgentManager {
 
         // Add approval response if processed
         if (streamResult.approvalResponse) {
-          this._history.push(streamResult.approvalResponse);
+          // Check if the last message is a tool message we can append to
+          const lastMsg = this._history[this._history.length - 1];
+          if (
+            lastMsg &&
+            lastMsg.role === 'tool' &&
+            Array.isArray(lastMsg.content) &&
+            Array.isArray(streamResult.approvalResponse.content)
+          ) {
+            const toolContent = lastMsg.content as unknown[];
+            toolContent.push(...streamResult.approvalResponse.content);
+          } else {
+            // Add as separate message
+            this._history.push(streamResult.approvalResponse);
+          }
         }
 
         continueLoop = streamResult.approvalProcessed;
@@ -756,27 +769,35 @@ export class AgentManager {
 
   /**
    * Handles tool-approval-request stream parts.
+   * The stream part can have either a nested toolCall object or flat toolCallId.
    */
   private async _handleApprovalRequest(
     part: unknown,
     result: IStreamProcessResult
   ): Promise<void> {
-    const approvalPart = part as {
+    // The stream part may have either nested toolCall or flat structure
+    const rawPart = part as {
       approvalId: string;
-      toolCall: { toolCallId: string; toolName: string; input: unknown };
+      toolCallId?: string;
+      toolCall?: { toolCallId: string; toolName: string; input: unknown };
     };
+
+    // Extract toolCallId - handle both nested and flat structures
+    const toolCallId = rawPart.toolCall?.toolCallId ?? rawPart.toolCallId ?? '';
+    const toolName = rawPart.toolCall?.toolName ?? '';
+    const toolInput = rawPart.toolCall?.input;
 
     this._agentEvent.emit({
       type: 'tool_approval_request',
       data: {
-        approvalId: approvalPart.approvalId,
-        toolCallId: approvalPart.toolCall.toolCallId,
-        toolName: approvalPart.toolCall.toolName,
-        args: approvalPart.toolCall.input
+        approvalId: rawPart.approvalId,
+        toolCallId,
+        toolName,
+        args: toolInput
       }
     });
 
-    const approved = await this._waitForApproval(approvalPart.approvalId);
+    const approved = await this._waitForApproval(rawPart.approvalId);
 
     result.approvalProcessed = true;
     result.approvalResponse = {
@@ -784,7 +805,7 @@ export class AgentManager {
       content: [
         {
           type: 'tool-approval-response',
-          approvalId: approvalPart.approvalId,
+          approvalId: rawPart.approvalId,
           approved
         }
       ]

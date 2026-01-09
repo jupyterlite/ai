@@ -54,7 +54,6 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     // Add the approval button, tied to the chat widget.
     this._approvalButtons = new ApprovalButtons({
       chatPanel: this.content,
-      trans,
       agentManager: this.model.agentManager
     });
   }
