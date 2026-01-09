@@ -818,7 +818,10 @@ namespace Private {
   /**
    * Returns the translated status text for a given tool status.
    */
-  function getStatusText(status: ToolStatus, trans: TranslationBundle): string {
+  const getStatusText = (
+    status: ToolStatus,
+    trans: TranslationBundle
+  ): string => {
     switch (status) {
       case 'pending':
         return trans.__('Running...');
@@ -833,7 +836,7 @@ namespace Private {
       case 'error':
         return trans.__('Error');
     }
-  }
+  };
 
   /**
    * Options for building tool call HTML.
