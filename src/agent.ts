@@ -4,7 +4,9 @@ import {
   type ModelMessage,
   stepCountIs,
   type StreamTextResult,
-  type Tool
+  type Tool,
+  type ToolApprovalRequestOutput,
+  type TypedToolResult
 } from 'ai';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
@@ -741,11 +743,7 @@ export class AgentManager {
   /**
    * Handles tool-result stream parts.
    */
-  private _handleToolResult(part: {
-    toolCallId: string;
-    toolName: string;
-    output: unknown;
-  }): void {
+  private _handleToolResult(part: TypedToolResult<ToolMap>): void {
     const output =
       typeof part.output === 'string'
         ? part.output
@@ -769,35 +767,24 @@ export class AgentManager {
 
   /**
    * Handles tool-approval-request stream parts.
-   * The stream part can have either a nested toolCall object or flat toolCallId.
    */
   private async _handleApprovalRequest(
-    part: unknown,
+    part: ToolApprovalRequestOutput<ToolMap>,
     result: IStreamProcessResult
   ): Promise<void> {
-    // The stream part may have either nested toolCall or flat structure
-    const rawPart = part as {
-      approvalId: string;
-      toolCallId?: string;
-      toolCall?: { toolCallId: string; toolName: string; input: unknown };
-    };
-
-    // Extract toolCallId - handle both nested and flat structures
-    const toolCallId = rawPart.toolCall?.toolCallId ?? rawPart.toolCallId ?? '';
-    const toolName = rawPart.toolCall?.toolName ?? '';
-    const toolInput = rawPart.toolCall?.input;
+    const { approvalId, toolCall } = part;
 
     this._agentEvent.emit({
       type: 'tool_approval_request',
       data: {
-        approvalId: rawPart.approvalId,
-        toolCallId,
-        toolName,
-        args: toolInput
+        approvalId,
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        args: toolCall.input
       }
     });
 
-    const approved = await this._waitForApproval(rawPart.approvalId);
+    const approved = await this._waitForApproval(approvalId);
 
     result.approvalProcessed = true;
     result.approvalResponse = {
@@ -805,7 +792,7 @@ export class AgentManager {
       content: [
         {
           type: 'tool-approval-response',
-          approvalId: rawPart.approvalId,
+          approvalId,
           approved
         }
       ]
