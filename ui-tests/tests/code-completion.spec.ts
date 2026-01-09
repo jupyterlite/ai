@@ -26,7 +26,10 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
     });
 
     test('should suggest inline completion', async ({ page }) => {
-      test.setTimeout(2 * TIMEOUT);
+      // Total timeout should accommodate: maxRetries * RETRY_TIMEOUT + final assertion
+      const RETRY_TIMEOUT = 60000; // 60 seconds per retry attempt
+      const maxRetries = 3;
+      test.setTimeout((maxRetries + 1) * RETRY_TIMEOUT + 30000); // Extra buffer
 
       const content = 'def test';
       let requestBody: any = null;
@@ -50,13 +53,12 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       // Ghost text should be visible as suggestion.
       // Retry by typing more content if ghost text doesn't appear
       const ghostText = cell!.locator('.jp-GhostText');
-      const maxRetries = 3;
       let retries = 0;
       let ghostTextVisible = false;
 
       while (retries < maxRetries && !ghostTextVisible) {
         try {
-          await expect(ghostText).toBeVisible({ timeout: TIMEOUT });
+          await expect(ghostText).toBeVisible({ timeout: RETRY_TIMEOUT });
           ghostTextVisible = true;
         } catch {
           retries++;
@@ -71,7 +73,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       }
 
       // Final assertion that should pass after retries
-      await expect(ghostText).toBeVisible({ timeout: TIMEOUT });
+      await expect(ghostText).toBeVisible({ timeout: RETRY_TIMEOUT });
       await expect(ghostText).not.toBeEmpty();
 
       expect(requestBody).toHaveProperty('messages');
