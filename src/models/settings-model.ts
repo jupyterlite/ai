@@ -5,7 +5,7 @@ const PLUGIN_ID = '@jupyterlite/ai:settings-model';
 
 export interface IProviderParameters {
   temperature?: number;
-  maxTokens?: number;
+  maxOutputTokens?: number;
   maxTurns?: number;
   supportsFillInMiddle?: boolean;
   useFilterText?: boolean;

@@ -1,7 +1,6 @@
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
-import { FunctionTool, Model } from '@openai/agents';
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import type { Tool, LanguageModel } from 'ai';
 import { AgentManager } from './agent';
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
@@ -21,7 +20,7 @@ export namespace CommandIds {
 /**
  * Type definition for a tool
  */
-export type ITool = FunctionTool<any, any, any>;
+export type ITool = Tool;
 
 /**
  * Interface for token usage statistics from AI model interactions
@@ -109,7 +108,7 @@ export const IProviderRegistry = new Token<IProviderRegistry>(
  * Interface for a provider factory function that creates language models
  */
 export interface IProviderFactory {
-  (options: IModelOptions): LanguageModelV2;
+  (options: IModelOptions): LanguageModel;
 }
 
 /**
@@ -197,7 +196,7 @@ export interface IProviderRegistry {
   /**
    * Create a chat model instance for the given provider.
    */
-  createChatModel(id: string, options: IModelOptions): Model | null;
+  createChatModel(id: string, options: IModelOptions): LanguageModel | null;
 
   /**
    * Create a completion model instance for the given provider.
@@ -205,7 +204,7 @@ export interface IProviderRegistry {
   createCompletionModel(
     id: string,
     options: IModelOptions
-  ): LanguageModelV2 | null;
+  ): LanguageModel | null;
 
   /**
    * Get all available provider IDs.

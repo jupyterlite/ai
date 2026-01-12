@@ -218,7 +218,7 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
   description: 'Registry for the current chat model',
   autoStart: true,
   requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
-  optional: [IProviderRegistry, INotebookTracker, IToolRegistry],
+  optional: [IProviderRegistry, INotebookTracker, IToolRegistry, ITranslator],
   provides: IChatModelRegistry,
   activate: (
     app: JupyterFrontEnd,
@@ -227,8 +227,11 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
     docManager: IDocumentManager,
     providerRegistry?: IProviderRegistry,
     notebookTracker?: INotebookTracker,
-    toolRegistry?: IToolRegistry
+    toolRegistry?: IToolRegistry,
+    translator?: ITranslator
   ): IChatModelRegistry => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+
     // Create ActiveCellManager if notebook tracker is available
     let activeCellManager: ActiveCellManager | undefined;
     if (notebookTracker) {
@@ -243,7 +246,8 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
       agentManagerFactory,
       docManager,
       providerRegistry,
-      toolRegistry
+      toolRegistry,
+      trans
     });
   }
 };
@@ -365,7 +369,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Associate an approval buttons object to the chat.
       const approvalButton = new ApprovalButtons({
         chatPanel: widget,
-        trans
+        agentManager: model.agentManager
       });
 
       widget.disposed.connect(() => {
@@ -623,7 +627,7 @@ function registerCommands(
           trackerUpdated.promise,
           new Promise<boolean>(r =>
             setTimeout(() => {
-              return false;
+              r(false);
             }, 2000)
           )
         ]);

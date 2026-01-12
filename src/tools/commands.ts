@@ -1,5 +1,5 @@
 import { CommandRegistry } from '@lumino/commands';
-import { tool } from '@openai/agents';
+import { tool } from 'ai';
 import { z } from 'zod';
 import { ITool } from '../tokens';
 import { AISettingsModel } from '../models/settings-model';
@@ -9,11 +9,10 @@ import { AISettingsModel } from '../models/settings-model';
  */
 export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
   return tool({
-    name: 'discover_commands',
+    title: 'Discover Commands',
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
-    parameters: z.object({
-      // currently unused, but could be used to filter commands by a search term
+    inputSchema: z.object({
       query: z
         .string()
         .optional()
@@ -75,31 +74,28 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
 }
 
 /**
- * Create a tool to execute a specific JupyterLab command
+ * Create a tool to execute a specific JupyterLab command.
+ * Commands in the settings' commandsRequiringApproval list will need approval.
  */
 export function createExecuteCommandTool(
   commands: CommandRegistry,
   settingsModel: AISettingsModel
 ): ITool {
   return tool({
-    name: 'execute_command',
+    title: 'Execute Command',
     description:
       'Execute a specific JupyterLab command with optional arguments',
-    parameters: z.object({
+    inputSchema: z.object({
       commandId: z.string().describe('The ID of the command to execute'),
       args: z
         .any()
         .optional()
         .describe('Optional arguments to pass to the command')
     }),
-    needsApproval: async (context, { commandId }) => {
-      // Use configurable list of commands requiring approval
+    needsApproval: (input: { commandId: string; args?: any }) => {
       const commandsRequiringApproval =
-        settingsModel.config.commandsRequiringApproval;
-
-      return commandsRequiringApproval.some(
-        cmd => commandId.includes(cmd) || cmd.includes(commandId)
-      );
+        settingsModel.config.commandsRequiringApproval || [];
+      return commandsRequiringApproval.includes(input.commandId);
     },
     execute: async (input: { commandId: string; args?: any }) => {
       const { commandId, args } = input;
@@ -112,45 +108,38 @@ export function createExecuteCommandTool(
         };
       }
 
-      try {
-        // Execute the command
-        const result = await commands.execute(commandId, args);
+      // Execute the command
+      const result = await commands.execute(commandId, args);
 
-        // Handle Widget objects specially (including subclasses like DocumentWidget)
-        let serializedResult;
-        if (
-          result &&
-          typeof result === 'object' &&
-          (result.constructor?.name?.includes('Widget') || result.id)
-        ) {
-          serializedResult = {
-            type: result.constructor?.name || 'Widget',
-            id: result.id,
-            title: result.title?.label || result.title,
-            className: result.className
-          };
-        } else {
-          // For other objects, try JSON serialization with fallback
-          try {
-            serializedResult = JSON.parse(JSON.stringify(result));
-          } catch {
-            serializedResult = result
-              ? '[Complex object - cannot serialize]'
-              : 'Command executed successfully';
-          }
+      // Handle Widget objects specially (including subclasses like DocumentWidget)
+      let serializedResult;
+      if (
+        result &&
+        typeof result === 'object' &&
+        (result.constructor?.name?.includes('Widget') || result.id)
+      ) {
+        serializedResult = {
+          type: result.constructor?.name || 'Widget',
+          id: result.id,
+          title: result.title?.label || result.title,
+          className: result.className
+        };
+      } else {
+        // For other objects, try JSON serialization with fallback
+        try {
+          serializedResult = JSON.parse(JSON.stringify(result));
+        } catch {
+          serializedResult = result
+            ? '[Complex object - cannot serialize]'
+            : 'Command executed successfully';
         }
-
-        return {
-          success: true,
-          commandId,
-          result: serializedResult
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: `Failed to execute command '${commandId}': ${error instanceof Error ? error.message : String(error)}`
-        };
       }
+
+      return {
+        success: true,
+        commandId,
+        result: serializedResult
+      };
     }
   });
 }

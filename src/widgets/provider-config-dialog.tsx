@@ -382,11 +382,11 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   fullWidth
                   label={trans.__('Max Tokens (Optional)')}
                   type="number"
-                  value={parameters.maxTokens ?? ''}
+                  value={parameters.maxOutputTokens ?? ''}
                   onChange={e =>
                     setParameters({
                       ...parameters,
-                      maxTokens: e.target.value
+                      maxOutputTokens: e.target.value
                         ? Number(e.target.value)
                         : undefined
                     })

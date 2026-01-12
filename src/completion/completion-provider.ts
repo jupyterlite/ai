@@ -5,8 +5,7 @@ import {
   IInlineCompletionProvider
 } from '@jupyterlab/completer';
 import { NotebookPanel } from '@jupyterlab/notebook';
-import { LanguageModelV2 } from '@ai-sdk/provider';
-import { generateText } from 'ai';
+import { generateText, type LanguageModel } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from '../models/settings-model';
@@ -293,7 +292,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
 
   private _settingsModel: AISettingsModel;
   private _providerRegistry?: IProviderRegistry;
-  private _model: LanguageModelV2 | null = null;
+  private _model: LanguageModel | null = null;
   private _secretsManager?: ISecretsManager;
 }
 

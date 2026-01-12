@@ -1,4 +1,4 @@
-import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModel } from 'ai';
 import type { IProviderRegistry } from '../tokens';
 
 /**
@@ -38,7 +38,7 @@ export interface IModelOptions {
 export function createCompletionModel(
   options: IModelOptions,
   registry?: IProviderRegistry
-): LanguageModelV2 {
+): LanguageModel {
   if (!registry) {
     throw new Error('Provider registry not available');
   }
@@ -60,7 +60,7 @@ export function createCompletionModel(
 export function createModel(
   options: IModelOptions,
   registry?: IProviderRegistry
-) {
+): LanguageModel {
   if (!registry) {
     throw new Error('Provider registry not available');
   }

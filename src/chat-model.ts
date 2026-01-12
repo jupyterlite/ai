@@ -16,6 +16,8 @@ import { IDocumentWidget } from '@jupyterlab/docregistry';
 
 import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
+import { TranslationBundle } from '@jupyterlab/translation';
+
 import { UUID } from '@lumino/coreutils';
 
 import { ISignal, Signal } from '@lumino/signaling';
@@ -33,9 +35,49 @@ import { YNotebook } from '@jupyter/ydoc';
 import * as nbformat from '@jupyterlab/nbformat';
 
 /**
- * AI Chat Model implementation that provides chat functionality with OpenAI agents,
- * tool integration, and MCP server support.
- * Extends the base AbstractChatModel to provide AI-powered conversations.
+ * Tool call status types.
+ */
+type ToolStatus =
+  | 'pending'
+  | 'awaiting_approval'
+  | 'approved'
+  | 'rejected'
+  | 'completed'
+  | 'error';
+
+/**
+ * Context for tracking tool execution state.
+ */
+interface IToolExecutionContext {
+  /**
+   * The tool call ID from the AI SDK.
+   */
+  toolCallId: string;
+  /**
+   * The chat message ID for UI updates.
+   */
+  messageId: string;
+  /**
+   * The tool name.
+   */
+  toolName: string;
+  /**
+   * The tool input (formatted).
+   */
+  input: string;
+  /**
+   * Optional approval ID if awaiting approval.
+   */
+  approvalId?: string;
+  /**
+   * Current status.
+   */
+  status: ToolStatus;
+}
+
+/**
+ * AI Chat Model implementation that provides chat functionality tool integration,
+ * and MCP server support.
  */
 export class AIChatModel extends AbstractChatModel {
   /**
@@ -54,6 +96,7 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
+    this._trans = options.trans;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
@@ -129,7 +172,7 @@ export class AIChatModel extends AbstractChatModel {
    */
   clearMessages = (): void => {
     this.messagesDeleted(0, this.messages.length);
-    this._pendingToolCalls.clear();
+    this._toolContexts.clear();
     this._agentManager.clearHistory();
   };
 
@@ -171,7 +214,6 @@ export class AIChatModel extends AbstractChatModel {
         const attachmentContents = await this._processAttachments(
           this.input.attachments
         );
-        // Clear attachments right after  processing
         this.input.clearAttachments();
 
         if (attachmentContents.length > 0) {
@@ -195,78 +237,6 @@ export class AIChatModel extends AbstractChatModel {
       this.messageAdded(errorMessage);
     } finally {
       this.updateWriters([]);
-    }
-  }
-
-  /**
-   * Approves a tool call and updates the UI accordingly.
-   * @param interruptionId The interruption ID to approve
-   * @param messageId Optional message ID for UI updates
-   */
-  async approveToolCall(
-    interruptionId: string,
-    messageId?: string
-  ): Promise<void> {
-    await this._agentManager.approveToolCall(interruptionId);
-
-    // Update the tool call box to show "Approved" status
-    if (messageId) {
-      this._updateToolCallBoxStatus(messageId, 'Approved', true);
-    }
-  }
-
-  /**
-   * Rejects a tool call and updates the UI accordingly.
-   * @param interruptionId The interruption ID to reject
-   * @param messageId Optional message ID for UI updates
-   */
-  async rejectToolCall(
-    interruptionId: string,
-    messageId?: string
-  ): Promise<void> {
-    await this._agentManager.rejectToolCall(interruptionId);
-
-    // Update the tool call box to show "Rejected" status
-    if (messageId) {
-      this._updateToolCallBoxStatus(messageId, 'Rejected', false);
-    }
-  }
-
-  /**
-   * Approves all tools in a group.
-   * @param groupId The group ID containing the tool calls
-   * @param interruptionIds Array of interruption IDs to approve
-   * @param messageId Optional message ID for UI updates
-   */
-  async approveGroupedToolCalls(
-    groupId: string,
-    interruptionIds: string[],
-    messageId?: string
-  ): Promise<void> {
-    await this._agentManager.approveGroupedToolCalls(groupId, interruptionIds);
-
-    // Update the grouped approval message to show approved status
-    if (messageId) {
-      this._updateGroupedApprovalStatus(messageId, 'Tools approved', true);
-    }
-  }
-
-  /**
-   * Rejects all tools in a group.
-   * @param groupId The group ID containing the tool calls
-   * @param interruptionIds Array of interruption IDs to reject
-   * @param messageId Optional message ID for UI updates
-   */
-  async rejectGroupedToolCalls(
-    groupId: string,
-    interruptionIds: string[],
-    messageId?: string
-  ): Promise<void> {
-    await this._agentManager.rejectGroupedToolCalls(groupId, interruptionIds);
-
-    // Update the grouped approval message to show rejected status
-    if (messageId) {
-      this._updateGroupedApprovalStatus(messageId, 'Tools rejected', false);
     }
   }
 
@@ -313,11 +283,11 @@ export class AIChatModel extends AbstractChatModel {
       case 'tool_call_complete':
         this._handleToolCallCompleteEvent(event);
         break;
-      case 'tool_approval_required':
-        this._handleToolApprovalRequired(event);
+      case 'tool_approval_request':
+        this._handleToolApprovalRequest(event);
         break;
-      case 'grouped_approval_required':
-        this._handleGroupedApprovalRequired(event);
+      case 'tool_approval_resolved':
+        this._handleToolApprovalResolved(event);
         break;
       case 'error':
         this._handleErrorEvent(event);
@@ -378,204 +348,127 @@ export class AIChatModel extends AbstractChatModel {
   private _handleToolCallStartEvent(
     event: IAgentEvent<'tool_call_start'>
   ): void {
-    const toolCallMessageId = UUID.uuid4();
+    const messageId = UUID.uuid4();
+    const context: IToolExecutionContext = {
+      toolCallId: event.data.callId,
+      messageId,
+      toolName: event.data.toolName,
+      input: event.data.input,
+      status: 'pending'
+    };
+
+    this._toolContexts.set(event.data.callId, context);
+
     const toolCallMessage: IChatMessage = {
-      body: `<details class="jp-ai-tool-call jp-ai-tool-pending">
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
-<div class="jp-ai-tool-status jp-ai-tool-status-pending">Running...</div>
-</summary>
-<div class="jp-ai-tool-body">
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${event.data.input}</code></pre>
-</div>
-</div>
-</details>`,
+      body: Private.buildToolCallHtml({
+        toolName: context.toolName,
+        input: context.input,
+        status: context.status,
+        trans: this._trans
+      }),
       sender: this._getAIUser(),
-      id: toolCallMessageId,
+      id: messageId,
       time: Date.now() / 1000,
       type: 'msg',
       raw_time: false
     };
 
-    if (event.data.callId) {
-      this._pendingToolCalls.set(event.data.callId, toolCallMessageId);
-    }
     this.messageAdded(toolCallMessage);
   }
 
   /**
    * Handles the completion of a tool call execution.
-   * @param event Event containing the tool call completion data
    */
   private _handleToolCallCompleteEvent(
     event: IAgentEvent<'tool_call_complete'>
   ): void {
-    const messageId = this._pendingToolCalls.get(event.data.callId);
-    if (messageId) {
-      const existingMessageIndex = this.messages.findIndex(
-        msg => msg.id === messageId
-      );
-      if (existingMessageIndex !== -1) {
-        const existingMessage = this.messages[existingMessageIndex];
-        const inputJson =
-          existingMessage.body.match(/<code>([\s\S]*?)<\/code>/)?.[1] || '';
-
-        const statusClass = event.data.isError
-          ? 'jp-ai-tool-error'
-          : 'jp-ai-tool-completed';
-        const statusText = event.data.isError ? 'Error' : 'Completed';
-        const statusColor = event.data.isError
-          ? 'jp-ai-tool-status-error'
-          : 'jp-ai-tool-status-completed';
-
-        const updatedMessage: IChatMessage = {
-          ...existingMessage,
-          body: `<details class="jp-ai-tool-call ${statusClass}">
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
-<div class="jp-ai-tool-status ${statusColor}">${statusText}</div>
-</summary>
-<div class="jp-ai-tool-body">
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${inputJson}</code></pre>
-</div>
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${event.data.isError ? 'Error' : 'Result'}</div>
-<pre class="jp-ai-tool-code"><code>${event.data.output}</code></pre>
-</div>
-</div>
-</details>`
-        };
-
-        this.messageAdded(updatedMessage);
-        this._pendingToolCalls.delete(event.data.callId);
-      }
-    }
-  }
-
-  /**
-   * Handles tool approval requests from the AI agent.
-   * @param event Event containing the tool approval request data
-   */
-  private _handleToolApprovalRequired(
-    event: IAgentEvent<'tool_approval_required'>
-  ): void {
-    // Handle single tool approval - either update existing tool call message or create new approval message
-    if (event.data.callId) {
-      const messageId = this._pendingToolCalls.get(event.data.callId);
-      if (messageId) {
-        const existingMessageIndex = this.messages.findIndex(
-          msg => msg.id === messageId
-        );
-        if (existingMessageIndex !== -1) {
-          const existingMessage = this.messages[existingMessageIndex];
-          const assistantName = this._getAIUser().display_name;
-
-          const updatedMessage: IChatMessage = {
-            ...existingMessage,
-            body: `<details class="jp-ai-tool-call jp-ai-tool-pending" open>
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${event.data.toolName}</div>
-<div class="jp-ai-tool-status jp-ai-tool-status-pending">Needs Approval</div>
-</summary>
-<div class="jp-ai-tool-body">
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${assistantName} wants to execute this tool. Do you approve?</div>
-<pre class="jp-ai-tool-code"><code>${event.data.toolInput}</code></pre>
-</div>
-[APPROVAL_BUTTONS:${event.data.interruptionId}]
-</div>
-</details>`
-          };
-
-          this.messageAdded(updatedMessage);
-          this.updateWriters([]);
-          return;
-        }
-      }
-    }
-
-    // Fallback: create separate approval message
-    const approvalMessageId = UUID.uuid4();
-    const assistantName = this._getAIUser().display_name;
-
-    const approvalMessage: IChatMessage = {
-      body: `**🤖 Tool Approval Required: ${event.data.toolName}**
-
-${assistantName} wants to execute this tool. Do you approve?
-
-\`\`\`json
-${event.data.toolInput}
-\`\`\`
-
-[APPROVAL_BUTTONS:${event.data.interruptionId}]`,
-      sender: this._getAIUser(),
-      id: approvalMessageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-
-    this.messageAdded(approvalMessage);
-    this.updateWriters([]); // Stop showing "AI is writing"
-  }
-
-  /**
-   * Handles grouped tool approval requests from the AI agent.
-   * @param event Event containing the grouped tool approval request data
-   */
-  private _handleGroupedApprovalRequired(
-    event: IAgentEvent<'grouped_approval_required'>
-  ): void {
-    const assistantName = this._getAIUser().display_name;
-    const approvalMessageId = UUID.uuid4();
-
-    const toolsList = event.data.approvals
-      .map(
-        (info, index) =>
-          `**${index + 1}. ${info.toolName}**\n\`\`\`json\n${info.toolInput}\n\`\`\`\n`
-      )
-      .join('\n\n');
-
-    const approvalMessage: IChatMessage = {
-      body: `**🤖 Multiple Tool Approvals Required**
-
-${assistantName} wants to execute ${event.data.approvals.length} tools. Do you approve?
-
-${toolsList}
-
-[GROUP_APPROVAL_BUTTONS:${event.data.groupId}:${event.data.approvals.map(info => info.interruptionId).join(',')}]`,
-      sender: this._getAIUser(),
-      id: approvalMessageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-
-    this.messageAdded(approvalMessage);
-    this.updateWriters([]); // Stop showing "AI is writing"
+    const status = event.data.isError ? 'error' : 'completed';
+    this._updateToolCallUI(event.data.callId, status, event.data.output);
+    this._toolContexts.delete(event.data.callId);
   }
 
   /**
    * Handles error events from the AI agent.
-   * @param event Event containing the error information
    */
   private _handleErrorEvent(event: IAgentEvent<'error'>): void {
-    const errorMessage: IChatMessage = {
+    this.messageAdded({
       body: `Error generating response: ${event.data.error.message}`,
       sender: this._getAIUser(),
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',
       raw_time: false
-    };
-    this.messageAdded(errorMessage);
+    });
+  }
+
+  /**
+   * Handles tool approval request events from the AI agent.
+   */
+  private _handleToolApprovalRequest(
+    event: IAgentEvent<'tool_approval_request'>
+  ): void {
+    const context = this._toolContexts.get(event.data.toolCallId);
+    if (!context) {
+      return;
+    }
+    context.approvalId = event.data.approvalId;
+    context.input = JSON.stringify(event.data.args, null, 2);
+    this._updateToolCallUI(event.data.toolCallId, 'awaiting_approval');
+  }
+
+  /**
+   * Handles tool approval resolved events from the AI agent.
+   */
+  private _handleToolApprovalResolved(
+    event: IAgentEvent<'tool_approval_resolved'>
+  ): void {
+    const context = Array.from(this._toolContexts.values()).find(
+      ctx => ctx.approvalId === event.data.approvalId
+    );
+    if (!context) {
+      return;
+    }
+
+    const status = event.data.approved ? 'approved' : 'rejected';
+    this._updateToolCallUI(context.toolCallId, status);
+
+    if (!event.data.approved) {
+      this._toolContexts.delete(context.toolCallId);
+    }
+  }
+
+  /**
+   * Updates a tool call's UI with new status and optional output.
+   */
+  private _updateToolCallUI(
+    toolCallId: string,
+    status: ToolStatus,
+    output?: string
+  ): void {
+    const context = this._toolContexts.get(toolCallId);
+    if (!context) {
+      return;
+    }
+
+    const existingMessage = this.messages.find(
+      msg => msg.id === context.messageId
+    );
+    if (!existingMessage) {
+      return;
+    }
+
+    context.status = status;
+    this.messageAdded({
+      ...existingMessage,
+      body: Private.buildToolCallHtml({
+        toolName: context.toolName,
+        input: context.input,
+        status: context.status,
+        output,
+        approvalId: context.approvalId,
+        trans: this._trans
+      })
+    });
   }
 
   /**
@@ -856,107 +749,154 @@ ${toolsList}
     }
   }
 
-  /**
-   * Updates the status display of a grouped approval message.
-   * @param messageId The message ID to update
-   * @param status The status text to display
-   * @param isSuccess Whether the action was successful
-   */
-  private _updateGroupedApprovalStatus(
-    messageId: string,
-    status: string,
-    isSuccess: boolean
-  ): void {
-    const existingMessageIndex = this.messages.findIndex(
-      msg => msg.id === messageId
-    );
-    if (existingMessageIndex !== -1) {
-      const existingMessage = this.messages[existingMessageIndex];
-
-      // Extract tool count and names from existing message
-      const toolCountMatch = existingMessage.body.match(/execute (\d+) tools/);
-      const toolCount = toolCountMatch ? toolCountMatch[1] : 'multiple';
-
-      const statusIcon = isSuccess ? '✅' : '❌';
-      const statusClass = isSuccess ? 'approved' : 'rejected';
-
-      const updatedMessage: IChatMessage = {
-        ...existingMessage,
-        body: `**${statusIcon} Group Tool Approval: ${status}**
-
-The request to execute ${toolCount} tools has been **${statusClass}**.
-
-<div class="jp-ai-group-approval-${statusClass}">
-Status: ${status}
-</div>`
-      };
-
-      this.messageAdded(updatedMessage);
-    }
-  }
-
-  /**
-   * Updates the status display of a tool call box.
-   * @param messageId The message ID to update
-   * @param status The status text to display
-   * @param isSuccess Whether the action was successful
-   */
-  private _updateToolCallBoxStatus(
-    messageId: string,
-    status: string,
-    isSuccess: boolean
-  ): void {
-    const existingMessageIndex = this.messages.findIndex(
-      msg => msg.id === messageId
-    );
-    if (existingMessageIndex !== -1) {
-      const existingMessage = this.messages[existingMessageIndex];
-
-      // Extract tool name and input from existing message
-      const toolNameMatch = existingMessage.body.match(
-        /<div class="jp-ai-tool-title">([^<]+)<\/div>/
-      );
-      const toolName = toolNameMatch ? toolNameMatch[1] : 'Unknown Tool';
-
-      const codeMatch = existingMessage.body.match(/<code>([\s\S]*?)<\/code>/);
-      const toolInput = codeMatch ? codeMatch[1] : '{}';
-
-      // Determine styling based on status
-      const statusClass = isSuccess
-        ? 'jp-ai-tool-completed'
-        : 'jp-ai-tool-error';
-      const statusColor = isSuccess
-        ? 'jp-ai-tool-status-completed'
-        : 'jp-ai-tool-status-error';
-
-      const updatedMessage: IChatMessage = {
-        ...existingMessage,
-        body: `<details class="jp-ai-tool-call ${statusClass}">
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${toolName}</div>
-<div class="jp-ai-tool-status ${statusColor}">${status}</div>
-</summary>
-<div class="jp-ai-tool-body">
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">Input</div>
-<pre class="jp-ai-tool-code"><code>${toolInput}</code></pre>
-</div>
-</div>
-</details>`
-      };
-
-      this.messageAdded(updatedMessage);
-    }
-  }
-
   // Private fields
   private _settingsModel: AISettingsModel;
   private _user: IUser;
-  private _pendingToolCalls: Map<string, string> = new Map();
+  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IChatMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _trans: TranslationBundle;
+}
+
+namespace Private {
+  export function escapeHtml(value: string): string {
+    // Prefer the same native escaping approach used in JupyterLab itself
+    // (e.g. `@jupyterlab/completer`).
+    if (typeof document !== 'undefined') {
+      const node = document.createElement('span');
+      node.textContent = value;
+      return node.innerHTML;
+    }
+
+    // Fallback
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Configuration for rendering tool call status.
+   */
+  interface IStatusConfig {
+    cssClass: string;
+    statusClass: string;
+    open?: boolean;
+  }
+
+  const STATUS_CONFIG: Record<ToolStatus, IStatusConfig> = {
+    pending: {
+      cssClass: 'jp-ai-tool-pending',
+      statusClass: 'jp-ai-tool-status-pending'
+    },
+    awaiting_approval: {
+      cssClass: 'jp-ai-tool-pending',
+      statusClass: 'jp-ai-tool-status-approval',
+      open: true
+    },
+    approved: {
+      cssClass: 'jp-ai-tool-pending',
+      statusClass: 'jp-ai-tool-status-completed'
+    },
+    rejected: {
+      cssClass: 'jp-ai-tool-error',
+      statusClass: 'jp-ai-tool-status-error'
+    },
+    completed: {
+      cssClass: 'jp-ai-tool-completed',
+      statusClass: 'jp-ai-tool-status-completed'
+    },
+    error: {
+      cssClass: 'jp-ai-tool-error',
+      statusClass: 'jp-ai-tool-status-error'
+    }
+  };
+
+  /**
+   * Returns the translated status text for a given tool status.
+   */
+  const getStatusText = (
+    status: ToolStatus,
+    trans: TranslationBundle
+  ): string => {
+    switch (status) {
+      case 'pending':
+        return trans.__('Running...');
+      case 'awaiting_approval':
+        return trans.__('Awaiting Approval');
+      case 'approved':
+        return trans.__('Approved - Executing...');
+      case 'rejected':
+        return trans.__('Rejected');
+      case 'completed':
+        return trans.__('Completed');
+      case 'error':
+        return trans.__('Error');
+    }
+  };
+
+  /**
+   * Options for building tool call HTML.
+   */
+  interface IToolCallHtmlOptions {
+    toolName: string;
+    input: string;
+    status: ToolStatus;
+    output?: string;
+    approvalId?: string;
+    trans: TranslationBundle;
+  }
+
+  /**
+   * Builds HTML for a tool call display.
+   */
+  export function buildToolCallHtml(options: IToolCallHtmlOptions): string {
+    const { toolName, input, status, output, approvalId, trans } = options;
+    const config = STATUS_CONFIG[status];
+    const statusText = getStatusText(status, trans);
+    const escapedToolName = escapeHtml(toolName);
+    const escapedInput = escapeHtml(input);
+    const openAttr = config.open ? ' open' : '';
+
+    let bodyContent = `
+<div class="jp-ai-tool-section">
+<div class="jp-ai-tool-label">${trans.__('Input')}</div>
+<pre class="jp-ai-tool-code"><code>${escapedInput}</code></pre>
+</div>`;
+
+    // Add approval buttons if awaiting approval
+    if (status === 'awaiting_approval' && approvalId) {
+      bodyContent += `
+<div class="jp-ai-tool-approval-buttons jp-ai-approval-id--${approvalId}">
+<button class="jp-ai-approval-btn jp-ai-approval-approve">${trans.__('Approve')}</button>
+<button class="jp-ai-approval-btn jp-ai-approval-reject">${trans.__('Reject')}</button>
+</div>`;
+    }
+
+    // Add output/result section if provided
+    if (output !== undefined) {
+      const escapedOutput = escapeHtml(output);
+      const label = status === 'error' ? trans.__('Error') : trans.__('Result');
+      bodyContent += `
+<div class="jp-ai-tool-section">
+<div class="jp-ai-tool-label">${label}</div>
+<pre class="jp-ai-tool-code"><code>${escapedOutput}</code></pre>
+</div>`;
+    }
+
+    return `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
+<summary class="jp-ai-tool-header">
+<div class="jp-ai-tool-icon">⚡</div>
+<div class="jp-ai-tool-title">${escapedToolName}</div>
+<div class="jp-ai-tool-status ${config.statusClass}">${statusText}</div>
+</summary>
+<div class="jp-ai-tool-body">${bodyContent}
+</div>
+</details>`;
+  }
 }
 
 /**
@@ -987,6 +927,10 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
+    /**
+     * The application language translation bundle.
+     */
+    trans: TranslationBundle;
   }
 
   /**

@@ -1,20 +1,44 @@
 import { ISignal, Signal } from '@lumino/signaling';
 import {
-  Agent,
-  AgentInputItem,
-  Runner,
-  RunToolApprovalItem,
-  RunToolCallOutputItem,
-  StreamedRunResult,
-  user
-} from '@openai/agents';
+  ToolLoopAgent,
+  type ModelMessage,
+  stepCountIs,
+  type StreamTextResult,
+  type Tool,
+  type ToolApprovalRequestOutput,
+  type TypedToolResult
+} from 'ai';
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import { BrowserMCPServerStreamableHttp } from './mcp/browser';
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
 import type { IProviderRegistry } from './tokens';
 import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
+
+/**
+ * Interface for MCP client wrapper to track connection state
+ */
+interface IMCPClientWrapper {
+  name: string;
+  client: MCPClient;
+}
+
+type ToolMap = Record<string, Tool>;
+
+/**
+ * Result from processing a stream, including approval info if applicable.
+ */
+interface IStreamProcessResult {
+  /**
+   * Whether an approval request was encountered and processed.
+   */
+  approvalProcessed: boolean;
+  /**
+   * The approval response message to add to history (if approval was processed).
+   */
+  approvalResponse?: ModelMessage;
+}
 
 export namespace AgentManagerFactory {
   export interface IOptions {
@@ -37,7 +61,7 @@ export class AgentManagerFactory {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._secretsManager = options.secretsManager;
-    this._mcpServers = [];
+    this._mcpClients = [];
     this._mcpConnectionChanged = new Signal<this, boolean>(this);
 
     // Initialize agent on construction
@@ -71,7 +95,28 @@ export class AgentManagerFactory {
    * @returns True if the server is connected, false otherwise
    */
   isMCPServerConnected(serverName: string): boolean {
-    return this._mcpServers.some(server => server.name === serverName);
+    return this._mcpClients.some(wrapper => wrapper.name === serverName);
+  }
+
+  /**
+   * Gets the MCP tools from connected servers
+   */
+  async getMCPTools(): Promise<ToolMap> {
+    const mcpTools: ToolMap = {};
+
+    for (const wrapper of this._mcpClients) {
+      try {
+        const tools = await wrapper.client.tools();
+        Object.assign(mcpTools, tools);
+      } catch (error) {
+        console.warn(
+          `Failed to get tools from MCP server ${wrapper.name}:`,
+          error
+        );
+      }
+    }
+
+    return mcpTools;
   }
 
   /**
@@ -84,34 +129,38 @@ export class AgentManagerFactory {
   }
 
   /**
-   * Initializes MCP (Model Context Protocol) servers based on current settings.
-   * Closes existing servers and connects to enabled servers from configuration.
+   * Initializes MCP (Model Context Protocol) clients based on current settings.
+   * Closes existing clients and connects to enabled servers from configuration.
    */
-  private async _initializeMCPServers(): Promise<void> {
+  private async _initializeMCPClients(): Promise<void> {
     const config = this._settingsModel.config;
     const enabledServers = config.mcpServers.filter(server => server.enabled);
     let connectionChanged = false;
 
-    // Close existing servers
-    for (const server of this._mcpServers) {
+    // Close existing clients
+    for (const wrapper of this._mcpClients) {
       try {
-        await server.close();
+        await wrapper.client.close();
         connectionChanged = true;
       } catch (error) {
-        console.warn('Error closing MCP server:', error);
+        console.warn('Error closing MCP client:', error);
       }
     }
-    this._mcpServers = [];
+    this._mcpClients = [];
 
-    // Initialize new servers
     for (const serverConfig of enabledServers) {
       try {
-        const mcpServer = new BrowserMCPServerStreamableHttp({
-          url: serverConfig.url,
-          name: serverConfig.name
+        const client = await createMCPClient({
+          transport: {
+            type: 'http',
+            url: serverConfig.url
+          }
         });
-        await mcpServer.connect();
-        this._mcpServers.push(mcpServer);
+
+        this._mcpClients.push({
+          name: serverConfig.name,
+          client
+        });
         connectionChanged = true;
       } catch (error) {
         console.warn(
@@ -123,7 +172,7 @@ export class AgentManagerFactory {
 
     // Emit connection change signal if there were any changes
     if (connectionChanged) {
-      this._mcpConnectionChanged.emit(this._mcpServers.length > 0);
+      this._mcpConnectionChanged.emit(this._mcpClients.length > 0);
     }
   }
 
@@ -138,11 +187,11 @@ export class AgentManagerFactory {
     this._isInitializing = true;
 
     try {
-      await this._initializeMCPServers();
-      const mcpServers = this._mcpServers.filter(server => server !== null);
+      await this._initializeMCPClients();
+      const mcpTools = await this.getMCPTools();
 
       this._agentManagers.forEach(manager => {
-        manager.initializeAgent(mcpServers);
+        manager.initializeAgent(mcpTools);
       });
     } catch (error) {
       console.warn('Failed to initialize agents:', error);
@@ -154,7 +203,7 @@ export class AgentManagerFactory {
   private _agentManagers: AgentManager[] = [];
   private _settingsModel: AISettingsModel;
   private _secretsManager?: ISecretsManager;
-  private _mcpServers: BrowserMCPServerStreamableHttp[];
+  private _mcpClients: IMCPClientWrapper[];
   private _mcpConnectionChanged: Signal<this, boolean>;
   private _isInitializing: boolean = false;
 }
@@ -192,19 +241,15 @@ export interface IAgentEventTypeMap {
     output: string;
     isError: boolean;
   };
-  tool_approval_required: {
-    interruptionId: string;
+  tool_approval_request: {
+    approvalId: string;
+    toolCallId: string;
     toolName: string;
-    toolInput: string;
-    callId?: string;
+    args: unknown;
   };
-  grouped_approval_required: {
-    groupId: string;
-    approvals: Array<{
-      interruptionId: string;
-      toolName: string;
-      toolInput: string;
-    }>;
+  tool_approval_resolved: {
+    approvalId: string;
+    approved: boolean;
   };
   error: {
     error: Error;
@@ -261,7 +306,7 @@ export interface IAgentManagerOptions {
 /**
  * Manages the AI agent lifecycle and execution loop.
  * Provides agent initialization, tool management, MCP server integration,
- * and handles the complete agent execution cycle including tool approvals.
+ * and handles the complete agent execution cycle.
  * Emits events for UI updates instead of directly manipulating the chat interface.
  */
 export class AgentManager {
@@ -276,13 +321,10 @@ export class AgentManager {
     this._secretsManager = options.secretsManager;
     this._selectedToolNames = [];
     this._agent = null;
-    this._runner = new Runner({ tracingDisabled: true });
     this._history = [];
-    this._mcpServers = [];
+    this._mcpTools = {};
     this._isInitializing = false;
     this._controller = null;
-    this._pendingApprovals = new Map();
-    this._interruptedState = null;
     this._agentEvent = new Signal<this, IAgentEvent>(this);
     this._tokenUsage = options.tokenUsage ?? {
       inputTokens: 0,
@@ -351,19 +393,19 @@ export class AgentManager {
   }
 
   /**
-   * Gets the currently selected tools as OpenAI agents tools.
-   * @returns Array of selected tools formatted for OpenAI agents
+   * Gets the currently selected tools as a record.
+   * @returns Record of selected tools
    */
-  get selectedAgentTools(): ITool[] {
+  get selectedAgentTools(): Record<string, ITool> {
     if (!this._toolRegistry) {
-      return [];
+      return {};
     }
 
-    const result: ITool[] = [];
+    const result: Record<string, ITool> = {};
     for (const name of this._selectedToolNames) {
       const tool: ITool | null = this._toolRegistry.get(name);
       if (tool) {
-        result.push(tool);
+        result[name] = tool;
       }
     }
 
@@ -401,14 +443,23 @@ export class AgentManager {
 
   /**
    * Clears conversation history and resets agent state.
-   * Removes all conversation history, pending approvals, and interrupted state.
    */
   clearHistory(): void {
-    this._history = [];
-    this._runner = new Runner({ tracingDisabled: true });
+    // Stop any ongoing streaming
+    this.stopStreaming();
+
+    // Reject any pending approvals
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, 'Chat cleared');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
     this._pendingApprovals.clear();
-    this._interruptedState = null;
-    // Reset token usage
+
+    // Clear history and token usage
+    this._history = [];
     this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
     this._tokenUsageChanged.emit(this._tokenUsage);
   }
@@ -421,12 +472,45 @@ export class AgentManager {
   }
 
   /**
+   * Approves a pending tool call.
+   * @param approvalId The approval ID to approve
+   * @param reason Optional reason for approval
+   */
+  approveToolCall(approvalId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(approvalId);
+    if (pending) {
+      pending.resolve(true, reason);
+      this._pendingApprovals.delete(approvalId);
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: true }
+      });
+    }
+  }
+
+  /**
+   * Rejects a pending tool call.
+   * @param approvalId The approval ID to reject
+   * @param reason Optional reason for rejection
+   */
+  rejectToolCall(approvalId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(approvalId);
+    if (pending) {
+      pending.resolve(false, reason);
+      this._pendingApprovals.delete(approvalId);
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+  }
+
+  /**
    * Generates AI response to user message using the agent.
-   * Handles the complete execution cycle including tool calls and approvals.
+   * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
   async generateResponse(message: string): Promise<void> {
-    const config = this._settingsModel.config;
     this._controller = new AbortController();
 
     try {
@@ -439,166 +523,80 @@ export class AgentManager {
         throw new Error('Failed to initialize agent');
       }
 
-      const shouldUseTools =
-        config.toolsEnabled &&
-        this._selectedToolNames.length > 0 &&
-        this._toolRegistry &&
-        Object.keys(this._toolRegistry.tools).length > 0 &&
-        this._supportsToolCalling();
-
       // Add user message to history
-      this._history.push(user(message));
-
-      // Get provider-specific maxTurns or use default
-      const activeProviderConfig = this._settingsModel.getProvider(
-        this._activeProvider
-      );
-      const maxTurns =
-        activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
-
-      // Main agentic loop
-      let result = await this._runner.run(this._agent, this._history, {
-        stream: true,
-        signal: this._controller.signal,
-        ...(shouldUseTools && { maxTurns })
+      this._history.push({
+        role: 'user',
+        content: message
       });
 
-      await this._processRunResult(result);
-
-      let hasInterruptions =
-        result.interruptions && result.interruptions.length > 0;
-
-      while (hasInterruptions) {
-        this._interruptedState = result;
-        const interruptions = result.interruptions!;
-
-        if (interruptions.length > 1) {
-          await this._handleGroupedToolApprovals(interruptions);
-        } else {
-          await this._handleSingleToolApproval(interruptions[0]);
-        }
-
-        // Wait for all approvals to be resolved
-        while (this._pendingApprovals.size > 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        // Continue execution
-        result = await this._runner.run(this._agent!, result.state, {
-          stream: true,
-          signal: this._controller.signal,
-          maxTurns
+      let continueLoop = true;
+      while (continueLoop) {
+        const result = await this._agent.stream({
+          messages: this._history,
+          abortSignal: this._controller.signal
         });
 
-        await this._processRunResult(result);
-        hasInterruptions =
-          result.interruptions && result.interruptions.length > 0;
-      }
+        const streamResult = await this._processStreamResult(result);
 
-      // Clear interrupted state
-      this._interruptedState = null;
-      this._history = result.history;
+        // Get response messages and update token usage
+        const responseMessages = await result.response;
+        this._updateTokenUsage(await result.usage);
+
+        // Add response messages to history
+        if (responseMessages.messages?.length) {
+          this._history.push(...responseMessages.messages);
+        }
+
+        // Add approval response if processed
+        if (streamResult.approvalResponse) {
+          // Check if the last message is a tool message we can append to
+          const lastMsg = this._history[this._history.length - 1];
+          if (
+            lastMsg &&
+            lastMsg.role === 'tool' &&
+            Array.isArray(lastMsg.content) &&
+            Array.isArray(streamResult.approvalResponse.content)
+          ) {
+            const toolContent = lastMsg.content as unknown[];
+            toolContent.push(...streamResult.approvalResponse.content);
+          } else {
+            // Add as separate message
+            this._history.push(streamResult.approvalResponse);
+          }
+        }
+
+        continueLoop = streamResult.approvalProcessed;
+      }
     } catch (error) {
-      this._agentEvent.emit({
-        type: 'error',
-        data: { error: error as Error }
-      });
+      if ((error as Error).name !== 'AbortError') {
+        this._agentEvent.emit({
+          type: 'error',
+          data: { error: error as Error }
+        });
+      }
     } finally {
       this._controller = null;
     }
   }
 
   /**
-   * Approves a tool call by interruption ID.
-   * @param interruptionId The interruption ID to approve
+   * Updates token usage statistics.
    */
-  async approveToolCall(interruptionId: string): Promise<void> {
-    const pending = this._pendingApprovals.get(interruptionId);
-    if (!pending) {
-      console.warn(
-        `No pending approval found for interruption ${interruptionId}`
-      );
-      return;
-    }
-
-    if (this._interruptedState) {
-      this._interruptedState.state.approve(pending.interruption);
-    }
-
-    pending.approved = true;
-    this._pendingApprovals.delete(interruptionId);
-  }
-
-  /**
-   * Rejects a tool call by interruption ID.
-   * @param interruptionId The interruption ID to reject
-   */
-  async rejectToolCall(interruptionId: string): Promise<void> {
-    const pending = this._pendingApprovals.get(interruptionId);
-    if (!pending) {
-      console.warn(
-        `No pending approval found for interruption ${interruptionId}`
-      );
-      return;
-    }
-
-    if (this._interruptedState) {
-      this._interruptedState.state.reject(pending.interruption);
-    }
-
-    pending.approved = false;
-    this._pendingApprovals.delete(interruptionId);
-  }
-
-  /**
-   * Approves all tools in a group by group ID.
-   * @param groupId The group ID containing the tool calls
-   * @param interruptionIds Array of interruption IDs to approve
-   */
-  async approveGroupedToolCalls(
-    groupId: string,
-    interruptionIds: string[]
-  ): Promise<void> {
-    for (const interruptionId of interruptionIds) {
-      const pending = this._pendingApprovals.get(interruptionId);
-      if (pending && pending.groupId === groupId) {
-        if (this._interruptedState) {
-          this._interruptedState.state.approve(pending.interruption);
-        }
-        pending.approved = true;
-        this._pendingApprovals.delete(interruptionId);
-      }
-    }
-  }
-
-  /**
-   * Rejects all tools in a group by group ID.
-   * @param groupId The group ID containing the tool calls
-   * @param interruptionIds Array of interruption IDs to reject
-   */
-  async rejectGroupedToolCalls(
-    groupId: string,
-    interruptionIds: string[]
-  ): Promise<void> {
-    for (const interruptionId of interruptionIds) {
-      const pending = this._pendingApprovals.get(interruptionId);
-      if (pending && pending.groupId === groupId) {
-        if (this._interruptedState) {
-          this._interruptedState.state.reject(pending.interruption);
-        }
-        pending.approved = false;
-        this._pendingApprovals.delete(interruptionId);
-      }
+  private _updateTokenUsage(
+    usage: { inputTokens?: number; outputTokens?: number } | undefined
+  ): void {
+    if (usage) {
+      this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
+      this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
+      this._tokenUsageChanged.emit(this._tokenUsage);
     }
   }
 
   /**
    * Initializes the AI agent with current settings and tools.
-   * Sets up the agent with model configuration, tools, and MCP servers.
+   * Sets up the agent with model configuration, tools, and MCP tools.
    */
-  initializeAgent = async (
-    mcpServers?: BrowserMCPServerStreamableHttp[]
-  ): Promise<void> => {
+  initializeAgent = async (mcpTools?: ToolMap): Promise<void> => {
     if (this._isInitializing) {
       return;
     }
@@ -606,8 +604,8 @@ export class AgentManager {
 
     try {
       const config = this._settingsModel.config;
-      if (mcpServers !== undefined) {
-        this._mcpServers = mcpServers;
+      if (mcpTools !== undefined) {
+        this._mcpTools = mcpTools;
       }
 
       const model = await this._createModel();
@@ -619,7 +617,9 @@ export class AgentManager {
         Object.keys(this._toolRegistry.tools).length > 0 &&
         this._supportsToolCalling();
 
-      const tools = shouldUseTools ? this.selectedAgentTools : [];
+      const tools = shouldUseTools
+        ? { ...this.selectedAgentTools, ...this._mcpTools }
+        : this._mcpTools;
 
       const activeProviderConfig = this._settingsModel.getProvider(
         this._activeProvider
@@ -627,22 +627,21 @@ export class AgentManager {
 
       const temperature =
         activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
-      const maxTokens = activeProviderConfig?.parameters?.maxTokens;
+      const maxTokens = activeProviderConfig?.parameters?.maxOutputTokens;
+      const maxTurns =
+        activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
-      this._agent = new Agent({
-        name: 'Assistant',
-        instructions: shouldUseTools
-          ? this._getEnhancedSystemPrompt(config.systemPrompt || '')
-          : config.systemPrompt || 'You are a helpful assistant.',
-        model: model,
-        mcpServers: this._mcpServers,
+      const instructions = shouldUseTools
+        ? this._getEnhancedSystemPrompt(config.systemPrompt || '')
+        : config.systemPrompt || 'You are a helpful assistant.';
+
+      this._agent = new ToolLoopAgent({
+        model,
+        instructions,
         tools,
-        ...(temperature && {
-          modelSettings: {
-            temperature,
-            maxTokens
-          }
-        })
+        temperature,
+        maxOutputTokens: maxTokens,
+        stopWhen: stepCountIs(maxTurns)
       });
     } catch (error) {
       console.warn('Failed to initialize agent:', error);
@@ -653,69 +652,166 @@ export class AgentManager {
   };
 
   /**
-   * Processes the result stream from agent execution.
+   * Processes the stream result from agent execution.
    * Handles message streaming, tool calls, and emits appropriate events.
-   * @param result The async iterable result from agent execution
+   * @param result The stream result from agent execution
+   * @returns Processing result including approval info if applicable
    */
-  private async _processRunResult(
-    result: StreamedRunResult<any, any>
-  ): Promise<void> {
+  private async _processStreamResult(
+    result: StreamTextResult<ToolMap, never>
+  ): Promise<IStreamProcessResult> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
+    const processResult: IStreamProcessResult = { approvalProcessed: false };
 
-    for await (const event of result) {
-      if (event.type === 'raw_model_stream_event') {
-        const data = event.data;
-
-        if (data.type === 'response_started') {
-          currentMessageId = `msg-${Date.now()}-${Math.random()}`;
-          fullResponse = '';
+    for await (const part of result.fullStream) {
+      switch (part.type) {
+        case 'text-delta':
+          if (!currentMessageId) {
+            currentMessageId = `msg-${Date.now()}-${Math.random()}`;
+            this._agentEvent.emit({
+              type: 'message_start',
+              data: { messageId: currentMessageId }
+            });
+          }
+          fullResponse += part.text;
           this._agentEvent.emit({
-            type: 'message_start',
-            data: { messageId: currentMessageId }
+            type: 'message_chunk',
+            data: {
+              messageId: currentMessageId,
+              chunk: part.text,
+              fullContent: fullResponse
+            }
           });
-        } else if (data.type === 'output_text_delta') {
-          if (currentMessageId) {
-            const chunk = data.delta || '';
-            fullResponse += chunk;
-            this._agentEvent.emit({
-              type: 'message_chunk',
-              data: {
-                messageId: currentMessageId,
-                chunk,
-                fullContent: fullResponse
-              }
-            });
-          }
-        } else if (data.type === 'response_done') {
-          if (currentMessageId) {
-            this._agentEvent.emit({
-              type: 'message_complete',
-              data: {
-                messageId: currentMessageId,
-                content: fullResponse
-              }
-            });
-            currentMessageId = null;
-          }
+          break;
 
-          const usage = data.response.usage;
-          const { inputTokens, outputTokens } = usage;
-          this._tokenUsage.inputTokens += inputTokens;
-          this._tokenUsage.outputTokens += outputTokens;
-          this._tokenUsageChanged.emit(this._tokenUsage);
-        } else if (data.type === 'model') {
-          const modelEvent = data.event as any;
-          if (modelEvent.type === 'tool-call') {
-            this._handleToolCallStart(modelEvent);
+        case 'tool-call':
+          // Complete current message before tool call
+          if (currentMessageId && fullResponse) {
+            this._emitMessageComplete(currentMessageId, fullResponse);
+            currentMessageId = null;
+            fullResponse = '';
           }
-        }
-      } else if (event.type === 'run_item_stream_event') {
-        if (event.name === 'tool_output') {
-          this._handleToolOutput(event);
-        }
+          this._agentEvent.emit({
+            type: 'tool_call_start',
+            data: {
+              callId: part.toolCallId,
+              toolName: part.toolName,
+              input: this._formatToolInput(JSON.stringify(part.input))
+            }
+          });
+          break;
+
+        case 'tool-result':
+          this._handleToolResult(part);
+          break;
+
+        case 'tool-approval-request':
+          // Complete current message before approval
+          if (currentMessageId && fullResponse) {
+            this._emitMessageComplete(currentMessageId, fullResponse);
+            currentMessageId = null;
+            fullResponse = '';
+          }
+          await this._handleApprovalRequest(part, processResult);
+          break;
+
+        // Ignore: text-start, text-end, finish, error, and others
+        default:
+          break;
       }
     }
+
+    // Complete final message if content remains
+    if (currentMessageId && fullResponse) {
+      this._emitMessageComplete(currentMessageId, fullResponse);
+    }
+
+    return processResult;
+  }
+
+  /**
+   * Emits a message_complete event.
+   */
+  private _emitMessageComplete(messageId: string, content: string): void {
+    this._agentEvent.emit({
+      type: 'message_complete',
+      data: { messageId, content }
+    });
+  }
+
+  /**
+   * Handles tool-result stream parts.
+   */
+  private _handleToolResult(part: TypedToolResult<ToolMap>): void {
+    const output =
+      typeof part.output === 'string'
+        ? part.output
+        : JSON.stringify(part.output, null, 2);
+    const isError =
+      typeof part.output === 'object' &&
+      part.output !== null &&
+      'success' in part.output &&
+      part.output.success === false;
+
+    this._agentEvent.emit({
+      type: 'tool_call_complete',
+      data: {
+        callId: part.toolCallId,
+        toolName: part.toolName,
+        output,
+        isError
+      }
+    });
+  }
+
+  /**
+   * Handles tool-approval-request stream parts.
+   */
+  private async _handleApprovalRequest(
+    part: ToolApprovalRequestOutput<ToolMap>,
+    result: IStreamProcessResult
+  ): Promise<void> {
+    const { approvalId, toolCall } = part;
+
+    this._agentEvent.emit({
+      type: 'tool_approval_request',
+      data: {
+        approvalId,
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        args: toolCall.input
+      }
+    });
+
+    const approved = await this._waitForApproval(approvalId);
+
+    result.approvalProcessed = true;
+    result.approvalResponse = {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId,
+          approved
+        }
+      ]
+    };
+  }
+
+  /**
+   * Waits for user approval of a tool call.
+   * @param approvalId The approval ID to wait for
+   * @returns Promise that resolves to true if approved, false if rejected
+   */
+  private _waitForApproval(approvalId: string): Promise<boolean> {
+    return new Promise(resolve => {
+      this._pendingApprovals.set(approvalId, {
+        resolve: (approved: boolean) => {
+          resolve(approved);
+        }
+      });
+    });
   }
 
   /**
@@ -725,124 +821,11 @@ export class AgentManager {
    */
   private _formatToolInput(input: string): string {
     try {
-      // Parse and re-stringify with formatting
       const parsed = JSON.parse(input);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      // If parsing fails, return the string as-is
       return input;
     }
-  }
-
-  /**
-   * Handles the start of a tool call from the model event.
-   * @param modelEvent The model event containing tool call information
-   */
-  private _handleToolCallStart(modelEvent: any): void {
-    const toolCallId = modelEvent.toolCallId;
-    const toolName = modelEvent.toolName;
-    const toolInput = modelEvent.input;
-
-    this._agentEvent.emit({
-      type: 'tool_call_start',
-      data: {
-        callId: toolCallId,
-        toolName,
-        input: this._formatToolInput(toolInput)
-      }
-    });
-  }
-
-  /**
-   * Handles tool execution output and completion.
-   * @param event The tool output event containing result information
-   */
-  private _handleToolOutput(event: any): void {
-    const toolEvent = event;
-    const toolCallOutput = toolEvent.item as RunToolCallOutputItem;
-    const callId = toolCallOutput.rawItem.callId;
-    const resultText =
-      typeof toolCallOutput.output === 'string'
-        ? toolCallOutput.output
-        : JSON.stringify(toolCallOutput.output, null, 2);
-
-    const isError =
-      toolCallOutput.rawItem.type === 'function_call_result' &&
-      toolCallOutput.rawItem.status === 'incomplete';
-
-    const toolName =
-      toolCallOutput.rawItem.type === 'function_call_result'
-        ? toolCallOutput.rawItem.name
-        : 'Unknown Tool';
-
-    this._agentEvent.emit({
-      type: 'tool_call_complete',
-      data: {
-        callId,
-        toolName,
-        output: resultText,
-        isError
-      }
-    });
-  }
-
-  /**
-   * Handles approval request for a single tool call.
-   * @param interruption The tool approval interruption item
-   */
-  private async _handleSingleToolApproval(
-    interruption: RunToolApprovalItem
-  ): Promise<void> {
-    const toolName = interruption.rawItem.name || 'Unknown Tool';
-    const toolInput = interruption.rawItem.arguments || '{}';
-    const interruptionId = `int-${Date.now()}-${Math.random()}`;
-    const callId =
-      interruption.rawItem.type === 'function_call'
-        ? interruption.rawItem.callId
-        : undefined;
-
-    this._pendingApprovals.set(interruptionId, { interruption });
-
-    this._agentEvent.emit({
-      type: 'tool_approval_required',
-      data: {
-        interruptionId,
-        toolName,
-        toolInput: this._formatToolInput(toolInput),
-        callId
-      }
-    });
-  }
-
-  /**
-   * Handles approval requests for multiple grouped tool calls.
-   * @param interruptions Array of tool approval interruption items
-   */
-  private async _handleGroupedToolApprovals(
-    interruptions: RunToolApprovalItem[]
-  ): Promise<void> {
-    const groupId = `group-${Date.now()}-${Math.random()}`;
-    const approvals = interruptions.map(interruption => {
-      const toolName = interruption.rawItem.name || 'Unknown Tool';
-      const toolInput = interruption.rawItem.arguments || '{}';
-      const interruptionId = `int-${Date.now()}-${Math.random()}`;
-
-      this._pendingApprovals.set(interruptionId, { interruption, groupId });
-
-      return {
-        interruptionId,
-        toolName,
-        toolInput: this._formatToolInput(toolInput)
-      };
-    });
-
-    this._agentEvent.emit({
-      type: 'grouped_approval_required',
-      data: {
-        groupId,
-        approvals
-      }
-    });
   }
 
   /**
@@ -955,22 +938,20 @@ TOOL SELECTION GUIDELINES:
   private _providerRegistry?: IProviderRegistry;
   private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
-  private _agent: Agent | null;
-  private _runner: Runner;
-  private _history: AgentInputItem[];
-  private _mcpServers: BrowserMCPServerStreamableHttp[];
+  private _agent: ToolLoopAgent<never, ToolMap> | null;
+  private _history: ModelMessage[];
+  private _mcpTools: ToolMap;
   private _isInitializing: boolean;
   private _controller: AbortController | null;
-  private _pendingApprovals: Map<
-    string,
-    { interruption: RunToolApprovalItem; approved?: boolean; groupId?: string }
-  >;
-  private _interruptedState: any;
   private _agentEvent: Signal<this, IAgentEvent>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
+  private _pendingApprovals: Map<
+    string,
+    { resolve: (approved: boolean, reason?: string) => void }
+  > = new Map();
 }
 
 namespace Private {

@@ -74,7 +74,7 @@
 /* Enhanced tool select menu styles */
 .jp-AIToolSelect-menu {
   max-width: 300px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z6);
   border: 1px solid var(--jp-border-color2);
 }
 
@@ -94,14 +94,14 @@
   border: 1px solid var(--jp-border-color1);
   border-radius: 6px;
   background: var(--jp-layout-color0);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  box-shadow: var(--jp-elevation-z2);
   transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .jp-ai-tool-call:hover {
   border-color: var(--jp-border-color2);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 /* Tool Header - clickable summary */
@@ -171,6 +171,11 @@
 .jp-ai-tool-status-error {
   background: rgb(var(--jp-error-color1-rgb) / 15%);
   color: var(--jp-error-color1);
+}
+
+.jp-ai-tool-status-approval {
+  background: rgb(var(--jp-warn-color1-rgb) / 15%);
+  color: var(--jp-warn-color1);
 }
 
 /* Tool Body */
@@ -251,40 +256,7 @@
   padding: 0 0.4em;
 }
 
-/* Tool Approval UI Styles */
-.jp-ai-tool-approval {
-  margin: 8px 0;
-  border: 2px solid var(--jp-warn-color1);
-  border-radius: 8px;
-  background: var(--jp-layout-color0);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
-  overflow: hidden;
-}
-
-.jp-ai-tool-approval-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: rgb(var(--jp-warn-color1-rgb) / 8%);
-  gap: 12px;
-}
-
-.jp-ai-tool-approval-header .jp-ai-tool-icon {
-  font-size: 16px;
-}
-
-.jp-ai-tool-approval-header .jp-ai-tool-title {
-  font-family: var(--jp-ui-font-family);
-  font-size: var(--jp-ui-font-size1);
-  font-weight: 600;
-  color: var(--jp-warn-color1);
-  flex: 1;
-}
-
-.jp-ai-tool-approval-body {
-  padding: 16px;
-}
-
+/* Tool Approval Button Styles */
 .jp-ai-tool-approval-buttons,
 .jp-ai-group-approval-buttons {
   display: flex;
@@ -308,61 +280,29 @@
 
 .jp-ai-approval-approve {
   background: var(--jp-success-color1);
-  color: white;
+  color: var(--jp-ui-inverse-font-color1);
 }
 
 .jp-ai-approval-approve:hover:not(:disabled) {
   background: var(--jp-success-color0);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 .jp-ai-approval-reject {
   background: var(--jp-error-color1);
-  color: white;
+  color: var(--jp-ui-inverse-font-color1);
 }
 
 .jp-ai-approval-reject:hover:not(:disabled) {
   background: var(--jp-error-color0);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  box-shadow: var(--jp-elevation-z4);
 }
 
 .jp-ai-approval-btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-/* Unified Approval Status Styles for both single and grouped tools */
-.jp-ai-approval-status,
-.jp-ai-group-approval-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-family: var(--jp-ui-font-family);
-  font-size: var(--jp-ui-font-size1);
-  font-weight: 500;
-}
-
-.jp-ai-approval-status-approved,
-.jp-ai-group-approval-status-approved {
-  background: rgb(var(--jp-success-color1-rgb) / 15%);
-  color: var(--jp-success-color1);
-  border: 1px solid rgb(var(--jp-success-color1-rgb) / 30%);
-}
-
-.jp-ai-approval-status-rejected,
-.jp-ai-group-approval-status-rejected {
-  background: rgb(var(--jp-error-color1-rgb) / 15%);
-  color: var(--jp-error-color1);
-  border: 1px solid rgb(var(--jp-error-color1-rgb) / 30%);
-}
-
-.jp-ai-approval-icon {
-  font-size: 16px;
 }
 
 .jp-MainAreaWidget
