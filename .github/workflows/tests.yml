@@ -28,7 +28,7 @@ jobs:
       - name: Install the extension
         run: |
           set -eux
-          pip install "jupyterlab>=4.5.0b0"
+          pip install "jupyterlab>=4.5.0"
           pip install -e ".[test]"
 
       - name: Install Ollama with a small model
