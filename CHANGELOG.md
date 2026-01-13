@@ -2,6 +2,37 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.10.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.1...9450039f30617e388071aef0427490e986e67329))
+
+### Enhancements made
+
+- Getting model from widget first than fallback to documentManager [#237](https://github.com/jupyterlite/ai/pull/237) ([@nakul-py](https://github.com/nakul-py), [@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update to AI SDK v6 [#245](https://github.com/jupyterlite/ai/pull/245) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Localize user facing strings [#238](https://github.com/jupyterlite/ai/pull/238) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Documentation improvements
+
+- Add favicon to the docs [#244](https://github.com/jupyterlite/ai/pull/244) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet), [@nakul-py](https://github.com/nakul-py))
+- Add docs to use the any-llm docker image without downloading source [#242](https://github.com/jupyterlite/ai/pull/242) ([@angpt](https://github.com/angpt), [@jtpio](https://github.com/jtpio))
+- Add documentation [#241](https://github.com/jupyterlite/ai/pull/241) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Document the any-llm gateway usage [#239](https://github.com/jupyterlite/ai/pull/239) ([@jtpio](https://github.com/jtpio), [@angpt](https://github.com/angpt), [@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-11-20&to=2026-01-13&type=c))
+
+@angpt ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Aangpt+updated%3A2025-11-20..2026-01-13&type=Issues)) | @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-11-20..2026-01-13&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-11-20..2026-01-13&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-11-20..2026-01-13&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.9.1
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.0...3a915f27824d2a4963abd22d3d6239c8da861907))
@@ -15,8 +46,6 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-11-17&to=2025-11-20&type=c))
 
 [@brichet](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-11-17..2025-11-20&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.0
 
