@@ -119,7 +119,6 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
 
   return (
     <>
-      {/* TODO: replace it with a TooltippedIconButton when the onClick is fixed */}
       <TooltippedButton
         onClick={e => {
           openMenu(e.currentTarget);
@@ -130,8 +129,9 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
           tools.length.toString()
         )}
         buttonProps={{
-          variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
-          color: 'primary',
+          ...(selectedToolNames.length === 0 && {
+            variant: 'outlined'
+          }),
           title: trans.__('Select AI Tools'),
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {

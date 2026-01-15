@@ -1,4 +1,4 @@
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { InputToolbarRegistry, TooltippedIconButton } from '@jupyter/chat';
 
 import type { TranslationBundle } from '@jupyterlab/translation';
 
@@ -30,18 +30,18 @@ export function StopButton(props: IStopButtonProps): JSX.Element {
   const { translator: trans } = props;
   const tooltip = trans.__('Stop streaming');
   return (
-    <TooltippedButton
+    <TooltippedIconButton
       onClick={props.stopStreaming}
       tooltip={tooltip}
       buttonProps={{
-        size: 'small',
-        variant: 'contained',
-        color: 'error',
         title: tooltip
+      }}
+      sx={{
+        backgroundColor: 'var(--mui-palette-error-main, #d32f2f);'
       }}
     >
       <StopIcon />
-    </TooltippedButton>
+    </TooltippedIconButton>
   );
 }
 

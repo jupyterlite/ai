@@ -1,4 +1,4 @@
-import { InputToolbarRegistry, TooltippedIconButton } from '@jupyter/chat';
+import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
 import type { TranslationBundle } from '@jupyterlab/translation';
 
@@ -30,15 +30,17 @@ export function ClearButton(props: IClearButtonProps): JSX.Element {
   const { translator: trans } = props;
   const tooltip = trans.__('Clear chat');
   return (
-    <TooltippedIconButton
+    <TooltippedButton
       onClick={props.clearMessages}
       tooltip={tooltip}
-      iconButtonProps={{
-        title: tooltip
+      buttonProps={{
+        title: tooltip,
+        variant: 'outlined',
+        color: 'secondary'
       }}
     >
       <ClearIcon />
-    </TooltippedIconButton>
+    </TooltippedButton>
   );
 }
 
