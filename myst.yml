@@ -22,6 +22,7 @@ project:
         - file: docs/ollama.md
         - file: docs/litellm.md
         - file: docs/any-llm-gateway.md
+        - file: docs/mcp-servers.md
     - file: docs/custom-providers.md
     - file: docs/api-keys.md
     - title: Development
