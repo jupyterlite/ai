@@ -31,10 +31,15 @@ jobs:
           pip install "jupyterlab>=4.5.0"
           pip install -e ".[test]"
 
-      - name: Install Ollama with a small model
-        uses: pydantic/ollama-action@v3
+      - name: Install Ollama with qwen2.5:0.5b model
+        uses: ai-action/ollama-action@v2
         with:
           model: qwen2.5:0.5b
+
+      - name: Install functiongemma model
+        uses: ai-action/ollama-action@v2
+        with:
+          model: functiongemma
 
       - name: Install tests dependencies
         working-directory: ui-tests
