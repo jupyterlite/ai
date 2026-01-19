@@ -5,7 +5,7 @@
 
 import { expect, galata, test } from '@jupyterlab/galata';
 import {
-  DEFAULT_MODEL_NAME,
+  QWEN_MODEL_NAME,
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
   TEST_PROVIDERS,
@@ -88,7 +88,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       // Check that the default chat has the name of the default model
       await expect(
         defaultChatTab.locator('.lm-AccordionPanel-titleLabel')
-      ).toContainText(DEFAULT_MODEL_NAME, { ignoreCase: true });
+      ).toContainText(QWEN_MODEL_NAME, { ignoreCase: true });
     });
 
     test('should have a model', async ({ page }) => {
@@ -194,10 +194,10 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await defaultChatTab.getByTitle('Move the chat to the main area').click();
       await expect(chatTabs).toHaveCount(0);
 
-      const mainAreaTab = await page.activity.getTabLocator(DEFAULT_MODEL_NAME);
+      const mainAreaTab = await page.activity.getTabLocator(QWEN_MODEL_NAME);
       await expect(mainAreaTab).toHaveCount(1);
       const mainAreaPanel =
-        await page.activity.getPanelLocator(DEFAULT_MODEL_NAME);
+        await page.activity.getPanelLocator(QWEN_MODEL_NAME);
       await mainAreaPanel
         ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
         .click();
