@@ -27,7 +27,7 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
         provider: 'generic',
         model: 'functiongemma',
         baseURL: 'http://localhost:11434/v1'
-      },
+      }
     ],
     showTokenUsage: false,
     toolsEnabled: false,
