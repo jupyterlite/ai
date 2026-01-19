@@ -32,7 +32,7 @@ jobs:
           pip install -e ".[test]"
 
       - name: Install Ollama with qwen2.5:0.5b model
-        uses: ai-action/ollama-action@v2
+        uses: ai-action/ollama-action@be18a6c5c9977cc0510d1d705edd02d574269c93
         with:
           model: qwen2.5:0.5b
 
