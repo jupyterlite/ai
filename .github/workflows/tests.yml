@@ -32,12 +32,12 @@ jobs:
           pip install -e ".[test]"
 
       - name: Install Ollama with qwen2.5:0.5b model
-        uses: ai-action/ollama-action@be18a6c5c9977cc0510d1d705edd02d574269c93
+        uses: pydantic/ollama-action@46b8bf0ffbd125a5f7465b37d9e4a6103729e388
         with:
           model: qwen2.5:0.5b
 
       - name: Install functiongemma model
-        uses: ai-action/ollama-action@v2
+        uses: pydantic/ollama-action@46b8bf0ffbd125a5f7465b37d9e4a6103729e388
         with:
           model: functiongemma
 
