@@ -35,11 +35,13 @@ jobs:
         uses: pydantic/ollama-action@46b8bf0ffbd125a5f7465b37d9e4a6103729e388
         with:
           model: qwen2.5:0.5b
+          cache-key: 2026-01-20
 
       - name: Install functiongemma model
         uses: pydantic/ollama-action@46b8bf0ffbd125a5f7465b37d9e4a6103729e388
         with:
           model: functiongemma
+          cache-key: 2026-01-20
 
       - name: Install tests dependencies
         working-directory: ui-tests
