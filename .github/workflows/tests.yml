@@ -37,7 +37,7 @@ jobs:
       - run: ollama --version
         shell: bash
 
-      - name: Cache model
+      - name: Cache Ollama models
         id: cache-ollama-models
         uses: actions/cache@v5
         with:
@@ -45,7 +45,7 @@ jobs:
           key: ollama-cache-2026-01-20
 
       - name: Install qwen2.5:0.5b and functiongemma model
-        if: steps.cache-ollama-model.outputs.cache-hit != 'true'
+        if: ${{ steps.cache-ollama-models.outputs.cache-hit != 'true' }}
         run: |
           ollama pull qwen2.5:0.5b
           ollama pull functiongemma
