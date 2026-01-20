@@ -17,7 +17,9 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .string()
         .optional()
         .nullable()
-        .describe('Optional search query to filter commands')
+        .describe(
+          "Optional search query to filter commands. It doesn't need to be provided to list all commands"
+        )
     }),
     execute: async (input: { query?: string | null }) => {
       const { query } = input;

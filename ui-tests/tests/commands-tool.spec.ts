@@ -19,6 +19,7 @@ test.use({
     '@jupyterlite/ai:settings-model': {
       ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
       toolsEnabled: true,
+      defaultProvider: 'generic-functiongemma',
       // To nudge the model to call the tool with specific parameters
       systemPrompt:
         'When asked to discover commands, call the discover_commands tool with the exact query parameter provided in the user message. Always use the query parameter exactly as specified.'
@@ -91,7 +92,7 @@ test.describe('#commandsTool', () => {
 
     // Prompt without specifying a query parameter
     const PROMPT =
-      'Use the discover_commands tool without any query parameter to list all available commands';
+      'Use the discover_commands tool to list all available commands. The query parameter should not be provided.';
 
     await input.pressSequentially(PROMPT);
     await sendButton.click();
