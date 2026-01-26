@@ -90,9 +90,11 @@ export function createExecuteCommandTool(
     inputSchema: z.object({
       commandId: z.string().describe('The ID of the command to execute'),
       args: z
-        .any()
+        .record(z.string(), z.unknown())
         .optional()
-        .describe('Optional arguments to pass to the command')
+        .describe(
+          'Optional arguments object to pass to the command (must be an object, not a string)'
+        )
     }),
     needsApproval: (input: { commandId: string; args?: any }) => {
       const commandsRequiringApproval =
