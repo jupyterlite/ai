@@ -916,17 +916,24 @@ Guidelines:
 - End with a brief summary of accomplishments
 - Use natural, conversational tone throughout
 
-COMMAND DISCOVERY:
-- When you want to execute JupyterLab commands, ALWAYS use the 'discover_commands' tool first to find available commands and their metadata, with the optional query parameter.
-- The query should typically be a single word, e.g., 'terminal', 'notebook', 'cell', 'file', 'edit', 'view', 'run', etc, to find relevant commands.
-- If searching with a query does not yield the desired command, try again with a different query or use an empty query to list all commands.
-- This ensures you have complete information about command IDs, descriptions, and required arguments before attempting to execute them. Only after discovering the available commands should you use the 'execute_command' tool with the correct command ID and arguments.
+PRIMARY TOOL USAGE - COMMAND-BASED OPERATIONS:
+Most operations in JupyterLab should be performed using the command system:
+1. Use 'discover_commands' to find available commands and their metadata
+2. Use 'execute_command' to perform the actual operation
 
-TOOL SELECTION GUIDELINES:
-- For file operations (create, read, write, modify files and directories): Use dedicated file manipulation tools
-- For general JupyterLab UI interactions (opening panels, running commands, navigating interface): Use the general command tool (execute_command)
-- Examples of file operations: Creating notebooks, editing code files, managing project structure
-- Examples of UI interactions: Opening terminal, switching tabs, running notebook cells, accessing menus
+COMMAND DISCOVERY WORKFLOW:
+- For file and notebook operations, use query 'jupyterlab-ai-commands' to discover the curated set of AI commands (~17 commands for file/notebook/directory operations)
+- For other JupyterLab operations (terminal, launcher, UI), use specific keywords like 'terminal', 'launcher', etc.
+- IMPORTANT: Always use 'jupyterlab-ai-commands' as the query for file/notebook tasks - this returns a focused set of commands instead of 100+ generic JupyterLab commands
+
+KERNEL PREFERENCE FOR NOTEBOOKS AND CONSOLES:
+When creating notebooks or consoles for a specific programming language, use the 'kernelPreference' argument to specify the kernel:
+- To specify by language: { "kernelPreference": { "language": "python" } } or { "kernelPreference": { "language": "julia" } }
+- To specify by kernel name: { "kernelPreference": { "name": "python3" } } or { "kernelPreference": { "name": "julia-1.10" } }
+- Example: execute_command with commandId="notebook:create-new" and args={ "kernelPreference": { "language": "python" } }
+- Example: execute_command with commandId="console:create" and args={ "kernelPreference": { "name": "python3" } }
+- Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpython" (xeus-python)
+- If unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
 `;
 
     return baseSystemPrompt + progressReportingPrompt;

@@ -90,9 +90,11 @@ export function createExecuteCommandTool(
     inputSchema: z.object({
       commandId: z.string().describe('The ID of the command to execute'),
       args: z
-        .any()
+        .record(z.string(), z.unknown())
         .optional()
-        .describe('Optional arguments to pass to the command')
+        .describe(
+          'Optional arguments object to pass to the command (must be an object, not a string)'
+        )
     }),
     needsApproval: (input: { commandId: string; args?: any }) => {
       const commandsRequiringApproval =
@@ -113,18 +115,12 @@ export function createExecuteCommandTool(
       // Execute the command
       const result = await commands.execute(commandId, args);
 
-      // Handle Widget objects specially (including subclasses like DocumentWidget)
+      // Handle Widget objects specially by extracting id and title
       let serializedResult;
-      if (
-        result &&
-        typeof result === 'object' &&
-        (result.constructor?.name?.includes('Widget') || result.id)
-      ) {
+      if (result && typeof result === 'object' && result.id) {
         serializedResult = {
-          type: result.constructor?.name || 'Widget',
           id: result.id,
-          title: result.title?.label || result.title,
-          className: result.className
+          title: result.title?.label || result.title
         };
       } else {
         // For other objects, try JSON serialization with fallback
