@@ -2,6 +2,43 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.11.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.10.0...01f95fe0e23d1db71262d9bd0288e11cbfbc8dde))
+
+### Enhancements made
+
+- Switch to `jupyterlab-ai-commands` [#219](https://github.com/jupyterlite/ai/pull/219) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Update system prompt to support more languages [#255](https://github.com/jupyterlite/ai/pull/255) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet), [@nakul-py](https://github.com/nakul-py))
+
+### Maintenance and upkeep improvements
+
+- Bump `jupyterlab-ai-commands` [#257](https://github.com/jupyterlite/ai/pull/257) ([@jtpio](https://github.com/jtpio))
+- Export the Jupyternaut icon [#256](https://github.com/jupyterlite/ai/pull/256) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Update AI SDK dependencies [#251](https://github.com/jupyterlite/ai/pull/251) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Use the functiongemma model for tool call tests [#250](https://github.com/jupyterlite/ai/pull/250) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio), [@nakul-py](https://github.com/nakul-py))
+- Configure artifact retention for GitHub Pages demo [#249](https://github.com/jupyterlite/ai/pull/249) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Align deps on stable releases [#247](https://github.com/jupyterlite/ai/pull/247) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Using the chat with new UI/UX [#218](https://github.com/jupyterlite/ai/pull/218) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Documentation improvements
+
+- Document remote MCP servers [#248](https://github.com/jupyterlite/ai/pull/248) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-01-13&to=2026-01-27&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-01-13..2026-01-27&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-01-13..2026-01-27&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2026-01-13..2026-01-27&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.10.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.9.1...9450039f30617e388071aef0427490e986e67329))
@@ -30,8 +67,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2025-11-20&to=2026-01-13&type=c))
 
 @angpt ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Aangpt+updated%3A2025-11-20..2026-01-13&type=Issues)) | @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2025-11-20..2026-01-13&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2025-11-20..2026-01-13&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2025-11-20..2026-01-13&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.9.1
 
