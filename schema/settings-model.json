@@ -155,7 +155,8 @@
         "fileeditor:run-code",
         "kernelmenu:run",
         "kernelmenu:restart-and-run-all",
-        "runmenu:run-all"
+        "runmenu:run-all",
+        "jupyterlab-ai-commands:run-cell"
       ]
     },
     "systemPrompt": {

@@ -91,7 +91,8 @@ export class AISettingsModel extends VDomModel {
       'fileeditor:run-code',
       'kernelmenu:run',
       'kernelmenu:restart-and-run-all',
-      'runmenu:run-all'
+      'runmenu:run-all',
+      'jupyterlab-ai-commands:run-cell'
     ],
     systemPrompt: `You are Jupyternaut, an AI coding assistant built specifically for the JupyterLab environment.
 
