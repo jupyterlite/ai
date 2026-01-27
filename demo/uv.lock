@@ -863,14 +863,14 @@ wheels = [
 
 [[package]]
 name = "jupyterlab-ai-commands"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jupyterlab-diff" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/af/babccac542be60e65156e7a48acd7f0b8200daa60194f72842baf6216af6/jupyterlab_ai_commands-0.2.0.tar.gz", hash = "sha256:3dec4943ab7a479221666871ad9781c9a7a2eb22bf123580f1a722b3f4236260", size = 109370, upload-time = "2026-01-26T19:48:35.589Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/49/d1cc81b8c1aee622c4ec0cee9cbb2c6ff2d5f1f5bbf247d08ca71b745bd5/jupyterlab_ai_commands-0.2.1.tar.gz", hash = "sha256:fce7195bf84607b380585b2fedeba0f5b3aa18d97454e341820ef0de556c2675", size = 110949, upload-time = "2026-01-27T20:31:07.552Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/aa/3510067cacb6a0d3eb7ff9d4aaa3ac68e409013f1190fb6f946f90b86dff/jupyterlab_ai_commands-0.2.0-py3-none-any.whl", hash = "sha256:fc7861c50272624483186870bc3dc4c34a8d63b597dd0803da0046d0975690c4", size = 26062, upload-time = "2026-01-26T19:48:34.112Z" },
+    { url = "https://files.pythonhosted.org/packages/70/6c/0bc89bc6ec3613fbcb80b25d38fe370a262ec4070c77968e5eee3ef3f8d3/jupyterlab_ai_commands-0.2.1-py3-none-any.whl", hash = "sha256:c094732b6780dec63098a9f3a708848ee30a7d5ec71cee0b85d36a02767d7edd", size = 26481, upload-time = "2026-01-27T20:31:05.685Z" },
 ]
 
 [[package]]
@@ -975,7 +975,7 @@ requires-dist = [
     { name = "jupyter-book", marker = "extra == 'docs'" },
     { name = "jupyter-secrets-manager", specifier = ">=0.4,<0.5" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
-    { name = "jupyterlab-ai-commands", specifier = ">=0.2.0,<0.3" },
+    { name = "jupyterlab-ai-commands", specifier = ">=0.2.1,<0.3" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.6.0" },
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.4.0" },
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
