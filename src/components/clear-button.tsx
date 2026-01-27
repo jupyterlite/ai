@@ -34,10 +34,9 @@ export function ClearButton(props: IClearButtonProps): JSX.Element {
       onClick={props.clearMessages}
       tooltip={tooltip}
       buttonProps={{
-        size: 'small',
+        title: tooltip,
         variant: 'outlined',
-        color: 'secondary',
-        title: tooltip
+        color: 'secondary'
       }}
     >
       <ClearIcon />

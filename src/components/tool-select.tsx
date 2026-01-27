@@ -129,9 +129,9 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
           tools.length.toString()
         )}
         buttonProps={{
-          size: 'small',
-          variant: selectedToolNames.length > 0 ? 'contained' : 'outlined',
-          color: 'primary',
+          ...(selectedToolNames.length === 0 && {
+            variant: 'outlined'
+          }),
           title: trans.__('Select AI Tools'),
           onKeyDown: e => {
             if (e.key !== 'Enter' && e.key !== ' ') {
@@ -148,7 +148,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
             : {}
         }
       >
-        <BuildIcon />
+        <BuildIcon sx={{ fontSize: 'small' }} />
       </TooltippedButton>
 
       <Menu
