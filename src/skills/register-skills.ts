@@ -21,12 +21,10 @@ export function registerSkillCommands(
   skills: ISkillDefinition[],
   contentsManager: Contents.IManager
 ): IDisposable[] {
-  const disposables: IDisposable[] = [];
-
-  for (const skill of skills) {
+  return skills.map(skill => {
     const commandId = `skills:${skill.name}`;
 
-    const disposable = commands.addCommand(commandId, {
+    return commands.addCommand(commandId, {
       label: skill.name,
       caption: skill.description,
       usage: `Agent skill: ${skill.description}`,
@@ -70,9 +68,5 @@ export function registerSkillCommands(
         };
       }
     });
-
-    disposables.push(disposable);
-  }
-
-  return disposables;
+  });
 }

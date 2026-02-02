@@ -969,8 +969,11 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
       );
     };
 
-    // Load on activation
-    await loadAndRegister();
+    // Load on activation (fire-and-forget to avoid blocking startup
+    // if the skills directory does not exist)
+    loadAndRegister().catch(error =>
+      console.warn('Failed to load skills on activation:', error)
+    );
 
     // Reload on settings change
     settingsModel.stateChanged.connect(() => {

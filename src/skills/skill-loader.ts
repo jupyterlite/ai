@@ -26,15 +26,26 @@ export async function loadSkills(
 ): Promise<ISkillDefinition[]> {
   const skills: ISkillDefinition[] = [];
 
-  let dirModel: Contents.IModel;
-  try {
-    dirModel = await contentsManager.get(skillsPath, { content: true });
-  } catch (error) {
-    // Directory doesn't exist — that's fine, no skills to load
-    console.debug(`Skills directory "${skillsPath}" not found, skipping.`);
-    return skills;
+  // Walk each path segment from root to verify the directory exists before
+  // fetching it. Directly requesting a missing path causes a server-side 404
+  // that can crash the Jupyter server in some environments (tornado bug).
+  const segments = skillsPath.split('/').filter(s => s.length > 0);
+  let currentPath = '';
+  for (const segment of segments) {
+    let listing: Contents.IModel;
+    try {
+      listing = await contentsManager.get(currentPath, { content: true });
+    } catch {
+      return skills;
+    }
+    const children = (listing.content ?? []) as Contents.IModel[];
+    if (!children.some(c => c.type === 'directory' && c.name === segment)) {
+      return skills;
+    }
+    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
   }
 
+  const dirModel = await contentsManager.get(skillsPath, { content: true });
   if (dirModel.type !== 'directory' || !dirModel.content) {
     return skills;
   }
@@ -44,25 +55,28 @@ export async function loadSkills(
       continue;
     }
 
-    try {
-      const skillMdPath = `${child.path}/SKILL.md`;
-      const fileModel = await contentsManager.get(skillMdPath, {
-        content: true
-      });
-
-      if (typeof fileModel.content !== 'string') {
-        console.warn(`Skipping ${skillMdPath}: content is not a string`);
-        continue;
-      }
-
-      const parsed = parseSkillMd(fileModel.content);
-      skills.push({
-        ...parsed,
-        path: child.path
-      });
-    } catch (error) {
-      console.warn(`Failed to load skill from "${child.path}":`, error);
+    // List the subdirectory to check if SKILL.md exists before requesting it
+    const subDir = await contentsManager.get(child.path, { content: true });
+    const subChildren = (subDir.content ?? []) as Contents.IModel[];
+    if (!subChildren.some(f => f.type === 'file' && f.name === 'SKILL.md')) {
+      continue;
     }
+
+    const skillMdPath = `${child.path}/SKILL.md`;
+    const fileModel = await contentsManager.get(skillMdPath, {
+      content: true
+    });
+
+    if (typeof fileModel.content !== 'string') {
+      console.warn(`Skipping ${skillMdPath}: content is not a string`);
+      continue;
+    }
+
+    const parsed = parseSkillMd(fileModel.content);
+    skills.push({
+      ...parsed,
+      path: child.path
+    });
   }
 
   return skills;
