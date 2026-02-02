@@ -191,7 +191,7 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
   description: 'Registry for the current chat model',
   autoStart: true,
   requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
-  optional: [IProviderRegistry, INotebookTracker, IToolRegistry, ITranslator],
+  optional: [IProviderRegistry, IToolRegistry, ITranslator],
   provides: IChatModelRegistry,
   activate: (
     app: JupyterFrontEnd,
@@ -199,22 +199,12 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
     agentManagerFactory: AgentManagerFactory,
     docManager: IDocumentManager,
     providerRegistry?: IProviderRegistry,
-    notebookTracker?: INotebookTracker,
     toolRegistry?: IToolRegistry,
     translator?: ITranslator
   ): IChatModelRegistry => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
-    // Create ActiveCellManager if notebook tracker is available
-    let activeCellManager: ActiveCellManager | undefined;
-    if (notebookTracker) {
-      activeCellManager = new ActiveCellManager({
-        tracker: notebookTracker,
-        shell: app.shell
-      });
-    }
     return new ChatModelRegistry({
-      activeCellManager,
       settingsModel,
       agentManagerFactory,
       docManager,
@@ -238,7 +228,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IChatModelRegistry,
     IAISettingsModel
   ],
-  optional: [IThemeManager, ILayoutRestorer, ILabShell, ITranslator],
+  optional: [
+    IThemeManager,
+    ILayoutRestorer,
+    ILabShell,
+    INotebookTracker,
+    ITranslator
+  ],
   activate: (
     app: JupyterFrontEnd,
     rmRegistry: IRenderMimeRegistry,
@@ -248,6 +244,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
+    notebookTracker?: INotebookTracker,
     translator?: ITranslator
   ): void => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
@@ -260,6 +257,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
     attachmentOpenerRegistry.set('notebook', attachment => {
       app.commands.execute('docmanager:open', { path: attachment.value });
     });
+
+    // Create ActiveCellManager if notebook tracker is available, and add it to the
+    // model registry.
+    let activeCellManager: ActiveCellManager | undefined;
+    if (notebookTracker) {
+      activeCellManager = new ActiveCellManager({
+        tracker: notebookTracker,
+        shell: app.shell
+      });
+    }
+    modelRegistry.activeCellManager = activeCellManager;
 
     // Create chat panel with drag/drop functionality
     const chatPanel = new MultiChatPanel({

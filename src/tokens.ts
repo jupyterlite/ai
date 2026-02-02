@@ -1,3 +1,4 @@
+import { ActiveCellManager } from '@jupyter/chat';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel } from 'ai';
@@ -249,6 +250,7 @@ export interface IChatModelRegistry {
     activeProvider?: string,
     tokenUsage?: ITokenUsage
   ): AIChatModel;
+  activeCellManager: ActiveCellManager | undefined;
 }
 
 export const IChatModelRegistry = new Token<IChatModelRegistry>(

@@ -75,6 +75,9 @@ export class ChatModelRegistry implements IChatModelRegistry {
   add(model: AIChatModel): void {
     if (!this._models.find(m => m.name === model.name)) {
       this._models.push(model);
+      model.disposed.connect(() => {
+        this.remove(model.name);
+      });
     }
   }
 
@@ -91,6 +94,16 @@ export class ChatModelRegistry implements IChatModelRegistry {
     if (index !== -1) {
       this._models.splice(index, 1);
     }
+  }
+
+  /**
+   * Getter/setter for the active cell manager.
+   */
+  get activeCellManager(): ActiveCellManager | undefined {
+    return this._activeCellManager;
+  }
+  set activeCellManager(manager: ActiveCellManager | undefined) {
+    this._activeCellManager = manager;
   }
 
   private _models: AIChatModel[] = [];
@@ -128,7 +141,7 @@ export namespace ChatModelRegistry {
     /**
      * The active cell manager.
      */
-    activeCellManager: ActiveCellManager | undefined;
+    activeCellManager?: ActiveCellManager | undefined;
     /**
      * The application language translation bundle.
      */
