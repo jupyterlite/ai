@@ -1,0 +1,130 @@
+# Agent Skills
+
+JupyterLite AI supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
+
+Skills let you teach the AI agent new behaviors — like how to perform data analysis, write code reviews, or follow team conventions — by placing markdown files in your workspace. The agent discovers and activates skills automatically when they are relevant to a task.
+
+## How it works
+
+Skills follow the [agentskills.io specification](https://agentskills.io/specification). Each skill is a directory containing a `SKILL.md` file with YAML frontmatter (metadata) and a markdown body (instructions).
+
+The AI agent uses **progressive disclosure** to work with skills efficiently:
+
+1. **Discovery**: The agent calls `discover_commands` with query `"skills"` to see a list of available skills with short descriptions (~100 tokens each).
+2. **Activation**: When a skill is relevant, the agent executes the corresponding `skills:<name>` command to load the full instructions.
+3. **Execution**: The agent follows the loaded instructions to complete the task.
+
+Skills are registered as JupyterLab commands with a `skills:` prefix. No additional tools or UI are needed — the agent discovers and uses skills through the existing command system.
+
+## Creating a skill
+
+### Directory structure
+
+Place skills in the `.jupyter/skills/` directory at the root of your JupyterLab workspace:
+
+```
+.jupyter/
+  skills/
+    data-analysis/
+      SKILL.md
+      references/
+        REFERENCE.md
+      scripts/
+        analyze.py
+    code-review/
+      SKILL.md
+```
+
+Each skill lives in its own subdirectory. Only the top-level subdirectories of the skills directory are scanned — nested subdirectories are not traversed for additional skills.
+
+### SKILL.md format
+
+Every skill directory must contain a `SKILL.md` file with YAML frontmatter:
+
+```markdown
+---
+name: data-analysis
+description: Analyze datasets using pandas, generate summary statistics, and create visualizations.
+---
+
+## Instructions
+
+When the user asks you to analyze data:
+
+1. Load the dataset using pandas
+2. Generate summary statistics with `df.describe()`
+3. Identify missing values and data types
+4. Create relevant visualizations using matplotlib
+5. Provide a written summary of findings
+
+## Guidelines
+
+- Always show your code in notebook cells
+- Use clear, descriptive variable names
+- Add comments explaining each analysis step
+```
+
+The frontmatter fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | A short identifier for the skill (used in the command ID `skills:<name>`) |
+| `description` | Yes | A brief description of what the skill does and when to use it |
+
+The markdown body after the closing `---` is the full instructions content that the agent loads when it activates the skill.
+
+### Resource files
+
+Skills can include additional files (references, scripts, templates) alongside `SKILL.md`. The agent can access these by executing the skill command with a `resource` argument:
+
+```
+execute_command({ commandId: "skills:data-analysis", args: { resource: "references/REFERENCE.md" } })
+```
+
+This reads the file at `.jupyter/skills/data-analysis/references/REFERENCE.md` and returns its content.
+
+## Configuring the skills directory
+
+By default, skills are loaded from `.jupyter/skills` relative to the server root. You can change this path in the JupyterLite AI settings:
+
+1. Open **Settings** > **Settings Editor**
+2. Search for **JupyterLite AI**
+3. Change the **Skills Path** setting to your preferred directory
+
+This is useful if you keep skills in a different location, such as `.claude/skills/` for compatibility with Claude Code.
+
+## Providing skills from a JupyterLab extension
+
+In addition to loading skills from the filesystem, JupyterLab extensions can register skills programmatically. The only convention required is the `skills:` command prefix. Any extension can call `app.commands.addCommand` to register a skill command:
+
+```typescript
+app.commands.addCommand('skills:my-custom-skill', {
+  label: 'my-custom-skill',
+  caption: 'Description of what this skill does.',
+  usage: 'Agent skill: Description of what this skill does.',
+  describedBy: {
+    args: {
+      type: 'object',
+      properties: {
+        resource: {
+          type: 'string',
+          description: 'Optional path to a resource file'
+        }
+      }
+    }
+  },
+  execute: async (args: any) => {
+    return {
+      name: 'my-custom-skill',
+      description: 'Description of what this skill does.',
+      instructions: 'Full instructions for the agent...'
+    };
+  }
+});
+```
+
+This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
+
+## Compatibility
+
+Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for JupyterLite AI can also be used with other compatible agents, and vice versa.
