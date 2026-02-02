@@ -66,10 +66,10 @@ When the user asks you to analyze data:
 
 The frontmatter fields:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | A short identifier for the skill (used in the command ID `skills:<name>`) |
-| `description` | Yes | A brief description of what the skill does and when to use it |
+| Field         | Required | Description                                                               |
+| ------------- | -------- | ------------------------------------------------------------------------- |
+| `name`        | Yes      | A short identifier for the skill (used in the command ID `skills:<name>`) |
+| `description` | Yes      | A brief description of what the skill does and when to use it             |
 
 The markdown body after the closing `---` is the full instructions content that the agent loads when it activates the skill.
 
