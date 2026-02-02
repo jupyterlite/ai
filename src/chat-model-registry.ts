@@ -93,6 +93,16 @@ export class ChatModelRegistry implements IChatModelRegistry {
     }
   }
 
+  /**
+   * Getter/setter for the active cell manager.
+   */
+  get activeCellManager(): ActiveCellManager | undefined {
+    return this._activeCellManager;
+  }
+  set activeCellManager(manager: ActiveCellManager | undefined) {
+    this._activeCellManager = manager;
+  }
+
   private _models: AIChatModel[] = [];
   private _docManager: IDocumentManager;
   private _agentManagerFactory: AgentManagerFactory;
@@ -128,7 +138,7 @@ export namespace ChatModelRegistry {
     /**
      * The active cell manager.
      */
-    activeCellManager: ActiveCellManager | undefined;
+    activeCellManager?: ActiveCellManager | undefined;
     /**
      * The application language translation bundle.
      */
