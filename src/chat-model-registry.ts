@@ -75,6 +75,9 @@ export class ChatModelRegistry implements IChatModelRegistry {
   add(model: AIChatModel): void {
     if (!this._models.find(m => m.name === model.name)) {
       this._models.push(model);
+      model.disposed.connect(() => {
+        this.remove(model.name);
+      });
     }
   }
 
