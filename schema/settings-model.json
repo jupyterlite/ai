@@ -189,6 +189,12 @@
       "type": "string",
       "enum": ["split", "unified"],
       "default": "split"
+    },
+    "skillsPath": {
+      "title": "Skills Path",
+      "description": "Path to the directory containing agent skills, relative to the server root.",
+      "type": "string",
+      "default": ".jupyter/skills"
     }
   },
   "additionalProperties": false

@@ -52,6 +52,8 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
 
+import { IDisposable } from '@lumino/disposable';
+
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
@@ -95,6 +97,8 @@ import {
 } from './components';
 
 import { AISettingsModel } from './models/settings-model';
+
+import { loadSkills, registerSkillCommands } from './skills';
 
 import { DiffManager } from './diff-manager';
 
@@ -936,6 +940,47 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Skills plugin: discovers and registers agent skills from the filesystem.
+ */
+const skillsPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:skills',
+  description: 'Discover and register agent skills from the filesystem',
+  autoStart: true,
+  requires: [IAISettingsModel, IDocumentManager],
+  activate: async (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    docManager: IDocumentManager
+  ) => {
+    let disposables: IDisposable[] = [];
+
+    const loadAndRegister = async () => {
+      // Dispose previous commands
+      disposables.forEach(d => d.dispose());
+      disposables = [];
+
+      const skillsPath = settingsModel.config.skillsPath;
+      const skills = await loadSkills(docManager.services.contents, skillsPath);
+      disposables = registerSkillCommands(
+        app.commands,
+        skills,
+        docManager.services.contents
+      );
+    };
+
+    // Load on activation
+    await loadAndRegister();
+
+    // Reload on settings change
+    settingsModel.stateChanged.connect(() => {
+      loadAndRegister().catch(error =>
+        console.warn('Failed to reload skills:', error)
+      );
+    });
+  }
+};
+
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
@@ -952,7 +997,8 @@ export default [
   toolRegistry,
   agentManagerFactory,
   inputToolbarFactory,
-  completionStatus
+  completionStatus,
+  skillsPlugin
 ];
 
 // Export extension points for other extensions to use

@@ -60,6 +60,8 @@ export interface IAIConfig {
   showCellDiff: boolean;
   showFileDiff: boolean;
   diffDisplayMode: 'split' | 'unified';
+  // Path to the directory containing agent skills
+  skillsPath: string;
 }
 
 export class AISettingsModel extends VDomModel {
@@ -78,6 +80,7 @@ export class AISettingsModel extends VDomModel {
     showCellDiff: true,
     showFileDiff: true,
     diffDisplayMode: 'split',
+    skillsPath: '.jupyter/skills',
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',

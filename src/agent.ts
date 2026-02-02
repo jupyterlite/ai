@@ -936,7 +936,15 @@ When creating notebooks or consoles for a specific programming language, use the
 - If unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
 `;
 
-    return baseSystemPrompt + progressReportingPrompt;
+    const skillsPrompt = `
+
+AGENT SKILLS:
+Specialized skills may be available as commands prefixed with "skills:".
+Use discover_commands with query "skills" to see available skills and their descriptions.
+When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
+`;
+
+    return baseSystemPrompt + progressReportingPrompt + skillsPrompt;
   }
 
   // Private attributes
