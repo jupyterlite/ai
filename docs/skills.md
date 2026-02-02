@@ -98,6 +98,12 @@ This is useful if you keep skills in a different location, such as `.claude/skil
 In addition to loading skills from the filesystem, JupyterLab extensions can register skills programmatically. The only convention required is the `skills:` command prefix. Any extension can call `app.commands.addCommand` to register a skill command:
 
 ```typescript
+// Bundled resource files (scripts, references, templates)
+const resources: Record<string, string> = {
+  'scripts/analyze.py': 'import pandas as pd\n...',
+  'references/REFERENCE.md': '# Reference\n...'
+};
+
 app.commands.addCommand('skills:my-custom-skill', {
   label: 'my-custom-skill',
   caption: 'Description of what this skill does.',
@@ -108,20 +114,40 @@ app.commands.addCommand('skills:my-custom-skill', {
       properties: {
         resource: {
           type: 'string',
-          description: 'Optional path to a resource file'
+          description:
+            'Optional path to a resource file bundled inside the skill directory (e.g. references or templates shipped with the skill). Do NOT use this for user workspace files — read those directly instead.'
         }
       }
     }
   },
   execute: async (args: any) => {
+    // When a resource is requested, return its content
+    if (args.resource) {
+      const content = resources[args.resource];
+      if (!content) {
+        return {
+          name: 'my-custom-skill',
+          resource: args.resource,
+          error: `Resource not found: ${args.resource}`
+        };
+      }
+      return { name: 'my-custom-skill', resource: args.resource, content };
+    }
+
+    // Otherwise return skill metadata + instructions.
+    // List resource paths (not content) for progressive disclosure —
+    // the agent loads each resource individually when needed.
     return {
       name: 'my-custom-skill',
       description: 'Description of what this skill does.',
-      instructions: 'Full instructions for the agent...'
+      instructions: 'Full instructions for the agent...',
+      resources: Object.keys(resources)
     };
   }
 });
 ```
+
+The execute handler follows progressive disclosure: on activation it returns instructions and a list of resource **paths**, and the agent loads individual resources on demand via the `resource` argument. This keeps token usage low for skills with large bundled files.
 
 This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
 

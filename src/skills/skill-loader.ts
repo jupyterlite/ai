@@ -3,6 +3,16 @@ import { Contents } from '@jupyterlab/services';
 import { parseSkillMd } from './parse-skill';
 
 /**
+ * A resource file bundled with a skill.
+ */
+export interface ISkillResource {
+  /** Path relative to the skill directory (e.g. "scripts/analyze.py"). */
+  path: string;
+  /** Text content of the file. */
+  content: string;
+}
+
+/**
  * A skill definition loaded from the filesystem.
  */
 export interface ISkillDefinition {
@@ -10,6 +20,7 @@ export interface ISkillDefinition {
   description: string;
   instructions: string;
   path: string;
+  resources: ISkillResource[];
 }
 
 /**
@@ -73,11 +84,61 @@ export async function loadSkills(
     }
 
     const parsed = parseSkillMd(fileModel.content);
+    const resources = await collectResources(contentsManager, child.path);
     skills.push({
       ...parsed,
-      path: child.path
+      path: child.path,
+      resources
     });
   }
 
   return skills;
+}
+
+/**
+ * Recursively collect all text resource files in a skill directory,
+ * excluding `SKILL.md`.
+ */
+async function collectResources(
+  contentsManager: Contents.IManager,
+  basePath: string
+): Promise<ISkillResource[]> {
+  const resources: ISkillResource[] = [];
+
+  async function walk(dirPath: string): Promise<void> {
+    let dirModel: Contents.IModel;
+    try {
+      dirModel = await contentsManager.get(dirPath, { content: true });
+    } catch {
+      return;
+    }
+    if (dirModel.type !== 'directory' || !dirModel.content) {
+      return;
+    }
+    for (const item of dirModel.content as Contents.IModel[]) {
+      // Skip checkpoint directories
+      if (item.name === '.ipynb_checkpoints') {
+        continue;
+      }
+      if (item.type === 'directory') {
+        await walk(item.path);
+      } else if (item.type === 'file' && item.name !== 'SKILL.md') {
+        try {
+          const file = await contentsManager.get(item.path, {
+            content: true
+          });
+          if (typeof file.content === 'string') {
+            // Store path relative to the skill directory
+            const relativePath = item.path.slice(basePath.length + 1);
+            resources.push({ path: relativePath, content: file.content });
+          }
+        } catch {
+          // Skip files that cannot be read
+        }
+      }
+    }
+  }
+
+  await walk(basePath);
+  return resources;
 }

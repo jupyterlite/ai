@@ -35,7 +35,7 @@ export function registerSkillCommands(
             resource: {
               type: 'string',
               description:
-                'Optional path to a resource file relative to the skill directory'
+                'Optional path to a resource file bundled inside the skill directory (e.g. references or templates shipped with the skill). Do NOT use this for user workspace files — read those directly instead.'
             }
           }
         }
@@ -61,11 +61,15 @@ export function registerSkillCommands(
           }
         }
 
-        return {
+        const result: any = {
           name: skill.name,
           description: skill.description,
           instructions: skill.instructions
         };
+        if (skill.resources.length > 0) {
+          result.resources = skill.resources.map(r => r.path);
+        }
+        return result;
       }
     });
   });

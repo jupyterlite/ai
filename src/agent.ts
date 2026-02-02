@@ -942,6 +942,7 @@ AGENT SKILLS:
 Specialized skills may be available as commands prefixed with "skills:".
 Use discover_commands with query "skills" to see available skills and their descriptions.
 When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
+If the skill result includes a "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. For each resource path, execute the same skill command again with the resource argument, e.g.: execute_command({ commandId: "skills:<name>", args: { resource: "<path>" } }). Load all listed resources before starting the task.
 `;
 
     return baseSystemPrompt + progressReportingPrompt + skillsPrompt;
