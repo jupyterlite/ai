@@ -5,27 +5,16 @@
 
 import { Contents } from '@jupyterlab/services';
 
-import { parseSkillMd } from './parse-skill';
-
-/**
- * A resource file bundled with a skill.
- */
-export interface ISkillResource {
-  /** Path relative to the skill directory (e.g. "scripts/analyze.py"). */
-  path: string;
-  /** Text content of the file. */
-  content: string;
-}
+import { parseSkillMd, IParsedSkill } from './parse-skill';
 
 /**
  * A skill definition loaded from the filesystem.
  */
-export interface ISkillDefinition {
-  name: string;
-  description: string;
-  instructions: string;
+export interface ISkillDefinition extends IParsedSkill {
+  /** Path to the skill directory (e.g. ".jupyter/skills/my-skill"). */
   path: string;
-  resources: ISkillResource[];
+  /** Paths to resource files relative to the skill directory. */
+  resources: string[];
 }
 
 /**
@@ -51,7 +40,13 @@ export async function loadSkills(
     let listing: Contents.IModel;
     try {
       listing = await contentsManager.get(currentPath, { content: true });
-    } catch {
+    } catch (error) {
+      // Skills directory path segment doesn't exist - this is expected
+      // when skills aren't configured
+      console.debug(
+        `Skills path segment not found at "${currentPath}":`,
+        error
+      );
       return skills;
     }
     const children = (listing.content ?? []) as Contents.IModel[];
@@ -89,7 +84,7 @@ export async function loadSkills(
     }
 
     const parsed = parseSkillMd(fileModel.content);
-    const resources = await collectResources(contentsManager, child.path);
+    const resources = await collectResourcePaths(contentsManager, child.path);
     skills.push({
       ...parsed,
       path: child.path,
@@ -101,20 +96,22 @@ export async function loadSkills(
 }
 
 /**
- * Recursively collect all text resource files in a skill directory,
- * excluding `SKILL.md`.
+ * Recursively collect paths to all resource files in a skill directory,
+ * excluding `SKILL.md`. Content is loaded on-demand when the agent
+ * requests a specific resource.
  */
-async function collectResources(
+async function collectResourcePaths(
   contentsManager: Contents.IManager,
   basePath: string
-): Promise<ISkillResource[]> {
-  const resources: ISkillResource[] = [];
+): Promise<string[]> {
+  const resourcePaths: string[] = [];
 
   async function walk(dirPath: string): Promise<void> {
     let dirModel: Contents.IModel;
     try {
       dirModel = await contentsManager.get(dirPath, { content: true });
-    } catch {
+    } catch (error) {
+      console.warn(`Failed to list directory ${dirPath}:`, error);
       return;
     }
     if (dirModel.type !== 'directory' || !dirModel.content) {
@@ -128,22 +125,13 @@ async function collectResources(
       if (item.type === 'directory') {
         await walk(item.path);
       } else if (item.type === 'file' && item.name !== 'SKILL.md') {
-        try {
-          const file = await contentsManager.get(item.path, {
-            content: true
-          });
-          if (typeof file.content === 'string') {
-            // Store path relative to the skill directory
-            const relativePath = item.path.slice(basePath.length + 1);
-            resources.push({ path: relativePath, content: file.content });
-          }
-        } catch {
-          // Skip files that cannot be read
-        }
+        // Store path relative to the skill directory
+        const relativePath = item.path.slice(basePath.length + 1);
+        resourcePaths.push(relativePath);
       }
     }
   }
 
   await walk(basePath);
-  return resources;
+  return resourcePaths;
 }

@@ -3,11 +3,62 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
-import { CommandRegistry } from '@lumino/commands';
+import { PathExt } from '@jupyterlab/coreutils';
 import { Contents } from '@jupyterlab/services';
+import { CommandRegistry } from '@lumino/commands';
 import { IDisposable } from '@lumino/disposable';
 
 import { ISkillDefinition } from './skill-loader';
+
+/**
+ * Arguments for skill command execution.
+ */
+interface ISkillCommandArgs {
+  /** Optional path to a resource file bundled inside the skill directory. */
+  resource?: string;
+}
+
+/**
+ * Result returned when a skill command is executed without a resource argument.
+ */
+interface ISkillResult {
+  name: string;
+  description: string;
+  instructions: string;
+  resources?: string[];
+}
+
+/**
+ * Result returned when a skill command is executed with a resource argument.
+ */
+interface ISkillResourceResult {
+  name: string;
+  resource: string;
+  content?: string;
+  error?: string;
+}
+
+/**
+ * Validate that a resource path is safe and stays within the skill directory.
+ * Returns the validated path or null if the path is invalid.
+ */
+function validateResourcePath(resourcePath: string): string | null {
+  // Reject absolute paths
+  if (resourcePath.startsWith('/')) {
+    return null;
+  }
+
+  // Normalize to resolve .. and . segments
+  const normalized = PathExt.normalize(resourcePath);
+
+  // After normalization, reject if it tries to escape (starts with ..)
+  // or if it's empty (PathExt.normalize returns '' for empty input)
+  if (normalized.startsWith('..') || normalized === '') {
+    return null;
+  }
+
+  return normalized;
+}
 
 /**
  * Register JupyterLab commands for each skill definition.
@@ -45,9 +96,20 @@ export function registerSkillCommands(
           }
         }
       },
-      execute: async (args: any) => {
+      execute: async (
+        args: ISkillCommandArgs
+      ): Promise<ISkillResult | ISkillResourceResult> => {
         if (args.resource) {
-          const resourcePath = `${skill.path}/${args.resource}`;
+          const validatedPath = validateResourcePath(args.resource);
+          if (validatedPath === null) {
+            return {
+              name: skill.name,
+              resource: args.resource,
+              error: 'Invalid resource path: path traversal not allowed'
+            };
+          }
+
+          const resourcePath = `${skill.path}/${validatedPath}`;
           try {
             const fileModel = await contentsManager.get(resourcePath, {
               content: true
@@ -55,7 +117,7 @@ export function registerSkillCommands(
             return {
               name: skill.name,
               resource: args.resource,
-              content: fileModel.content
+              content: fileModel.content as string
             };
           } catch (error) {
             return {
@@ -66,15 +128,12 @@ export function registerSkillCommands(
           }
         }
 
-        const result: any = {
+        return {
           name: skill.name,
           description: skill.description,
-          instructions: skill.instructions
+          instructions: skill.instructions,
+          ...(skill.resources.length > 0 && { resources: skill.resources })
         };
-        if (skill.resources.length > 0) {
-          result.resources = skill.resources.map(r => r.path);
-        }
-        return result;
       }
     });
   });
