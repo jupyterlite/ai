@@ -10,6 +10,7 @@ import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
 import Error from '@mui/icons-material/Error';
 import ErrorOutline from '@mui/icons-material/ErrorOutline';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
 import Settings from '@mui/icons-material/Settings';
 import {
@@ -40,6 +41,7 @@ import {
   Tabs,
   TextField,
   ThemeProvider,
+  Tooltip,
   Typography,
   createTheme
 } from '@mui/material';
@@ -177,6 +179,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     config.completionSystemPrompt
   );
   const completionPromptValueRef = React.useRef(config.completionSystemPrompt);
+  const [skillsPathValue, setSkillsPathValue] = useState(config.skillsPath);
+  const skillsPathValueRef = React.useRef(config.skillsPath);
 
   /**
    * Effect to listen for model state changes and update config
@@ -246,6 +250,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     completionPromptValueRef.current = config.completionSystemPrompt;
   }, [config.completionSystemPrompt]);
 
+  useEffect(() => {
+    setSkillsPathValue(config.skillsPath);
+    skillsPathValueRef.current = config.skillsPath;
+  }, [config.skillsPath]);
+
   const promptDebouncer = useMemo(
     () =>
       new Debouncer(async () => {
@@ -257,12 +266,23 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     []
   );
 
+  const skillsPathDebouncer = useMemo(
+    () =>
+      new Debouncer(async () => {
+        await handleConfigUpdate({
+          skillsPath: skillsPathValueRef.current
+        });
+      }, 1000),
+    []
+  );
+
   // Cleanup debouncer on unmount
   useEffect(() => {
     return () => {
       promptDebouncer.dispose();
+      skillsPathDebouncer.dispose();
     };
-  }, [promptDebouncer]);
+  }, [promptDebouncer, skillsPathDebouncer]);
 
   const handleSystemPromptChange = (value: string) => {
     setSystemPromptValue(value);
@@ -274,6 +294,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     setCompletionPromptValue(value);
     completionPromptValueRef.current = value;
     void promptDebouncer.invoke();
+  };
+
+  const handleSkillsPathChange = (value: string) => {
+    setSkillsPathValue(value);
+    skillsPathValueRef.current = value;
+    void skillsPathDebouncer.invoke();
   };
 
   const getSecretFromManager = async (
@@ -1021,6 +1047,35 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   helperText={trans.__(
                     'Instructions that define how the AI should generate code completions'
                   )}
+                />
+
+                <Divider sx={{ my: 2 }} />
+
+                <TextField
+                  fullWidth
+                  label={
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      {trans.__('Skills Path')}
+                      <Tooltip
+                        title={trans.__(
+                          'Directory containing agent skills, relative to the server root.'
+                        )}
+                      >
+                        <InfoOutlined sx={{ fontSize: 16 }} />
+                      </Tooltip>
+                    </Box>
+                  }
+                  value={skillsPathValue ?? ''}
+                  onChange={e => handleSkillsPathChange(e.target.value)}
+                  placeholder={trans.__('.jupyter/skills')}
+                  helperText={trans.__('Defaults to .jupyter/skills')}
                 />
 
                 <Divider sx={{ my: 2 }} />

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Jupyter Development Team.
+ * Distributed under the terms of the Modified BSD License.
+ */
+
 import { CommandRegistry } from '@lumino/commands';
 import { Contents } from '@jupyterlab/services';
 import { IDisposable } from '@lumino/disposable';

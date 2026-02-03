@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) Jupyter Development Team.
+ * Distributed under the terms of the Modified BSD License.
+ */
+
+import { parse as parseYaml } from 'yaml';
+
 /**
  * Parsed skill definition from a SKILL.md file.
  */
@@ -23,6 +30,7 @@ export interface IParsedSkill {
  * @returns Parsed skill with name, description, and instructions
  * @throws Error if the frontmatter is missing or invalid
  */
+
 export function parseSkillMd(content: string): IParsedSkill {
   const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/;
   const match = content.match(frontmatterRegex);
@@ -34,20 +42,31 @@ export function parseSkillMd(content: string): IParsedSkill {
   const frontmatter = match[1];
   const instructions = match[2].trim();
 
-  const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
-  const descriptionMatch = frontmatter.match(/^description:\s*(.+)$/m);
+  let metadata: unknown;
+  try {
+    metadata = parseYaml(frontmatter);
+  } catch (error) {
+    throw new Error(
+      `Invalid SKILL.md: YAML frontmatter parse failed: ${error}`
+    );
+  }
 
-  if (!nameMatch) {
+  const { name, description } = metadata as {
+    name?: unknown;
+    description?: unknown;
+  };
+
+  if (typeof name !== 'string' || name.trim().length === 0) {
     throw new Error('Invalid SKILL.md: missing "name" in frontmatter');
   }
 
-  if (!descriptionMatch) {
+  if (typeof description !== 'string' || description.trim().length === 0) {
     throw new Error('Invalid SKILL.md: missing "description" in frontmatter');
   }
 
   return {
-    name: nameMatch[1].trim(),
-    description: descriptionMatch[1].trim(),
+    name: name.trim(),
+    description: description.trim(),
     instructions
   };
 }
