@@ -940,7 +940,9 @@ When creating notebooks or consoles for a specific programming language, use the
 
 AGENT SKILLS:
 Specialized skills may be available as commands prefixed with "skills:".
-Use discover_commands with query "skills" to see available skills and their descriptions.
+If you're unsure how to proceed or need a specialized workflow, use discover_commands with query "skills" to see available skills and their descriptions.
+Use a relevant skill even when the user doesn't explicitly mention it.
+Prefer the single most relevant skill; if multiple could apply, ask a brief clarifying question before using more than one.
 When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
 If the skill result includes a "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. For each resource path, execute the same skill command again with the resource argument, e.g.: execute_command({ commandId: "skills:<name>", args: { resource: "<path>" } }). Load all listed resources before starting the task.
 `;
