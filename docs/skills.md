@@ -93,6 +93,15 @@ By default, skills are loaded from `.jupyter/skills` relative to the server root
 
 This is useful if you keep skills in a different location, such as `.claude/skills/` for compatibility with Claude Code.
 
+### Server configuration note
+
+If you use a path under `.jupyter/`, make sure your Jupyter server allows reading hidden directories and that the server root is the workspace that contains the `.jupyter/skills` folder. A minimal `jupyter_server_config.py` example:
+
+```python
+c.ContentsManager.allow_hidden = True
+c.ServerApp.root_dir = "/path/to/your/workspace"
+```
+
 ## Providing skills from a JupyterLab extension
 
 In addition to loading skills from the filesystem, JupyterLab extensions can register skills programmatically. The only convention required is the `skills:` command prefix. Any extension can call `app.commands.addCommand` to register a skill command:
