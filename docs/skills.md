@@ -187,6 +187,14 @@ The execute handler follows progressive disclosure: on activation it returns ins
 
 This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
 
+## Security considerations
+
+Skills contain instructions that the AI agent will follow when activated. Only use skills from sources you trust. Before using a skill:
+
+- Review the `SKILL.md` file to understand what instructions the agent will receive
+- Check any bundled resource files (scripts, templates) for unexpected content
+- Be cautious with skills that instruct the agent to execute code, modify files, or access external services
+
 ## Compatibility
 
 Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for JupyterLite AI can also be used with other compatible agents, and vice versa.
