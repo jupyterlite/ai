@@ -93,7 +93,7 @@ By default, skills are loaded from `.jupyter/skills` relative to the server root
 
 This is useful if you keep skills in a different location, such as `.claude/skills/` for compatibility with Claude Code.
 
-### Server configuration note
+### Using skills with JupyterLab
 
 If you use a path under `.jupyter/`, make sure your Jupyter server allows reading hidden directories and that the server root is the workspace that contains the `.jupyter/skills` folder. A minimal `jupyter_server_config.py` example:
 
@@ -101,6 +101,33 @@ If you use a path under `.jupyter/`, make sure your Jupyter server allows readin
 c.ContentsManager.allow_hidden = True
 c.ServerApp.root_dir = "/path/to/your/workspace"
 ```
+
+### Using skills with JupyterLite
+
+JupyterLite runs entirely in the browser and does not use a Jupyter Server, so server-side configuration does not apply. Skills are loaded from the JupyterLite filesystem (browser storage or bundled site content). To use skills with JupyterLite:
+
+- If you keep skills under a hidden folder like `.jupyter/`, make sure hidden files are included in the JupyterLite build output by setting this in `jupyter_lite_config.json`:
+
+```json
+{
+  "ContentsManager": {
+    "allow_hidden": true
+  }
+}
+```
+
+- To show hidden files by default in the file browser, add the following to `overrides.json`:
+
+```json
+{
+  "@jupyterlab/filebrowser-extension:browser": {
+    "showHiddenFiles": true
+  }
+}
+```
+
+- Create or upload a `.jupyter/skills/` directory in the JupyterLite file browser (enable **Show Hidden Files** in the file browser menu or **Settings** > **File Browser** if needed), or bundle the directory into your JupyterLite build.
+- If you place skills somewhere else, update the **Skills Path** setting to match the location (relative to the JupyterLite filesystem root).
 
 ## Providing skills from a JupyterLab extension
 
