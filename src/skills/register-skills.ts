@@ -82,11 +82,7 @@ function validateResourcePath(resourcePath: string): string | null {
     return null;
   }
 
-  // Normalize to resolve .. and . segments
   const normalized = PathExt.normalize(resourcePath);
-
-  // After normalization, reject if it tries to escape (starts with ..)
-  // or if it's empty (PathExt.normalize returns '' for empty input)
   if (normalized.startsWith('..') || normalized === '') {
     return null;
   }

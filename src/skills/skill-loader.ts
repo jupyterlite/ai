@@ -11,9 +11,13 @@ import { parseSkillMd, IParsedSkill } from './parse-skill';
  * A skill definition loaded from the filesystem.
  */
 export interface ISkillDefinition extends IParsedSkill {
-  /** Path to the skill directory (e.g. ".jupyter/skills/my-skill"). */
+  /**
+   * Path to the skill directory (e.g. ".jupyter/skills/my-skill").
+   */
   path: string;
-  /** Paths to resource files relative to the skill directory. */
+  /**
+   * Paths to resource files relative to the skill directory.
+   */
   resources: string[];
 }
 
@@ -31,9 +35,7 @@ export async function loadSkills(
 ): Promise<ISkillDefinition[]> {
   const skills: ISkillDefinition[] = [];
 
-  // Walk each path segment from root to verify the directory exists before
-  // fetching it. Directly requesting a missing path causes a server-side 404
-  // that can crash the Jupyter server in some environments (tornado bug).
+  // Walk each path segment from root to verify the directory exists before fetching it.
   const segments = skillsPath.split('/').filter(s => s.length > 0);
   let currentPath = '';
   for (const segment of segments) {
@@ -41,8 +43,6 @@ export async function loadSkills(
     try {
       listing = await contentsManager.get(currentPath, { content: true });
     } catch (error) {
-      // Skills directory path segment doesn't exist - this is expected
-      // when skills aren't configured
       console.debug(
         `Skills path segment not found at "${currentPath}":`,
         error

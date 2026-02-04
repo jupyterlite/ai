@@ -945,7 +945,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
  */
 const skillsPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:skills',
-  description: 'Discover and register agent skills from the filesystem',
+  description: 'Discover and register agent skills',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager],
   activate: async (
@@ -956,7 +956,6 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
     let disposables: IDisposable[] = [];
 
     const loadAndRegister = async () => {
-      // Dispose previous commands
       disposables.forEach(d => d.dispose());
       disposables = [];
 
@@ -969,13 +968,10 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
       );
     };
 
-    // Load on activation (fire-and-forget to avoid blocking startup
-    // if the skills directory does not exist)
     loadAndRegister().catch(error =>
       console.warn('Failed to load skills on activation:', error)
     );
 
-    // Reload on settings change
     settingsModel.stateChanged.connect(() => {
       loadAndRegister().catch(error =>
         console.warn('Failed to reload skills:', error)
