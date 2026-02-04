@@ -12,7 +12,7 @@ import { parseSkillMd, IParsedSkill } from './parse-skill';
  */
 export interface ISkillDefinition extends IParsedSkill {
   /**
-   * Path to the skill directory (e.g. ".jupyter/skills/my-skill").
+   * Path to the skill directory (e.g. ".agents/skills/my-skill").
    */
   path: string;
   /**
@@ -26,7 +26,7 @@ export interface ISkillDefinition extends IParsedSkill {
  * containing SKILL.md files.
  *
  * @param contentsManager - The Jupyter contents manager
- * @param skillsPath - Path to the skills directory (e.g. ".jupyter/skills")
+ * @param skillsPath - Path to the skills directory (e.g. ".agents/skills")
  * @returns Array of loaded skill definitions
  */
 export async function loadSkills(

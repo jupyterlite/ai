@@ -1074,8 +1074,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                   value={skillsPathValue ?? ''}
                   onChange={e => handleSkillsPathChange(e.target.value)}
-                  placeholder={trans.__('.jupyter/skills')}
-                  helperText={trans.__('Defaults to .jupyter/skills')}
+                  placeholder={trans.__('.agents/skills')}
+                  helperText={trans.__('Defaults to .agents/skills')}
                 />
 
                 <Divider sx={{ my: 2 }} />

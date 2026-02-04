@@ -20,10 +20,10 @@ Skills are registered as JupyterLab commands with a `skills:` prefix. No additio
 
 ### Directory structure
 
-Place skills in the `.jupyter/skills/` directory at the root of your JupyterLab workspace:
+Place skills in the `.agents/skills/` directory at the root of your JupyterLab workspace:
 
 ```
-.jupyter/
+.agents/
   skills/
     notebook-bootstrap/
       SKILL.md
@@ -100,11 +100,11 @@ execute_command({ commandId: "skills:notebook-bootstrap", args: { resource: "ref
 
 ````
 
-This reads the file at `.jupyter/skills/notebook-bootstrap/references/REFERENCE.md` and returns its content.
+This reads the file at `.agents/skills/notebook-bootstrap/references/REFERENCE.md` and returns its content.
 
 ## Configuring the skills directory
 
-By default, skills are loaded from `.jupyter/skills` relative to the server root. You can change this path in the JupyterLite AI settings:
+By default, skills are loaded from `.agents/skills` relative to the server root. You can change this path in the JupyterLite AI settings:
 
 1. Open **Settings** > **Settings Editor**
 2. Search for **JupyterLite AI**
@@ -114,7 +114,7 @@ This is useful if you keep skills in a different location, such as `.claude/skil
 
 ### Using skills with JupyterLab
 
-If you use a path under `.jupyter/`, make sure your Jupyter server allows reading hidden directories and that the server root is the workspace that contains the `.jupyter/skills` folder. A minimal `jupyter_server_config.py` example:
+If you use a path under `.agents/`, make sure your Jupyter server allows reading hidden directories and that the server root is the workspace that contains the `.agents/skills` folder. A minimal `jupyter_server_config.py` example:
 
 ```python
 c.ContentsManager.allow_hidden = True
@@ -125,7 +125,7 @@ c.ServerApp.root_dir = "/path/to/your/workspace"
 
 JupyterLite runs entirely in the browser and does not use a Jupyter Server, so server-side configuration does not apply. Skills are loaded from the JupyterLite filesystem (browser storage or bundled site content). To use skills with JupyterLite:
 
-- If you keep skills under a hidden folder like `.jupyter/`, make sure hidden files are included in the JupyterLite build output by setting this in `jupyter_lite_config.json`:
+- If you keep skills under a hidden folder like `.agents/`, make sure hidden files are included in the JupyterLite build output by setting this in `jupyter_lite_config.json`:
 
 ```json
 {
@@ -145,7 +145,7 @@ JupyterLite runs entirely in the browser and does not use a Jupyter Server, so s
 }
 ```
 
-- Create or upload a `.jupyter/skills/` directory in the JupyterLite file browser (enable **Show Hidden Files** in the file browser menu or **Settings** > **File Browser** if needed), or bundle the directory into your JupyterLite build.
+- Create or upload a `.agents/skills/` directory in the JupyterLite file browser (enable **Show Hidden Files** in the file browser menu or **Settings** > **File Browser** if needed), or bundle the directory into your JupyterLite build.
 - If you place skills somewhere else, update the **Skills Path** setting to match the location (relative to the JupyterLite filesystem root).
 
 ## Providing skills from a JupyterLab extension

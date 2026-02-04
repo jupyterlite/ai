@@ -35,7 +35,7 @@ test.use({
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,
-      skillsPath: '.jupyter/skills',
+      skillsPath: '.agents/skills',
       defaultProvider: 'generic-functiongemma',
       systemPrompt:
         'When asked to load a skill, call discover_commands with query "skills", then execute_command with commandId "skills:agent-helper". Do not ask follow-up questions.'

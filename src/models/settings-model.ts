@@ -80,7 +80,7 @@ export class AISettingsModel extends VDomModel {
     showCellDiff: true,
     showFileDiff: true,
     diffDisplayMode: 'split',
-    skillsPath: '.jupyter/skills',
+    skillsPath: '.agents/skills',
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',

@@ -12,10 +12,10 @@ configure_jupyter_server(c)
 
 c.FileContentsManager.delete_to_trash = False
 
-# Allow reading dotfiles like `.jupyter/skills` from the server root.
+# Allow reading dotfiles like `.agents/skills` from the server root.
 c.ContentsManager.allow_hidden = True
 
-# Ensure the server root is the ui-tests directory so `.jupyter/skills` is found.
+# Ensure the server root is the ui-tests directory so `.agents/skills` is found.
 c.ServerApp.root_dir = str(Path(__file__).parent.resolve())
 
 # Uncomment to set server log level to debug level
