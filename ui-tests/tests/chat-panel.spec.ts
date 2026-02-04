@@ -53,7 +53,6 @@ test.describe('#withoutModel', () => {
       messages.last().locator('.jp-chat-rendered-markdown')
     ).toContainText(NOT_CONFIGURED_TEXT);
   });
-
 });
 
 TEST_PROVIDERS.forEach(({ name, settings }) =>
