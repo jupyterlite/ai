@@ -38,7 +38,7 @@ test.use({
       skillsPath: '.agents/skills',
       defaultProvider: 'generic-functiongemma',
       systemPrompt:
-        'When asked to load a skill, call discover_commands with query "skills", then execute_command with commandId "skills:agent-helper". Do not ask follow-up questions.'
+        'Call the execute_command tool with commandId "skills:agent-helper" to get skill information. Do not ask follow-up questions.'
     }
   }
 });
@@ -55,8 +55,7 @@ test.describe('#skills', () => {
       '.jp-chat-input-container .jp-chat-send-button'
     );
 
-    const prompt =
-      'Load the agent-helper skill using discover_commands with query "skills", then execute_command with commandId "skills:agent-helper".';
+    const prompt = 'Load the agent helper skill';
 
     await input.pressSequentially(prompt);
     await sendButton.click();
@@ -65,19 +64,23 @@ test.describe('#skills', () => {
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
+    const messages = panel.locator('.jp-chat-message');
     const toolCalls = panel.locator('.jp-ai-tool-call');
-    const discoverCall = toolCalls.filter({ hasText: 'discover_commands' });
+    const executeCall = toolCalls.filter({ hasText: 'execute_command' });
     const skillCall = toolCalls.filter({
       hasText: /skills:\s*(?:<escape>)?agent-helper/
     });
 
-    await expect(discoverCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
+    await expect(executeCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
     await expect(skillCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
-    await skillCall.first().click();
     const skillResultText = await skillCall.first().textContent();
     expect(skillResultText).toContain(EXPECTED_SKILL_COMMAND);
-    expect(skillResultText).toContain('SKILL LOADED');
+
+    const assistantMessage = messages
+      .last()
+      .locator('.jp-chat-rendered-markdown');
+    await expect(assistantMessage).toContainText('SKILL LOADED');
 
     const stopButton = panel.getByTitle('Stop streaming');
     await expect(stopButton).toHaveCount(0, { timeout: EXPECT_TIMEOUT });

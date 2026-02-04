@@ -951,57 +951,13 @@ export class AgentManager {
   }
 
   /**
-   * Enhances the base system prompt with tool usage guidelines.
+   * Enhances the base system prompt with dynamic context like skills.
    * @param baseSystemPrompt The base system prompt from settings
-   * @returns The enhanced system prompt with tool usage instructions
+   * @returns The enhanced system prompt with dynamic additions
    */
   private _getEnhancedSystemPrompt(baseSystemPrompt: string): string {
-    const progressReportingPrompt = `
-
-IMPORTANT: Follow this message flow pattern for better user experience:
-
-1. FIRST: Explain what you're going to do and your approach
-2. THEN: Execute tools (these will show automatically with step numbers)
-3. FINALLY: Provide a concise summary of what was accomplished
-
-Example flow:
-- "I'll help you create a notebook with example cells. Let me first create the file structure, then add Python and Markdown cells."
-- [Tool executions happen with automatic step display]
-- "Successfully created your notebook with 3 cells: a title, code example, and visualization cell."
-
-Guidelines:
-- Start responses with your plan/approach before tool execution
-- Let the system handle tool execution display (don't duplicate details)
-- End with a brief summary of accomplishments
-- Use natural, conversational tone throughout
-
-PRIMARY TOOL USAGE - COMMAND-BASED OPERATIONS:
-Most operations in JupyterLab should be performed using the command system:
-1. Use 'discover_commands' to find available commands and their metadata
-2. Use 'execute_command' to perform the actual operation
-
-COMMAND DISCOVERY WORKFLOW:
-- For file and notebook operations, use query 'jupyterlab-ai-commands' to discover the curated set of AI commands (~17 commands for file/notebook/directory operations)
-- For other JupyterLab operations (terminal, launcher, UI), use specific keywords like 'terminal', 'launcher', etc.
-- IMPORTANT: Always use 'jupyterlab-ai-commands' as the query for file/notebook tasks - this returns a focused set of commands instead of 100+ generic JupyterLab commands
-
-KERNEL PREFERENCE FOR NOTEBOOKS AND CONSOLES:
-When creating notebooks or consoles for a specific programming language:
-
-For notebook:create-new, use top-level 'kernelName' or 'kernelId':
-- Example: execute_command with commandId="notebook:create-new" and args={ "kernelName": "python3" }
-- Example: execute_command with commandId="notebook:create-new" and args={ "kernelName": "julia-1.10" }
-
-For console:create, use the 'kernelPreference' object with 'name' or 'language':
-- By language: execute_command with commandId="console:create" and args={ "kernelPreference": { "language": "python" } }
-- By kernel name: execute_command with commandId="console:create" and args={ "kernelPreference": { "name": "python3" } }
-
-Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpython" (xeus-python)
-- For console:create, if unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
-`;
-
     if (this._skillsSnapshot.length === 0) {
-      return baseSystemPrompt + progressReportingPrompt;
+      return baseSystemPrompt;
     }
 
     const lines = this._skillsSnapshot.map(
@@ -1010,16 +966,17 @@ Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpytho
     const skillsPrompt = `
 
 AGENT SKILLS:
-Specialized skills may be available as commands prefixed with "skills:".
-When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
-Do NOT call discover_commands just to list skills; use the preloaded snapshot below instead. Only call discover_commands if the user explicitly asks for the latest list or if you need to verify a skill not present in the snapshot.
+Specialized skills are JupyterLab commands prefixed with "skills:" (these are not tools).
+When a skill is relevant to the user's task, activate it by calling execute_command with commandId "skills:<name>" to load its full instructions, then follow those instructions.
+If the user explicitly asks you to call discover_commands (or requests the latest list), do so even if a snapshot is provided.
+Do NOT call discover_commands just to list skills; use the preloaded snapshot below instead unless you need to verify a skill not present in the snapshot.
 If the skill result includes a "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. For each resource path, execute the same skill command again with the resource argument, e.g.: execute_command({ commandId: "skills:<name>", args: { resource: "<path>" } }). Load all listed resources before starting the task.
 
 AVAILABLE SKILLS (preloaded snapshot):
 ${lines.join('\n')}
 `;
 
-    return baseSystemPrompt + progressReportingPrompt + skillsPrompt;
+    return baseSystemPrompt + skillsPrompt;
   }
 
   // Private attributes
