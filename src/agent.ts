@@ -927,13 +927,18 @@ COMMAND DISCOVERY WORKFLOW:
 - IMPORTANT: Always use 'jupyterlab-ai-commands' as the query for file/notebook tasks - this returns a focused set of commands instead of 100+ generic JupyterLab commands
 
 KERNEL PREFERENCE FOR NOTEBOOKS AND CONSOLES:
-When creating notebooks or consoles for a specific programming language, use the 'kernelPreference' argument to specify the kernel:
-- To specify by language: { "kernelPreference": { "language": "python" } } or { "kernelPreference": { "language": "julia" } }
-- To specify by kernel name: { "kernelPreference": { "name": "python3" } } or { "kernelPreference": { "name": "julia-1.10" } }
-- Example: execute_command with commandId="notebook:create-new" and args={ "kernelPreference": { "language": "python" } }
-- Example: execute_command with commandId="console:create" and args={ "kernelPreference": { "name": "python3" } }
-- Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpython" (xeus-python)
-- If unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
+When creating notebooks or consoles for a specific programming language:
+
+For notebook:create-new, use top-level 'kernelName' or 'kernelId':
+- Example: execute_command with commandId="notebook:create-new" and args={ "kernelName": "python3" }
+- Example: execute_command with commandId="notebook:create-new" and args={ "kernelName": "julia-1.10" }
+
+For console:create, use the 'kernelPreference' object with 'name' or 'language':
+- By language: execute_command with commandId="console:create" and args={ "kernelPreference": { "language": "python" } }
+- By kernel name: execute_command with commandId="console:create" and args={ "kernelPreference": { "name": "python3" } }
+
+Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpython" (xeus-python)
+- For console:create, if unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
 `;
 
     const skillsPrompt = `

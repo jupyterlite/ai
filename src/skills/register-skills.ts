@@ -14,27 +14,61 @@ import { ISkillDefinition } from './skill-loader';
  * Arguments for skill command execution.
  */
 interface ISkillCommandArgs {
-  /** Optional path to a resource file bundled inside the skill directory. */
+  /**
+   * Optional path to a resource file bundled inside the skill directory.
+   */
   resource?: string;
 }
 
 /**
- * Result returned when a skill command is executed without a resource argument.
+ * Result from executing a skill command without a resource argument.
+ *
+ * This is the primary payload returned to the agent when it requests the
+ * definition of a skill.
  */
 interface ISkillResult {
+  /**
+   * The skill name (also used in the command id: `skills:<name>`).
+   */
   name: string;
+  /**
+   * Short, human-readable description of what the skill does.
+   */
   description: string;
+  /**
+   * Detailed instructions that the agent should follow when using the skill.
+   */
   instructions: string;
+  /**
+   * Optional list of resource file paths bundled with the skill.
+   */
   resources?: string[];
 }
 
 /**
- * Result returned when a skill command is executed with a resource argument.
+ * Result from executing a skill command with a resource argument.
+ *
+ * When `args.resource` is provided, the command returns either the resource
+ * content on success or an error message on failure.
  */
 interface ISkillResourceResult {
+  /**
+   * The skill name.
+   */
   name: string;
+  /**
+   * The resource path as provided by the caller.
+   */
   resource: string;
+  /**
+   * The resource file content.
+   *
+   * Present when the resource was read successfully.
+   */
   content?: string;
+  /**
+   * Error message describing why the resource could not be read.
+   */
   error?: string;
 }
 
@@ -77,10 +111,18 @@ export function registerSkillCommands(
   skills: ISkillDefinition[],
   contentsManager: Contents.IManager
 ): IDisposable[] {
-  return skills.map(skill => {
-    const commandId = `skills:${skill.name}`;
+  const disposables: IDisposable[] = [];
 
-    return commands.addCommand(commandId, {
+  for (const skill of skills) {
+    const commandId = `skills:${skill.name}`;
+    if (commands.hasCommand(commandId)) {
+      console.warn(
+        `Skipping duplicate skill name "${skill.name}" at ${skill.path}`
+      );
+      continue;
+    }
+
+    const disposable = commands.addCommand(commandId, {
       label: skill.name,
       caption: skill.description,
       usage: `Agent skill: ${skill.description}`,
@@ -136,5 +178,8 @@ export function registerSkillCommands(
         };
       }
     });
-  });
+    disposables.push(disposable);
+  }
+
+  return disposables;
 }

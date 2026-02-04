@@ -83,13 +83,17 @@ export async function loadSkills(
       continue;
     }
 
-    const parsed = parseSkillMd(fileModel.content);
-    const resources = await collectResourcePaths(contentsManager, child.path);
-    skills.push({
-      ...parsed,
-      path: child.path,
-      resources
-    });
+    try {
+      const parsed = parseSkillMd(fileModel.content);
+      const resources = await collectResourcePaths(contentsManager, child.path);
+      skills.push({
+        ...parsed,
+        path: child.path,
+        resources
+      });
+    } catch (error) {
+      console.warn(`Skipping skill at ${child.path}:`, error);
+    }
   }
 
   return skills;
