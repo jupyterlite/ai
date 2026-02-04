@@ -40,6 +40,11 @@ jupyter lab build --minimize=False
 
 The UI tests use Playwright and can be configured with environment variables:
 
+```bash
+# Install Python test dependencies (includes the MCP test server)
+pip install -e ".[test]"
+```
+
 - `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
   - `on`: Record video for all tests
   - `off`: Do not record video

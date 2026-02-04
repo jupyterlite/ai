@@ -53,6 +53,7 @@ test.describe('#withoutModel', () => {
       messages.last().locator('.jp-chat-rendered-markdown')
     ).toContainText(NOT_CONFIGURED_TEXT);
   });
+
 });
 
 TEST_PROVIDERS.forEach(({ name, settings }) =>
@@ -117,6 +118,48 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await expect(
         messages.last().locator('.jp-chat-rendered-markdown')
       ).not.toHaveText(NOT_CONFIGURED_TEXT);
+    });
+
+    test('should suggest /clear when typing /cl', async ({ page }) => {
+      const panel = await openChatPanel(page);
+      const input = panel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+
+      await input.pressSequentially('/cl');
+
+      await expect(page.getByText('/clear', { exact: true })).toBeVisible();
+    });
+
+    test('should clear messages with /clear', async ({ page }) => {
+      const content = 'Hello';
+      const panel = await openChatPanel(page);
+
+      const input = panel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+      const sendButton = panel.locator(
+        '.jp-chat-input-container .jp-chat-send-button'
+      );
+      const messages = panel.locator('.jp-chat-message');
+
+      await input.pressSequentially(content);
+      await sendButton.click();
+      await expect(
+        panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
+      ).toHaveCount(1, { timeout: 60000 });
+
+      const writingIndicator = panel.locator('.jp-chat-writers > *');
+      await expect(writingIndicator).toHaveCSS('visibility', 'hidden', {
+        timeout: 60000
+      });
+
+      await expect(messages).toHaveCount(2);
+
+      await input.pressSequentially('/clear');
+      await sendButton.click();
+
+      await expect(messages).toHaveCount(0);
     });
 
     test('should receive an error message when removing the model', async ({
