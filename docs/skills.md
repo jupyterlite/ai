@@ -57,7 +57,6 @@ When the user asks to bootstrap a new notebook for data science and plotting:
 ```markdown
 # Data Science Starter
 ```
-````
 
 3. Add an imports cell directly below with `jupyterlab-ai-commands:add-cell` using `cellType: "code"`, `position: "below"`, and content:
 
@@ -78,8 +77,7 @@ import scipy.stats as stats
 - Keep the second cell focused on imports only
 - Prefer explicit variable names over single-letter names
 - Add comments only when a step is not obvious
-
-```
+````
 
 The frontmatter fields:
 
@@ -94,11 +92,12 @@ The markdown body after the closing `---` is the full instructions content that 
 
 Skills can include additional files (references, scripts, templates) alongside `SKILL.md`. The agent can access these by executing the skill command with a `resource` argument:
 
+```javascript
+execute_command({
+  commandId: 'skills:notebook-bootstrap',
+  args: { resource: 'references/REFERENCE.md' }
+});
 ```
-
-execute_command({ commandId: "skills:notebook-bootstrap", args: { resource: "references/REFERENCE.md" } })
-
-````
 
 This reads the file at `.agents/skills/notebook-bootstrap/references/REFERENCE.md` and returns its content.
 
@@ -119,7 +118,7 @@ If you use a path under `.agents/`, make sure your Jupyter server allows reading
 ```python
 c.ContentsManager.allow_hidden = True
 c.ServerApp.root_dir = "/path/to/your/workspace"
-````
+```
 
 ### Using skills with JupyterLite
 
