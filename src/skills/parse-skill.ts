@@ -3,7 +3,7 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
-import matter from 'gray-matter';
+import { parse as parseYaml } from 'yaml';
 
 /**
  * Parsed skill definition from a SKILL.md file.
@@ -32,9 +32,46 @@ export interface IParsedSkill {
  */
 
 export function parseSkillMd(content: string): IParsedSkill {
-  const parsed = matter(content);
-  const instructions = parsed.content.trim();
-  const data = parsed.data as Record<string, unknown> | null;
+  const normalizedContent = content
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n');
+  const lines = normalizedContent.split('\n');
+
+  if (lines[0]?.trim() !== '---') {
+    throw new Error('Invalid SKILL.md: missing frontmatter delimiters (---)');
+  }
+
+  const frontmatterLines: string[] = [];
+  let i = 1;
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed === '---') {
+      break;
+    }
+    frontmatterLines.push(line);
+  }
+
+  if (i >= lines.length) {
+    throw new Error('Invalid SKILL.md: missing frontmatter delimiters (---)');
+  }
+
+  const frontmatter = frontmatterLines.join('\n');
+  const instructions = lines
+    .slice(i + 1)
+    .join('\n')
+    .trim();
+
+  let metadata: unknown;
+  try {
+    metadata = parseYaml(frontmatter);
+  } catch (error) {
+    throw new Error(
+      `Invalid SKILL.md: YAML frontmatter parse failed: ${error}`
+    );
+  }
+
+  const data = metadata as Record<string, unknown> | null;
   const name = data?.name;
   const description = data?.description;
 
