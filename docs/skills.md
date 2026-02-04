@@ -2,7 +2,7 @@
 
 JupyterLite AI supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
 
-Skills let you teach the AI agent new behaviors — like how to perform data analysis, write code reviews, or follow team conventions — by placing markdown files in your workspace. The agent discovers and activates skills automatically when they are relevant to a task.
+Skills let you teach the AI agent new behaviors — like how to polish notebooks for reproducibility, write code reviews, or follow team conventions — by placing markdown files in your workspace. The agent discovers and activates skills automatically when they are relevant to a task.
 
 ## How it works
 
@@ -25,12 +25,12 @@ Place skills in the `.jupyter/skills/` directory at the root of your JupyterLab 
 ```
 .jupyter/
   skills/
-    data-analysis/
+    notebook-bootstrap/
       SKILL.md
       references/
         REFERENCE.md
       scripts/
-        analyze.py
+        mymodule.py
     code-review/
       SKILL.md
 ```
@@ -43,25 +43,40 @@ Every skill directory must contain a `SKILL.md` file with YAML frontmatter:
 
 ```markdown
 ---
-name: data-analysis
-description: Analyze datasets using pandas, generate summary statistics, and create visualizations.
+name: notebook-bootstrap
+description: Bootstrap a new notebook for data science and plotting with common imports and a linked console.
 ---
 
 ## Instructions
 
-When the user asks you to analyze data:
+When the user asks to bootstrap a new notebook for data science and plotting:
 
-1. Load the dataset using pandas
-2. Generate summary statistics with `df.describe()`
-3. Identify missing values and data types
-4. Create relevant visualizations using matplotlib
-5. Provide a written summary of findings
+1. Create a new notebook with `jupyterlab-ai-commands:create-notebook` using `name: "data-science-starter"` and `language: "python"` (name is without `.ipynb`)
+2. Add a markdown title cell at the top with `jupyterlab-ai-commands:add-cell` using `cellType: "markdown"`, `position: "above"`, and content like:
+
+```markdown
+# Data Science Starter
+```
+
+3. Add an imports cell directly below with `jupyterlab-ai-commands:add-cell` using `cellType: "code"`, `position: "below"`, and content:
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import scipy.stats as stats
+```
+
+4. Open a console for that notebook with `notebook:create-console` and `activate: true`
 
 ## Guidelines
 
-- Always show your code in notebook cells
-- Use clear, descriptive variable names
-- Add comments explaining each analysis step
+- Keep the first cell as a short markdown title
+- Keep the second cell focused on imports only
+- Prefer explicit variable names over single-letter names
+- Add comments only when a step is not obvious
 ```
 
 The frontmatter fields:
@@ -78,10 +93,10 @@ The markdown body after the closing `---` is the full instructions content that 
 Skills can include additional files (references, scripts, templates) alongside `SKILL.md`. The agent can access these by executing the skill command with a `resource` argument:
 
 ```
-execute_command({ commandId: "skills:data-analysis", args: { resource: "references/REFERENCE.md" } })
+execute_command({ commandId: "skills:notebook-bootstrap", args: { resource: "references/REFERENCE.md" } })
 ```
 
-This reads the file at `.jupyter/skills/data-analysis/references/REFERENCE.md` and returns its content.
+This reads the file at `.jupyter/skills/notebook-bootstrap/references/REFERENCE.md` and returns its content.
 
 ## Configuring the skills directory
 
