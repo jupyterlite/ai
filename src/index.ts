@@ -11,6 +11,7 @@ import {
   chatIcon,
   ChatWidget,
   IAttachmentOpenerRegistry,
+  IChatCommandRegistry,
   IInputToolbarRegistryFactory,
   InputToolbarRegistry,
   MultiChatPanel
@@ -53,6 +54,8 @@ import { PromiseDelegate, UUID } from '@lumino/coreutils';
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
+
+import { chatCommandRegistryPlugin, clearCommandPlugin } from './chat-commands';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
@@ -226,7 +229,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IRenderMimeRegistry,
     IInputToolbarRegistryFactory,
     IChatModelRegistry,
-    IAISettingsModel
+    IAISettingsModel,
+    IChatCommandRegistry
   ],
   optional: [
     IThemeManager,
@@ -241,6 +245,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     inputToolbarFactory: IInputToolbarRegistryFactory,
     modelRegistry: IChatModelRegistry,
     settingsModel: AISettingsModel,
+    chatCommandRegistry: IChatCommandRegistry,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
@@ -275,6 +280,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       themeManager: themeManager ?? null,
       inputToolbarFactory,
       attachmentOpenerRegistry,
+      chatCommandRegistry,
       createModel: async (name?: string) => {
         const model = modelRegistry.createModel(name);
         return { model };
@@ -400,6 +406,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       attachmentOpenerRegistry,
       inputToolbarFactory,
       settingsModel,
+      chatCommandRegistry,
       tracker,
       modelRegistry,
       trans,
@@ -416,6 +423,7 @@ function registerCommands(
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
   settingsModel: AISettingsModel,
+  chatCommandRegistry: IChatCommandRegistry,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
   trans: TranslationBundle,
@@ -481,7 +489,8 @@ function registerCommands(
         rmRegistry,
         themeManager: themeManager ?? null,
         inputToolbarRegistry: inputToolbarFactory.create(),
-        attachmentOpenerRegistry
+        attachmentOpenerRegistry,
+        chatCommandRegistry
       });
       const widget = new MainAreaChat({
         content,
@@ -909,6 +918,8 @@ export default [
   genericProviderPlugin,
   settingsModel,
   diffManager,
+  chatCommandRegistryPlugin,
+  clearCommandPlugin,
   chatModelRegistry,
   plugin,
   toolRegistry,

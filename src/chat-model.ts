@@ -185,6 +185,12 @@ export class AIChatModel extends AbstractChatModel {
    * @param message The user message to send
    */
   async sendMessage(message: INewMessage): Promise<void> {
+    const hasBody = message.body.trim().length > 0;
+    const hasAttachments = this.input.attachments.length > 0;
+    if (!hasBody && !hasAttachments) {
+      return;
+    }
+
     // Add user message to chat
     const userMessage: IChatMessage = {
       body: message.body,
