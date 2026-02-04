@@ -1,3 +1,4 @@
+import { CommandRegistry } from '@lumino/commands';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
   ToolLoopAgent,
@@ -26,6 +27,11 @@ interface IMCPClientWrapper {
 
 type ToolMap = Record<string, Tool>;
 
+interface ISkillSummary {
+  name: string;
+  description: string;
+}
+
 /**
  * Result from processing a stream, including approval info if applicable.
  */
@@ -47,6 +53,10 @@ export namespace AgentManagerFactory {
      */
     settingsModel: AISettingsModel;
     /**
+     * The command registry for discovering skills.
+     */
+    commands?: CommandRegistry;
+    /**
      * The secrets manager.
      */
     secretsManager?: ISecretsManager;
@@ -60,6 +70,7 @@ export class AgentManagerFactory {
   constructor(options: AgentManagerFactory.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
+    this._commands = options.commands;
     this._secretsManager = options.secretsManager;
     this._mcpClients = [];
     this._mcpConnectionChanged = new Signal<this, boolean>(this);
@@ -76,6 +87,7 @@ export class AgentManagerFactory {
   createAgent(options: IAgentManagerOptions): AgentManager {
     const agentManager = new AgentManager({
       ...options,
+      commands: this._commands,
       secretsManager: this._secretsManager
     });
     this._agentManagers.push(agentManager);
@@ -200,8 +212,22 @@ export class AgentManagerFactory {
     }
   }
 
+  /**
+   * Refresh skill snapshots across all agents.
+   */
+  refreshSkillSnapshots(): void {
+    this._agentManagers.forEach(manager => {
+      manager
+        .initializeAgent()
+        .catch(error =>
+          console.warn('Failed to refresh skills snapshot:', error)
+        );
+    });
+  }
+
   private _agentManagers: AgentManager[] = [];
   private _settingsModel: AISettingsModel;
+  private _commands?: CommandRegistry;
   private _secretsManager?: ISecretsManager;
   private _mcpClients: IMCPClientWrapper[];
   private _mcpConnectionChanged: Signal<this, boolean>;
@@ -288,6 +314,11 @@ export interface IAgentManagerOptions {
   providerRegistry?: IProviderRegistry;
 
   /**
+   * The command registry for discovering skills.
+   */
+  commands?: CommandRegistry;
+
+  /**
    * The secrets manager.
    */
   secretsManager?: ISecretsManager;
@@ -318,6 +349,7 @@ export class AgentManager {
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
+    this._commands = options.commands;
     this._secretsManager = options.secretsManager;
     this._selectedToolNames = [];
     this._agent = null;
@@ -331,6 +363,7 @@ export class AgentManager {
       outputTokens: 0
     };
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
+    this._skillsSnapshot = [];
 
     this.activeProvider =
       options.activeProvider ?? this._settingsModel.config.defaultProvider;
@@ -603,6 +636,7 @@ export class AgentManager {
     this._isInitializing = true;
 
     try {
+      this._refreshSkillsSnapshot();
       const config = this._settingsModel.config;
       if (mcpTools !== undefined) {
         this._mcpTools = mcpTools;
@@ -650,6 +684,31 @@ export class AgentManager {
       this._isInitializing = false;
     }
   };
+
+  /**
+   * Refresh the in-memory skills snapshot from the command registry.
+   */
+  private _refreshSkillsSnapshot(): void {
+    if (!this._commands) {
+      return;
+    }
+    const skillPrefix = 'skills:';
+    const summaries: ISkillSummary[] = [];
+    for (const id of this._commands.listCommands()) {
+      if (!id.startsWith(skillPrefix)) {
+        continue;
+      }
+      const name = id.slice(skillPrefix.length);
+      const description =
+        this._commands.caption(id) ||
+        this._commands.usage(id) ||
+        this._commands.label(id) ||
+        '';
+      summaries.push({ name, description });
+    }
+    summaries.sort((a, b) => a.name.localeCompare(b.name));
+    this._skillsSnapshot = summaries;
+  }
 
   /**
    * Processes the stream result from agent execution.
@@ -945,20 +1004,36 @@ Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpytho
 
 AGENT SKILLS:
 Specialized skills may be available as commands prefixed with "skills:".
-If you're unsure how to proceed or need a specialized workflow, use discover_commands with query "skills" to see available skills and their descriptions.
-Use a relevant skill even when the user doesn't explicitly mention it.
-Prefer the single most relevant skill; if multiple could apply, ask a brief clarifying question before using more than one.
 When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
+If a preloaded skills snapshot is provided below, do NOT call discover_commands just to list skills; use the snapshot instead. Only call discover_commands if the user explicitly asks for the latest list or if you need to verify a skill not present in the snapshot.
 If the skill result includes a "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. For each resource path, execute the same skill command again with the resource argument, e.g.: execute_command({ commandId: "skills:<name>", args: { resource: "<path>" } }). Load all listed resources before starting the task.
 `;
 
-    return baseSystemPrompt + progressReportingPrompt + skillsPrompt;
+    let skillsSnapshotPrompt = '';
+    if (this._skillsSnapshot.length > 0) {
+      const lines = this._skillsSnapshot.map(
+        skill => `- ${skill.name}: ${skill.description}`
+      );
+      skillsSnapshotPrompt = `
+
+AVAILABLE SKILLS (preloaded snapshot):
+${lines.join('\n')}
+`;
+    }
+
+    return (
+      baseSystemPrompt +
+      progressReportingPrompt +
+      skillsPrompt +
+      skillsSnapshotPrompt
+    );
   }
 
   // Private attributes
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
+  private _commands?: CommandRegistry;
   private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
   private _agent: ToolLoopAgent<never, ToolMap> | null;
@@ -971,6 +1046,7 @@ If the skill result includes a "resources" array, those are bundled files (scrip
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
+  private _skillsSnapshot: ISkillSummary[];
   private _pendingApprovals: Map<
     string,
     { resolve: (approved: boolean, reason?: string) => void }

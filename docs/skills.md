@@ -16,6 +16,8 @@ The AI agent uses **progressive disclosure** to work with skills efficiently:
 
 Skills are registered as JupyterLab commands with a `skills:` prefix. No additional tools or UI are needed — the agent discovers and uses skills through the existing command system.
 
+When a new chat is created, JupyterLite AI preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_commands` call. The full skill instructions are still loaded on-demand via progressive disclosure.
+
 ## Creating a skill
 
 ### Directory structure

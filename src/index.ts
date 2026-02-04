@@ -727,6 +727,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const agentManagerFactory = new AgentManagerFactory({
         settingsModel,
+        commands: app.commands,
         secretsManager,
         token
       });
@@ -947,10 +948,11 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:skills',
   description: 'Discover and register agent skills',
   autoStart: true,
-  requires: [IAISettingsModel, IDocumentManager],
+  requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
   activate: async (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
+    agentManagerFactory: AgentManagerFactory,
     docManager: IDocumentManager
   ) => {
     let disposables: IDisposable[] = [];
@@ -966,6 +968,7 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
         skills,
         docManager.services.contents
       );
+      agentManagerFactory.refreshSkillSnapshots();
     };
 
     loadAndRegister().catch(error =>
