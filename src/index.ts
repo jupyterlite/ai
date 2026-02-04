@@ -971,11 +971,18 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
       agentManagerFactory.refreshSkillSnapshots();
     };
 
+    let currentSkillsPath = settingsModel.config.skillsPath;
+
     loadAndRegister().catch(error =>
       console.warn('Failed to load skills on activation:', error)
     );
 
     settingsModel.stateChanged.connect(() => {
+      const newPath = settingsModel.config.skillsPath;
+      if (newPath === currentSkillsPath) {
+        return;
+      }
+      currentSkillsPath = newPath;
       loadAndRegister().catch(error =>
         console.warn('Failed to reload skills:', error)
       );

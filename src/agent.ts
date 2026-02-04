@@ -1000,33 +1000,26 @@ Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpytho
 - For console:create, if unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
 `;
 
+    if (this._skillsSnapshot.length === 0) {
+      return baseSystemPrompt + progressReportingPrompt;
+    }
+
+    const lines = this._skillsSnapshot.map(
+      skill => `- ${skill.name}: ${skill.description}`
+    );
     const skillsPrompt = `
 
 AGENT SKILLS:
 Specialized skills may be available as commands prefixed with "skills:".
 When a skill is relevant to the user's task, activate it by executing the skill command to load its full instructions, then follow those instructions.
-If a preloaded skills snapshot is provided below, do NOT call discover_commands just to list skills; use the snapshot instead. Only call discover_commands if the user explicitly asks for the latest list or if you need to verify a skill not present in the snapshot.
+Do NOT call discover_commands just to list skills; use the preloaded snapshot below instead. Only call discover_commands if the user explicitly asks for the latest list or if you need to verify a skill not present in the snapshot.
 If the skill result includes a "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. For each resource path, execute the same skill command again with the resource argument, e.g.: execute_command({ commandId: "skills:<name>", args: { resource: "<path>" } }). Load all listed resources before starting the task.
-`;
-
-    let skillsSnapshotPrompt = '';
-    if (this._skillsSnapshot.length > 0) {
-      const lines = this._skillsSnapshot.map(
-        skill => `- ${skill.name}: ${skill.description}`
-      );
-      skillsSnapshotPrompt = `
 
 AVAILABLE SKILLS (preloaded snapshot):
 ${lines.join('\n')}
 `;
-    }
 
-    return (
-      baseSystemPrompt +
-      progressReportingPrompt +
-      skillsPrompt +
-      skillsSnapshotPrompt
-    );
+    return baseSystemPrompt + progressReportingPrompt + skillsPrompt;
   }
 
   // Private attributes
