@@ -60,6 +60,7 @@ import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 
 import { ClearCommandProvider } from './chat-commands/clear';
+import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
@@ -217,6 +218,23 @@ const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IChatCommandRegistry],
   activate: (app, registry: IChatCommandRegistry) => {
     registry.addProvider(new ClearCommandProvider());
+  }
+};
+
+/**
+ * Skills chat command plugin.
+ */
+const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:skills-command',
+  description: 'Register the /skills chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, ISkillRegistry],
+  activate: (
+    app,
+    registry: IChatCommandRegistry,
+    skillRegistry: ISkillRegistry
+  ) => {
+    registry.addProvider(new SkillsCommandProvider(skillRegistry));
   }
 };
 
@@ -1094,6 +1112,7 @@ export default [
   chatCommandRegistryPlugin,
   clearCommandPlugin,
   skillRegistryPlugin,
+  skillsCommandPlugin,
   chatModelRegistry,
   plugin,
   toolRegistry,
