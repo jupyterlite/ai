@@ -10,7 +10,7 @@ import { parseSkillMd, IParsedSkill } from './parse-skill';
 /**
  * A skill definition loaded from the filesystem.
  */
-export interface ISkillDefinition extends IParsedSkill {
+export interface ISkillFileDefinition extends IParsedSkill {
   /**
    * Path to the skill directory (e.g. ".agents/skills/my-skill").
    */
@@ -32,8 +32,8 @@ export interface ISkillDefinition extends IParsedSkill {
 export async function loadSkills(
   contentsManager: Contents.IManager,
   skillsPath: string
-): Promise<ISkillDefinition[]> {
-  const skills: ISkillDefinition[] = [];
+): Promise<ISkillFileDefinition[]> {
+  const skills: ISkillFileDefinition[] = [];
 
   // Walk each path segment from root to verify the directory exists before fetching it.
   const segments = skillsPath.split('/').filter(s => s.length > 0);

@@ -372,6 +372,19 @@ export class AIChatModel extends AbstractChatModel {
             return `query: "${parsedInput.query}"`;
           }
           break;
+        case 'discover_skills':
+          if (parsedInput.query) {
+            return `query: "${parsedInput.query}"`;
+          }
+          break;
+        case 'load_skill':
+          if (parsedInput.name) {
+            if (parsedInput.resource) {
+              return `${parsedInput.name} (${parsedInput.resource})`;
+            }
+            return parsedInput.name;
+          }
+          break;
       }
     } catch {
       // If parsing fails, return empty string

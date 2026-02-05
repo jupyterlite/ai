@@ -10,13 +10,13 @@ Skills follow the [agentskills.io specification](https://agentskills.io/specific
 
 The AI agent uses **progressive disclosure** to work with skills efficiently:
 
-1. **Discovery**: The agent calls `discover_commands` with query `"skills"` to see a list of available skills with short descriptions (~100 tokens each).
-2. **Activation**: When a skill is relevant, the agent executes the corresponding `skills:<name>` command to load the full instructions.
+1. **Discovery**: The agent calls `discover_skills` (optionally with a query) to see a list of available skills with short descriptions (~100 tokens each).
+2. **Activation**: When a skill is relevant, the agent calls `load_skill` with the skill name to load the full instructions.
 3. **Execution**: The agent follows the loaded instructions to complete the task.
 
-Skills are registered as JupyterLab commands with a `skills:` prefix. No additional tools or UI are needed — the agent discovers and uses skills through the existing command system.
+Skills are registered in a dedicated skill registry. The agent discovers and uses skills through the `discover_skills` and `load_skill` tools.
 
-When a new chat is created, JupyterLite AI preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_commands` call. The full skill instructions are still loaded on-demand via progressive disclosure.
+When a new chat is created, JupyterLite AI preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_skills` call. The full skill instructions are still loaded on-demand via progressive disclosure.
 
 ## Creating a skill
 
@@ -83,21 +83,21 @@ import scipy.stats as stats
 
 The frontmatter fields:
 
-| Field         | Required | Description                                                               |
-| ------------- | -------- | ------------------------------------------------------------------------- |
-| `name`        | Yes      | A short identifier for the skill (used in the command ID `skills:<name>`) |
-| `description` | Yes      | A brief description of what the skill does and when to use it             |
+| Field         | Required | Description                                                                |
+| ------------- | -------- | -------------------------------------------------------------------------- |
+| `name`        | Yes      | A short identifier for the skill (used to load the skill via `load_skill`) |
+| `description` | Yes      | A brief description of what the skill does and when to use it              |
 
 The markdown body after the closing `---` is the full instructions content that the agent loads when it activates the skill.
 
 ### Resource files
 
-Skills can include additional files (references, scripts, templates) alongside `SKILL.md`. The agent can access these by executing the skill command with a `resource` argument:
+Skills can include additional files (references, scripts, templates) alongside `SKILL.md`. The agent can access these by calling `load_skill` with a `resource` argument:
 
 ```javascript
-execute_command({
-  commandId: 'skills:notebook-bootstrap',
-  args: { resource: 'references/REFERENCE.md' }
+load_skill({
+  name: 'notebook-bootstrap',
+  resource: 'references/REFERENCE.md'
 });
 ```
 
@@ -151,59 +151,48 @@ JupyterLite runs entirely in the browser and does not use a Jupyter Server, so s
 
 ## Providing skills from a JupyterLab extension
 
-In addition to loading skills from the filesystem, JupyterLab extensions can register skills programmatically. The only convention required is the `skills:` command prefix. Any extension can call `app.commands.addCommand` to register a skill command:
+In addition to loading skills from the filesystem, JupyterLab extensions can register skills programmatically via the skill registry token `ISkillRegistry`:
 
 ```typescript
+import type {
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+import { ISkillRegistry } from '@jupyterlite/ai';
+
 // Bundled resource files (scripts, references, templates)
 const resources: Record<string, string> = {
   'scripts/analyze.py': 'import pandas as pd\n...',
   'references/REFERENCE.md': '# Reference\n...'
 };
 
-app.commands.addCommand('skills:my-custom-skill', {
-  label: 'my-custom-skill',
-  caption: 'Description of what this skill does.',
-  usage: 'Agent skill: Description of what this skill does.',
-  describedBy: {
-    args: {
-      type: 'object',
-      properties: {
-        resource: {
-          type: 'string',
-          description:
-            'Optional path to a resource file bundled inside the skill directory (e.g. references or templates shipped with the skill). Do NOT use this for user workspace files — read those directly instead.'
-        }
-      }
-    }
-  },
-  execute: async (args: any) => {
-    // When a resource is requested, return its content
-    if (args.resource) {
-      const content = resources[args.resource];
-      if (!content) {
-        return {
-          name: 'my-custom-skill',
-          resource: args.resource,
-          error: `Resource not found: ${args.resource}`
-        };
-      }
-      return { name: 'my-custom-skill', resource: args.resource, content };
-    }
-
-    // Otherwise return skill metadata + instructions.
-    // List resource paths (not content) for progressive disclosure —
-    // the agent loads each resource individually when needed.
-    return {
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: 'my-extension:skills',
+  autoStart: true,
+  requires: [ISkillRegistry],
+  activate: (app: JupyterFrontEnd, skillRegistry) => {
+    skillRegistry.registerSkill({
       name: 'my-custom-skill',
       description: 'Description of what this skill does.',
       instructions: 'Full instructions for the agent...',
-      resources: Object.keys(resources)
-    };
+      resources: Object.keys(resources),
+      loadResource: async (resource: string) => {
+        const content = resources[resource];
+        if (!content) {
+          return {
+            name: 'my-custom-skill',
+            resource,
+            error: `Resource not found: ${resource}`
+          };
+        }
+        return { name: 'my-custom-skill', resource, content };
+      }
+    });
   }
-});
+};
 ```
 
-The execute handler follows progressive disclosure: on activation it returns instructions and a list of resource **paths**, and the agent loads individual resources on demand via the `resource` argument. This keeps token usage low for skills with large bundled files.
+The registry follows progressive disclosure: `load_skill` returns instructions and a list of resource **paths**, and the agent loads individual resources on demand via the `resource` argument. This keeps token usage low for skills with large bundled files.
 
 This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
 
