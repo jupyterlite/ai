@@ -55,7 +55,7 @@ test.describe('#skills', () => {
       '.jp-chat-input-container .jp-chat-send-button'
     );
 
-    const prompt = 'Load the agent helper skill';
+    const prompt = 'Load the agent helper skill and follow its instructions.';
 
     await input.pressSequentially(prompt);
     await sendButton.click();
