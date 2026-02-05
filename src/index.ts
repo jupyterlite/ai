@@ -9,8 +9,10 @@ import {
   ActiveCellManager,
   AttachmentOpenerRegistry,
   chatIcon,
+  ChatCommandRegistry,
   ChatWidget,
   IAttachmentOpenerRegistry,
+  IChatCommandRegistry,
   IInputToolbarRegistryFactory,
   InputToolbarRegistry,
   MultiChatPanel
@@ -53,6 +55,8 @@ import { PromiseDelegate, UUID } from '@lumino/coreutils';
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
+
+import { ClearCommandProvider } from './chat-commands/clear';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
@@ -184,6 +188,32 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
+ * Chat command registry plugin.
+ */
+const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
+  id: '@jupyterlite/ai:chat-command-registry',
+  description: 'Provide the chat command registry for JupyterLite AI.',
+  autoStart: true,
+  provides: IChatCommandRegistry,
+  activate: () => {
+    return new ChatCommandRegistry();
+  }
+};
+
+/**
+ * Clear chat command plugin.
+ */
+const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:clear-command',
+  description: 'Register the /clear chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry],
+  activate: (app, registry: IChatCommandRegistry) => {
+    registry.addProvider(new ClearCommandProvider());
+  }
+};
+
+/**
  * The chat model registry.
  */
 const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
@@ -226,7 +256,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IRenderMimeRegistry,
     IInputToolbarRegistryFactory,
     IChatModelRegistry,
-    IAISettingsModel
+    IAISettingsModel,
+    IChatCommandRegistry
   ],
   optional: [
     IThemeManager,
@@ -241,6 +272,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     inputToolbarFactory: IInputToolbarRegistryFactory,
     modelRegistry: IChatModelRegistry,
     settingsModel: AISettingsModel,
+    chatCommandRegistry: IChatCommandRegistry,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
@@ -275,6 +307,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       themeManager: themeManager ?? null,
       inputToolbarFactory,
       attachmentOpenerRegistry,
+      chatCommandRegistry,
       createModel: async (name?: string) => {
         const model = modelRegistry.createModel(name);
         return { model };
@@ -400,6 +433,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       attachmentOpenerRegistry,
       inputToolbarFactory,
       settingsModel,
+      chatCommandRegistry,
       tracker,
       modelRegistry,
       trans,
@@ -416,6 +450,7 @@ function registerCommands(
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
   settingsModel: AISettingsModel,
+  chatCommandRegistry: IChatCommandRegistry,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelRegistry,
   trans: TranslationBundle,
@@ -481,7 +516,8 @@ function registerCommands(
         rmRegistry,
         themeManager: themeManager ?? null,
         inputToolbarRegistry: inputToolbarFactory.create(),
-        attachmentOpenerRegistry
+        attachmentOpenerRegistry,
+        chatCommandRegistry
       });
       const widget = new MainAreaChat({
         content,
@@ -909,6 +945,8 @@ export default [
   genericProviderPlugin,
   settingsModel,
   diffManager,
+  chatCommandRegistryPlugin,
+  clearCommandPlugin,
   chatModelRegistry,
   plugin,
   toolRegistry,
