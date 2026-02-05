@@ -1,11 +1,4 @@
-import { JupyterFrontEndPlugin } from '@jupyterlab/application';
-
-import {
-  ChatCommand,
-  IChatCommandProvider,
-  IChatCommandRegistry,
-  IInputModel
-} from '@jupyter/chat';
+import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
 
 import { AIChatModel } from '../chat-model';
 
@@ -51,13 +44,3 @@ export class ClearCommandProvider implements IChatCommandProvider {
 
   private _regex: RegExp = /^\/\w*$/;
 }
-
-export const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:clear-command',
-  description: 'Register the /clear chat command.',
-  autoStart: true,
-  requires: [IChatCommandRegistry],
-  activate: (app, registry: IChatCommandRegistry) => {
-    registry.addProvider(new ClearCommandProvider());
-  }
-};

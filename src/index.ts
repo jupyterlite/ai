@@ -9,6 +9,7 @@ import {
   ActiveCellManager,
   AttachmentOpenerRegistry,
   chatIcon,
+  ChatCommandRegistry,
   ChatWidget,
   IAttachmentOpenerRegistry,
   IChatCommandRegistry,
@@ -55,7 +56,7 @@ import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
 
-import { chatCommandRegistryPlugin, clearCommandPlugin } from './chat-commands';
+import { ClearCommandProvider } from './chat-commands/clear';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
@@ -183,6 +184,32 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IProviderRegistry],
   activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
     providerRegistry.registerProvider(genericProvider);
+  }
+};
+
+/**
+ * Chat command registry plugin.
+ */
+const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
+  id: '@jupyterlite/ai:chat-command-registry',
+  description: 'Provide the chat command registry for JupyterLite AI.',
+  autoStart: true,
+  provides: IChatCommandRegistry,
+  activate: () => {
+    return new ChatCommandRegistry();
+  }
+};
+
+/**
+ * Clear chat command plugin.
+ */
+const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:clear-command',
+  description: 'Register the /clear chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry],
+  activate: (app, registry: IChatCommandRegistry) => {
+    registry.addProvider(new ClearCommandProvider());
   }
 };
 
