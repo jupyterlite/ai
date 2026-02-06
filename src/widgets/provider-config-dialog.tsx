@@ -416,6 +416,26 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   inputProps={{ min: 1, max: 100 }}
                 />
 
+                <TextField
+                  fullWidth
+                  label={trans.__('Context Window (Optional)')}
+                  type="number"
+                  value={parameters.contextWindow ?? ''}
+                  onChange={e =>
+                    setParameters({
+                      ...parameters,
+                      contextWindow: e.target.value
+                        ? Number(e.target.value)
+                        : undefined
+                    })
+                  }
+                  placeholder={trans.__('e.g., 128000')}
+                  helperText={trans.__(
+                    'Model context window size in tokens (used for context usage estimation)'
+                  )}
+                  inputProps={{ min: 1 }}
+                />
+
                 <Typography
                   variant="body2"
                   color="text.secondary"

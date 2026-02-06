@@ -32,8 +32,8 @@ export interface ITokenUsageDisplayProps {
 
 /**
  * React component that displays token usage information.
- * Shows input/output token counts with up/down arrows.
- * Only renders when token usage display is enabled in settings.
+ * Shows input/output token counts and optional estimated context usage.
+ * Only renders when token or context usage display is enabled in settings.
  */
 export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
   tokenUsageChanged,
@@ -45,7 +45,9 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
     <UseSignal signal={settingsModel.stateChanged} initialArgs={undefined}>
       {() => {
         const config = settingsModel.config;
-        if (!config.showTokenUsage) {
+        const showTokenUsage = config.showTokenUsage;
+        const showContextUsage = config.showContextUsage;
+        if (!showTokenUsage && !showContextUsage) {
           return null;
         }
 
@@ -57,9 +59,27 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
               }
 
               const total = tokenUsage.inputTokens + tokenUsage.outputTokens;
-              if (total === 0) {
+              const hasTokenUsage = showTokenUsage && total > 0;
+              const hasContextUsage =
+                showContextUsage &&
+                tokenUsage.contextUsagePercent !== undefined &&
+                tokenUsage.contextWindow !== undefined &&
+                tokenUsage.lastRequestInputTokens !== undefined;
+
+              if (!hasTokenUsage && !hasContextUsage) {
                 return null;
               }
+
+              const contextTitle = hasContextUsage
+                ? trans.__(
+                    'Context Usage (estimated): %1% (%2 / %3 tokens)',
+                    tokenUsage.contextUsagePercent!.toLocaleString(undefined, {
+                      maximumFractionDigits: 1
+                    }),
+                    tokenUsage.lastRequestInputTokens!.toLocaleString(),
+                    tokenUsage.contextWindow!.toLocaleString()
+                  )
+                : '';
 
               return (
                 <div
@@ -76,32 +96,64 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
                     whiteSpace: 'nowrap'
                   }}
                   title={trans.__(
-                    'Token Usage - Sent: %1, Received: %2, Total: %3',
-                    tokenUsage.inputTokens.toLocaleString(),
-                    tokenUsage.outputTokens.toLocaleString(),
-                    total.toLocaleString()
+                    '%1%2',
+                    hasTokenUsage
+                      ? trans.__(
+                          'Token Usage - Sent: %1, Received: %2, Total: %3',
+                          tokenUsage.inputTokens.toLocaleString(),
+                          tokenUsage.outputTokens.toLocaleString(),
+                          total.toLocaleString()
+                        )
+                      : '',
+                    hasTokenUsage && hasContextUsage
+                      ? `\n${contextTitle}`
+                      : contextTitle
                   )}
                 >
-                  <span
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '2px'
-                    }}
-                  >
-                    <span>↑</span>
-                    <span>{tokenUsage.inputTokens.toLocaleString()}</span>
-                  </span>
-                  <span
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '2px'
-                    }}
-                  >
-                    <span>↓</span>
-                    <span>{tokenUsage.outputTokens.toLocaleString()}</span>
-                  </span>
+                  {hasTokenUsage && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span>↑</span>
+                      <span>{tokenUsage.inputTokens.toLocaleString()}</span>
+                    </span>
+                  )}
+                  {hasTokenUsage && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span>↓</span>
+                      <span>{tokenUsage.outputTokens.toLocaleString()}</span>
+                    </span>
+                  )}
+                  {hasContextUsage && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span>ctx</span>
+                      <span>
+                        {tokenUsage.contextUsagePercent!.toLocaleString(
+                          undefined,
+                          {
+                            maximumFractionDigits: 1
+                          }
+                        )}
+                        %
+                      </span>
+                    </span>
+                  )}
                 </div>
               );
             }}

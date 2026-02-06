@@ -7,6 +7,7 @@ export interface IProviderParameters {
   temperature?: number;
   maxOutputTokens?: number;
   maxTurns?: number;
+  contextWindow?: number;
   supportsFillInMiddle?: boolean;
   useFilterText?: boolean;
 }
@@ -54,6 +55,8 @@ export interface IAIConfig {
   sendWithShiftEnter: boolean;
   // Token usage display setting
   showTokenUsage: boolean;
+  // Context usage display setting
+  showContextUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Diff display settings
@@ -75,6 +78,7 @@ export class AISettingsModel extends VDomModel {
     toolsEnabled: true,
     sendWithShiftEnter: false,
     showTokenUsage: false,
+    showContextUsage: false,
     showCellDiff: true,
     showFileDiff: true,
     diffDisplayMode: 'split',

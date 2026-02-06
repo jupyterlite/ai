@@ -36,6 +36,22 @@ export interface ITokenUsage {
    * Number of output tokens generated (completion tokens)
    */
   outputTokens: number;
+
+  /**
+   * Estimated prompt tokens used by the most recent model request.
+   * This is based on the final step of the latest request.
+   */
+  lastRequestInputTokens?: number;
+
+  /**
+   * Configured context window size for the active provider/model.
+   */
+  contextWindow?: number;
+
+  /**
+   * Estimated context usage percentage for the most recent request.
+   */
+  contextUsagePercent?: number;
 }
 
 /**
