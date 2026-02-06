@@ -376,7 +376,33 @@ export class AgentManager {
     return this._activeProvider;
   }
   set activeProvider(value: string) {
+    const previousProvider = this._activeProvider;
     this._activeProvider = value;
+
+    // Reset request-level context estimate only when switching between providers.
+    if (previousProvider && previousProvider !== value) {
+      this._tokenUsage.lastRequestInputTokens = undefined;
+      this._tokenUsage.contextUsagePercent = undefined;
+    }
+
+    const contextWindow = this._getActiveContextWindow();
+    this._tokenUsage.contextWindow = contextWindow;
+    if (
+      contextWindow !== undefined &&
+      contextWindow > 0 &&
+      this._tokenUsage.lastRequestInputTokens !== undefined
+    ) {
+      const rawPercent =
+        (this._tokenUsage.lastRequestInputTokens / contextWindow) * 100;
+      this._tokenUsage.contextUsagePercent = Math.max(
+        0,
+        Math.min(100, Math.round(rawPercent * 10) / 10)
+      );
+    } else {
+      this._tokenUsage.contextUsagePercent = undefined;
+    }
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
     this.initializeAgent();
     this._activeProviderChanged.emit(this._activeProvider);
   }
@@ -460,7 +486,11 @@ export class AgentManager {
 
     // Clear history and token usage
     this._history = [];
-    this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
+    this._tokenUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      contextWindow: this._getActiveContextWindow()
+    };
     this._tokenUsageChanged.emit(this._tokenUsage);
   }
 
@@ -540,7 +570,9 @@ export class AgentManager {
 
         // Get response messages and update token usage
         const responseMessages = await result.response;
-        this._updateTokenUsage(await result.usage);
+        const totalUsage = await result.totalUsage;
+        const lastStepUsage = await result.usage;
+        this._updateTokenUsage(totalUsage, lastStepUsage.inputTokens);
 
         // Add response messages to history
         if (responseMessages.messages?.length) {
@@ -583,13 +615,44 @@ export class AgentManager {
    * Updates token usage statistics.
    */
   private _updateTokenUsage(
-    usage: { inputTokens?: number; outputTokens?: number } | undefined
+    usage: { inputTokens?: number; outputTokens?: number } | undefined,
+    lastRequestInputTokens?: number
   ): void {
+    const contextWindow = this._getActiveContextWindow();
+
     if (usage) {
       this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
       this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
-      this._tokenUsageChanged.emit(this._tokenUsage);
     }
+
+    this._tokenUsage.lastRequestInputTokens = lastRequestInputTokens;
+    this._tokenUsage.contextWindow = contextWindow;
+
+    if (
+      contextWindow !== undefined &&
+      contextWindow > 0 &&
+      lastRequestInputTokens !== undefined
+    ) {
+      const rawPercent = (lastRequestInputTokens / contextWindow) * 100;
+      this._tokenUsage.contextUsagePercent = Math.max(
+        0,
+        Math.min(100, Math.round(rawPercent * 10) / 10)
+      );
+    } else {
+      this._tokenUsage.contextUsagePercent = undefined;
+    }
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Gets the configured context window for the active provider.
+   */
+  private _getActiveContextWindow(): number | undefined {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    return activeProviderConfig?.parameters?.contextWindow;
   }
 
   /**
@@ -624,6 +687,23 @@ export class AgentManager {
       const activeProviderConfig = this._settingsModel.getProvider(
         this._activeProvider
       );
+      const contextWindow = activeProviderConfig?.parameters?.contextWindow;
+      this._tokenUsage.contextWindow = contextWindow;
+      if (
+        contextWindow !== undefined &&
+        contextWindow > 0 &&
+        this._tokenUsage.lastRequestInputTokens !== undefined
+      ) {
+        const rawPercent =
+          (this._tokenUsage.lastRequestInputTokens / contextWindow) * 100;
+        this._tokenUsage.contextUsagePercent = Math.max(
+          0,
+          Math.min(100, Math.round(rawPercent * 10) / 10)
+        );
+      } else {
+        this._tokenUsage.contextUsagePercent = undefined;
+      }
+      this._tokenUsageChanged.emit(this._tokenUsage);
 
       const temperature =
         activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
