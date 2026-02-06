@@ -319,6 +319,7 @@ export interface IProviderParameters {
   temperature?: number;
   maxOutputTokens?: number;
   maxTurns?: number;
+  contextWindow?: number;
   supportsFillInMiddle?: boolean;
   useFilterText?: boolean;
 }
@@ -366,6 +367,8 @@ export interface IAIConfig {
   sendWithShiftEnter: boolean;
   // Token usage display setting
   showTokenUsage: boolean;
+  // Context usage display setting
+  showContextUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Commands whose execute_command outputs may auto-render MIME bundles in chat
@@ -743,6 +746,22 @@ export interface ITokenUsage {
    * Number of output tokens generated (completion tokens)
    */
   outputTokens: number;
+
+  /**
+   * Estimated prompt tokens used by the most recent model request.
+   * This is based on the final step of the latest request.
+   */
+  lastRequestInputTokens?: number;
+
+  /**
+   * Configured context window size for the active provider/model.
+   */
+  contextWindow?: number;
+
+  /**
+   * Estimated context usage percentage for the most recent request.
+   */
+  contextUsagePercent?: number;
 }
 
 /**

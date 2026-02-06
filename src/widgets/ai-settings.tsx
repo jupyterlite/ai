@@ -741,6 +741,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                               {(params?.temperature !== undefined ||
                                 params?.maxOutputTokens !== undefined ||
                                 params?.maxTurns !== undefined ||
+                                params?.contextWindow !== undefined ||
                                 webSearchEnabled ||
                                 webFetchEnabled) && (
                                 <Box
@@ -776,6 +777,16 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                       label={trans.__(
                                         'Turns: %1',
                                         params.maxTurns
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                  {params?.contextWindow !== undefined && (
+                                    <Chip
+                                      label={trans.__(
+                                        'Context: %1',
+                                        params.contextWindow
                                       )}
                                       size="small"
                                       variant="outlined"
@@ -929,6 +940,32 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                       <Typography variant="caption" color="text.secondary">
                         {trans.__(
                           'Display token usage information in the chat toolbar'
+                        )}
+                      </Typography>
+                    </Box>
+                  }
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={config.showContextUsage}
+                      onChange={e =>
+                        handleConfigUpdate({
+                          showContextUsage: e.target.checked
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">
+                        {trans.__('Show Context Usage')}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {trans.__(
+                          'Display estimated context usage in the chat toolbar'
                         )}
                       </Typography>
                     </Box>
