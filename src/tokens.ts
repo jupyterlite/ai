@@ -30,6 +30,7 @@ export namespace CommandIds {
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
+  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
 }
 
 /**

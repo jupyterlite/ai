@@ -234,7 +234,12 @@ const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
     registry: IChatCommandRegistry,
     skillRegistry: ISkillRegistry
   ) => {
-    registry.addProvider(new SkillsCommandProvider(skillRegistry));
+    registry.addProvider(
+      new SkillsCommandProvider({
+        skillRegistry,
+        commands: app.commands
+      })
+    );
   }
 };
 
@@ -997,12 +1002,16 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   description: 'Discover and register agent skills',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, ISkillRegistry],
+  optional: [ICommandPalette, ITranslator],
   activate: async (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
     docManager: IDocumentManager,
-    skillRegistry: ISkillRegistry
+    skillRegistry: ISkillRegistry,
+    palette?: ICommandPalette,
+    translator?: ITranslator
   ) => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     const validateResourcePath = (resourcePath: string): string | null => {
       if (resourcePath.startsWith('/')) {
         return null;
@@ -1082,6 +1091,23 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
         currentSkillDisposables.add(skillRegistry.registerSkill(registration));
       }
     };
+
+    app.commands.addCommand(CommandIds.refreshSkills, {
+      label: trans.__('Refresh Agents Skills'),
+      caption: trans.__(
+        'Re-scan the agents skills directory and update the registry'
+      ),
+      execute: async () => {
+        await loadAndRegister();
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        command: CommandIds.refreshSkills,
+        category: trans.__('AI Assistant')
+      });
+    }
 
     loadAndRegister().catch(error =>
       console.warn('Failed to load skills on activation:', error)

@@ -1,11 +1,14 @@
 import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
 
+import { CommandRegistry } from '@lumino/commands';
+
 import { AIChatModel } from '../chat-model';
-import { ISkillRegistry } from '../tokens';
+import { CommandIds, ISkillRegistry } from '../tokens';
 
 export class SkillsCommandProvider implements IChatCommandProvider {
-  constructor(skillRegistry: ISkillRegistry) {
-    this._skillRegistry = skillRegistry;
+  constructor(options: SkillsCommandProvider.IOptions) {
+    this._skillRegistry = options.skillRegistry;
+    this._commands = options.commands;
   }
 
   public id: string = '@jupyterlite/ai:skills-command';
@@ -30,6 +33,11 @@ export class SkillsCommandProvider implements IChatCommandProvider {
     const match = trimmed.match(/^\/skills(?:\s+(.+))?$/);
     if (!match) {
       return;
+    }
+
+    // Refresh skills from disk before listing
+    if (this._commands.hasCommand(CommandIds.refreshSkills)) {
+      await this._commands.execute(CommandIds.refreshSkills);
     }
 
     const query = match[1]?.trim();
@@ -76,5 +84,13 @@ export class SkillsCommandProvider implements IChatCommandProvider {
   };
 
   private _regex: RegExp = /^\/\w*$/;
+  private _commands: CommandRegistry;
   private _skillRegistry: ISkillRegistry;
+}
+
+export namespace SkillsCommandProvider {
+  export interface IOptions {
+    skillRegistry: ISkillRegistry;
+    commands: CommandRegistry;
+  }
 }
