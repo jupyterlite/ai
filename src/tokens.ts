@@ -127,9 +127,9 @@ export interface ISkillRegistry {
   registerSkill(skill: ISkillRegistration): IDisposable;
 
   /**
-   * List all skills with summary info.
+   * List all skills with summary info, optionally filtered by a search query.
    */
-  listSkills(): ISkillSummary[];
+  listSkills(query?: string): ISkillSummary[];
 
   /**
    * Get a full skill definition by name.

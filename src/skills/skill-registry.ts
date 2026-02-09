@@ -53,9 +53,10 @@ export class SkillRegistry implements ISkillRegistry {
   }
 
   /**
-   * List all registered skills with summary info.
+   * List all registered skills with summary info, optionally filtered by a
+   * search query (matches name or description, case-insensitive).
    */
-  listSkills(): ISkillSummary[] {
+  listSkills(query?: string): ISkillSummary[] {
     const summaries: ISkillSummary[] = [];
     for (const entry of this._skills.values()) {
       summaries.push({
@@ -64,7 +65,16 @@ export class SkillRegistry implements ISkillRegistry {
       });
     }
     summaries.sort((a, b) => a.name.localeCompare(b.name));
-    return summaries;
+
+    if (!query) {
+      return summaries;
+    }
+    const term = query.toLowerCase();
+    return summaries.filter(
+      skill =>
+        skill.name.toLowerCase().includes(term) ||
+        skill.description.toLowerCase().includes(term)
+    );
   }
 
   /**

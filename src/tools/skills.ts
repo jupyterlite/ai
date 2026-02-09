@@ -18,18 +18,7 @@ export function createDiscoverSkillsTool(skillRegistry: ISkillRegistry): ITool {
         .describe('Optional search query to filter skills')
     }),
     execute: async (input: { query?: string | null }) => {
-      const { query } = input;
-      const skills = skillRegistry.listSkills();
-
-      const filtered = query
-        ? skills.filter(skill => {
-            const term = query.toLowerCase();
-            return (
-              skill.name.toLowerCase().includes(term) ||
-              skill.description.toLowerCase().includes(term)
-            );
-          })
-        : skills;
+      const filtered = skillRegistry.listSkills(input.query ?? undefined);
 
       return {
         success: true,

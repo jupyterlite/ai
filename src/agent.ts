@@ -297,6 +297,19 @@ export type IAgentEvent<
   : never;
 
 /**
+ * Cached configuration used to (re)build the agent.
+ */
+interface IAgentConfig {
+  model: LanguageModel;
+  tools: ToolMap;
+  temperature: number;
+  maxOutputTokens?: number;
+  maxTurns: number;
+  baseSystemPrompt: string;
+  shouldUseTools: boolean;
+}
+
+/**
  * Configuration options for the AgentManager
  */
 export interface IAgentManagerOptions {
@@ -737,7 +750,7 @@ export class AgentManager {
     } = this._agentConfig;
 
     const instructions = shouldUseTools
-      ? this._getEnhancedSystemPrompt(baseSystemPrompt || '')
+      ? this._getEnhancedSystemPrompt(baseSystemPrompt)
       : baseSystemPrompt || 'You are a helpful assistant.';
 
     this._agent = new ToolLoopAgent({
@@ -1037,15 +1050,7 @@ ${lines.join('\n')}
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
   private _skills: ISkillSummary[];
   private _initQueue: Promise<void> = Promise.resolve();
-  private _agentConfig: {
-    model: LanguageModel;
-    tools: ToolMap;
-    temperature: number;
-    maxOutputTokens?: number;
-    maxTurns: number;
-    baseSystemPrompt: string;
-    shouldUseTools: boolean;
-  } | null;
+  private _agentConfig: IAgentConfig | null;
   private _pendingApprovals: Map<
     string,
     { resolve: (approved: boolean, reason?: string) => void }

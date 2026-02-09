@@ -179,6 +179,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     config.completionSystemPrompt
   );
   const completionPromptValueRef = React.useRef(config.completionSystemPrompt);
+
   /**
    * Effect to listen for model state changes and update config
    */

@@ -41,16 +41,7 @@ export class SkillsCommandProvider implements IChatCommandProvider {
     }
 
     const query = match[1]?.trim();
-    const skills = this._skillRegistry.listSkills();
-    const filtered = query
-      ? skills.filter(skill => {
-          const term = query.toLowerCase();
-          return (
-            skill.name.toLowerCase().includes(term) ||
-            skill.description.toLowerCase().includes(term)
-          );
-        })
-      : skills;
+    const filtered = this._skillRegistry.listSkills(query);
 
     let body = '';
     if (filtered.length === 0) {
