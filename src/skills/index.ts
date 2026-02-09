@@ -4,7 +4,7 @@
  */
 
 export { parseSkillMd, type IParsedSkill } from './parse-skill';
-export { loadSkills, type ISkillFileDefinition } from './skill-loader';
+export { loadSkillsFromPaths, type ISkillFileDefinition } from './skill-loader';
 export type {
   ISkillDefinition,
   ISkillRegistration,

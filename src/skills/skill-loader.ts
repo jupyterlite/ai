@@ -22,6 +22,39 @@ export interface ISkillFileDefinition extends IParsedSkill {
 }
 
 /**
+ * Load skills from multiple directories. Each path is scanned in order;
+ * when the same skill name appears in more than one path, the first
+ * occurrence wins.
+ *
+ * @param contentsManager - The Jupyter contents manager
+ * @param skillsPaths - Ordered list of directories to scan
+ * @returns Merged array of loaded skill definitions
+ */
+export async function loadSkillsFromPaths(
+  contentsManager: Contents.IManager,
+  skillsPaths: string[]
+): Promise<ISkillFileDefinition[]> {
+  const seen = new Set<string>();
+  const merged: ISkillFileDefinition[] = [];
+
+  for (const skillsPath of skillsPaths) {
+    const skills = await loadSkills(contentsManager, skillsPath);
+    for (const skill of skills) {
+      if (seen.has(skill.name)) {
+        console.debug(
+          `Skipping duplicate skill "${skill.name}" from "${skillsPath}" (already loaded from an earlier path).`
+        );
+        continue;
+      }
+      seen.add(skill.name);
+      merged.push(skill);
+    }
+  }
+
+  return merged;
+}
+
+/**
  * Load skills from the filesystem by scanning a directory for subdirectories
  * containing SKILL.md files.
  *
@@ -29,7 +62,7 @@ export interface ISkillFileDefinition extends IParsedSkill {
  * @param skillsPath - Path to the skills directory (e.g. ".agents/skills")
  * @returns Array of loaded skill definitions
  */
-export async function loadSkills(
+async function loadSkills(
   contentsManager: Contents.IManager,
   skillsPath: string
 ): Promise<ISkillFileDefinition[]> {

@@ -190,11 +190,12 @@
       "enum": ["split", "unified"],
       "default": "split"
     },
-    "skillsPath": {
-      "title": "Skills Path",
-      "description": "Path to the directory containing agent skills, relative to the server root.",
-      "type": "string",
-      "default": ".agents/skills"
+    "skillsPaths": {
+      "title": "Skills Paths",
+      "description": "Paths to directories containing agent skills, relative to the server root. Skills are loaded from all paths; the first occurrence of a skill name takes priority.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [".agents/skills", "_agents/skills"]
     }
   },
   "additionalProperties": false

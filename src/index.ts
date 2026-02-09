@@ -101,7 +101,7 @@ import {
 
 import { AISettingsModel } from './models/settings-model';
 
-import { loadSkills, SkillRegistry } from './skills';
+import { loadSkillsFromPaths, SkillRegistry } from './skills';
 
 import { DiffManager } from './diff-manager';
 
@@ -1025,12 +1025,15 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
       return normalized;
     };
 
-    let currentSkillsPath = settingsModel.config.skillsPath;
+    let currentSkillsPaths = settingsModel.config.skillsPaths;
     let currentSkillDisposables = new DisposableSet();
 
     const loadAndRegister = async () => {
-      const skillsPath = settingsModel.config.skillsPath;
-      const skills = await loadSkills(docManager.services.contents, skillsPath);
+      const skillsPaths = settingsModel.config.skillsPaths;
+      const skills = await loadSkillsFromPaths(
+        docManager.services.contents,
+        skillsPaths
+      );
 
       const registrations = skills.map(skill => ({
         name: skill.name,
@@ -1114,11 +1117,14 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
     );
 
     settingsModel.stateChanged.connect(() => {
-      const newPath = settingsModel.config.skillsPath;
-      if (newPath === currentSkillsPath) {
+      const newPaths = settingsModel.config.skillsPaths;
+      if (
+        newPaths.length === currentSkillsPaths.length &&
+        newPaths.every((p, i) => p === currentSkillsPaths[i])
+      ) {
         return;
       }
-      currentSkillsPath = newPath;
+      currentSkillsPaths = newPaths;
       loadAndRegister().catch(error =>
         console.warn('Failed to reload skills:', error)
       );
