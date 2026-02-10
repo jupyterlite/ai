@@ -3,7 +3,7 @@ import {
   IActiveCellManager,
   IAttachment,
   IChatContext,
-  IChatMessage,
+  IMessageContent,
   INewMessage,
   IUser
 } from '@jupyter/chat';
@@ -185,7 +185,7 @@ export class AIChatModel extends AbstractChatModel {
    * Adds a non-user message to the chat (used by chat commands).
    */
   addSystemMessage(body: string): void {
-    const message: IChatMessage = {
+    const message: IMessageContent = {
       body,
       sender: this._getAIUser(),
       id: UUID.uuid4(),
@@ -208,7 +208,7 @@ export class AIChatModel extends AbstractChatModel {
     }
 
     // Add user message to chat
-    const userMessage: IChatMessage = {
+    const userMessage: IMessageContent = {
       body: message.body,
       sender: this.user || { username: 'user', display_name: 'User' },
       id: UUID.uuid4(),
@@ -221,7 +221,7 @@ export class AIChatModel extends AbstractChatModel {
 
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
-      const errorMessage: IChatMessage = {
+      const errorMessage: IMessageContent = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
         sender: this._getAIUser(),
         id: UUID.uuid4(),
@@ -252,7 +252,7 @@ export class AIChatModel extends AbstractChatModel {
 
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
-      const errorMessage: IChatMessage = {
+      const errorMessage: IMessageContent = {
         body: `Error generating AI response: ${(error as Error).message}`,
         sender: this._getAIUser(),
         id: UUID.uuid4(),
@@ -326,7 +326,7 @@ export class AIChatModel extends AbstractChatModel {
    * @param event Event containing the message start data
    */
   private _handleMessageStart(event: IAgentEvent<'message_start'>): void {
-    const aiMessage: IChatMessage = {
+    const aiMessage: IMessageContent = {
       body: '',
       sender: this._getAIUser(),
       id: event.data.messageId,
@@ -431,7 +431,7 @@ export class AIChatModel extends AbstractChatModel {
 
     this._toolContexts.set(event.data.callId, context);
 
-    const toolCallMessage: IChatMessage = {
+    const toolCallMessage: IMessageContent = {
       body: Private.buildToolCallHtml({
         toolName: context.toolName,
         input: context.input,
@@ -828,7 +828,7 @@ export class AIChatModel extends AbstractChatModel {
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: AgentManager;
-  private _currentStreamingMessage: IChatMessage | null = null;
+  private _currentStreamingMessage: IMessageContent | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _trans: TranslationBundle;
 }
