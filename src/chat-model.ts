@@ -531,8 +531,7 @@ export class AIChatModel extends AbstractChatModel {
     }
 
     context.status = status;
-    this.messageAdded({
-      ...existingMessage,
+    existingMessage.update({
       body: Private.buildToolCallHtml({
         toolName: context.toolName,
         input: context.input,
