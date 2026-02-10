@@ -4,6 +4,7 @@
  */
 
 import { Contents } from '@jupyterlab/services';
+import { PathExt } from '@jupyterlab/coreutils';
 
 import { parseSkillMd, IParsedSkill } from './parse-skill';
 
@@ -86,7 +87,7 @@ async function loadSkills(
     if (!children.some(c => c.type === 'directory' && c.name === segment)) {
       return skills;
     }
-    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+    currentPath = PathExt.join(currentPath, segment);
   }
 
   const dirModel = await contentsManager.get(skillsPath, { content: true });
@@ -163,7 +164,7 @@ async function collectResourcePaths(
         await walk(item.path);
       } else if (item.type === 'file' && item.name !== 'SKILL.md') {
         // Store path relative to the skill directory
-        const relativePath = item.path.slice(basePath.length + 1);
+        const relativePath = PathExt.relative(basePath, item.path);
         resourcePaths.push(relativePath);
       }
     }
