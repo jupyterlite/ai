@@ -2,6 +2,7 @@ import { ISignal, Signal } from '@lumino/signaling';
 import {
   ToolLoopAgent,
   type ModelMessage,
+  type LanguageModel,
   stepCountIs,
   type StreamTextResult,
   type Tool,
@@ -14,7 +15,14 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
 import type { IProviderRegistry } from './tokens';
-import { ITool, IToolRegistry, ITokenUsage, SECRETS_NAMESPACE } from './tokens';
+import {
+  ISkillRegistry,
+  ISkillSummary,
+  ITool,
+  IToolRegistry,
+  ITokenUsage,
+  SECRETS_NAMESPACE
+} from './tokens';
 
 /**
  * Interface for MCP client wrapper to track connection state
@@ -47,6 +55,10 @@ export namespace AgentManagerFactory {
      */
     settingsModel: AISettingsModel;
     /**
+     * The skill registry for discovering skills.
+     */
+    skillRegistry?: ISkillRegistry;
+    /**
      * The secrets manager.
      */
     secretsManager?: ISecretsManager;
@@ -60,9 +72,16 @@ export class AgentManagerFactory {
   constructor(options: AgentManagerFactory.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
+    this._skillRegistry = options.skillRegistry;
     this._secretsManager = options.secretsManager;
     this._mcpClients = [];
     this._mcpConnectionChanged = new Signal<this, boolean>(this);
+
+    if (this._skillRegistry) {
+      this._skillRegistry.skillsChanged.connect(() => {
+        this.refreshSkillSnapshots();
+      });
+    }
 
     // Initialize agent on construction
     this._initializeAgents().catch(error =>
@@ -76,6 +95,7 @@ export class AgentManagerFactory {
   createAgent(options: IAgentManagerOptions): AgentManager {
     const agentManager = new AgentManager({
       ...options,
+      skillRegistry: this._skillRegistry,
       secretsManager: this._secretsManager
     });
     this._agentManagers.push(agentManager);
@@ -181,31 +201,39 @@ export class AgentManagerFactory {
    * Sets up the agent with model configuration, tools, and MCP servers.
    */
   private async _initializeAgents(): Promise<void> {
-    if (this._isInitializing) {
-      return;
-    }
-    this._isInitializing = true;
+    this._initQueue = this._initQueue
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await this._initializeMCPClients();
+          const mcpTools = await this.getMCPTools();
 
-    try {
-      await this._initializeMCPClients();
-      const mcpTools = await this.getMCPTools();
-
-      this._agentManagers.forEach(manager => {
-        manager.initializeAgent(mcpTools);
+          this._agentManagers.forEach(manager => {
+            manager.initializeAgent(mcpTools);
+          });
+        } catch (error) {
+          console.warn('Failed to initialize agents:', error);
+        }
       });
-    } catch (error) {
-      console.warn('Failed to initialize agents:', error);
-    } finally {
-      this._isInitializing = false;
-    }
+    return this._initQueue;
+  }
+
+  /**
+   * Refresh skill snapshots across all agents.
+   */
+  refreshSkillSnapshots(): void {
+    this._agentManagers.forEach(manager => {
+      manager.refreshSkills();
+    });
   }
 
   private _agentManagers: AgentManager[] = [];
   private _settingsModel: AISettingsModel;
+  private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
   private _mcpClients: IMCPClientWrapper[];
   private _mcpConnectionChanged: Signal<this, boolean>;
-  private _isInitializing: boolean = false;
+  private _initQueue: Promise<void> = Promise.resolve();
 }
 
 /**
@@ -269,6 +297,19 @@ export type IAgentEvent<
   : never;
 
 /**
+ * Cached configuration used to (re)build the agent.
+ */
+interface IAgentConfig {
+  model: LanguageModel;
+  tools: ToolMap;
+  temperature: number;
+  maxOutputTokens?: number;
+  maxTurns: number;
+  baseSystemPrompt: string;
+  shouldUseTools: boolean;
+}
+
+/**
  * Configuration options for the AgentManager
  */
 export interface IAgentManagerOptions {
@@ -286,6 +327,11 @@ export interface IAgentManagerOptions {
    * Optional provider registry for model creation
    */
   providerRegistry?: IProviderRegistry;
+
+  /**
+   * The skill registry for discovering skills.
+   */
+  skillRegistry?: ISkillRegistry;
 
   /**
    * The secrets manager.
@@ -318,12 +364,12 @@ export class AgentManager {
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
+    this._skillRegistry = options.skillRegistry;
     this._secretsManager = options.secretsManager;
     this._selectedToolNames = [];
     this._agent = null;
     this._history = [];
     this._mcpTools = {};
-    this._isInitializing = false;
     this._controller = null;
     this._agentEvent = new Signal<this, IAgentEvent>(this);
     this._tokenUsage = options.tokenUsage ?? {
@@ -331,6 +377,8 @@ export class AgentManager {
       outputTokens: 0
     };
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
+    this._skills = [];
+    this._agentConfig = null;
 
     this.activeProvider =
       options.activeProvider ?? this._settingsModel.config.defaultProvider;
@@ -367,6 +415,21 @@ export class AgentManager {
    */
   get tokenUsageChanged(): ISignal<this, ITokenUsage> {
     return this._tokenUsageChanged;
+  }
+
+  /**
+   * Refresh the skills snapshot and rebuild the agent if resources are ready.
+   */
+  refreshSkills(): void {
+    this._initQueue = this._initQueue
+      .catch(() => undefined)
+      .then(async () => {
+        this._refreshSkills();
+        if (!this._agentConfig) {
+          return;
+        }
+        this._rebuildAgent();
+      });
   }
 
   /**
@@ -597,59 +660,108 @@ export class AgentManager {
    * Sets up the agent with model configuration, tools, and MCP tools.
    */
   initializeAgent = async (mcpTools?: ToolMap): Promise<void> => {
-    if (this._isInitializing) {
+    this._initQueue = this._initQueue
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          this._refreshSkills();
+          await this._prepareAgentConfig(mcpTools);
+          this._rebuildAgent();
+        } catch (error) {
+          console.warn('Failed to initialize agent:', error);
+          this._agent = null;
+        }
+      });
+    return this._initQueue;
+  };
+
+  /**
+   * Refresh the in-memory skills snapshot from the skill registry.
+   */
+  private _refreshSkills(): void {
+    if (!this._skillRegistry) {
+      this._skills = [];
       return;
     }
-    this._isInitializing = true;
+    this._skills = this._skillRegistry.listSkills();
+  }
 
-    try {
-      const config = this._settingsModel.config;
-      if (mcpTools !== undefined) {
-        this._mcpTools = mcpTools;
-      }
-
-      const model = await this._createModel();
-
-      const shouldUseTools =
-        config.toolsEnabled &&
-        this._selectedToolNames.length > 0 &&
-        this._toolRegistry &&
-        Object.keys(this._toolRegistry.tools).length > 0 &&
-        this._supportsToolCalling();
-
-      const tools = shouldUseTools
-        ? { ...this.selectedAgentTools, ...this._mcpTools }
-        : this._mcpTools;
-
-      const activeProviderConfig = this._settingsModel.getProvider(
-        this._activeProvider
-      );
-
-      const temperature =
-        activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
-      const maxTokens = activeProviderConfig?.parameters?.maxOutputTokens;
-      const maxTurns =
-        activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
-
-      const instructions = shouldUseTools
-        ? this._getEnhancedSystemPrompt(config.systemPrompt || '')
-        : config.systemPrompt || 'You are a helpful assistant.';
-
-      this._agent = new ToolLoopAgent({
-        model,
-        instructions,
-        tools,
-        temperature,
-        maxOutputTokens: maxTokens,
-        stopWhen: stepCountIs(maxTurns)
-      });
-    } catch (error) {
-      console.warn('Failed to initialize agent:', error);
-      this._agent = null;
-    } finally {
-      this._isInitializing = false;
+  /**
+   * Prepare model, tools, and settings needed to (re)build the agent.
+   */
+  private async _prepareAgentConfig(mcpTools?: ToolMap): Promise<void> {
+    const config = this._settingsModel.config;
+    if (mcpTools !== undefined) {
+      this._mcpTools = mcpTools;
     }
-  };
+
+    const model = await this._createModel();
+
+    const shouldUseTools = !!(
+      config.toolsEnabled &&
+      this._selectedToolNames.length > 0 &&
+      this._toolRegistry &&
+      Object.keys(this._toolRegistry.tools).length > 0 &&
+      this._supportsToolCalling()
+    );
+
+    const tools = shouldUseTools
+      ? { ...this.selectedAgentTools, ...this._mcpTools }
+      : this._mcpTools;
+
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+
+    const temperature =
+      activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
+    const maxTokens = activeProviderConfig?.parameters?.maxOutputTokens;
+    const maxTurns =
+      activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
+
+    this._agentConfig = {
+      model,
+      tools,
+      temperature,
+      maxOutputTokens: maxTokens,
+      maxTurns,
+      baseSystemPrompt: config.systemPrompt || '',
+      shouldUseTools
+    };
+  }
+
+  /**
+   * Rebuild the agent using cached resources and the current skills snapshot.
+   */
+  private _rebuildAgent(): void {
+    if (!this._agentConfig) {
+      this._agent = null;
+      return;
+    }
+
+    const {
+      model,
+      tools,
+      temperature,
+      maxOutputTokens,
+      maxTurns,
+      baseSystemPrompt,
+      shouldUseTools
+    } = this._agentConfig;
+
+    const instructions = shouldUseTools
+      ? this._getEnhancedSystemPrompt(baseSystemPrompt)
+      : baseSystemPrompt || 'You are a helpful assistant.';
+
+    this._agent = new ToolLoopAgent({
+      model,
+      instructions,
+      tools,
+      temperature,
+      maxOutputTokens,
+      stopWhen: stepCountIs(maxTurns)
+    });
+  }
 
   /**
    * Processes the stream result from agent execution.
@@ -892,69 +1004,53 @@ export class AgentManager {
   }
 
   /**
-   * Enhances the base system prompt with tool usage guidelines.
+   * Enhances the base system prompt with dynamic context like skills.
    * @param baseSystemPrompt The base system prompt from settings
-   * @returns The enhanced system prompt with tool usage instructions
+   * @returns The enhanced system prompt with dynamic additions
    */
   private _getEnhancedSystemPrompt(baseSystemPrompt: string): string {
-    const progressReportingPrompt = `
+    if (this._skills.length === 0) {
+      return baseSystemPrompt;
+    }
 
-IMPORTANT: Follow this message flow pattern for better user experience:
+    const lines = this._skills.map(
+      skill => `- ${skill.name}: ${skill.description}`
+    );
+    const skillsPrompt = `
 
-1. FIRST: Explain what you're going to do and your approach
-2. THEN: Execute tools (these will show automatically with step numbers)
-3. FINALLY: Provide a concise summary of what was accomplished
+AGENT SKILLS:
+Skills are provided via the skills registry and accessed through tools (not commands).
+When a skill is relevant to the user's task, activate it by calling load_skill with the skill name to load its full instructions, then follow those instructions.
+If the user explicitly asks for the latest list of skills, call discover_skills (optionally with a query).
+Do NOT call discover_skills just to list skills; use the preloaded snapshot below instead unless you need to verify a skill not present in the snapshot.
+If the load_skill result includes a non-empty "resources" array, those are bundled files (scripts, references, templates) you MUST load before proceeding. Only load the listed resource paths; never invent resource names. For each resource path, execute load_skill again with the resource argument, e.g.: load_skill({ name: "<skill>", resource: "<path>" }). Load all listed resources before starting the task.
 
-Example flow:
-- "I'll help you create a notebook with example cells. Let me first create the file structure, then add Python and Markdown cells."
-- [Tool executions happen with automatic step display]
-- "Successfully created your notebook with 3 cells: a title, code example, and visualization cell."
-
-Guidelines:
-- Start responses with your plan/approach before tool execution
-- Let the system handle tool execution display (don't duplicate details)
-- End with a brief summary of accomplishments
-- Use natural, conversational tone throughout
-
-PRIMARY TOOL USAGE - COMMAND-BASED OPERATIONS:
-Most operations in JupyterLab should be performed using the command system:
-1. Use 'discover_commands' to find available commands and their metadata
-2. Use 'execute_command' to perform the actual operation
-
-COMMAND DISCOVERY WORKFLOW:
-- For file and notebook operations, use query 'jupyterlab-ai-commands' to discover the curated set of AI commands (~17 commands for file/notebook/directory operations)
-- For other JupyterLab operations (terminal, launcher, UI), use specific keywords like 'terminal', 'launcher', etc.
-- IMPORTANT: Always use 'jupyterlab-ai-commands' as the query for file/notebook tasks - this returns a focused set of commands instead of 100+ generic JupyterLab commands
-
-KERNEL PREFERENCE FOR NOTEBOOKS AND CONSOLES:
-When creating notebooks or consoles for a specific programming language, use the 'kernelPreference' argument to specify the kernel:
-- To specify by language: { "kernelPreference": { "language": "python" } } or { "kernelPreference": { "language": "julia" } }
-- To specify by kernel name: { "kernelPreference": { "name": "python3" } } or { "kernelPreference": { "name": "julia-1.10" } }
-- Example: execute_command with commandId="notebook:create-new" and args={ "kernelPreference": { "language": "python" } }
-- Example: execute_command with commandId="console:create" and args={ "kernelPreference": { "name": "python3" } }
-- Common kernel names: "python3" (Python), "julia-1.10" (Julia), "ir" (R), "xpython" (xeus-python)
-- If unsure of exact kernel name, prefer using "language" which will match any kernel supporting that language
+AVAILABLE SKILLS (preloaded snapshot):
+${lines.join('\n')}
 `;
 
-    return baseSystemPrompt + progressReportingPrompt;
+    return baseSystemPrompt + skillsPrompt;
   }
 
   // Private attributes
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
+  private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
   private _selectedToolNames: string[];
   private _agent: ToolLoopAgent<never, ToolMap> | null;
   private _history: ModelMessage[];
   private _mcpTools: ToolMap;
-  private _isInitializing: boolean;
   private _controller: AbortController | null;
   private _agentEvent: Signal<this, IAgentEvent>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
+  private _skills: ISkillSummary[];
+  private _initQueue: Promise<void> = Promise.resolve();
+  private _agentConfig: IAgentConfig | null;
   private _pendingApprovals: Map<
     string,
     { resolve: (approved: boolean, reason?: string) => void }

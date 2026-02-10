@@ -10,6 +10,7 @@ import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
 import Error from '@mui/icons-material/Error';
 import ErrorOutline from '@mui/icons-material/ErrorOutline';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
 import Settings from '@mui/icons-material/Settings';
 import {
@@ -40,6 +41,7 @@ import {
   Tabs,
   TextField,
   ThemeProvider,
+  Tooltip,
   Typography,
   createTheme
 } from '@mui/material';
@@ -1022,6 +1024,79 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     'Instructions that define how the AI should generate code completions'
                   )}
                 />
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box>
+                  <Typography
+                    variant="body1"
+                    gutterBottom
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
+                  >
+                    {trans.__('Skills Paths')}
+                    <Tooltip
+                      title={trans.__(
+                        'Directories containing agent skills, relative to the server root. Skills are loaded from all paths; the first occurrence of a skill name takes priority.'
+                      )}
+                    >
+                      <InfoOutlined sx={{ fontSize: 16 }} />
+                    </Tooltip>
+                  </Typography>
+
+                  <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
+                    {(config.skillsPaths ?? []).map((skillPath, index) => (
+                      <ListItem
+                        key={index}
+                        divider
+                        secondaryAction={
+                          <IconButton
+                            onClick={() => {
+                              const newPaths = [...config.skillsPaths];
+                              newPaths.splice(index, 1);
+                              handleConfigUpdate({ skillsPaths: newPaths });
+                            }}
+                            size="small"
+                          >
+                            <Delete />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemText primary={skillPath} />
+                      </ListItem>
+                    ))}
+                  </List>
+
+                  <TextField
+                    fullWidth
+                    label={trans.__('Add Skills Path')}
+                    placeholder={trans.__('e.g., .claude/skills')}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const value = (
+                          e.target as HTMLInputElement
+                        ).value.trim();
+                        if (
+                          value &&
+                          !(config.skillsPaths ?? []).includes(value)
+                        ) {
+                          const newPaths = [
+                            ...(config.skillsPaths ?? []),
+                            value
+                          ];
+                          handleConfigUpdate({ skillsPaths: newPaths });
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                    helperText={trans.__(
+                      'Press Enter to add a path. Defaults: .agents/skills, _agents/skills'
+                    )}
+                  />
+                </Box>
 
                 <Divider sx={{ my: 2 }} />
 

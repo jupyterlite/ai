@@ -160,7 +160,8 @@ export class AIChatModel extends AbstractChatModel {
       messages: this.messages,
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
-      agentManager: this._agentManager
+      agentManager: this._agentManager,
+      addSystemMessage: (body: string) => this.addSystemMessage(body)
     };
   }
 
@@ -179,6 +180,21 @@ export class AIChatModel extends AbstractChatModel {
     this._toolContexts.clear();
     this._agentManager.clearHistory();
   };
+
+  /**
+   * Adds a non-user message to the chat (used by chat commands).
+   */
+  addSystemMessage(body: string): void {
+    const message: IChatMessage = {
+      body,
+      sender: this._getAIUser(),
+      id: UUID.uuid4(),
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+    this.messageAdded(message);
+  }
 
   /**
    * Sends a message to the AI and generates a response.
@@ -370,6 +386,19 @@ export class AIChatModel extends AbstractChatModel {
         case 'discover_commands':
           if (parsedInput.query) {
             return `query: "${parsedInput.query}"`;
+          }
+          break;
+        case 'discover_skills':
+          if (parsedInput.query) {
+            return `query: "${parsedInput.query}"`;
+          }
+          break;
+        case 'load_skill':
+          if (parsedInput.name) {
+            if (parsedInput.resource) {
+              return `${parsedInput.name} (${parsedInput.resource})`;
+            }
+            return parsedInput.name;
           }
           break;
       }
@@ -995,6 +1024,10 @@ export namespace AIChatModel {
      * The clear messages callback.
      */
     clearMessages: () => void;
+    /**
+     * Adds an assistant/system message to the chat.
+     */
+    addSystemMessage: (body: string) => void;
     /**
      * The agent manager of the chat.
      */

@@ -1,5 +1,6 @@
 import { ActiveCellManager } from '@jupyter/chat';
 import { Token } from '@lumino/coreutils';
+import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel } from 'ai';
 import { AgentManager } from './agent';
@@ -7,6 +8,19 @@ import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
 import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
+import type {
+  ISkillDefinition,
+  ISkillRegistration,
+  ISkillResourceResult,
+  ISkillSummary
+} from './skills/types';
+
+export type {
+  ISkillDefinition,
+  ISkillRegistration,
+  ISkillResourceResult,
+  ISkillSummary
+} from './skills/types';
 
 /**
  * Command IDs namespace
@@ -16,6 +30,7 @@ export namespace CommandIds {
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
+  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
 }
 
 /**
@@ -95,6 +110,47 @@ export interface IToolRegistry {
 export const IToolRegistry = new Token<IToolRegistry>(
   '@jupyterlite/ai:tool-registry',
   'Tool registry for AI agent functionality'
+);
+
+/**
+ * Registry for skills available to the AI agent.
+ */
+export interface ISkillRegistry {
+  /**
+   * Signal emitted when skills change.
+   */
+  readonly skillsChanged: ISignal<ISkillRegistry, void>;
+
+  /**
+   * Register a single skill.
+   */
+  registerSkill(skill: ISkillRegistration): IDisposable;
+
+  /**
+   * List all skills with summary info, optionally filtered by a search query.
+   */
+  listSkills(query?: string): ISkillSummary[];
+
+  /**
+   * Get a full skill definition by name.
+   */
+  getSkill(name: string): ISkillDefinition | null;
+
+  /**
+   * Load a resource for a skill.
+   */
+  getSkillResource(
+    name: string,
+    resource: string
+  ): Promise<ISkillResourceResult>;
+}
+
+/**
+ * The skill registry token.
+ */
+export const ISkillRegistry = new Token<ISkillRegistry>(
+  '@jupyterlite/ai:skill-registry',
+  'Skill registry for AI agent functionality'
 );
 
 /**

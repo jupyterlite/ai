@@ -1,4 +1,7 @@
 {
+  "@jupyterlab/filebrowser-extension:browser": {
+    "showHiddenFiles": true
+  },
   "@jupyterlab/notebook-extension:tracker": {
     "windowingMode": "contentVisibility"
   }

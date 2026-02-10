@@ -36,6 +36,8 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { IStatusBar } from '@jupyterlab/statusbar';
 
+import { PathExt } from '@jupyterlab/coreutils';
+
 import {
   ITranslator,
   nullTranslator,
@@ -51,12 +53,14 @@ import {
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
+import { DisposableSet } from '@lumino/disposable';
 
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
 
 import { ClearCommandProvider } from './chat-commands/clear';
+import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
@@ -69,6 +73,7 @@ import {
   IAgentManagerFactory,
   IProviderRegistry,
   IToolRegistry,
+  ISkillRegistry,
   SECRETS_NAMESPACE,
   IAISettingsModel,
   IChatModelRegistry,
@@ -96,6 +101,8 @@ import {
 
 import { AISettingsModel } from './models/settings-model';
 
+import { loadSkillsFromPaths, SkillRegistry } from './skills';
+
 import { DiffManager } from './diff-manager';
 
 import { ToolRegistry } from './tools/tool-registry';
@@ -104,6 +111,7 @@ import {
   createDiscoverCommandsTool,
   createExecuteCommandTool
 } from './tools/commands';
+import { createDiscoverSkillsTool, createLoadSkillTool } from './tools/skills';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -210,6 +218,28 @@ const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IChatCommandRegistry],
   activate: (app, registry: IChatCommandRegistry) => {
     registry.addProvider(new ClearCommandProvider());
+  }
+};
+
+/**
+ * Skills chat command plugin.
+ */
+const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:skills-command',
+  description: 'Register the /skills chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, ISkillRegistry],
+  activate: (
+    app,
+    registry: IChatCommandRegistry,
+    skillRegistry: ISkillRegistry
+  ) => {
+    registry.addProvider(
+      new SkillsCommandProvider({
+        skillRegistry,
+        commands: app.commands
+      })
+    );
   }
 };
 
@@ -702,6 +732,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
     provides: IAgentManagerFactory,
     requires: [IAISettingsModel, IProviderRegistry],
     optional: [
+      ISkillRegistry,
       ICommandPalette,
       ICompletionProviderManager,
       ILayoutRestorer,
@@ -713,7 +744,8 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       app: JupyterFrontEnd,
       settingsModel: AISettingsModel,
       providerRegistry: IProviderRegistry,
-      palette: ICommandPalette,
+      skillRegistry?: ISkillRegistry,
+      palette?: ICommandPalette,
       completionManager?: ICompletionProviderManager,
       restorer?: ILayoutRestorer,
       secretsManager?: ISecretsManager,
@@ -723,6 +755,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const agentManagerFactory = new AgentManagerFactory({
         settingsModel,
+        skillRegistry,
         secretsManager,
         token
       });
@@ -833,13 +866,31 @@ const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
   }
 };
 
+/**
+ * Skill registry plugin
+ */
+const skillRegistryPlugin: JupyterFrontEndPlugin<ISkillRegistry> = {
+  id: '@jupyterlite/ai:skill-registry',
+  description: 'Provide the skill registry',
+  autoStart: true,
+  provides: ISkillRegistry,
+  activate: () => {
+    return new SkillRegistry();
+  }
+};
+
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyterlite/ai:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel],
+  optional: [ISkillRegistry],
   provides: IToolRegistry,
-  activate: (app: JupyterFrontEnd, settingsModel: AISettingsModel) => {
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    skillRegistry?: ISkillRegistry
+  ) => {
     const toolRegistry = new ToolRegistry();
 
     // Add command operation tools
@@ -851,6 +902,13 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
 
     toolRegistry.add('discover_commands', discoverCommandsTool);
     toolRegistry.add('execute_command', executeCommandTool);
+    if (skillRegistry) {
+      toolRegistry.add(
+        'discover_skills',
+        createDiscoverSkillsTool(skillRegistry)
+      );
+      toolRegistry.add('load_skill', createLoadSkillTool(skillRegistry));
+    }
 
     return toolRegistry;
   }
@@ -936,6 +994,144 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Skills plugin: discovers and registers agent skills from the filesystem.
+ */
+const skillsPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:skills',
+  description: 'Discover and register agent skills',
+  autoStart: true,
+  requires: [IAISettingsModel, IDocumentManager, ISkillRegistry],
+  optional: [ICommandPalette, ITranslator],
+  activate: async (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    docManager: IDocumentManager,
+    skillRegistry: ISkillRegistry,
+    palette?: ICommandPalette,
+    translator?: ITranslator
+  ) => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const validateResourcePath = (resourcePath: string): string | null => {
+      if (resourcePath.startsWith('/')) {
+        return null;
+      }
+
+      const normalized = PathExt.normalize(resourcePath);
+      if (normalized.startsWith('..') || normalized === '') {
+        return null;
+      }
+
+      return normalized;
+    };
+
+    let currentSkillsPaths = settingsModel.config.skillsPaths;
+    let currentSkillDisposables = new DisposableSet();
+
+    const loadAndRegister = async () => {
+      const skillsPaths = settingsModel.config.skillsPaths;
+      const skills = await loadSkillsFromPaths(
+        docManager.services.contents,
+        skillsPaths
+      );
+
+      const registrations = skills.map(skill => ({
+        name: skill.name,
+        description: skill.description,
+        instructions: skill.instructions,
+        resources: skill.resources,
+        loadResource: async (resource: string) => {
+          const validatedPath = validateResourcePath(resource);
+          if (validatedPath === null) {
+            return {
+              name: skill.name,
+              resource,
+              error: 'Invalid resource path: path traversal not allowed'
+            };
+          }
+
+          if (!skill.resources.includes(validatedPath)) {
+            return {
+              name: skill.name,
+              resource,
+              error: `Resource not found: ${resource}`
+            };
+          }
+
+          const resourcePath = `${skill.path}/${validatedPath}`;
+          try {
+            const fileModel = await docManager.services.contents.get(
+              resourcePath,
+              {
+                content: true
+              }
+            );
+            if (typeof fileModel.content !== 'string') {
+              return {
+                name: skill.name,
+                resource,
+                error: 'Resource content is not a string'
+              };
+            }
+            return {
+              name: skill.name,
+              resource,
+              content: fileModel.content
+            };
+          } catch (error) {
+            return {
+              name: skill.name,
+              resource,
+              error: `Failed to read resource: ${error}`
+            };
+          }
+        }
+      }));
+
+      currentSkillDisposables.dispose();
+      currentSkillDisposables = new DisposableSet();
+      for (const registration of registrations) {
+        currentSkillDisposables.add(skillRegistry.registerSkill(registration));
+      }
+    };
+
+    app.commands.addCommand(CommandIds.refreshSkills, {
+      label: trans.__('Refresh Agents Skills'),
+      caption: trans.__(
+        'Re-scan the agents skills directory and update the registry'
+      ),
+      execute: async () => {
+        await loadAndRegister();
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        command: CommandIds.refreshSkills,
+        category: trans.__('AI Assistant')
+      });
+    }
+
+    loadAndRegister().catch(error =>
+      console.warn('Failed to load skills on activation:', error)
+    );
+
+    settingsModel.stateChanged.connect(() => {
+      const newPaths = settingsModel.config.skillsPaths;
+      if (
+        newPaths.length === currentSkillsPaths.length &&
+        newPaths.every((p, i) => p === currentSkillsPaths[i])
+      ) {
+        return;
+      }
+      currentSkillsPaths = newPaths;
+      loadAndRegister().catch(error =>
+        console.warn('Failed to reload skills:', error)
+      );
+    });
+  }
+};
+
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
@@ -947,12 +1143,15 @@ export default [
   diffManager,
   chatCommandRegistryPlugin,
   clearCommandPlugin,
+  skillRegistryPlugin,
+  skillsCommandPlugin,
   chatModelRegistry,
   plugin,
   toolRegistry,
   agentManagerFactory,
   inputToolbarFactory,
-  completionStatus
+  completionStatus,
+  skillsPlugin
 ];
 
 // Export extension points for other extensions to use
