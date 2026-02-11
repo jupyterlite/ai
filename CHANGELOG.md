@@ -2,6 +2,31 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.12.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.11.1...56fc91778c2109b984aaeb193c593a5fefdff4b2))
+
+### Enhancements made
+
+- Add the chat command registry [#261](https://github.com/jupyterlite/ai/pull/261) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Support skills [#259](https://github.com/jupyterlite/ai/pull/259) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Bump @jupyter/chat [#264](https://github.com/jupyterlite/ai/pull/264) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Update dependencies and available models [#263](https://github.com/jupyterlite/ai/pull/263) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-02-02&to=2026-02-11&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-02-02..2026-02-11&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-02-02..2026-02-11&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.11.1
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.11.0...ced22278deed7ddd759b09893888fa2d6381f32c))
@@ -18,8 +43,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-01-27&to=2026-02-02&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-01-27..2026-02-02&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-01-27..2026-02-02&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.11.0
 
