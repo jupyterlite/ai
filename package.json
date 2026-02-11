@@ -62,7 +62,7 @@
         "@ai-sdk/mistral": "^3.0.19",
         "@ai-sdk/openai": "^3.0.26",
         "@ai-sdk/openai-compatible": "^2.0.28",
-        "@jupyter/chat": "^0.19.0-alpha.3",
+        "@jupyter/chat": "^0.19.0",
         "@jupyterlab/application": "^4.0.0",
         "@jupyterlab/apputils": "^4.5.6",
         "@jupyterlab/cells": "^4.4.6",
