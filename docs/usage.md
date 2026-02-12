@@ -32,6 +32,7 @@ See the dedicated pages for specific providers:
 - [Using Ollama](./ollama.md)
 - [Using LiteLLM Proxy](./litellm.md)
 - [Using any-llm-gateway](./any-llm-gateway.md)
+- [Web Retrieval tools](./web-retrieval.md)
 
 ## Controlling MIME auto-rendering in chat
 

@@ -113,6 +113,7 @@ import {
   createExecuteCommandTool
 } from './tools/commands';
 import { createDiscoverSkillsTool, createLoadSkillTool } from './tools/skills';
+import { createBrowserFetchTool } from './tools/web';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -918,6 +919,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
 
     toolRegistry.add('discover_commands', discoverCommandsTool);
     toolRegistry.add('execute_command', executeCommandTool);
+    toolRegistry.add('browser_fetch', createBrowserFetchTool());
     if (skillRegistry) {
       toolRegistry.add(
         'discover_skills',
@@ -952,6 +954,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
       const clearButton = clearItem(trans);
       const toolSelectButton = createToolSelectItem(
         toolRegistry,
+        settingsModel,
         settingsModel.config.toolsEnabled,
         trans
       );
