@@ -65,6 +65,104 @@
           },
           "customSettings": {
             "type": "object",
+            "description": "Provider-specific advanced settings. For built-in provider web tools, use webSearch/webFetch objects.",
+            "properties": {
+              "webSearch": {
+                "type": "object",
+                "description": "Provider-hosted web search settings (OpenAI/Anthropic/Google).",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable provider-hosted web search for this provider."
+                  },
+                  "searchContextSize": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"],
+                    "description": "OpenAI web search context size."
+                  },
+                  "externalWebAccess": {
+                    "type": "boolean",
+                    "description": "OpenAI: use external web access for live content."
+                  },
+                  "allowedDomains": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Allowed domains for web search."
+                  },
+                  "blockedDomains": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Anthropic: blocked domains for web search."
+                  },
+                  "maxUses": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Anthropic: maximum number of web searches."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["MODE_DYNAMIC", "MODE_UNSPECIFIED"],
+                    "description": "Google: dynamic retrieval mode."
+                  },
+                  "dynamicThreshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Google: dynamic retrieval threshold."
+                  },
+                  "userLocation": {
+                    "type": "object",
+                    "description": "Approximate location metadata for geographically relevant web results.",
+                    "properties": {
+                      "country": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z]{2}$"
+                      },
+                      "region": { "type": "string" },
+                      "city": { "type": "string" },
+                      "timezone": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true
+              },
+              "webFetch": {
+                "type": "object",
+                "description": "Anthropic web fetch settings.",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable Anthropic provider-hosted web fetch."
+                  },
+                  "maxUses": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of web fetches."
+                  },
+                  "allowedDomains": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Allowed domains for web fetch."
+                  },
+                  "blockedDomains": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Blocked domains for web fetch."
+                  },
+                  "maxContentTokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum fetched content tokens."
+                  },
+                  "citationsEnabled": {
+                    "type": "boolean",
+                    "description": "Enable citations in Anthropic web fetch results."
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
             "additionalProperties": true
           }
         },

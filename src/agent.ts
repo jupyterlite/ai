@@ -7,6 +7,8 @@ import {
   type StreamTextResult,
   type Tool,
   type ToolApprovalRequestOutput,
+  type TypedToolError,
+  type TypedToolOutputDenied,
   type TypedToolResult
 } from 'ai';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
@@ -14,6 +16,10 @@ import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
+import {
+  createProviderTools,
+  type IProviderCustomSettings
+} from './providers/provider-tools';
 import type { IProviderRegistry } from './tokens';
 import {
   ISkillRegistry,
@@ -307,11 +313,21 @@ export type IAgentEvent<
 interface IAgentConfig {
   model: LanguageModel;
   tools: ToolMap;
+  runtimeToolInfo: IRuntimeToolInfo;
   temperature: number;
   maxOutputTokens?: number;
   maxTurns: number;
   baseSystemPrompt: string;
   shouldUseTools: boolean;
+}
+
+/**
+ * Runtime tool metadata used for prompting and capability checks.
+ */
+interface IRuntimeToolInfo {
+  hasBrowserFetch: boolean;
+  hasWebFetch: boolean;
+  hasWebSearch: boolean;
 }
 
 /**
@@ -702,17 +718,16 @@ export class AgentManager {
 
     const model = await this._createModel();
 
-    const shouldUseTools = !!(
-      config.toolsEnabled &&
-      this._selectedToolNames.length > 0 &&
-      this._toolRegistry &&
-      Object.keys(this._toolRegistry.tools).length > 0 &&
-      this._supportsToolCalling()
+    const supportsToolCalling = this._supportsToolCalling();
+    const canUseTools = config.toolsEnabled && supportsToolCalling;
+    const hasFunctionToolRegistry = !!(
+      this._toolRegistry && Object.keys(this._toolRegistry.tools).length > 0
     );
-
-    const tools = shouldUseTools
-      ? { ...this.selectedAgentTools, ...this._mcpTools }
-      : this._mcpTools;
+    const selectedFunctionTools =
+      canUseTools && hasFunctionToolRegistry ? this.selectedAgentTools : {};
+    const functionTools = canUseTools
+      ? { ...selectedFunctionTools, ...this._mcpTools }
+      : {};
 
     const activeProviderConfig = this._settingsModel.getProvider(
       this._activeProvider
@@ -724,14 +739,59 @@ export class AgentManager {
     const maxTurns =
       activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
+    const { tools, runtimeToolInfo } = this._buildRuntimeTools({
+      provider: activeProviderConfig?.provider ?? '',
+      customSettings: activeProviderConfig?.customSettings,
+      functionTools,
+      includeProviderTools: canUseTools
+    });
+
+    const shouldUseTools = canUseTools && Object.keys(tools).length > 0;
+
     this._agentConfig = {
       model,
       tools,
+      runtimeToolInfo,
       temperature,
       maxOutputTokens: maxTokens,
       maxTurns,
       baseSystemPrompt: config.systemPrompt || '',
       shouldUseTools
+    };
+  }
+
+  /**
+   * Build the runtime tool map used by the agent and lightweight metadata
+   * for prompt construction.
+   */
+  private _buildRuntimeTools(options: {
+    provider: string;
+    customSettings?: IProviderCustomSettings;
+    functionTools: ToolMap;
+    includeProviderTools: boolean;
+  }): { tools: ToolMap; runtimeToolInfo: IRuntimeToolInfo } {
+    const providerTools = options.includeProviderTools
+      ? createProviderTools({
+          provider: options.provider,
+          customSettings: options.customSettings,
+          hasFunctionTools: Object.keys(options.functionTools).length > 0
+        })
+      : {};
+
+    const tools = {
+      ...providerTools,
+      ...options.functionTools
+    };
+
+    const names = new Set(Object.keys(tools));
+
+    return {
+      tools,
+      runtimeToolInfo: {
+        hasBrowserFetch: names.has('browser_fetch'),
+        hasWebFetch: names.has('web_fetch'),
+        hasWebSearch: names.has('web_search') || names.has('google_search')
+      }
     };
   }
 
@@ -751,11 +811,12 @@ export class AgentManager {
       maxOutputTokens,
       maxTurns,
       baseSystemPrompt,
+      runtimeToolInfo,
       shouldUseTools
     } = this._agentConfig;
 
     const instructions = shouldUseTools
-      ? this._getEnhancedSystemPrompt(baseSystemPrompt)
+      ? this._getEnhancedSystemPrompt(baseSystemPrompt, runtimeToolInfo)
       : baseSystemPrompt || 'You are a helpful assistant.';
 
     this._agent = new ToolLoopAgent({
@@ -823,6 +884,14 @@ export class AgentManager {
           this._handleToolResult(part);
           break;
 
+        case 'tool-error':
+          this._handleToolError(part);
+          break;
+
+        case 'tool-output-denied':
+          this._handleToolOutputDenied(part);
+          break;
+
         case 'tool-approval-request':
           // Complete current message before approval
           if (currentMessageId && fullResponse) {
@@ -878,6 +947,43 @@ export class AgentManager {
         toolName: part.toolName,
         output,
         isError
+      }
+    });
+  }
+
+  /**
+   * Handles tool-error stream parts.
+   */
+  private _handleToolError(part: TypedToolError<ToolMap>): void {
+    const output =
+      typeof part.error === 'string'
+        ? part.error
+        : part.error instanceof Error
+          ? part.error.message
+          : JSON.stringify(part.error, null, 2);
+
+    this._agentEvent.emit({
+      type: 'tool_call_complete',
+      data: {
+        callId: part.toolCallId,
+        toolName: part.toolName,
+        output,
+        isError: true
+      }
+    });
+  }
+
+  /**
+   * Handles tool-output-denied stream parts.
+   */
+  private _handleToolOutputDenied(part: TypedToolOutputDenied<ToolMap>): void {
+    this._agentEvent.emit({
+      type: 'tool_call_complete',
+      data: {
+        callId: part.toolCallId,
+        toolName: part.toolName,
+        output: 'Tool output was denied.',
+        isError: true
       }
     });
   }
@@ -1022,15 +1128,17 @@ export class AgentManager {
    * @param baseSystemPrompt The base system prompt from settings
    * @returns The enhanced system prompt with dynamic additions
    */
-  private _getEnhancedSystemPrompt(baseSystemPrompt: string): string {
-    if (this._skills.length === 0) {
-      return baseSystemPrompt;
-    }
+  private _getEnhancedSystemPrompt(
+    baseSystemPrompt: string,
+    runtimeToolInfo: IRuntimeToolInfo
+  ): string {
+    let prompt = baseSystemPrompt;
 
-    const lines = this._skills.map(
-      skill => `- ${skill.name}: ${skill.description}`
-    );
-    const skillsPrompt = `
+    if (this._skills.length > 0) {
+      const lines = this._skills.map(
+        skill => `- ${skill.name}: ${skill.description}`
+      );
+      const skillsPrompt = `
 
 AGENT SKILLS:
 Skills are provided via the skills registry and accessed through tools (not commands).
@@ -1042,8 +1150,27 @@ If the load_skill result includes a non-empty "resources" array, those are bundl
 AVAILABLE SKILLS (preloaded snapshot):
 ${lines.join('\n')}
 `;
+      prompt += skillsPrompt;
+    }
 
-    return baseSystemPrompt + skillsPrompt;
+    const { hasBrowserFetch, hasWebFetch, hasWebSearch } = runtimeToolInfo;
+
+    if (hasBrowserFetch || hasWebFetch || hasWebSearch) {
+      const webRetrievalPrompt = `
+
+WEB RETRIEVAL POLICY:
+- If the user asks about a specific URL and browser_fetch is available, call browser_fetch first for that URL.
+- If browser_fetch fails due to CORS/network/access, try web_fetch (if available) for that same URL.
+- If web_fetch fails with access/policy errors (for example: url_not_accessible or url_not_allowed) and browser_fetch is available, you MUST call browser_fetch for that same URL before searching.
+- If either fetch method fails with temporary access/network issues (for example: network_or_cors), try the other fetch method if available before searching.
+- Only fall back to web_search/google_search after both fetch methods fail or are unavailable.
+- If the user explicitly asks to inspect one exact URL, do not skip directly to search unless both fetch methods fail or are unavailable.
+- In your final response, state which retrieval method succeeded (browser_fetch, web_fetch, or web_search/google_search) and mention relevant limitations.
+`;
+      prompt += webRetrievalPrompt;
+    }
+
+    return prompt;
   }
 
   // Private attributes
