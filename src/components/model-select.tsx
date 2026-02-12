@@ -1,11 +1,10 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import CheckIcon from '@mui/icons-material/Check';
-import { Menu, MenuItem, Typography } from '@mui/material';
+import { Menu, MenuItem, Typography, useTheme } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
-
 /**
  * Properties for the model select component.
  */
@@ -26,6 +25,7 @@ export interface IModelSelectProps
  */
 export function ModelSelect(props: IModelSelectProps): JSX.Element {
   const { settingsModel, model, translator: trans } = props;
+  const theme = useTheme();
   const agentManager = (model.chatContext as AIChatModel.IAIChatContext)
     .agentManager;
 
@@ -199,11 +199,11 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
             }}
             sx={{
               backgroundColor: isSelected
-                ? 'var(--jp-brand-color3, rgba(33, 150, 243, 0.1))'
+                ? `var(--jp-brand-color${theme.palette.mode === 'light' ? '1' : '2'})` // to replace with "var(--mui-palette-primary-main)" after https://github.com/jupyterlab/jupyter-chat/pull/359
                 : 'transparent',
               '&:hover': {
                 backgroundColor: isSelected
-                  ? 'var(--jp-brand-color3, rgba(33, 150, 243, 0.15))'
+                  ? `var(--jp-brand-color${theme.palette.mode === 'light' ? '1' : '2'})` // to replace with "var(--mui-palette-primary-main)" after https://github.com/jupyterlab/jupyter-chat/pull/359
                   : 'var(--jp-layout-color1)'
               },
               display: 'flex',
@@ -214,7 +214,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
             {isSelected ? (
               <CheckIcon
                 sx={{
-                  color: 'var(--jp-brand-color1, #2196F3)',
+                  color: 'var(--jp-ui-inverse-font-color1)',
                   fontSize: 16
                 }}
               />
@@ -227,7 +227,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
               sx={{
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected
-                  ? 'var(--jp-brand-color1, #2196F3)'
+                  ? 'var(--jp-ui-inverse-font-color1)'
                   : 'inherit'
               }}
             >
