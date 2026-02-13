@@ -100,6 +100,12 @@ export class AISettingsWidget extends ReactWidget {
     this.title.label = this._trans.__('AI Settings');
     this.title.caption = this._trans.__('Configure AI providers and behavior');
     this.title.closable = true;
+
+    // Disable the secrets manager if the token is empty.
+    if (!options.token) {
+      this._settingsModel.updateConfig({ useSecretsManager: false });
+      this._secretsManager = undefined;
+    }
   }
 
   /**
@@ -282,8 +288,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     provider: string,
     fieldName: string
   ): Promise<string | undefined> => {
+    const token = Private.getToken();
+    if (!token) {
+      return;
+    }
     const secret = await secretsManager?.get(
-      Private.getToken(),
+      token,
       SECRETS_NAMESPACE,
       `${provider}:${fieldName}`
     );
@@ -295,8 +305,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     fieldName: string,
     value: string
   ): Promise<void> => {
+    const token = Private.getToken();
+    if (!token) {
+      return;
+    }
     await secretsManager?.set(
-      Private.getToken(),
+      token,
       SECRETS_NAMESPACE,
       `${provider}:${fieldName}`,
       {
@@ -321,8 +335,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     if (!(model.config.useSecretsManager && secretsManager)) {
       return;
     }
+    const token = Private.getToken();
+    if (!token) {
+      return;
+    }
     await secretsManager?.attach(
-      Private.getToken(),
+      token,
       SECRETS_NAMESPACE,
       `${provider}:${fieldName}`,
       input
@@ -1517,7 +1535,7 @@ export namespace AISettingsWidget {
     /**
      * The token used to request the secrets manager.
      */
-    token: symbol;
+    token: symbol | null;
     /**
      * The application language translation bundle.
      */
@@ -1529,11 +1547,11 @@ namespace Private {
   /**
    * The token to use with the secrets manager, setter and getter.
    */
-  let secretsToken: symbol;
-  export function setToken(value: symbol): void {
+  let secretsToken: symbol | null;
+  export function setToken(value: symbol | null): void {
     secretsToken = value;
   }
-  export function getToken(): symbol {
+  export function getToken(): symbol | null {
     return secretsToken;
   }
 }

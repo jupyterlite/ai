@@ -722,7 +722,9 @@ function registerCommands(
 }
 
 /**
- * A plugin to provide the settings model.
+ * A plugin to provide the agent manager factory, the completion provider and
+ * the settings model.
+ * All these objects require the secrets manager token with the same namespace.
  */
 const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
   SecretsManager.sign(SECRETS_NAMESPACE, token => ({

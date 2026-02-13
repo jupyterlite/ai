@@ -65,7 +65,7 @@ export namespace AgentManagerFactory {
     /**
      * The token used to request the secrets manager.
      */
-    token: symbol;
+    token: symbol | null;
   }
 }
 export class AgentManagerFactory {
@@ -90,6 +90,11 @@ export class AgentManagerFactory {
 
     // Listen for settings changes
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    // Disable the secrets manager if the token is empty.
+    if (!options.token) {
+      this._secretsManager = undefined;
+    }
   }
 
   createAgent(options: IAgentManagerOptions): AgentManager {
@@ -980,14 +985,23 @@ export class AgentManager {
 
     let apiKey: string;
     if (this._secretsManager && this._settingsModel.config.useSecretsManager) {
-      apiKey =
-        (
-          await this._secretsManager.get(
-            Private.getToken(),
-            SECRETS_NAMESPACE,
-            `${provider}:apiKey`
-          )
-        )?.value ?? '';
+      const token = Private.getToken();
+      if (!token) {
+        // This should never happen, the secrets manager should be disabled.
+        console.error(
+          '@jupyterlite/ai::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
+        );
+        apiKey = '';
+      } else {
+        apiKey =
+          (
+            await this._secretsManager.get(
+              token,
+              SECRETS_NAMESPACE,
+              `${provider}:apiKey`
+            )
+          )?.value ?? '';
+      }
     } else {
       apiKey = this._settingsModel.getApiKey(activeProviderConfig.id);
     }
@@ -1061,11 +1075,11 @@ namespace Private {
   /**
    * The token to use with the secrets manager, setter and getter.
    */
-  let secretsToken: symbol;
-  export function setToken(value: symbol): void {
+  let secretsToken: symbol | null;
+  export function setToken(value: symbol | null): void {
     secretsToken = value;
   }
-  export function getToken(): symbol {
+  export function getToken(): symbol | null {
     return secretsToken;
   }
 }
