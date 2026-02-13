@@ -445,17 +445,25 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     if (updates.useSecretsManager !== undefined) {
       if (updates.useSecretsManager) {
         for (const provider of model.config.providers) {
-          // if the secrets manager doesn't have the current API key, copy the current
+          const settingsApiKey = provider.apiKey;
+          // If the secrets manager doesn't have the current API key, set the current
           // one from settings.
+          // Update the settings value with SECRETS_REPLACEMENT if a key exist in the
+          // secrets manager (was already there or a value was set in settings).
           if (!(await getSecretFromManager(provider.provider, 'apiKey'))) {
-            setSecretToManager(
-              provider.provider,
-              'apiKey',
-              provider.apiKey ?? ''
-            );
+            if (settingsApiKey !== undefined) {
+              setSecretToManager(
+                provider.provider,
+                'apiKey',
+                settingsApiKey !== SECRETS_REPLACEMENT ? settingsApiKey : ''
+              );
+              provider.apiKey = SECRETS_REPLACEMENT;
+              await model.updateProvider(provider.id, provider);
+            }
+          } else {
+            provider.apiKey = SECRETS_REPLACEMENT;
+            await model.updateProvider(provider.id, provider);
           }
-          provider.apiKey = SECRETS_REPLACEMENT;
-          await model.updateProvider(provider.id, provider);
         }
       } else {
         for (const provider of model.config.providers) {
@@ -463,10 +471,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             provider.provider,
             'apiKey'
           );
-          if (apiKey) {
-            provider.apiKey = apiKey;
-            await model.updateProvider(provider.id, provider);
-          }
+          provider.apiKey = apiKey;
+          await model.updateProvider(provider.id, provider);
         }
       }
     }
