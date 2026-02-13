@@ -46,11 +46,11 @@ test.describe('#withoutModel', () => {
     await expect(messages).toHaveCount(2);
 
     await expect(
-      messages.first().locator('.jp-chat-rendered-markdown')
+      messages.first().locator('.jp-chat-rendered-message')
     ).toHaveText(content);
 
     await expect(
-      messages.last().locator('.jp-chat-rendered-markdown')
+      messages.last().locator('.jp-chat-rendered-message')
     ).toContainText(NOT_CONFIGURED_TEXT);
   });
 });
@@ -115,7 +115,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
         messages.last().locator('.jp-chat-message-header')
       ).toHaveText(/Jupyternaut/);
       await expect(
-        messages.last().locator('.jp-chat-rendered-markdown')
+        messages.last().locator('.jp-chat-rendered-message')
       ).not.toHaveText(NOT_CONFIGURED_TEXT);
     });
 
@@ -193,11 +193,11 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await expect(messages).toHaveCount(2);
 
       await expect(
-        messages.first().locator('.jp-chat-rendered-markdown')
+        messages.first().locator('.jp-chat-rendered-message')
       ).toHaveText(content);
 
       await expect(
-        messages.last().locator('.jp-chat-rendered-markdown')
+        messages.last().locator('.jp-chat-rendered-message')
       ).toContainText(NOT_CONFIGURED_TEXT);
     });
 
