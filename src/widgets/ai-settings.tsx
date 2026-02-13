@@ -701,6 +701,18 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           ? isActive
                           : config.activeCompleterProvider === provider.id;
                       const params = provider.parameters;
+                      const supportsWebSearch =
+                        provider.provider === 'openai' ||
+                        provider.provider === 'anthropic' ||
+                        provider.provider === 'google';
+                      const supportsWebFetch =
+                        provider.provider === 'anthropic';
+                      const webSearchEnabled =
+                        supportsWebSearch &&
+                        provider.customSettings?.webSearch?.enabled === true;
+                      const webFetchEnabled =
+                        supportsWebFetch &&
+                        provider.customSettings?.webFetch?.enabled === true;
 
                       return (
                         <ListItem
@@ -763,50 +775,67 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                               </Typography>
 
                               {/* Display parameters if set */}
-                              {params &&
-                                (params.temperature !== undefined ||
-                                  params.maxOutputTokens !== undefined ||
-                                  params.maxTurns !== undefined) && (
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      flexWrap: 'wrap',
-                                      gap: 1,
-                                      mt: 1
-                                    }}
-                                  >
-                                    {params.temperature !== undefined && (
-                                      <Chip
-                                        label={trans.__(
-                                          'Temp: %1',
-                                          params.temperature
-                                        )}
-                                        size="small"
-                                        variant="outlined"
-                                      />
-                                    )}
-                                    {params.maxOutputTokens !== undefined && (
-                                      <Chip
-                                        label={trans.__(
-                                          'Tokens: %1',
-                                          params.maxOutputTokens
-                                        )}
-                                        size="small"
-                                        variant="outlined"
-                                      />
-                                    )}
-                                    {params.maxTurns !== undefined && (
-                                      <Chip
-                                        label={trans.__(
-                                          'Turns: %1',
-                                          params.maxTurns
-                                        )}
-                                        size="small"
-                                        variant="outlined"
-                                      />
-                                    )}
-                                  </Box>
-                                )}
+                              {(params?.temperature !== undefined ||
+                                params?.maxOutputTokens !== undefined ||
+                                params?.maxTurns !== undefined ||
+                                webSearchEnabled ||
+                                webFetchEnabled) && (
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 1,
+                                    mt: 1
+                                  }}
+                                >
+                                  {params?.temperature !== undefined && (
+                                    <Chip
+                                      label={trans.__(
+                                        'Temp: %1',
+                                        params.temperature
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                  {params?.maxOutputTokens !== undefined && (
+                                    <Chip
+                                      label={trans.__(
+                                        'Tokens: %1',
+                                        params.maxOutputTokens
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                  {params?.maxTurns !== undefined && (
+                                    <Chip
+                                      label={trans.__(
+                                        'Turns: %1',
+                                        params.maxTurns
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                  {webSearchEnabled && (
+                                    <Chip
+                                      label={trans.__('Web Search')}
+                                      size="small"
+                                      variant="outlined"
+                                      color="info"
+                                    />
+                                  )}
+                                  {webFetchEnabled && (
+                                    <Chip
+                                      label={trans.__('Web Fetch')}
+                                      size="small"
+                                      variant="outlined"
+                                      color="info"
+                                    />
+                                  )}
+                                </Box>
+                              )}
                             </Box>
                             <IconButton
                               onClick={e => handleMenuClick(e, provider.id)}
