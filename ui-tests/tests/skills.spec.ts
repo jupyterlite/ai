@@ -77,7 +77,7 @@ test.describe('#skills', () => {
 
     const assistantMessage = messages
       .last()
-      .locator('.jp-chat-rendered-markdown');
+      .locator('.jp-chat-rendered-message');
     await expect(assistantMessage).toContainText('SKILL LOADED');
 
     const stopButton = panel.getByTitle('Stop streaming');
