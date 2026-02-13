@@ -786,11 +786,11 @@ wheels = [
 
 [[package]]
 name = "jupyter-secrets-manager"
-version = "0.4.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c8/72/908d3347cdf73089e60c3770294831416b637e96d0d40da109b2015d6403/jupyter_secrets_manager-0.4.1.tar.gz", hash = "sha256:9604d742f3b8c6b11f4337558ba7702f67994a33902d65d29147acb4ed6bc930", size = 138509, upload-time = "2025-10-06T15:40:49.955Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/b8/730cbd5f4cb79a1fc7645974fa846b66089c1f2606984c29e46a10a9a0ca/jupyter_secrets_manager-0.5.0.tar.gz", hash = "sha256:2833f662184c8529e90a02ae44c9f60d0db624a7687ae4b2643b22cc05c700b7", size = 140345, upload-time = "2026-02-13T07:53:13.858Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/53/858fb89000c5df2da660994f79875b5465cb167eafe33dc8db0bfb8afbf1/jupyter_secrets_manager-0.4.1-py3-none-any.whl", hash = "sha256:0b5bfb481be51f1da495bca957f603bbdf34086779d2959e12708cf6a461aa09", size = 21654, upload-time = "2025-10-06T15:40:48.37Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/77/2c1b600a41bbf6f1efc5cde84980b9ec2050060ff7ac5cec4729b818df3a/jupyter_secrets_manager-0.5.0-py3-none-any.whl", hash = "sha256:5042bc62c31d3ca335396091602857678df22d06fd86c1d50f5bafb64067cabb", size = 21668, upload-time = "2026-02-13T07:53:11.854Z" },
 ]
 
 [[package]]
@@ -973,7 +973,7 @@ dependencies = [
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=2.12.4,<3" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyter-secrets-manager", specifier = ">=0.4,<0.5" },
+    { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.2.1,<0.3" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.6.0" },
