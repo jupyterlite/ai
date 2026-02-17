@@ -3,6 +3,7 @@ import {
   IActiveCellManager,
   IAttachment,
   IChatContext,
+  IMessage,
   IMessageContent,
   INewMessage,
   IUser
@@ -336,8 +337,9 @@ export class AIChatModel extends AbstractChatModel {
       type: 'msg',
       raw_time: false
     };
-    this._currentStreamingMessage = aiMessage;
     this.messageAdded(aiMessage);
+    this._currentStreamingMessage =
+      this.messages.find(message => message.id === aiMessage.id) ?? null;
   }
 
   /**
@@ -349,8 +351,7 @@ export class AIChatModel extends AbstractChatModel {
       this._currentStreamingMessage &&
       this._currentStreamingMessage.id === event.data.messageId
     ) {
-      this._currentStreamingMessage.body = event.data.fullContent;
-      this.messageAdded(this._currentStreamingMessage);
+      this._currentStreamingMessage.update({ body: event.data.fullContent });
     }
   }
 
@@ -363,8 +364,7 @@ export class AIChatModel extends AbstractChatModel {
       this._currentStreamingMessage &&
       this._currentStreamingMessage.id === event.data.messageId
     ) {
-      this._currentStreamingMessage.body = event.data.content;
-      this.messageAdded(this._currentStreamingMessage);
+      this._currentStreamingMessage.update({ body: event.data.content });
       this._currentStreamingMessage = null;
     }
   }
@@ -829,7 +829,7 @@ export class AIChatModel extends AbstractChatModel {
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: AgentManager;
-  private _currentStreamingMessage: IMessageContent | null = null;
+  private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _trans: TranslationBundle;
 }
