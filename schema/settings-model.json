@@ -41,7 +41,7 @@
                 "maximum": 2,
                 "default": 0.7
               },
-              "maxTokens": {
+              "maxOutputTokens": {
                 "type": "number",
                 "description": "Maximum tokens for chat responses",
                 "minimum": 1
