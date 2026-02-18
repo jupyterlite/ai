@@ -18,6 +18,6 @@ A screencast showing the JupyterLite AI extension in JupyterLite.
 
 You can try the extension in your browser using JupyterLite:
 
-[![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](lite/lab/index.html)
+[![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](/lite/lab/index.html)
 
 See the [Usage](./usage.md) section for more information on how to provide your API key.
