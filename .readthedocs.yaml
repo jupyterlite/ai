@@ -14,16 +14,11 @@ build:
     # Build JupyterLite assets
     pre_build:
       - pip install uv
-      - cd demo
-      - pwd
-      - ls -la
-      - ls -la uv.lock
       - uv python install
-      - uv sync --locked --all-extras --dev
-      - mkdir -p contents
-      - cp README.md contents/
-      - uv run jupyter lite build
-      - cd ..
+      - uv sync --locked --all-extras --dev --directory=demo
+      - mkdir -p demo/contents
+      - cp demo/README.md demo/contents/
+      - uv run --directory=demo jupyter lite build --output-dir=
 
     # Build documentation
     build:
