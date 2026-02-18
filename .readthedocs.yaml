@@ -13,12 +13,16 @@ build:
 
     # Build JupyterLite assets
     pre_build:
-      - pip install uv
-      - uv python install
-      - uv sync --locked --all-extras --dev --directory=demo
-      - mkdir -p demo/contents
-      - cp demo/README.md demo/contents/
-      - uv run --directory=demo jupyter lite build
+      - | # build lite and update doc URL if the doc is for a PR
+        if [ "$READTHEDOCS_VERSION_TYPE" = "external" ]; then
+          pip install uv
+          uv python install
+          uv sync --locked --all-extras --dev --directory=demo
+          mkdir -p demo/contents
+          cp demo/README.md demo/contents/
+          uv run --directory=demo jupyter lite build
+          sed -i "s|https://jupyterlite.github.io/ai/lab/index.html|/lite/lab/index.html|g" docs/index.md
+        fi
 
     # Build documentation
     build:
@@ -32,4 +36,7 @@ build:
         - rm -rf _build
 
         # Copy JupyterLite into docs
-        - mv demo/dist $READTHEDOCS_OUTPUT/html/lite
+        - |
+          if [ "$READTHEDOCS_VERSION_TYPE" = "external" ]; then
+            mv demo/dist $READTHEDOCS_OUTPUT/html/lite
+          fi
