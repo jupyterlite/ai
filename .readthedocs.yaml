@@ -10,19 +10,23 @@ build:
     python: "3.12"
     nodejs: "22"
 
-  jobs:
-    pre_build:
-      - pip install uv
-      - cd ./demo
-      - uv python install
-      - uv sync --locked --all-extras --dev
-      - mkdir contents & cp README.md contents
-      - uv run jupyter lite build
-
   commands:
+    # BUILD jupyterlite
+    - pip install uv
+    - cd ./demo
+    - uv python install
+    - uv sync --locked --all-extras --dev
+    - mkdir contents & cp README.md contents
+    - uv run jupyter lite build
+
+    # BUILD docs
     - pip install jupyter-book
     - npm run docs:build
+
+    # COPY docs asset to output html
     - mkdir -p $READTHEDOCS_OUTPUT/html/
     - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
-    - mv ./demo/dist $READTHEDOCS_OUTPUT/html/lite
     - rm -rf _build
+
+    # COPY jupyterlite assets to output html
+    - mv ./demo/dist $READTHEDOCS_OUTPUT/html/lite
