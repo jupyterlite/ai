@@ -8,9 +8,35 @@ build:
   tools:
     python: "3.12"
     nodejs: "22"
-  commands:
-    - pip install jupyter-book
-    - npm run docs:build
-    - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
-    - rm -rf _build
+
+  jobs:
+
+    # Build JupyterLite assets
+    pre_build:
+      - | # build lite and update doc URL if the doc is for a PR
+        if [ "$READTHEDOCS_VERSION_TYPE" = "external" ]; then
+          pip install uv
+          uv python install
+          uv sync --locked --all-extras --dev --directory=demo
+          mkdir -p demo/contents
+          cp demo/README.md demo/contents/
+          uv run --directory=demo jupyter lite build
+          sed -i "s|https://jupyterlite.github.io/ai/lab/index.html|/lite/lab/index.html|g" docs/index.md
+        fi
+
+    # Build documentation
+    build:
+      html:
+        - pip install jupyter-book
+        - npm run docs:build
+
+        # Copy documentation output
+        - mkdir -p $READTHEDOCS_OUTPUT/html
+        - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
+        - rm -rf _build
+
+        # Copy JupyterLite into docs
+        - |
+          if [ "$READTHEDOCS_VERSION_TYPE" = "external" ]; then
+            mv demo/dist $READTHEDOCS_OUTPUT/html/lite
+          fi
