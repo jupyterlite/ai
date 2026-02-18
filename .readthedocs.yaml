@@ -27,13 +27,14 @@ build:
 
     # Build documentation
     build:
-      - pip install jupyter-book
-      - npm install
-      - npm run docs:build
+      html:
+        - pip install jupyter-book
+        - npm run docs:build
 
-      # Copy documentation output
-      - mkdir -p $READTHEDOCS_OUTPUT/html
-      - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
+        # Copy documentation output
+        - mkdir -p $READTHEDOCS_OUTPUT/html
+        - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
+        - rm -rf _build
 
-      # Copy JupyterLite into docs
-      - mv demo/dist $READTHEDOCS_OUTPUT/html/lite
+        # Copy JupyterLite into docs
+        - mv demo/dist $READTHEDOCS_OUTPUT/html/lite
