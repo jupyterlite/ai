@@ -5,28 +5,35 @@ version: 2
 
 build:
   os: ubuntu-24.04
-
   tools:
     python: "3.12"
     nodejs: "22"
 
-  commands:
-    # BUILD jupyterlite
-    - pip install uv
-    - cd ./demo
-    - uv python install
-    - uv sync --locked --all-extras --dev
-    - mkdir contents & cp README.md contents
-    - uv run jupyter lite build
+  jobs:
 
-    # BUILD docs
-    - pip install jupyter-book
-    - npm run docs:build
+    # Build JupyterLite assets
+    pre_build:
+      - pip install uv
+      - cd demo
+      - pwd
+      - ls -la
+      - ls -la uv.lock
+      - uv python install
+      - uv sync --locked --all-extras --dev
+      - mkdir -p contents
+      - cp README.md contents/
+      - uv run jupyter lite build
+      - cd ..
 
-    # COPY docs asset to output html
-    - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
-    - rm -rf _build
+    # Build documentation
+    build:
+      - pip install jupyter-book
+      - npm install
+      - npm run docs:build
 
-    # COPY jupyterlite assets to output html
-    - mv ./demo/dist $READTHEDOCS_OUTPUT/html/lite
+      # Copy documentation output
+      - mkdir -p $READTHEDOCS_OUTPUT/html
+      - cp -r _build/html/* $READTHEDOCS_OUTPUT/html/
+
+      # Copy JupyterLite into docs
+      - mv demo/dist $READTHEDOCS_OUTPUT/html/lite
