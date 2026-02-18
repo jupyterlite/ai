@@ -3,10 +3,13 @@ import {
   IActiveCellManager,
   IAttachment,
   IChatContext,
+  IMessage,
   IMessageContent,
   INewMessage,
   IUser
 } from '@jupyter/chat';
+
+import { YNotebook } from '@jupyter/ydoc';
 
 import { PathExt } from '@jupyterlab/coreutils';
 
@@ -14,7 +17,11 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { IDocumentWidget } from '@jupyterlab/docregistry';
 
+import * as nbformat from '@jupyterlab/nbformat';
+
 import { INotebookModel, Notebook } from '@jupyterlab/notebook';
+
+import { IRenderMime } from '@jupyterlab/rendermime';
 
 import { TranslationBundle } from '@jupyterlab/translation';
 
@@ -29,10 +36,6 @@ import { AI_AVATAR } from './icons';
 import { AISettingsModel } from './models/settings-model';
 
 import { ITokenUsage } from './tokens';
-
-import { YNotebook } from '@jupyter/ydoc';
-
-import * as nbformat from '@jupyterlab/nbformat';
 
 /**
  * Tool call status types.
@@ -334,8 +337,9 @@ export class AIChatModel extends AbstractChatModel {
       type: 'msg',
       raw_time: false
     };
-    this._currentStreamingMessage = aiMessage;
     this.messageAdded(aiMessage);
+    this._currentStreamingMessage =
+      this.messages.find(message => message.id === aiMessage.id) ?? null;
   }
 
   /**
@@ -347,8 +351,7 @@ export class AIChatModel extends AbstractChatModel {
       this._currentStreamingMessage &&
       this._currentStreamingMessage.id === event.data.messageId
     ) {
-      this._currentStreamingMessage.body = event.data.fullContent;
-      this.messageAdded(this._currentStreamingMessage);
+      this._currentStreamingMessage.update({ body: event.data.fullContent });
     }
   }
 
@@ -361,8 +364,7 @@ export class AIChatModel extends AbstractChatModel {
       this._currentStreamingMessage &&
       this._currentStreamingMessage.id === event.data.messageId
     ) {
-      this._currentStreamingMessage.body = event.data.content;
-      this.messageAdded(this._currentStreamingMessage);
+      this._currentStreamingMessage.update({ body: event.data.content });
       this._currentStreamingMessage = null;
     }
   }
@@ -827,7 +829,7 @@ export class AIChatModel extends AbstractChatModel {
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: AgentManager;
-  private _currentStreamingMessage: IMessageContent | null = null;
+  private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _trans: TranslationBundle;
 }
@@ -927,7 +929,9 @@ namespace Private {
   /**
    * Builds HTML for a tool call display.
    */
-  export function buildToolCallHtml(options: IToolCallHtmlOptions): string {
+  export function buildToolCallHtml(
+    options: IToolCallHtmlOptions
+  ): Partial<IRenderMime.IMimeModel> & Pick<IRenderMime.IMimeModel, 'data'> {
     const { toolName, input, status, summary, output, approvalId, trans } =
       options;
     const config = STATUS_CONFIG[status];
@@ -965,7 +969,7 @@ namespace Private {
 </div>`;
     }
 
-    return `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
+    const HTMLContent = `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
 <summary class="jp-ai-tool-header">
 <div class="jp-ai-tool-icon">⚡</div>
 <div class="jp-ai-tool-title">${escapedToolName}${summaryHtml}</div>
@@ -974,6 +978,13 @@ namespace Private {
 <div class="jp-ai-tool-body">${bodyContent}
 </div>
 </details>`;
+
+    return {
+      data: {
+        trusted: true,
+        'text/html': HTMLContent
+      }
+    };
   }
 }
 
