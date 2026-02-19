@@ -5,7 +5,6 @@ import { Menu, MenuItem, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
-
 /**
  * Properties for the model select component.
  */
@@ -199,11 +198,11 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
             }}
             sx={{
               backgroundColor: isSelected
-                ? 'var(--jp-brand-color3, rgba(33, 150, 243, 0.1))'
+                ? 'var(--mui-palette-primary-main)'
                 : 'transparent',
               '&:hover': {
                 backgroundColor: isSelected
-                  ? 'var(--jp-brand-color3, rgba(33, 150, 243, 0.15))'
+                  ? 'var(--mui-palette-primary-main)'
                   : 'var(--jp-layout-color1)'
               },
               display: 'flex',
@@ -214,7 +213,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
             {isSelected ? (
               <CheckIcon
                 sx={{
-                  color: 'var(--jp-brand-color1, #2196F3)',
+                  color: 'var(--jp-ui-inverse-font-color1)',
                   fontSize: 16
                 }}
               />
@@ -227,7 +226,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
               sx={{
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected
-                  ? 'var(--jp-brand-color1, #2196F3)'
+                  ? 'var(--jp-ui-inverse-font-color1)'
                   : 'inherit'
               }}
             >
