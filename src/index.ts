@@ -339,14 +339,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
       attachmentOpenerRegistry,
       chatCommandRegistry,
       createModel: async (name?: string) => {
-        const model = modelRegistry.createModel(name);
+        let model = name ? modelRegistry.get(name) : undefined;
+        if (!model) {
+          model = modelRegistry.createModel(name);
+        }
+        chatPanel.updateChatList();
         return { model };
+      },
+      getChatNames: async () => {
+        const names = modelRegistry.getAll().map(model => model.name);
+        const arr: { [key: string]: string } = {};
+        for (const name of names) {
+          arr[name] = name;
+        }
+        return arr;
       },
       renameChat: async (oldName: string, newName: string) => {
         const model = modelRegistry.get(oldName);
         const concurrencyModel = modelRegistry.get(newName);
         if (model && !concurrencyModel) {
           model.name = newName;
+          chatPanel.updateChatList();
           return true;
         }
         return false;
@@ -419,8 +432,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       widget.disposed.connect(() => {
         // Dispose of the approval buttons widget when the chat is disposed.
         approvalButton.dispose();
-        // Remove the model from the registry when the widget is disposed.
-        modelRegistry.remove(model.name);
       });
     });
 
@@ -566,11 +577,6 @@ function registerCommands(
       model.agentManager.activeProviderChanged.connect(() =>
         tracker.save(widget)
       );
-
-      // Remove the model from the registry when the widget is disposed.
-      widget.disposed.connect(() => {
-        modelRegistry.remove(model.name);
-      });
     };
 
     commands.addCommand(CommandIds.openChat, {
