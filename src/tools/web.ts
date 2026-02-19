@@ -169,6 +169,7 @@ export function createBrowserFetchTool(): ITool {
       try {
         const response = await fetch(parsedUrl.toString(), {
           method: 'GET',
+          credentials: 'omit',
           redirect: 'follow',
           signal: controller.signal,
           headers: {
@@ -188,7 +189,6 @@ export function createBrowserFetchTool(): ITool {
           requestedUrl: parsedUrl.toString(),
           status: response.status,
           statusText: response.statusText,
-          ok: response.ok,
           contentType,
           contentLength,
           ...(success

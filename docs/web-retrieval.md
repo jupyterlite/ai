@@ -14,6 +14,7 @@ This page explains how they work, how to configure them, and how fallback works 
 - Runs in the browser with `fetch`.
 - Good for quick retrieval of public pages that allow cross-origin access.
 - Limited by browser rules (CORS), network restrictions, and site-level bot protections.
+- Sends requests with credentials omitted (`credentials: "omit"`), so cookie/session-authenticated pages are usually not accessible.
 
 ### Provider-hosted tools
 
