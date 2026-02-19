@@ -1,4 +1,5 @@
 import { CommandRegistry } from '@lumino/commands';
+import { Widget } from '@lumino/widgets';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { ITool } from '../tokens';
@@ -115,9 +116,10 @@ export function createExecuteCommandTool(
       // Execute the command
       const result = await commands.execute(commandId, args);
 
-      // Handle Widget objects specially by extracting id and title
+      // Handle actual Lumino widgets specially by extracting id and title.
+      // Avoid collapsing plain command results that happen to contain an `id` field.
       let serializedResult;
-      if (result && typeof result === 'object' && result.id) {
+      if (result instanceof Widget) {
         serializedResult = {
           id: result.id,
           title: result.title?.label || result.title

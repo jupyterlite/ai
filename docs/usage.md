@@ -32,3 +32,22 @@ See the dedicated pages for specific providers:
 - [Using Ollama](./ollama.md)
 - [Using LiteLLM Proxy](./litellm.md)
 - [Using any-llm-gateway](./any-llm-gateway.md)
+
+## Controlling MIME auto-rendering in chat
+
+When the AI model uses `execute_command`, some commands may return rich MIME bundles
+(plots, maps, HTML, etc.). You can control which commands automatically render
+those bundles as chat messages:
+
+1. Open AI settings and go to **Behavior Settings**
+2. In **Commands Auto-Rendering MIME Bundles**, add or remove command IDs
+3. In **Trusted MIME Types for Auto-Render**, add or remove MIME types to mark
+   as trusted when those commands are auto-rendered in chat
+
+Default:
+
+- `jupyterlab-ai-commands:execute-in-kernel`
+- `text/html` (trusted MIME type)
+
+This helps avoid side effects where inspection commands return existing notebook
+outputs that you do not want replayed in chat.

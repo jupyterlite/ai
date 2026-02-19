@@ -80,6 +80,10 @@ interface IToolExecutionContext {
    * Human-readable summary extracted from tool input for display.
    */
   summary?: string;
+  /**
+   * The JupyterLab command ID for execute_command tool calls.
+   */
+  commandId?: string;
 }
 
 /**
@@ -411,6 +415,27 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Extract commandId for execute_command tool calls.
+   */
+  private _extractExecuteCommandId(
+    toolName: string,
+    input: string
+  ): string | undefined {
+    if (toolName !== 'execute_command') {
+      return undefined;
+    }
+
+    try {
+      const parsedInput = JSON.parse(input);
+      return typeof parsedInput.commandId === 'string'
+        ? parsedInput.commandId
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Handles the start of a tool call execution.
    * @param event Event containing the tool call start data
    */
@@ -422,13 +447,18 @@ export class AIChatModel extends AbstractChatModel {
       event.data.toolName,
       event.data.input
     );
+    const commandId = this._extractExecuteCommandId(
+      event.data.toolName,
+      event.data.input
+    );
     const context: IToolExecutionContext = {
       toolCallId: event.data.callId,
       messageId,
       toolName: event.data.toolName,
       input: event.data.input,
       status: 'pending',
-      summary
+      summary,
+      commandId
     };
 
     this._toolContexts.set(event.data.callId, context);
@@ -457,9 +487,57 @@ export class AIChatModel extends AbstractChatModel {
   private _handleToolCallCompleteEvent(
     event: IAgentEvent<'tool_call_complete'>
   ): void {
+    const context = this._toolContexts.get(event.data.callId);
     const status = event.data.isError ? 'error' : 'completed';
-    this._updateToolCallUI(event.data.callId, status, event.data.output);
+    this._updateToolCallUI(
+      event.data.callId,
+      status,
+      Private.formatToolOutput(event.data.outputData)
+    );
+
+    if (!event.data.isError && this._shouldAutoRenderMimeBundles(context)) {
+      // Tool results are arbitrary command payloads (often wrapped in
+      // { success, result, outputs, ... }), so extract display outputs
+      // defensively instead of assuming a raw kernel message shape.
+      const mimeBundles = Private.extractMimeBundlesFromUnknown(
+        event.data.outputData,
+        {
+          trustedMimeTypes:
+            this._settingsModel.config.trustedMimeTypesForAutoRender
+        }
+      );
+      for (const bundle of mimeBundles) {
+        this.messageAdded({
+          body: bundle,
+          sender: this._getAIUser(),
+          id: UUID.uuid4(),
+          time: Date.now() / 1000,
+          type: 'msg',
+          raw_time: false
+        });
+      }
+    }
+
     this._toolContexts.delete(event.data.callId);
+  }
+
+  /**
+   * Determine whether a tool call output should auto-render MIME bundles.
+   */
+  private _shouldAutoRenderMimeBundles(
+    context: IToolExecutionContext | undefined
+  ): boolean {
+    if (!context) {
+      return false;
+    }
+
+    if (context.toolName !== 'execute_command' || !context.commandId) {
+      return false;
+    }
+
+    return this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
+      context.commandId
+    );
   }
 
   /**
@@ -835,6 +913,113 @@ export class AIChatModel extends AbstractChatModel {
 }
 
 namespace Private {
+  type IMimeBody = Partial<IRenderMime.IMimeModel> &
+    Pick<IRenderMime.IMimeModel, 'data'>;
+  type IDisplayOutput =
+    | nbformat.IDisplayData
+    | nbformat.IDisplayUpdate
+    | nbformat.IExecuteResult;
+
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+    if (!isPlainObject(value)) {
+      return false;
+    }
+
+    const output = value as nbformat.IOutput;
+    return (
+      nbformat.isDisplayData(output) ||
+      nbformat.isDisplayUpdate(output) ||
+      nbformat.isExecuteResult(output)
+    );
+  };
+
+  const toMimeBundle = (
+    value: IDisplayOutput,
+    trustedMimeTypes: ReadonlySet<string>
+  ): IMimeBody | null => {
+    const data = value.data;
+    if (!isPlainObject(data) || Object.keys(data).length === 0) {
+      return null;
+    }
+
+    return {
+      data: data as IRenderMime.IMimeModel['data'],
+      ...(isPlainObject(value.metadata)
+        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
+        : {}),
+      // MIME auto-rendering only runs for explicitly configured command IDs.
+      // Trust handling is configurable to keep risky MIME execution opt-in.
+      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+        ? { trusted: true }
+        : {})
+    };
+  };
+
+  /**
+   * Normalize arbitrary tool payloads into canonical display outputs.
+   *
+   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
+   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
+   */
+  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+    if (isDisplayOutput(value)) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(isDisplayOutput);
+    }
+
+    if (!isPlainObject(value)) {
+      return [];
+    }
+
+    if (Array.isArray(value.outputs)) {
+      return value.outputs.filter(isDisplayOutput);
+    }
+
+    if ('result' in value) {
+      return toDisplayOutputs(value.result);
+    }
+
+    return [];
+  };
+
+  /**
+   * Extract rendermime-ready mime bundles from arbitrary tool results.
+   */
+  export function extractMimeBundlesFromUnknown(
+    content: unknown,
+    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
+  ): IMimeBody[] {
+    const bundles: IMimeBody[] = [];
+    const outputs = toDisplayOutputs(content);
+    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
+    for (const output of outputs) {
+      const bundle = toMimeBundle(output, trustedMimeTypes);
+      if (bundle) {
+        bundles.push(bundle);
+      }
+    }
+    return bundles;
+  }
+
+  export function formatToolOutput(outputData: unknown): string {
+    if (typeof outputData === 'string') {
+      return outputData;
+    }
+
+    try {
+      return JSON.stringify(outputData, null, 2);
+    } catch {
+      return '[Complex object - cannot serialize]';
+    }
+  }
+
   export function escapeHtml(value: string): string {
     // Prefer the same native escaping approach used in JupyterLab itself
     // (e.g. `@jupyterlab/completer`).
@@ -980,8 +1165,8 @@ namespace Private {
 </details>`;
 
     return {
+      trusted: true,
       data: {
-        trusted: true,
         'text/html': HTMLContent
       }
     };

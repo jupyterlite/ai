@@ -159,6 +159,20 @@
         "jupyterlab-ai-commands:run-cell"
       ]
     },
+    "commandsAutoRenderMimeBundles": {
+      "title": "Commands Auto-Rendering MIME Bundles",
+      "description": "List of execute_command command IDs whose outputs can auto-render MIME bundles in chat",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["jupyterlab-ai-commands:execute-in-kernel"]
+    },
+    "trustedMimeTypesForAutoRender": {
+      "title": "Trusted MIME Types for Auto-Render",
+      "description": "MIME types to mark as trusted when auto-rendering execute_command outputs in chat",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["text/html"]
+    },
     "systemPrompt": {
       "title": "System Prompt",
       "description": "Instructions that define how the AI should behave and respond",

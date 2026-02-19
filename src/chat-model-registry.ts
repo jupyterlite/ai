@@ -11,6 +11,7 @@ import {
 } from './tokens';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { UUID } from '@lumino/coreutils';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
 /**
  * The chat model registry.
@@ -22,6 +23,7 @@ export class ChatModelRegistry implements IChatModelRegistry {
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
+    this._rmRegistry = options.rmRegistry;
     this._activeCellManager = options.activeCellManager;
     this._trans = options.trans;
   }
@@ -37,7 +39,8 @@ export class ChatModelRegistry implements IChatModelRegistry {
       toolRegistry: this._toolRegistry,
       providerRegistry: this._providerRegistry,
       activeProvider,
-      tokenUsage
+      tokenUsage,
+      renderMimeRegistry: this._rmRegistry
     });
 
     // Create AI chat model
@@ -112,6 +115,7 @@ export class ChatModelRegistry implements IChatModelRegistry {
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
+  private _rmRegistry: IRenderMimeRegistry;
   private _activeCellManager?: ActiveCellManager;
   private _trans: TranslationBundle;
 }
@@ -138,6 +142,10 @@ export namespace ChatModelRegistry {
      * Optional provider registry for model creation
      */
     providerRegistry?: IProviderRegistry;
+    /**
+     * Render mime registry.
+     */
+    rmRegistry: IRenderMimeRegistry;
     /**
      * The active cell manager.
      */

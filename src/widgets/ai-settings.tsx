@@ -31,7 +31,6 @@ import {
   InputLabel,
   List,
   ListItem,
-  ListItemSecondaryAction,
   ListItemText,
   Menu,
   MenuItem,
@@ -1141,9 +1140,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
                     {config.commandsRequiringApproval.map((command, index) => (
-                      <ListItem key={index} divider>
-                        <ListItemText primary={command} />
-                        <ListItemSecondaryAction>
+                      <ListItem
+                        key={index}
+                        divider
+                        secondaryAction={
                           <IconButton
                             onClick={() => {
                               const newCommands = [
@@ -1158,7 +1158,9 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           >
                             <Delete />
                           </IconButton>
-                        </ListItemSecondaryAction>
+                        }
+                      >
+                        <ListItemText primary={command} />
                       </ListItem>
                     ))}
                   </List>
@@ -1189,6 +1191,154 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                     }}
                     helperText={trans.__(
                       'Press Enter to add a command. Common commands: notebook:run-cell, console:execute, fileeditor:run-code'
+                    )}
+                  />
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box>
+                  <Typography variant="body1" gutterBottom>
+                    {trans.__('Commands Auto-Rendering MIME Bundles')}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ display: 'block' }}
+                  >
+                    {trans.__(
+                      'Only these execute_command command IDs can auto-render MIME bundle outputs in chat'
+                    )}
+                  </Typography>
+
+                  <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
+                    {(config.commandsAutoRenderMimeBundles ?? []).map(
+                      (command, index) => (
+                        <ListItem
+                          key={index}
+                          divider
+                          secondaryAction={
+                            <IconButton
+                              onClick={() => {
+                                const newCommands = [
+                                  ...(config.commandsAutoRenderMimeBundles ??
+                                    [])
+                                ];
+                                newCommands.splice(index, 1);
+                                handleConfigUpdate({
+                                  commandsAutoRenderMimeBundles: newCommands
+                                });
+                              }}
+                              size="small"
+                            >
+                              <Delete />
+                            </IconButton>
+                          }
+                        >
+                          <ListItemText primary={command} />
+                        </ListItem>
+                      )
+                    )}
+                  </List>
+
+                  <TextField
+                    fullWidth
+                    label={trans.__('Add Auto-Render Command')}
+                    placeholder={trans.__(
+                      'e.g., jupyterlab-ai-commands:execute-in-kernel'
+                    )}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const value = (
+                          e.target as HTMLInputElement
+                        ).value.trim();
+                        const existingCommands =
+                          config.commandsAutoRenderMimeBundles ?? [];
+                        if (value && !existingCommands.includes(value)) {
+                          const newCommands = [...existingCommands, value];
+                          handleConfigUpdate({
+                            commandsAutoRenderMimeBundles: newCommands
+                          });
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                    helperText={trans.__(
+                      'Press Enter to add a command. Default: jupyterlab-ai-commands:execute-in-kernel'
+                    )}
+                  />
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box>
+                  <Typography variant="body1" gutterBottom>
+                    {trans.__('Trusted MIME Types for Auto-Render')}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ display: 'block' }}
+                  >
+                    {trans.__(
+                      'When auto-rendering command outputs, these MIME types are marked trusted in chat'
+                    )}
+                  </Typography>
+
+                  <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
+                    {(config.trustedMimeTypesForAutoRender ?? []).map(
+                      (mimeType, index) => (
+                        <ListItem
+                          key={index}
+                          divider
+                          secondaryAction={
+                            <IconButton
+                              onClick={() => {
+                                const newMimeTypes = [
+                                  ...(config.trustedMimeTypesForAutoRender ??
+                                    [])
+                                ];
+                                newMimeTypes.splice(index, 1);
+                                handleConfigUpdate({
+                                  trustedMimeTypesForAutoRender: newMimeTypes
+                                });
+                              }}
+                              size="small"
+                            >
+                              <Delete />
+                            </IconButton>
+                          }
+                        >
+                          <ListItemText primary={mimeType} />
+                        </ListItem>
+                      )
+                    )}
+                  </List>
+
+                  <TextField
+                    fullWidth
+                    label={trans.__('Add Trusted MIME Type')}
+                    placeholder={trans.__('e.g., text/html')}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const value = (
+                          e.target as HTMLInputElement
+                        ).value.trim();
+                        const existingMimeTypes =
+                          config.trustedMimeTypesForAutoRender ?? [];
+                        if (value && !existingMimeTypes.includes(value)) {
+                          const newMimeTypes = [...existingMimeTypes, value];
+                          handleConfigUpdate({
+                            trustedMimeTypesForAutoRender: newMimeTypes
+                          });
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                    helperText={trans.__(
+                      'Press Enter to add a MIME type. Default: text/html'
                     )}
                   />
                 </Box>
@@ -1239,7 +1389,18 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
               ) : (
                 <List>
                   {config.mcpServers.map(server => (
-                    <ListItem key={server.id} divider>
+                    <ListItem
+                      key={server.id}
+                      divider
+                      secondaryAction={
+                        <IconButton
+                          onClick={e => handleMCPMenuClick(e, server.id)}
+                          size="small"
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      }
+                    >
                       <ListItemText
                         primary={
                           <Box
@@ -1303,14 +1464,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           </Box>
                         }
                       />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          onClick={e => handleMCPMenuClick(e, server.id)}
-                          size="small"
-                        >
-                          <MoreVert />
-                        </IconButton>
-                      </ListItemSecondaryAction>
                     </ListItem>
                   ))}
                 </List>

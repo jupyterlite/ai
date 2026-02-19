@@ -58,6 +58,7 @@ import { DisposableSet } from '@lumino/disposable';
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
+import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
 import { SkillsCommandProvider } from './chat-commands/skills';
@@ -250,7 +251,12 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
   id: '@jupyterlite/ai:chat-model-registry',
   description: 'Registry for the current chat model',
   autoStart: true,
-  requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
+  requires: [
+    IAISettingsModel,
+    IAgentManagerFactory,
+    IDocumentManager,
+    IRenderMimeRegistry
+  ],
   optional: [IProviderRegistry, IToolRegistry, ITranslator],
   provides: IChatModelRegistry,
   activate: (
@@ -258,6 +264,7 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
     settingsModel: AISettingsModel,
     agentManagerFactory: AgentManagerFactory,
     docManager: IDocumentManager,
+    rmRegistry: IRenderMimeRegistry,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry,
     translator?: ITranslator
@@ -268,6 +275,7 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
       settingsModel,
       agentManagerFactory,
       docManager,
+      rmRegistry,
       providerRegistry,
       toolRegistry,
       trans
@@ -415,10 +423,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         chatPanel: widget,
         agentManager: model.agentManager
       });
+      // Temporary compat: keep output-area CSS context for MIME renderers
+      // until jupyter-chat provides it natively.
+      const outputAreaCompat = new RenderedMessageOutputAreaCompat({
+        chatPanel: widget
+      });
 
       widget.disposed.connect(() => {
         // Dispose of the approval buttons widget when the chat is disposed.
         approvalButton.dispose();
+        outputAreaCompat.dispose();
         // Remove the model from the registry when the widget is disposed.
         modelRegistry.remove(model.name);
       });
