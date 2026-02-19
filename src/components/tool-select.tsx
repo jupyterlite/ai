@@ -6,12 +6,14 @@ import BuildIcon from '@mui/icons-material/Build';
 
 import CheckIcon from '@mui/icons-material/Check';
 
-import { Menu, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { INamedTool, IToolRegistry } from '../tokens';
 import { AIChatModel } from '../chat-model';
+import { AISettingsModel } from '../models/settings-model';
+import { createProviderTools } from '../providers/provider-tools';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -36,6 +38,11 @@ export interface IToolSelectProps
   onToolSelectionChange: (selectedToolNames: string[]) => void;
 
   /**
+   * The settings model to compute provider-level web tools.
+   */
+  settingsModel: AISettingsModel;
+
+  /**
    * The application language translator.
    */
   translator: TranslationBundle;
@@ -49,13 +56,18 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     toolRegistry,
     onToolSelectionChange,
     toolsEnabled,
+    settingsModel,
+    model,
     translator: trans
   } = props;
+  const chatContext = model.chatContext as AIChatModel.IAIChatContext;
+  const agentManager = chatContext.agentManager;
 
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [tools, setTools] = useState<INamedTool[]>(
     toolRegistry?.namedTools || []
   );
+  const [providerToolNames, setProviderToolNames] = useState<string[]>([]);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -103,6 +115,39 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     }
   }, [toolRegistry]);
 
+  // Track provider-level tools (e.g. web_search/web_fetch).
+  useEffect(() => {
+    if (!agentManager || !toolsEnabled) {
+      setProviderToolNames([]);
+      return;
+    }
+
+    const updateProviderTools = () => {
+      const activeProviderId = agentManager.activeProvider;
+      const providerConfig = settingsModel.getProvider(activeProviderId);
+      if (!providerConfig) {
+        setProviderToolNames([]);
+        return;
+      }
+
+      const providerTools = createProviderTools({
+        provider: providerConfig.provider,
+        customSettings: providerConfig.customSettings,
+        hasFunctionTools: selectedToolNames.length > 0
+      });
+      setProviderToolNames(Object.keys(providerTools));
+    };
+
+    updateProviderTools();
+    settingsModel.stateChanged.connect(updateProviderTools);
+    agentManager.activeProviderChanged.connect(updateProviderTools);
+
+    return () => {
+      settingsModel.stateChanged.disconnect(updateProviderTools);
+      agentManager.activeProviderChanged.disconnect(updateProviderTools);
+    };
+  }, [settingsModel, agentManager, selectedToolNames.length, toolsEnabled]);
+
   // Initialize selected tools to all tools by default
   useEffect(() => {
     if (tools.length > 0 && selectedToolNames.length === 0) {
@@ -113,9 +158,12 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
   }, [tools, selectedToolNames.length, onToolSelectionChange]);
 
   // Don't render if tools are disabled or no tools available
-  if (!toolsEnabled || tools.length === 0) {
+  if (!toolsEnabled || (tools.length === 0 && providerToolNames.length === 0)) {
     return <></>;
   }
+
+  const selectedCount = selectedToolNames.length + providerToolNames.length;
+  const totalCount = tools.length + providerToolNames.length;
 
   return (
     <>
@@ -125,11 +173,11 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         }}
         tooltip={trans.__(
           'Tools (%1/%2 selected)',
-          selectedToolNames.length.toString(),
-          tools.length.toString()
+          selectedCount.toString(),
+          totalCount.toString()
         )}
         buttonProps={{
-          ...(selectedToolNames.length === 0 && {
+          ...(selectedCount === 0 && {
             variant: 'outlined'
           }),
           title: trans.__('Select AI Tools'),
@@ -143,7 +191,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
           }
         }}
         sx={
-          selectedToolNames.length === 0
+          selectedCount === 0
             ? { backgroundColor: 'var(--jp-layout-color3)' }
             : {}
         }
@@ -198,6 +246,36 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
             </MenuItem>
           </Tooltip>
         ))}
+
+        {providerToolNames.length > 0 && tools.length > 0 && <Divider />}
+
+        {providerToolNames.length > 0 && (
+          <MenuItem disabled>
+            <Typography variant="caption">
+              {trans.__('Provider Tools')}
+            </Typography>
+          </MenuItem>
+        )}
+
+        {providerToolNames.map(toolName => {
+          return (
+            <Tooltip
+              key={toolName}
+              title={trans.__('Enabled via provider settings.')}
+              placement="left"
+            >
+              <MenuItem className={SELECT_ITEM_CLASS} disabled>
+                <CheckIcon
+                  sx={{
+                    marginRight: '8px',
+                    color: 'var(--jp-brand-color1, #2196F3)'
+                  }}
+                />
+                <Typography variant="body2">{toolName}</Typography>
+              </MenuItem>
+            </Tooltip>
+          );
+        })}
       </Menu>
     </>
   );
@@ -208,6 +286,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
  */
 export function createToolSelectItem(
   toolRegistry: IToolRegistry,
+  settingsModel: AISettingsModel,
   toolsEnabled: boolean = true,
   translator: TranslationBundle
 ): InputToolbarRegistry.IToolbarItem {
@@ -225,6 +304,7 @@ export function createToolSelectItem(
       const toolSelectProps: IToolSelectProps = {
         ...props,
         toolRegistry,
+        settingsModel,
         onToolSelectionChange,
         toolsEnabled,
         translator
