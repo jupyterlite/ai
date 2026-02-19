@@ -56,6 +56,10 @@ export interface IAIConfig {
   showTokenUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
+  // Commands whose execute_command outputs may auto-render MIME bundles in chat
+  commandsAutoRenderMimeBundles: string[];
+  // MIME types that are trusted when auto-rendering execute_command outputs
+  trustedMimeTypesForAutoRender: string[];
   // Diff display settings
   showCellDiff: boolean;
   showFileDiff: boolean;
@@ -97,6 +101,8 @@ export class AISettingsModel extends VDomModel {
       'runmenu:run-all',
       'jupyterlab-ai-commands:run-cell'
     ],
+    commandsAutoRenderMimeBundles: ['jupyterlab-ai-commands:execute-in-kernel'],
+    trustedMimeTypesForAutoRender: ['text/html'],
     systemPrompt: `You are Jupyternaut, an AI coding assistant built specifically for the JupyterLab environment.
 
 ## Your Core Mission

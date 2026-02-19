@@ -8,6 +8,7 @@ import { ApprovalButtons } from '../approval-buttons';
 import { AIChatModel } from '../chat-model';
 import { TokenUsageWidget } from '../components/token-usage-display';
 import { AISettingsModel } from '../models/settings-model';
+import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds } from '../tokens';
 
 export namespace MainAreaChat {
@@ -56,12 +57,18 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       chatPanel: this.content,
       agentManager: this.model.agentManager
     });
+    // Temporary compat: keep output-area CSS context for MIME renderers
+    // until jupyter-chat provides it natively.
+    this._outputAreaCompat = new RenderedMessageOutputAreaCompat({
+      chatPanel: this.content
+    });
   }
 
   dispose(): void {
     super.dispose();
     // Dispose of the approval buttons widget when the chat is disposed.
     this._approvalButtons.dispose();
+    this._outputAreaCompat.dispose();
   }
 
   /**
@@ -72,4 +79,5 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   }
 
   private _approvalButtons: ApprovalButtons;
+  private _outputAreaCompat: RenderedMessageOutputAreaCompat;
 }

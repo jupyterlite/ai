@@ -11,6 +11,7 @@ import {
 } from 'ai';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
 import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
@@ -271,7 +272,7 @@ export interface IAgentEventTypeMap {
   tool_call_complete: {
     callId: string;
     toolName: string;
-    output: string;
+    outputData: unknown;
     isError: boolean;
   };
   tool_approval_request: {
@@ -352,6 +353,11 @@ export interface IAgentManagerOptions {
    * Initial token usage.
    */
   tokenUsage?: ITokenUsage;
+
+  /**
+   * JupyterLab render mime registry for discovering supported MIME types.
+   */
+  renderMimeRegistry?: IRenderMimeRegistry;
 }
 
 /**
@@ -384,6 +390,7 @@ export class AgentManager {
     this._tokenUsageChanged = new Signal<this, ITokenUsage>(this);
     this._skills = [];
     this._agentConfig = null;
+    this._renderMimeRegistry = options.renderMimeRegistry;
 
     this.activeProvider =
       options.activeProvider ?? this._settingsModel.config.defaultProvider;
@@ -612,7 +619,9 @@ export class AgentManager {
 
         // Add response messages to history
         if (responseMessages.messages?.length) {
-          this._history.push(...responseMessages.messages);
+          this._history.push(
+            ...Private.sanitizeModelMessages(responseMessages.messages)
+          );
         }
 
         // Add approval response if processed
@@ -754,9 +763,22 @@ export class AgentManager {
       shouldUseTools
     } = this._agentConfig;
 
-    const instructions = shouldUseTools
+    const baseInstructions = shouldUseTools
       ? this._getEnhancedSystemPrompt(baseSystemPrompt)
       : baseSystemPrompt || 'You are a helpful assistant.';
+    const richOutputWorkflowInstruction = shouldUseTools
+      ? '- When the user asks for visual or rich outputs, prefer running code/commands that produce those outputs and describe that they will be rendered in chat.'
+      : '- When tools are unavailable, explain the limitation clearly and provide concrete steps the user can run to produce the desired rich outputs.';
+    const supportedMimeTypesInstruction =
+      this._getSupportedMimeTypesInstruction();
+    const instructions = `${baseInstructions}
+
+RICH OUTPUT RENDERING:
+- The chat UI can render rich MIME outputs as separate assistant messages.
+- ${supportedMimeTypesInstruction}
+- Use only MIME types from the supported list when creating MIME bundles. Do not invent MIME keys.
+- Do not claim that you cannot display maps, images, or rich outputs in chat.
+${richOutputWorkflowInstruction}`;
 
     this._agent = new ToolLoopAgent({
       model,
@@ -861,10 +883,6 @@ export class AgentManager {
    * Handles tool-result stream parts.
    */
   private _handleToolResult(part: TypedToolResult<ToolMap>): void {
-    const output =
-      typeof part.output === 'string'
-        ? part.output
-        : JSON.stringify(part.output, null, 2);
     const isError =
       typeof part.output === 'object' &&
       part.output !== null &&
@@ -876,7 +894,7 @@ export class AgentManager {
       data: {
         callId: part.toolCallId,
         toolName: part.toolName,
-        output,
+        outputData: part.output,
         isError
       }
     });
@@ -1046,6 +1064,23 @@ ${lines.join('\n')}
     return baseSystemPrompt + skillsPrompt;
   }
 
+  /**
+   * Build an instruction line describing MIME types supported by this session.
+   */
+  private _getSupportedMimeTypesInstruction(): string {
+    const mimeTypes = this._renderMimeRegistry?.mimeTypes ?? [];
+    const safeMimeTypes = mimeTypes.filter(mimeType => {
+      const factory = this._renderMimeRegistry?.getFactory(mimeType);
+      return !!factory?.safe;
+    });
+
+    if (safeMimeTypes.length === 0) {
+      return 'Supported MIME types are determined by the active JupyterLab renderers in this session.';
+    }
+
+    return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
+  }
+
   // Private attributes
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
@@ -1063,6 +1098,7 @@ ${lines.join('\n')}
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
   private _skills: ISkillSummary[];
+  private _renderMimeRegistry?: IRenderMimeRegistry;
   private _initQueue: Promise<void> = Promise.resolve();
   private _agentConfig: IAgentConfig | null;
   private _pendingApprovals: Map<
@@ -1072,6 +1108,24 @@ ${lines.join('\n')}
 }
 
 namespace Private {
+  /**
+   * Keep only serializable messages by doing a JSON round-trip.
+   * Messages that cannot be serialized are dropped.
+   */
+  export const sanitizeModelMessages = (
+    messages: ModelMessage[]
+  ): ModelMessage[] => {
+    const sanitized: ModelMessage[] = [];
+    for (const message of messages) {
+      try {
+        sanitized.push(JSON.parse(JSON.stringify(message)));
+      } catch {
+        // Drop messages that cannot be serialized
+      }
+    }
+    return sanitized;
+  };
+
   /**
    * The token to use with the secrets manager, setter and getter.
    */
