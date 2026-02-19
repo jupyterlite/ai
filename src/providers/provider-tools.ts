@@ -5,21 +5,10 @@ import type { Tool } from 'ai';
 
 type ToolMap = Record<string, Tool>;
 
-type IUserLocation = {
-  type: 'approximate';
-  country?: string;
-  city?: string;
-  region?: string;
-  timezone?: string;
-};
-
-type IUserLocationInput = Omit<IUserLocation, 'type'>;
-
 interface IWebSearchSettings {
   enabled?: boolean;
   externalWebAccess?: boolean;
   searchContextSize?: 'low' | 'medium' | 'high';
-  userLocation?: IUserLocationInput;
   allowedDomains?: string[];
   blockedDomains?: string[];
   maxUses?: number;
@@ -34,9 +23,6 @@ interface IWebFetchSettings {
   allowedDomains?: string[];
   blockedDomains?: string[];
   citationsEnabled?: boolean;
-  citations?: {
-    enabled?: boolean;
-  };
 }
 
 /**
@@ -56,12 +42,8 @@ interface IProviderToolContext {
 const DEFAULT_ANTHROPIC_WEB_FETCH_MAX_USES = 2;
 const DEFAULT_ANTHROPIC_WEB_FETCH_MAX_CONTENT_TOKENS = 12000;
 
-function cleanString(value?: string): string {
-  return (value || '').trim();
-}
-
 function normalizeDomain(value: string): string {
-  const normalized = cleanString(value).toLowerCase();
+  const normalized = (value || '').trim().toLowerCase();
   const withoutProtocol = normalized.replace(/^https?:\/\//, '');
   const hostname = withoutProtocol.split('/')[0].trim();
   // Treat "*.example.com" as "example.com" for provider domain filters.
@@ -77,33 +59,6 @@ function collectDomains(value?: string[]): string[] {
   return values;
 }
 
-function parseUserLocation(
-  value?: IUserLocationInput
-): IUserLocation | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const countryValue = cleanString(value.country).toUpperCase();
-  const country =
-    countryValue && /^[A-Z]{2}$/.test(countryValue) ? countryValue : undefined;
-  const city = cleanString(value.city) || undefined;
-  const region = cleanString(value.region) || undefined;
-  const timezone = cleanString(value.timezone) || undefined;
-
-  if (!country && !city && !region && !timezone) {
-    return undefined;
-  }
-
-  return {
-    country,
-    city,
-    region,
-    timezone,
-    type: 'approximate'
-  };
-}
-
 function createOpenAIWebSearchTool(
   webSearchSettings: IWebSearchSettings
 ): Tool {
@@ -111,7 +66,6 @@ function createOpenAIWebSearchTool(
   return openai.tools.webSearch({
     externalWebAccess: webSearchSettings.externalWebAccess,
     searchContextSize: webSearchSettings.searchContextSize,
-    userLocation: parseUserLocation(webSearchSettings.userLocation),
     filters: allowedDomains.length > 0 ? { allowedDomains } : undefined
   });
 }
@@ -124,8 +78,7 @@ function createAnthropicWebSearchTool(
   return anthropic.tools.webSearch_20250305({
     maxUses: webSearchSettings.maxUses,
     allowedDomains: allowedDomains.length > 0 ? allowedDomains : undefined,
-    blockedDomains: blockedDomains.length > 0 ? blockedDomains : undefined,
-    userLocation: parseUserLocation(webSearchSettings.userLocation)
+    blockedDomains: blockedDomains.length > 0 ? blockedDomains : undefined
   });
 }
 
@@ -139,8 +92,7 @@ function createAnthropicWebFetchTool(
     DEFAULT_ANTHROPIC_WEB_FETCH_MAX_CONTENT_TOKENS;
   const allowedDomains = collectDomains(webFetchSettings.allowedDomains);
   const blockedDomains = collectDomains(webFetchSettings.blockedDomains);
-  const citationsEnabled =
-    webFetchSettings.citationsEnabled ?? webFetchSettings.citations?.enabled;
+  const citationsEnabled = webFetchSettings.citationsEnabled;
   return anthropic.tools.webFetch_20250910({
     maxUses,
     maxContentTokens,
