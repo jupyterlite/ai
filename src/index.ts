@@ -50,21 +50,23 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
-import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
-
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
+
 import { DisposableSet } from '@lumino/disposable';
+
+import { IComponentsRendererFactory } from 'jupyter-chat-components';
+
+import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
 
 import { ClearCommandProvider } from './chat-commands/clear';
+
 import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
-
-import { ApprovalButtons } from './approval-buttons';
 
 import { ChatModelRegistry } from './chat-model-registry';
 
@@ -111,6 +113,7 @@ import {
   createDiscoverCommandsTool,
   createExecuteCommandTool
 } from './tools/commands';
+
 import { createDiscoverSkillsTool, createLoadSkillTool } from './tools/skills';
 
 import { AISettingsWidget } from './widgets/ai-settings';
@@ -251,7 +254,7 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
   description: 'Registry for the current chat model',
   autoStart: true,
   requires: [IAISettingsModel, IAgentManagerFactory, IDocumentManager],
-  optional: [IProviderRegistry, IToolRegistry, ITranslator],
+  optional: [IProviderRegistry, IToolRegistry, IComponentsRendererFactory],
   provides: IChatModelRegistry,
   activate: (
     app: JupyterFrontEnd,
@@ -260,18 +263,38 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
     docManager: IDocumentManager,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry,
-    translator?: ITranslator
+    chatComponentsFactory?: IComponentsRendererFactory
   ): IChatModelRegistry => {
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-
-    return new ChatModelRegistry({
+    const modelRegistry = new ChatModelRegistry({
       settingsModel,
       agentManagerFactory,
       docManager,
       providerRegistry,
-      toolRegistry,
-      trans
+      toolRegistry
     });
+
+    /**
+     * The callback to approve or reject a tool.
+     */
+    function toolCallApproval(
+      targetId: string,
+      approvalId: string,
+      isApproved: boolean
+    ) {
+      const model = modelRegistry.get(targetId);
+      if (!model) {
+        return;
+      }
+      isApproved
+        ? model.agentManager.approveToolCall(approvalId)
+        : model.agentManager.rejectToolCall(approvalId);
+    }
+
+    if (chatComponentsFactory) {
+      chatComponentsFactory.toolCallApproval = toolCallApproval;
+    }
+
+    return modelRegistry;
   }
 };
 
@@ -310,6 +333,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     translator?: ITranslator
   ): void => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
     attachmentOpenerRegistry.set('file', attachment => {
@@ -410,15 +434,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       });
 
-      // Associate an approval buttons object to the chat.
-      const approvalButton = new ApprovalButtons({
-        chatPanel: widget,
-        agentManager: model.agentManager
-      });
-
       widget.disposed.connect(() => {
-        // Dispose of the approval buttons widget when the chat is disposed.
-        approvalButton.dispose();
         // Remove the model from the registry when the widget is disposed.
         modelRegistry.remove(model.name);
       });
