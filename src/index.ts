@@ -517,24 +517,24 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       labShell
     );
 
-    if (chatComponentsFactory) {
-      /**
-       * The callback to approve or reject a tool.
-       */
-      function toolCallApproval(
-        targetId: string,
-        approvalId: string,
-        isApproved: boolean
-      ) {
-        const model = tracker.find(chat => chat.model.name === targetId)?.model;
-        if (!model) {
-          return;
-        }
-        isApproved
-          ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
-          : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+    /**
+     * The callback to approve or reject a tool.
+     */
+    function toolCallApproval(
+      targetId: string,
+      approvalId: string,
+      isApproved: boolean
+    ) {
+      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      if (!model) {
+        return;
       }
+      isApproved
+        ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
+        : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+    }
 
+    if (chatComponentsFactory) {
       chatComponentsFactory.toolCallApproval = toolCallApproval;
     }
 
