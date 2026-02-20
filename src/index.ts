@@ -273,24 +273,24 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
       toolRegistry
     });
 
-    if (chatComponentsFactory) {
-      /**
-       * The callback to approve or reject a tool.
-       */
-      function toolCallApproval(
-        targetId: string,
-        approvalId: string,
-        isApproved: boolean
-      ) {
-        const model = modelRegistry.get(targetId);
-        if (!model) {
-          return;
-        }
-        isApproved
-          ? model.agentManager.approveToolCall(approvalId)
-          : model.agentManager.rejectToolCall(approvalId);
+    /**
+     * The callback to approve or reject a tool.
+     */
+    function toolCallApproval(
+      targetId: string,
+      approvalId: string,
+      isApproved: boolean
+    ) {
+      const model = modelRegistry.get(targetId);
+      if (!model) {
+        return;
       }
+      isApproved
+        ? model.agentManager.approveToolCall(approvalId)
+        : model.agentManager.rejectToolCall(approvalId);
+    }
 
+    if (chatComponentsFactory) {
       chatComponentsFactory.toolCallApproval = toolCallApproval;
     }
 
