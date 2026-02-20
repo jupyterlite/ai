@@ -1,5 +1,6 @@
 {
   "jupyter.lab.shortcuts": [],
+  "jupyter.lab.setting-icon": "@jupyterlite/ai:jupyternaut",
   "title": "JupyterLite AI Settings",
   "description": "Configuration for JupyterLite AI extension providers, models, and behavior",
   "type": "object",
