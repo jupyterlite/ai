@@ -4,7 +4,6 @@ import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
-import { ApprovalButtons } from '../approval-buttons';
 import { AIChatModel } from '../chat-model';
 import { TokenUsageWidget } from '../components/token-usage-display';
 import { AISettingsModel } from '../models/settings-model';
@@ -50,18 +49,6 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       translator: trans
     });
     this.toolbar.addItem('token-usage', tokenUsageWidget);
-
-    // Add the approval button, tied to the chat widget.
-    this._approvalButtons = new ApprovalButtons({
-      chatPanel: this.content,
-      agentManager: this.model.agentManager
-    });
-  }
-
-  dispose(): void {
-    super.dispose();
-    // Dispose of the approval buttons widget when the chat is disposed.
-    this._approvalButtons.dispose();
   }
 
   /**
@@ -70,6 +57,4 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   get model(): AIChatModel {
     return this.content.model as AIChatModel;
   }
-
-  private _approvalButtons: ApprovalButtons;
 }
