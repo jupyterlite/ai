@@ -55,3 +55,16 @@ In practice, this means most MCP servers will simply not work. Only servers spec
 :::{tip}
 If you encounter connection issues, check your browser's developer console (F12) for CORS-related errors.
 :::
+
+## Adding More Tools Without MCP Servers
+
+If you want to add custom tools, the practical approach is to provide new JupyterLab commands in an extension.
+
+How it works at a high level:
+
+1. Create or install a JupyterLab extension that registers one or more commands (for example, `my-extension:run-my-tool`).
+2. `jupyterlite-ai` exposes JupyterLab commands to the model through its command tools (`discover_commands` and `execute_command`).
+3. The AI can discover your command and execute it with arguments, so the command effectively becomes an AI-usable tool.
+4. If needed, require manual confirmation for specific command IDs using the **Commands Requiring Approval** setting.
+
+This is not a replacement for MCP, but it is currently the most straightforward way to add new capabilities since browser constraints prevent using many existing MCP servers.
