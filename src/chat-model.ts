@@ -81,9 +81,9 @@ interface IToolExecutionContext {
    */
   summary?: string;
   /**
-   * The JupyterLab command ID for execute_command tool calls.
+   * Whether this tool call should auto-render trusted MIME bundles on completion.
    */
-  commandId?: string;
+  shouldAutoRenderMimeBundles?: boolean;
 }
 
 /**
@@ -415,23 +415,26 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Extract commandId for execute_command tool calls.
+   * Determine whether this tool call should auto-render trusted MIME bundles.
    */
-  private _extractExecuteCommandId(
+  private _computeShouldAutoRenderMimeBundles(
     toolName: string,
     input: string
-  ): string | undefined {
+  ): boolean {
     if (toolName !== 'execute_command') {
-      return undefined;
+      return false;
     }
 
     try {
       const parsedInput = JSON.parse(input);
-      return typeof parsedInput.commandId === 'string'
-        ? parsedInput.commandId
-        : undefined;
+      return (
+        typeof parsedInput.commandId === 'string' &&
+        this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
+          parsedInput.commandId
+        )
+      );
     } catch {
-      return undefined;
+      return false;
     }
   }
 
@@ -447,10 +450,11 @@ export class AIChatModel extends AbstractChatModel {
       event.data.toolName,
       event.data.input
     );
-    const commandId = this._extractExecuteCommandId(
-      event.data.toolName,
-      event.data.input
-    );
+    const shouldAutoRenderMimeBundles =
+      this._computeShouldAutoRenderMimeBundles(
+        event.data.toolName,
+        event.data.input
+      );
     const context: IToolExecutionContext = {
       toolCallId: event.data.callId,
       messageId,
@@ -458,7 +462,7 @@ export class AIChatModel extends AbstractChatModel {
       input: event.data.input,
       status: 'pending',
       summary,
-      commandId
+      shouldAutoRenderMimeBundles
     };
 
     this._toolContexts.set(event.data.callId, context);
@@ -531,13 +535,7 @@ export class AIChatModel extends AbstractChatModel {
       return false;
     }
 
-    if (context.toolName !== 'execute_command' || !context.commandId) {
-      return false;
-    }
-
-    return this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
-      context.commandId
-    );
+    return !!context.shouldAutoRenderMimeBundles;
   }
 
   /**
