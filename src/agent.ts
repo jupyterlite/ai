@@ -985,7 +985,7 @@ ${richOutputWorkflowInstruction}`;
       data: {
         callId: part.toolCallId,
         toolName: part.toolName,
-        output,
+        outputData: output,
         isError: true
       }
     });
@@ -1000,7 +1000,7 @@ ${richOutputWorkflowInstruction}`;
       data: {
         callId: part.toolCallId,
         toolName: part.toolName,
-        output: 'Tool output was denied.',
+        outputData: 'Tool output was denied.',
         isError: true
       }
     });
