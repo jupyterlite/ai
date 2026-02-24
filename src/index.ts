@@ -941,12 +941,13 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     description: 'The input toolbar registry plugin.',
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
-    requires: [IAISettingsModel, IToolRegistry],
+    requires: [IAISettingsModel, IToolRegistry, IProviderRegistry],
     optional: [ITranslator],
     activate: (
       app: JupyterFrontEnd,
       settingsModel: AISettingsModel,
       toolRegistry: IToolRegistry,
+      providerRegistry: IProviderRegistry,
       translator?: ITranslator
     ): IInputToolbarRegistryFactory => {
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
@@ -955,6 +956,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
       const toolSelectButton = createToolSelectItem(
         toolRegistry,
         settingsModel,
+        providerRegistry,
         settingsModel.config.toolsEnabled,
         trans
       );

@@ -21,7 +21,7 @@ import {
   createProviderTools,
   type IProviderCustomSettings
 } from './providers/provider-tools';
-import type { IProviderRegistry } from './tokens';
+import type { IProviderInfo, IProviderRegistry } from './tokens';
 import {
   ISkillRegistry,
   ISkillSummary,
@@ -314,21 +314,11 @@ export type IAgentEvent<
 interface IAgentConfig {
   model: LanguageModel;
   tools: ToolMap;
-  runtimeToolInfo: IRuntimeToolInfo;
   temperature: number;
   maxOutputTokens?: number;
   maxTurns: number;
   baseSystemPrompt: string;
   shouldUseTools: boolean;
-}
-
-/**
- * Runtime tool metadata used for prompting and capability checks.
- */
-interface IRuntimeToolInfo {
-  hasBrowserFetch: boolean;
-  hasWebFetch: boolean;
-  hasWebSearch: boolean;
 }
 
 /**
@@ -741,6 +731,10 @@ export class AgentManager {
     const activeProviderConfig = this._settingsModel.getProvider(
       this._activeProvider
     );
+    const activeProviderInfo =
+      activeProviderConfig && this._providerRegistry
+        ? this._providerRegistry.getProviderInfo(activeProviderConfig.provider)
+        : null;
 
     const temperature =
       activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
@@ -748,8 +742,8 @@ export class AgentManager {
     const maxTurns =
       activeProviderConfig?.parameters?.maxTurns ?? DEFAULT_MAX_TURNS;
 
-    const { tools, runtimeToolInfo } = this._buildRuntimeTools({
-      provider: activeProviderConfig?.provider ?? '',
+    const tools = this._buildRuntimeTools({
+      providerInfo: activeProviderInfo,
       customSettings: activeProviderConfig?.customSettings,
       functionTools,
       includeProviderTools: canUseTools
@@ -760,7 +754,6 @@ export class AgentManager {
     this._agentConfig = {
       model,
       tools,
-      runtimeToolInfo,
       temperature,
       maxOutputTokens: maxTokens,
       maxTurns,
@@ -770,37 +763,25 @@ export class AgentManager {
   }
 
   /**
-   * Build the runtime tool map used by the agent and lightweight metadata
-   * for prompt construction.
+   * Build the runtime tool map used by the agent.
    */
   private _buildRuntimeTools(options: {
-    provider: string;
+    providerInfo?: IProviderInfo | null;
     customSettings?: IProviderCustomSettings;
     functionTools: ToolMap;
     includeProviderTools: boolean;
-  }): { tools: ToolMap; runtimeToolInfo: IRuntimeToolInfo } {
+  }): ToolMap {
     const providerTools = options.includeProviderTools
       ? createProviderTools({
-          provider: options.provider,
+          providerInfo: options.providerInfo,
           customSettings: options.customSettings,
           hasFunctionTools: Object.keys(options.functionTools).length > 0
         })
       : {};
 
-    const tools = {
+    return {
       ...providerTools,
       ...options.functionTools
-    };
-
-    const names = new Set(Object.keys(tools));
-
-    return {
-      tools,
-      runtimeToolInfo: {
-        hasBrowserFetch: names.has('browser_fetch'),
-        hasWebFetch: names.has('web_fetch'),
-        hasWebSearch: names.has('web_search') || names.has('google_search')
-      }
     };
   }
 
@@ -820,12 +801,11 @@ export class AgentManager {
       maxOutputTokens,
       maxTurns,
       baseSystemPrompt,
-      runtimeToolInfo,
       shouldUseTools
     } = this._agentConfig;
 
     const baseInstructions = shouldUseTools
-      ? this._getEnhancedSystemPrompt(baseSystemPrompt, runtimeToolInfo)
+      ? this._getEnhancedSystemPrompt(baseSystemPrompt, tools)
       : baseSystemPrompt || 'You are a helpful assistant.';
     const richOutputWorkflowInstruction = shouldUseTools
       ? '- When the user asks for visual or rich outputs, prefer running code/commands that produce those outputs and describe that they will be rendered in chat.'
@@ -1148,7 +1128,7 @@ ${richOutputWorkflowInstruction}`;
    */
   private _getEnhancedSystemPrompt(
     baseSystemPrompt: string,
-    runtimeToolInfo: IRuntimeToolInfo
+    tools: ToolMap
   ): string {
     let prompt = baseSystemPrompt;
 
@@ -1171,7 +1151,10 @@ ${lines.join('\n')}
       prompt += skillsPrompt;
     }
 
-    const { hasBrowserFetch, hasWebFetch, hasWebSearch } = runtimeToolInfo;
+    const toolNames = new Set(Object.keys(tools));
+    const hasBrowserFetch = toolNames.has('browser_fetch');
+    const hasWebFetch = toolNames.has('web_fetch');
+    const hasWebSearch = toolNames.has('web_search');
 
     if (hasBrowserFetch || hasWebFetch || hasWebSearch) {
       const webRetrievalPrompt = `
@@ -1181,9 +1164,9 @@ WEB RETRIEVAL POLICY:
 - If browser_fetch fails due to CORS/network/access, try web_fetch (if available) for that same URL.
 - If web_fetch fails with access/policy errors (for example: url_not_accessible or url_not_allowed) and browser_fetch is available, you MUST call browser_fetch for that same URL before searching.
 - If either fetch method fails with temporary access/network issues (for example: network_or_cors), try the other fetch method if available before searching.
-- Only fall back to web_search/google_search after both fetch methods fail or are unavailable.
+- Only fall back to web_search after both fetch methods fail or are unavailable.
 - If the user explicitly asks to inspect one exact URL, do not skip directly to search unless both fetch methods fail or are unavailable.
-- In your final response, state which retrieval method succeeded (browser_fetch, web_fetch, or web_search/google_search) and mention relevant limitations.
+- In your final response, state which retrieval method succeeded (browser_fetch, web_fetch, or web_search) and mention relevant limitations.
 `;
       prompt += webRetrievalPrompt;
     }

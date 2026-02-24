@@ -3,7 +3,7 @@
 `jupyterlite-ai` supports two kinds of web retrieval:
 
 1. **Local browser fetch** with the built-in `browser_fetch` tool.
-2. **Provider-hosted web tools** such as `web_search`, `web_fetch`, or `google_search`.
+2. **Provider-hosted web tools** such as `web_search` or `web_fetch`.
 
 This page explains how they work, how to configure them, and how fallback works in chat.
 
@@ -22,7 +22,6 @@ Configured per provider via **AI Settings -> Providers -> Configure provider -> 
 
 - `web_search`: provider-side web search.
 - `web_fetch`: provider-side URL fetch (currently Anthropic in this project).
-- `google_search`: Google provider search tool.
 
 Provider tools run on provider infrastructure and are usually less affected by browser CORS.
 
@@ -33,7 +32,7 @@ When web tools are available, the agent follows this policy:
 1. For a specific URL request, prefer `browser_fetch` first.
 2. If the first fetch method fails due to access/policy/network issues, try the other fetch method (`browser_fetch` <-> `web_fetch`) when available.
 3. If `web_fetch` fails with provider-side policy errors such as `url_not_allowed` or `url_not_accessible`, retry with `browser_fetch` before search when possible.
-4. Fall back to `web_search` / `google_search` only after both fetch methods fail or are unavailable.
+4. Fall back to `web_search` only after both fetch methods fail or are unavailable.
 
 This behavior is encoded in the agent prompt policy and is intended to keep URL inspection deterministic while still giving a useful fallback path.
 
@@ -82,27 +81,6 @@ Example:
   }
 }
 ```
-
-### Google
-
-- Search: `google_search`
-- Fetch: no provider `web_fetch` integration in this project
-
-Example:
-
-```json
-{
-  "customSettings": {
-    "webSearch": {
-      "enabled": true,
-      "mode": "MODE_UNSPECIFIED",
-      "dynamicThreshold": 1
-    }
-  }
-}
-```
-
-Note: in the current AI SDK Google provider implementation, provider-defined `google_search` is skipped when function tools are also enabled.
 
 ## Tool Visibility In Chat
 

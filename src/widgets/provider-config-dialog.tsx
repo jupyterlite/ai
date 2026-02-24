@@ -32,7 +32,7 @@ import {
 import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
 import { IProviderConfig, IProviderParameters } from '../models/settings-model';
-import type { IProviderRegistry } from '../tokens';
+import type { IProviderRegistry, IProviderToolCapabilities } from '../tokens';
 
 /**
  * Default parameter values for provider configuration
@@ -89,15 +89,14 @@ function toStringArray(value: unknown): string[] {
 }
 
 function sanitizeCustomSettingsForProvider(
-  provider: string,
-  customSettings: Record<string, any>
+  customSettings: Record<string, any>,
+  capabilities?: IProviderToolCapabilities
 ): Record<string, any> {
   const result: Record<string, any> = { ...customSettings };
   const webSearch = toRecord(customSettings.webSearch);
   const webFetch = toRecord(customSettings.webFetch);
-  const supportsWebSearch =
-    provider === 'openai' || provider === 'anthropic' || provider === 'google';
-  const supportsWebFetch = provider === 'anthropic';
+  const supportsWebSearch = !!capabilities?.webSearch;
+  const supportsWebFetch = !!capabilities?.webFetch;
 
   if (supportsWebSearch && webSearch.enabled === true) {
     result.webSearch = webSearch;
@@ -160,9 +159,16 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   );
 
   const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
-  const supportsWebSearch =
-    provider === 'openai' || provider === 'anthropic' || provider === 'google';
-  const supportsWebFetch = provider === 'anthropic';
+  const selectedProviderInfo = React.useMemo(
+    () => providerRegistry.getProviderInfo(provider),
+    [providerRegistry, provider]
+  );
+  const providerToolCapabilities =
+    selectedProviderInfo?.providerToolCapabilities;
+  const webSearchImplementation =
+    providerToolCapabilities?.webSearch?.implementation;
+  const supportsWebSearch = !!providerToolCapabilities?.webSearch;
+  const supportsWebFetch = !!providerToolCapabilities?.webFetch;
   const webSearchSettings = React.useMemo(
     () => toRecord(customSettings.webSearch),
     [customSettings]
@@ -391,8 +397,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       key => parameters[key as keyof IProviderParameters] !== undefined
     );
     const sanitizedCustomSettings = sanitizeCustomSettingsForProvider(
-      provider,
-      customSettings
+      customSettings,
+      providerToolCapabilities
     );
 
     const config: Omit<IProviderConfig, 'id'> = {
@@ -752,8 +758,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                               gap: 1.5
                             }}
                           >
-                            {(provider === 'openai' ||
-                              provider === 'anthropic') &&
+                            {(webSearchImplementation === 'openai' ||
+                              webSearchImplementation === 'anthropic') &&
                               renderDomainList(
                                 'webSearch.allowedDomains',
                                 trans.__('Allowed Domains'),
@@ -761,7 +767,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                 webSearchSettings.allowedDomains
                               )}
 
-                            {provider === 'openai' && (
+                            {webSearchImplementation === 'openai' && (
                               <>
                                 <FormControl fullWidth>
                                   <InputLabel>
@@ -813,7 +819,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                               </>
                             )}
 
-                            {provider === 'anthropic' && (
+                            {webSearchImplementation === 'anthropic' && (
                               <>
                                 <TextField
                                   fullWidth
@@ -837,63 +843,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                   trans.__('spam.example.com'),
                                   webSearchSettings.blockedDomains
                                 )}
-                              </>
-                            )}
-
-                            {provider === 'google' && (
-                              <>
-                                <FormControl fullWidth>
-                                  <InputLabel>
-                                    {trans.__('Google Search Mode')}
-                                  </InputLabel>
-                                  <Select
-                                    value={
-                                      webSearchSettings.mode ??
-                                      'MODE_UNSPECIFIED'
-                                    }
-                                    label={trans.__('Google Search Mode')}
-                                    onChange={e =>
-                                      updateCustomSetting(
-                                        'webSearch',
-                                        'mode',
-                                        e.target.value
-                                      )
-                                    }
-                                  >
-                                    <MenuItem value="MODE_UNSPECIFIED">
-                                      {trans.__('Always Retrieve')}
-                                    </MenuItem>
-                                    <MenuItem value="MODE_DYNAMIC">
-                                      {trans.__('Dynamic Retrieval')}
-                                    </MenuItem>
-                                  </Select>
-                                </FormControl>
-                                <TextField
-                                  fullWidth
-                                  label={trans.__('Dynamic Threshold')}
-                                  type="number"
-                                  value={
-                                    webSearchSettings.dynamicThreshold ?? ''
-                                  }
-                                  onChange={e =>
-                                    updateCustomSetting(
-                                      'webSearch',
-                                      'dynamicThreshold',
-                                      e.target.value
-                                        ? Number(e.target.value)
-                                        : undefined
-                                    )
-                                  }
-                                  inputProps={{ min: 0, max: 1, step: 0.1 }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {trans.__(
-                                    'Google web search is currently skipped when function tools are enabled.'
-                                  )}
-                                </Typography>
                               </>
                             )}
                           </Box>

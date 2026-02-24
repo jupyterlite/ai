@@ -169,6 +169,49 @@ export interface IProviderFactory {
 }
 
 /**
+ * Built-in web search integration families supported by provider tools.
+ */
+export type IProviderWebSearchImplementation = 'openai' | 'anthropic';
+
+/**
+ * Built-in web fetch integration families supported by provider tools.
+ */
+export type IProviderWebFetchImplementation = 'anthropic';
+
+/**
+ * Capability descriptor for provider-hosted web search.
+ */
+export interface IProviderWebSearchCapability {
+  /**
+   * Which built-in integration family to use.
+   */
+  implementation: IProviderWebSearchImplementation;
+
+  /**
+   * If true, skip provider-hosted web search when function tools are enabled.
+   */
+  requiresNoFunctionTools?: boolean;
+}
+
+/**
+ * Capability descriptor for provider-hosted web fetch.
+ */
+export interface IProviderWebFetchCapability {
+  /**
+   * Which built-in integration family to use.
+   */
+  implementation: IProviderWebFetchImplementation;
+}
+
+/**
+ * Provider-hosted tool capabilities exposed by a provider.
+ */
+export interface IProviderToolCapabilities {
+  webSearch?: IProviderWebSearchCapability;
+  webFetch?: IProviderWebFetchCapability;
+}
+
+/**
  * Provider information
  */
 export interface IProviderInfo {
@@ -219,6 +262,11 @@ export interface IProviderInfo {
    * Optional URL suggestions
    */
   baseUrls?: { url: string; description?: string }[];
+
+  /**
+   * Optional provider-hosted tool capabilities for web retrieval.
+   */
+  providerToolCapabilities?: IProviderToolCapabilities;
 
   /**
    * Factory function for creating language models

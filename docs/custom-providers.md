@@ -89,20 +89,17 @@ In AI SDK terms, this can be either:
 - **Provider-defined tools** (declared as provider tools in AI SDK), or
 - **Provider-executed tools** (tool helpers exposed directly by provider SDKs).
 
-In `jupyterlite-ai`, built-in provider tool wiring currently targets built-in
-provider IDs (`openai`, `anthropic`, `google`) and built-in web retrieval
-settings. For a custom provider ID, this mapping does **not** apply
-automatically.
+In `jupyterlite-ai`, provider-hosted web tools are wired through
+`IProviderInfo.providerToolCapabilities`. This means custom providers can opt in
+without relying on hardcoded provider IDs.
 
 If you want to support provider-specific tools in your extension:
 
 1. Register your provider with `IProviderRegistry` (as shown above).
-2. Define which provider-specific tools you want to expose.
+2. Define `providerToolCapabilities` on your `IProviderInfo` entry.
 3. Decide how users enable them (for example, `customSettings` UI toggles).
-4. Add runtime mapping so those settings become AI SDK tools only when the
-   matching provider is active.
-5. Document provider-specific constraints (for example, compatibility with
-   function tools can vary by provider).
+4. Add runtime mapping for new capability implementations if needed.
+5. Document provider-specific constraints.
 
 Examples of provider-specific capabilities in AI SDK provider docs include web
 search/fetch, file search, URL context retrieval, code execution, and image
@@ -114,7 +111,6 @@ References:
 - AI SDK provider-defined tool reference: <https://ai-sdk.dev/docs/reference/ai-sdk-core/tool>
 - OpenAI provider docs: <https://ai-sdk.dev/providers/ai-sdk-providers/openai>
 - Anthropic provider docs: <https://ai-sdk.dev/providers/ai-sdk-providers/anthropic>
-- Google provider docs: <https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai>
 
 For end-user web retrieval behavior and setup details, see
 [Web Retrieval](./web-retrieval.md).

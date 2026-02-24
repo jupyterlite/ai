@@ -1,7 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
 import type { Tool } from 'ai';
+
+import type {
+  IProviderInfo,
+  IProviderWebFetchImplementation,
+  IProviderWebSearchImplementation
+} from '../tokens';
 
 type ToolMap = Record<string, Tool>;
 
@@ -12,8 +17,6 @@ interface IWebSearchSettings {
   allowedDomains?: string[];
   blockedDomains?: string[];
   maxUses?: number;
-  mode?: 'MODE_DYNAMIC' | 'MODE_UNSPECIFIED';
-  dynamicThreshold?: number;
 }
 
 interface IWebFetchSettings {
@@ -34,7 +37,7 @@ export interface IProviderCustomSettings {
 }
 
 interface IProviderToolContext {
-  provider: string;
+  providerInfo?: IProviderInfo | null;
   customSettings?: IProviderCustomSettings;
   hasFunctionTools: boolean;
 }
@@ -103,13 +106,34 @@ function createAnthropicWebFetchTool(
   });
 }
 
-function createGoogleWebSearchTool(
+function createWebSearchTool(
+  implementation: IProviderWebSearchImplementation,
   webSearchSettings: IWebSearchSettings
 ): Tool {
-  return google.tools.googleSearch({
-    mode: webSearchSettings.mode,
-    dynamicThreshold: webSearchSettings.dynamicThreshold
-  });
+  switch (implementation) {
+    case 'openai':
+      return createOpenAIWebSearchTool(webSearchSettings);
+    case 'anthropic':
+      return createAnthropicWebSearchTool(webSearchSettings);
+    default:
+      throw new Error(
+        `Unsupported web search implementation: ${implementation}`
+      );
+  }
+}
+
+function createWebFetchTool(
+  implementation: IProviderWebFetchImplementation,
+  webFetchSettings: IWebFetchSettings
+): Tool {
+  switch (implementation) {
+    case 'anthropic':
+      return createAnthropicWebFetchTool(webFetchSettings);
+    default:
+      throw new Error(
+        `Unsupported web fetch implementation: ${implementation}`
+      );
+  }
 }
 
 /**
@@ -117,47 +141,38 @@ function createGoogleWebSearchTool(
  */
 export function createProviderTools(options: IProviderToolContext): ToolMap {
   const tools: ToolMap = {};
-  if (!options.customSettings) {
+  if (
+    !options.customSettings ||
+    !options.providerInfo?.providerToolCapabilities
+  ) {
     return tools;
   }
 
+  const capabilities = options.providerInfo.providerToolCapabilities;
   const webSearchSettings = options.customSettings.webSearch;
   const webFetchSettings = options.customSettings.webFetch;
 
   const webSearchEnabled = webSearchSettings?.enabled === true;
   const webFetchEnabled = webFetchSettings?.enabled === true;
 
-  switch (options.provider) {
-    case 'openai': {
-      if (webSearchEnabled && webSearchSettings) {
-        tools.web_search = createOpenAIWebSearchTool(webSearchSettings);
-      }
-      break;
+  const webSearchCapability = capabilities.webSearch;
+  if (webSearchEnabled && webSearchSettings && webSearchCapability) {
+    const requiresNoFunctionTools =
+      webSearchCapability.requiresNoFunctionTools === true;
+    if (!requiresNoFunctionTools || !options.hasFunctionTools) {
+      tools.web_search = createWebSearchTool(
+        webSearchCapability.implementation,
+        webSearchSettings
+      );
     }
+  }
 
-    case 'anthropic': {
-      if (webSearchEnabled && webSearchSettings) {
-        tools.web_search = createAnthropicWebSearchTool(webSearchSettings);
-      }
-      if (webFetchEnabled && webFetchSettings) {
-        tools.web_fetch = createAnthropicWebFetchTool(webFetchSettings);
-      }
-      break;
-    }
-
-    case 'google': {
-      if (webSearchEnabled && webSearchSettings && !options.hasFunctionTools) {
-        // Google provider-defined tools currently conflict with function tools
-        // in some AI SDK + Gemini combinations (custom tools can be ignored).
-        // Keep this guard until upstream behavior is resolved:
-        // https://github.com/vercel/ai/issues/8258
-        tools.google_search = createGoogleWebSearchTool(webSearchSettings);
-      }
-      break;
-    }
-
-    default:
-      break;
+  const webFetchCapability = capabilities.webFetch;
+  if (webFetchEnabled && webFetchSettings && webFetchCapability) {
+    tools.web_fetch = createWebFetchTool(
+      webFetchCapability.implementation,
+      webFetchSettings
+    );
   }
 
   return tools;

@@ -10,7 +10,7 @@ import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { INamedTool, IToolRegistry } from '../tokens';
+import { INamedTool, IProviderRegistry, IToolRegistry } from '../tokens';
 import { AIChatModel } from '../chat-model';
 import { AISettingsModel } from '../models/settings-model';
 import { createProviderTools } from '../providers/provider-tools';
@@ -43,6 +43,11 @@ export interface IToolSelectProps
   settingsModel: AISettingsModel;
 
   /**
+   * Registry for provider metadata used to resolve provider tool capabilities.
+   */
+  providerRegistry: IProviderRegistry;
+
+  /**
    * The application language translator.
    */
   translator: TranslationBundle;
@@ -57,6 +62,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     onToolSelectionChange,
     toolsEnabled,
     settingsModel,
+    providerRegistry,
     model,
     translator: trans
   } = props;
@@ -130,8 +136,11 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         return;
       }
 
+      const providerInfo = providerRegistry.getProviderInfo(
+        providerConfig.provider
+      );
       const providerTools = createProviderTools({
-        provider: providerConfig.provider,
+        providerInfo,
         customSettings: providerConfig.customSettings,
         hasFunctionTools: selectedToolNames.length > 0
       });
@@ -146,7 +155,13 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
       settingsModel.stateChanged.disconnect(updateProviderTools);
       agentManager.activeProviderChanged.disconnect(updateProviderTools);
     };
-  }, [settingsModel, agentManager, selectedToolNames.length, toolsEnabled]);
+  }, [
+    settingsModel,
+    providerRegistry,
+    agentManager,
+    selectedToolNames.length,
+    toolsEnabled
+  ]);
 
   // Initialize selected tools to all tools by default
   useEffect(() => {
@@ -264,11 +279,17 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
               title={trans.__('Enabled via provider settings.')}
               placement="left"
             >
-              <MenuItem className={SELECT_ITEM_CLASS} disabled>
+              <MenuItem
+                className={SELECT_ITEM_CLASS}
+                onClick={e => {
+                  // Keep provider-managed tools read-only from this menu.
+                  e.stopPropagation();
+                }}
+              >
                 <CheckIcon
                   sx={{
                     marginRight: '8px',
-                    color: 'var(--jp-brand-color1, #2196F3)'
+                    color: 'text.disabled'
                   }}
                 />
                 <Typography variant="body2">{toolName}</Typography>
@@ -287,6 +308,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
 export function createToolSelectItem(
   toolRegistry: IToolRegistry,
   settingsModel: AISettingsModel,
+  providerRegistry: IProviderRegistry,
   toolsEnabled: boolean = true,
   translator: TranslationBundle
 ): InputToolbarRegistry.IToolbarItem {
@@ -305,6 +327,7 @@ export function createToolSelectItem(
         ...props,
         toolRegistry,
         settingsModel,
+        providerRegistry,
         onToolSelectionChange,
         toolsEnabled,
         translator

@@ -699,18 +699,17 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         config.useSameProviderForChatAndCompleter
                           ? isActive
                           : config.activeCompleterProvider === provider.id;
+                      const providerInfo = providerRegistry.getProviderInfo(
+                        provider.provider
+                      );
+                      const providerToolCapabilities =
+                        providerInfo?.providerToolCapabilities;
                       const params = provider.parameters;
-                      const supportsWebSearch =
-                        provider.provider === 'openai' ||
-                        provider.provider === 'anthropic' ||
-                        provider.provider === 'google';
-                      const supportsWebFetch =
-                        provider.provider === 'anthropic';
                       const webSearchEnabled =
-                        supportsWebSearch &&
+                        !!providerToolCapabilities?.webSearch &&
                         provider.customSettings?.webSearch?.enabled === true;
                       const webFetchEnabled =
-                        supportsWebFetch &&
+                        !!providerToolCapabilities?.webFetch &&
                         provider.customSettings?.webFetch?.enabled === true;
 
                       return (

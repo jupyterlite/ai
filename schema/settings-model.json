@@ -66,11 +66,11 @@
           },
           "customSettings": {
             "type": "object",
-            "description": "Provider-specific advanced settings. For built-in provider web tools, use webSearch/webFetch objects.",
+            "description": "Provider-specific advanced settings. Available sections depend on provider capabilities.",
             "properties": {
               "webSearch": {
                 "type": "object",
-                "description": "Provider-hosted web search settings (OpenAI/Anthropic/Google).",
+                "description": "Provider-hosted web search settings.",
                 "properties": {
                   "enabled": {
                     "type": "boolean",
@@ -79,11 +79,11 @@
                   "searchContextSize": {
                     "type": "string",
                     "enum": ["low", "medium", "high"],
-                    "description": "OpenAI web search context size."
+                    "description": "Web search context size for providers that support it."
                   },
                   "externalWebAccess": {
                     "type": "boolean",
-                    "description": "OpenAI: use external web access for live content."
+                    "description": "Use external web access for providers that support it."
                   },
                   "allowedDomains": {
                     "type": "array",
@@ -93,34 +93,23 @@
                   "blockedDomains": {
                     "type": "array",
                     "items": { "type": "string" },
-                    "description": "Anthropic: blocked domains for web search."
+                    "description": "Blocked domains for providers that support it."
                   },
                   "maxUses": {
                     "type": "integer",
                     "minimum": 1,
-                    "description": "Anthropic: maximum number of web searches."
-                  },
-                  "mode": {
-                    "type": "string",
-                    "enum": ["MODE_DYNAMIC", "MODE_UNSPECIFIED"],
-                    "description": "Google: dynamic retrieval mode."
-                  },
-                  "dynamicThreshold": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "description": "Google: dynamic retrieval threshold."
+                    "description": "Maximum number of web searches."
                   }
                 },
                 "additionalProperties": true
               },
               "webFetch": {
                 "type": "object",
-                "description": "Anthropic web fetch settings.",
+                "description": "Provider-hosted web fetch settings.",
                 "properties": {
                   "enabled": {
                     "type": "boolean",
-                    "description": "Enable Anthropic provider-hosted web fetch."
+                    "description": "Enable provider-hosted web fetch for this provider."
                   },
                   "maxUses": {
                     "type": "integer",

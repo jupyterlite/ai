@@ -422,11 +422,6 @@ export class AIChatModel extends AbstractChatModel {
             return `query: "${parsedInput.query}"`;
           }
           break;
-        case 'google_search':
-          if (parsedInput.query) {
-            return `query: "${parsedInput.query}"`;
-          }
-          break;
       }
     } catch {
       // If parsing fails, return empty string

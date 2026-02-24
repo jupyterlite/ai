@@ -36,6 +36,10 @@ export const anthropicProvider: IProviderInfo = {
   ],
   supportsBaseURL: true,
   supportsHeaders: true,
+  providerToolCapabilities: {
+    webSearch: { implementation: 'anthropic' },
+    webFetch: { implementation: 'anthropic' }
+  },
   factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for Anthropic');
@@ -205,6 +209,9 @@ export const openaiProvider: IProviderInfo = {
   ],
   supportsBaseURL: true,
   supportsHeaders: true,
+  providerToolCapabilities: {
+    webSearch: { implementation: 'openai' }
+  },
   factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for OpenAI');
