@@ -13,6 +13,7 @@ import {
   ChatWidget,
   IAttachmentOpenerRegistry,
   IChatCommandRegistry,
+  IChatTracker,
   IInputToolbarRegistryFactory,
   InputToolbarRegistry,
   MultiChatPanel
@@ -286,10 +287,11 @@ const chatModelRegistry: JupyterFrontEndPlugin<IChatModelRegistry> = {
 /**
  * Initialization data for the extension.
  */
-const plugin: JupyterFrontEndPlugin<void> = {
+const plugin: JupyterFrontEndPlugin<IChatTracker> = {
   id: '@jupyterlite/ai:plugin',
   description: 'AI in JupyterLab',
   autoStart: true,
+  provides: IChatTracker,
   requires: [
     IRenderMimeRegistry,
     IInputToolbarRegistryFactory,
@@ -316,7 +318,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     labShell?: ILabShell,
     notebookTracker?: INotebookTracker,
     translator?: ITranslator
-  ): void => {
+  ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
@@ -402,6 +404,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         initialTokenUsage: model.agentManager.tokenUsage,
         translator: trans
       });
+
       section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
         // Check if AI is currently writing (streaming)
@@ -484,6 +487,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       themeManager,
       labShell
     );
+
+    return tracker;
   }
 };
 

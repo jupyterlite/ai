@@ -78,6 +78,13 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     return this.content.model as AIChatModel;
   }
 
+  /**
+   * Get the area of the chat.
+   */
+  get area(): string | undefined {
+    return this.content.area;
+  }
+
   private _approvalButtons: ApprovalButtons;
   private _outputAreaCompat: RenderedMessageOutputAreaCompat;
 }
