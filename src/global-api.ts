@@ -7,9 +7,22 @@ import type { AISettingsModel, IProviderConfig } from './models/settings-model';
 import type { ISkillRegistry } from './tokens';
 
 /**
- * A provider config with the apiKey field stripped for safe exposure.
+ * Fields that must never be exposed via the global API because they
+ * may contain secrets (API keys, auth headers, etc.).
  */
-type ISanitizedProviderConfig = Omit<IProviderConfig, 'apiKey'>;
+const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
+  'apiKey',
+  'headers',
+  'customSettings'
+]);
+
+/**
+ * A provider config with sensitive fields stripped for safe exposure.
+ */
+type ISanitizedProviderConfig = Omit<
+  IProviderConfig,
+  'apiKey' | 'headers' | 'customSettings'
+>;
 
 /**
  * Shape of the globalThis.jupyter_ai object exposed for
@@ -128,9 +141,13 @@ function buildSettingsSnapshot(
   const config = settingsModel.config;
   const sanitizedProviders = config.providers.map(
     (p: IProviderConfig): ISanitizedProviderConfig => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { apiKey, ...rest } = p;
-      return Object.freeze(rest);
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(p)) {
+        if (!SENSITIVE_FIELDS.has(key)) {
+          sanitized[key] = value;
+        }
+      }
+      return Object.freeze(sanitized) as ISanitizedProviderConfig;
     }
   );
   return Object.freeze({

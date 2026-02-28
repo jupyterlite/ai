@@ -174,7 +174,15 @@ async function loadSkills(
     }
 
     // Cache miss or stale — re-read the skill.
-    const subDir = await contentsManager.get(child.path, { content: true });
+    let subDir: Contents.IModel;
+    try {
+      subDir = await contentsManager.get(child.path, { content: true });
+    } catch (error) {
+      console.warn(`Failed to read skill directory ${child.path}:`, error);
+      // Clear any stale cache entry and continue with other skills.
+      pathEntry.skills.delete(child.name);
+      continue;
+    }
     const subChildren = (subDir.content ?? []) as Contents.IModel[];
     if (!subChildren.some(f => f.type === 'file' && f.name === 'SKILL.md')) {
       // No SKILL.md, remove from cache if present
@@ -183,9 +191,16 @@ async function loadSkills(
     }
 
     const skillMdPath = `${child.path}/SKILL.md`;
-    const fileModel = await contentsManager.get(skillMdPath, {
-      content: true
-    });
+    let fileModel: Contents.IModel;
+    try {
+      fileModel = await contentsManager.get(skillMdPath, {
+        content: true
+      });
+    } catch (error) {
+      console.warn(`Failed to read ${skillMdPath}:`, error);
+      pathEntry.skills.delete(child.name);
+      continue;
+    }
 
     if (typeof fileModel.content !== 'string') {
       console.warn(`Skipping ${skillMdPath}: content is not a string`);

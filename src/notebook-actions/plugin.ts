@@ -87,7 +87,7 @@ function createModelFromSettings(
  * Returns null if no code block is found.
  */
 function extractCodeBlock(text: string): string | null {
-  const match = text.match(/```[\w]*\n([\s\S]*?)```/);
+  const match = text.match(/```[^\n]*\n([\s\S]*?)```/);
   return match ? match[1].trimEnd() : null;
 }
 
@@ -99,15 +99,23 @@ function extractCodeBlock(text: string): string | null {
 function extractPartialCodeBlock(
   text: string
 ): { code: string; complete: boolean } | null {
-  const openMatch = text.match(/```[\w]*\n/);
+  const openMatch = text.match(/```[^\n]*\n/);
   if (!openMatch || openMatch.index === undefined) {
     return null;
   }
   const codeStart = openMatch.index + openMatch[0].length;
   const rest = text.slice(codeStart);
-  const closeIdx = rest.indexOf('\n```');
-  if (closeIdx !== -1) {
-    return { code: rest.slice(0, closeIdx), complete: true };
+  // Match closing fence at start of line or at end of text
+  const closeMatch = rest.match(/\n```(?:\s|$)/);
+  if (closeMatch && closeMatch.index !== undefined) {
+    return { code: rest.slice(0, closeMatch.index), complete: true };
+  }
+  // Also check if text ends with ``` (no trailing newline)
+  if (rest.endsWith('```')) {
+    const trimmed = rest.slice(0, -3);
+    if (trimmed.endsWith('\n')) {
+      return { code: trimmed.slice(0, -1), complete: true };
+    }
   }
   return { code: rest, complete: false };
 }
@@ -253,10 +261,8 @@ async function executeAction(
     // For format/complete, stream code directly into the cell source
     // without creating an extra output area.
     const originalSource = focalCode;
-    setActiveCellSource(
-      notebookTracker,
-      `# ⏳ ${title}…\n${originalSource}`
-    );
+    setActiveCellSource(notebookTracker, originalSource);
+    setAIOutput(notebookTracker, title, '⏳ Processing…');
 
     try {
       const result = streamText({ model, prompt });

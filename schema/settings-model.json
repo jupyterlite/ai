@@ -9,7 +9,7 @@
       "type": "boolean",
       "title": "Use secrets manager",
       "description": "Whether to use or not the secrets manager. If not, secrets will be stored in plain text in settings",
-      "default": false
+      "default": true
     },
     "providers": {
       "title": "AI Providers",
