@@ -128,6 +128,8 @@ import { initializeGlobalAPI } from './global-api';
 
 import { MainAreaChat } from './widgets/main-area-chat';
 
+import { notebookActionsPlugin } from './notebook-actions';
+
 /**
  * Provider registry plugin
  */
@@ -1213,7 +1215,8 @@ export default [
   inputToolbarFactory,
   completionStatus,
   skillsPlugin,
-  globalAPIPlugin
+  globalAPIPlugin,
+  notebookActionsPlugin
 ];
 
 // Export extension points for other extensions to use

@@ -344,3 +344,11 @@
 .jp-ai-completion-status .jp-ai-completion-disabled path {
   fill: var(--jp-layout-color2);
 }
+
+/* ------------------------------------------------------------------ */
+/* Notebook AI Action Buttons                                         */
+/* ------------------------------------------------------------------ */
+
+.jp-ai-notebook-action-button {
+  margin-left: 2px;
+}
