@@ -17,6 +17,7 @@ provider (OpenAI, Anthropic, Google, Mistral, or a generic OpenAI-compatible
 endpoint) and start chatting or getting suggestions as you type.
 
 ### Notebook AI Actions
+(Inspired by https://github.com/TiesdeKok/chat-gpt-jupyter-extension)
 
 Five one-click actions are available in the notebook toolbar for the active code
 cell:
