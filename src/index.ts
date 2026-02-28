@@ -21,6 +21,7 @@ import {
 
 import {
   ICommandPalette,
+  InputDialog,
   IThemeManager,
   WidgetTracker
 } from '@jupyterlab/apputils';
@@ -46,6 +47,7 @@ import {
 } from '@jupyterlab/translation';
 
 import {
+  PanelWithToolbar,
   settingsIcon,
   Toolbar,
   ToolbarButton
@@ -103,7 +105,11 @@ import {
 
 import { AISettingsModel } from './models/settings-model';
 
-import { loadSkillsFromPaths, SkillRegistry } from './skills';
+import {
+  clearSkillsCache,
+  loadSkillsFromPaths,
+  SkillRegistry
+} from './skills';
 
 import { DiffManager } from './diff-manager';
 
@@ -117,6 +123,8 @@ import { createDiscoverSkillsTool, createLoadSkillTool } from './tools/skills';
 import { createBrowserFetchTool } from './tools/web';
 
 import { AISettingsWidget } from './widgets/ai-settings';
+
+import { initializeGlobalAPI } from './global-api';
 
 import { MainAreaChat } from './widgets/main-area-chat';
 
@@ -353,14 +361,23 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         const model = modelRegistry.createModel(name);
         return { model };
       },
-      renameChat: async (oldName: string, newName: string) => {
+      renameChat: async (oldName: string) => {
+        const result = await InputDialog.getText({
+          title: trans.__('Rename Chat'),
+          text: oldName,
+          label: trans.__('New name')
+        });
+        if (!result.button.accept) {
+          return null;
+        }
+        const newName = result.value ?? '';
         const model = modelRegistry.get(oldName);
         const concurrencyModel = modelRegistry.get(newName);
         if (model && !concurrencyModel) {
           model.name = newName;
-          return true;
+          return newName;
         }
-        return false;
+        return null;
       },
       openInMain: (name: string) =>
         app.commands.execute(CommandIds.moveChat, {
@@ -385,9 +402,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       })
     );
 
-    chatPanel.sectionAdded.connect((_, section) => {
-      const { widget } = section;
-      const model = section.model as AIChatModel;
+    chatPanel.chatOpened.connect((_, widget) => {
+      const model = widget.model as AIChatModel;
 
       // Add the widget to the tracker.
       tracker.add(widget);
@@ -406,7 +422,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         translator: trans
       });
 
-      section.toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
+      (widget.parent as PanelWithToolbar).toolbar.insertBefore('markRead', 'token-usage', tokenUsageWidget);
       model.writersChanged?.connect((_, writers) => {
         // Check if AI is currently writing (streaming)
         const aiWriting = writers.some(
@@ -614,7 +630,7 @@ function registerCommands(
         if (area === 'main') {
           openInMain(model);
         } else {
-          chatPanel.addChat({ model });
+          chatPanel.open({ model });
         }
         return true;
       },
@@ -715,7 +731,7 @@ function registerCommands(
           ) {
             current.dispose();
           }
-          chatPanel.addChat({ model });
+          chatPanel.open({ model });
         }
 
         return true;
@@ -1127,6 +1143,7 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
         'Re-scan the agents skills directory and update the registry'
       ),
       execute: async () => {
+        clearSkillsCache();
         await loadAndRegister();
       }
     });
@@ -1158,6 +1175,24 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Plugin that exposes AI state on globalThis.jupyter_ai
+ * for access by non-extension JavaScript code.
+ */
+const globalAPIPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:global-api',
+  description: 'Expose AI state on globalThis.jupyter_ai for external JavaScript',
+  autoStart: true,
+  requires: [IAISettingsModel, ISkillRegistry],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    skillRegistry: ISkillRegistry
+  ) => {
+    initializeGlobalAPI(settingsModel, skillRegistry);
+  }
+};
+
 export default [
   providerRegistryPlugin,
   anthropicProviderPlugin,
@@ -1177,9 +1212,11 @@ export default [
   agentManagerFactory,
   inputToolbarFactory,
   completionStatus,
-  skillsPlugin
+  skillsPlugin,
+  globalAPIPlugin
 ];
 
 // Export extension points for other extensions to use
 export * from './tokens';
 export * from './icons';
+export type { IJupyterAIGlobalAPI } from './global-api';

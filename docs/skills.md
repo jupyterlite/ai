@@ -210,6 +210,31 @@ The registry follows progressive disclosure: `load_skill` returns instructions a
 
 This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
 
+## Accessing skills from JavaScript
+
+Skills are also accessible to arbitrary JavaScript code (not just JupyterLab extensions) via the `globalThis.jupyter_ai` object:
+
+```javascript
+// List available skills
+const skills = globalThis.jupyter_ai?.skills;
+// => [{ name: "notebook-bootstrap", description: "..." }, ...]
+```
+
+This is a read-only snapshot that updates automatically when skills are registered, removed, or refreshed. For JupyterLab extensions, prefer the `ISkillRegistry` token which provides the full API including resource loading.
+
+For more details on the `globalThis.jupyter_ai` API, see [Accessing AI state from JavaScript](usage.md#accessing-ai-state-from-javascript).
+
+## Skills caching
+
+Skills loaded from the filesystem are cached based on directory timestamps. When a skill directory's `last_modified` timestamp has not changed since the last load, its `SKILL.md` and resource files are not re-read. This makes repeated calls to discover or reload skills faster, especially in workspaces with many skills.
+
+The cache is cleared automatically when:
+
+- The **Refresh Agent Skills** command is run (via the command palette)
+- The `/skills refresh` chat command is used
+
+Normal settings changes (e.g., adding a new skills path) benefit from the cache -- only skill directories whose filesystem timestamps have changed are re-read.
+
 ## Security considerations
 
 Skills contain instructions that the AI agent will follow when activated. Only use skills from sources you trust. Before using a skill:

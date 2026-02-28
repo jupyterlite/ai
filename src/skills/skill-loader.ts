@@ -23,6 +23,37 @@ export interface ISkillFileDefinition extends IParsedSkill {
 }
 
 /**
+ * Cache entry for a single skill subdirectory.
+ */
+interface ISkillCacheEntry {
+  /** last_modified of the skill subdirectory from the parent listing */
+  dirLastModified: string;
+  /** The cached skill definition */
+  skill: ISkillFileDefinition;
+}
+
+/**
+ * Cache entry for an entire skills path (e.g., ".agents/skills").
+ */
+interface IPathCacheEntry {
+  /** Whether the path has been verified to exist */
+  pathExists: boolean;
+  /** Per-subdirectory cache keyed by subdirectory name */
+  skills: Map<string, ISkillCacheEntry>;
+}
+
+/** Module-level cache: skillsPath -> IPathCacheEntry */
+const _pathCache = new Map<string, IPathCacheEntry>();
+
+/**
+ * Clear the skills filesystem cache. Call before loadSkillsFromPaths
+ * to force a full re-read (e.g., on manual refresh).
+ */
+export function clearSkillsCache(): void {
+  _pathCache.clear();
+}
+
+/**
  * Load skills from multiple directories. Each path is scanned in order;
  * when the same skill name appears in more than one path, the first
  * occurrence wins.
@@ -57,7 +88,8 @@ export async function loadSkillsFromPaths(
 
 /**
  * Load skills from the filesystem by scanning a directory for subdirectories
- * containing SKILL.md files.
+ * containing SKILL.md files. Uses a timestamp-based cache to avoid re-reading
+ * unchanged skills.
  *
  * @param contentsManager - The Jupyter contents manager
  * @param skillsPath - Path to the skills directory (e.g. ".agents/skills")
@@ -68,42 +100,85 @@ async function loadSkills(
   skillsPath: string
 ): Promise<ISkillFileDefinition[]> {
   const skills: ISkillFileDefinition[] = [];
+  const cached = _pathCache.get(skillsPath);
 
-  // Walk each path segment from root to verify the directory exists before fetching it.
-  const segments = skillsPath.split('/').filter(s => s.length > 0);
-  let currentPath = '';
-  for (const segment of segments) {
-    let listing: Contents.IModel;
-    try {
-      listing = await contentsManager.get(currentPath, { content: true });
-    } catch (error) {
-      console.debug(
-        `Skills path segment not found at "${currentPath}":`,
-        error
-      );
-      return skills;
+  // If the path was previously verified to not exist, re-check it.
+  // If it was verified to exist, skip the segment-walking and go
+  // straight to listing the directory.
+  if (!cached || !cached.pathExists) {
+    // Walk each path segment from root to verify the directory exists.
+    const segments = skillsPath.split('/').filter(s => s.length > 0);
+    let currentPath = '';
+    for (const segment of segments) {
+      let listing: Contents.IModel;
+      try {
+        listing = await contentsManager.get(currentPath, { content: true });
+      } catch (error) {
+        console.debug(
+          `Skills path segment not found at "${currentPath}":`,
+          error
+        );
+        _pathCache.set(skillsPath, {
+          pathExists: false,
+          skills: new Map()
+        });
+        return skills;
+      }
+      const children = (listing.content ?? []) as Contents.IModel[];
+      if (!children.some(c => c.type === 'directory' && c.name === segment)) {
+        _pathCache.set(skillsPath, {
+          pathExists: false,
+          skills: new Map()
+        });
+        return skills;
+      }
+      currentPath = PathExt.join(currentPath, segment);
     }
-    const children = (listing.content ?? []) as Contents.IModel[];
-    if (!children.some(c => c.type === 'directory' && c.name === segment)) {
-      return skills;
-    }
-    currentPath = PathExt.join(currentPath, segment);
   }
 
-  const dirModel = await contentsManager.get(skillsPath, { content: true });
-  if (dirModel.type !== 'directory' || !dirModel.content) {
+  let dirModel: Contents.IModel;
+  try {
+    dirModel = await contentsManager.get(skillsPath, { content: true });
+  } catch (error) {
+    console.debug(`Skills directory not accessible at "${skillsPath}":`, error);
+    _pathCache.set(skillsPath, { pathExists: false, skills: new Map() });
     return skills;
   }
+
+  if (dirModel.type !== 'directory' || !dirModel.content) {
+    _pathCache.set(skillsPath, { pathExists: false, skills: new Map() });
+    return skills;
+  }
+
+  // Initialize or reuse path cache entry.
+  const pathEntry: IPathCacheEntry = cached ?? {
+    pathExists: true,
+    skills: new Map()
+  };
+  pathEntry.pathExists = true;
+
+  const currentChildNames = new Set<string>();
 
   for (const child of dirModel.content as Contents.IModel[]) {
     if (child.type !== 'directory') {
       continue;
     }
 
-    // List the subdirectory to check if SKILL.md exists before requesting it
+    currentChildNames.add(child.name);
+
+    // Check cache: if directory timestamp matches, reuse cached skill.
+    const cachedEntry = pathEntry.skills.get(child.name);
+    if (cachedEntry && cachedEntry.dirLastModified === child.last_modified) {
+      skills.push(cachedEntry.skill);
+      continue;
+    }
+
+    // Cache miss or stale — re-read the skill.
     const subDir = await contentsManager.get(child.path, { content: true });
     const subChildren = (subDir.content ?? []) as Contents.IModel[];
     if (!subChildren.some(f => f.type === 'file' && f.name === 'SKILL.md')) {
+      // No SKILL.md, remove from cache if present
+      pathEntry.skills.delete(child.name);
       continue;
     }
 
@@ -114,22 +189,37 @@ async function loadSkills(
 
     if (typeof fileModel.content !== 'string') {
       console.warn(`Skipping ${skillMdPath}: content is not a string`);
+      pathEntry.skills.delete(child.name);
       continue;
     }
 
     try {
       const parsed = parseSkillMd(fileModel.content);
       const resources = await collectResourcePaths(contentsManager, child.path);
-      skills.push({
+      const skill: ISkillFileDefinition = {
         ...parsed,
         path: child.path,
         resources
+      };
+      skills.push(skill);
+      pathEntry.skills.set(child.name, {
+        dirLastModified: child.last_modified,
+        skill
       });
     } catch (error) {
       console.warn(`Skipping skill at ${child.path}:`, error);
+      pathEntry.skills.delete(child.name);
     }
   }
 
+  // Prune cache entries for directories that no longer exist.
+  for (const name of pathEntry.skills.keys()) {
+    if (!currentChildNames.has(name)) {
+      pathEntry.skills.delete(name);
+    }
+  }
+
+  _pathCache.set(skillsPath, pathEntry);
   return skills;
 }
 

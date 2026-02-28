@@ -52,3 +52,38 @@ Default:
 
 This helps avoid side effects where inspection commands return existing notebook
 outputs that you do not want replayed in chat.
+
+## Accessing AI state from JavaScript
+
+JupyterLite AI exposes a read-only API on `globalThis.jupyter_ai` for JavaScript code that runs outside the JupyterLab extension system (e.g., notebook cell output scripts, browser console, third-party widgets).
+
+### Available properties
+
+```javascript
+// Available skills (name + description)
+globalThis.jupyter_ai?.skills
+// => [{ name: "notebook-bootstrap", description: "..." }, ...]
+
+// Active provider (API keys are never exposed)
+globalThis.jupyter_ai?.active_providers
+// => { id: "openai-123", provider: "openai", model: "gpt-4o", name: "My OpenAI" }
+// => null (if no provider is configured)
+
+// Full AI settings (API keys stripped from provider entries)
+globalThis.jupyter_ai?.settings
+// => { defaultProvider: "...", providers: [...], toolsEnabled: true, ... }
+```
+
+### Update behavior
+
+All properties are frozen snapshots that update when the underlying state changes. The `globalThis.jupyter_ai` reference itself is replaced on each update, so always read the latest value rather than caching a reference.
+
+### For JupyterLab extensions
+
+JupyterLab extensions should prefer the typed tokens which provide richer APIs:
+
+- **`ISkillRegistry`** -- signals, skill listing, resource loading
+- **`IProviderRegistry`** -- provider info, model creation
+- **`IAISettingsModel`** -- full settings model with update methods and change signals
+
+These tokens are exported from `@jupyterlite/ai` and can be used as plugin dependencies. The `globalThis.jupyter_ai` API is intended for non-extension code that cannot participate in the JupyterLab plugin system.

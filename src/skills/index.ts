@@ -4,7 +4,11 @@
  */
 
 export { parseSkillMd, type IParsedSkill } from './parse-skill';
-export { loadSkillsFromPaths, type ISkillFileDefinition } from './skill-loader';
+export {
+  clearSkillsCache,
+  loadSkillsFromPaths,
+  type ISkillFileDefinition
+} from './skill-loader';
 export type {
   ISkillDefinition,
   ISkillRegistration,
