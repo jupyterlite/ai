@@ -2246,9 +2246,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/chat@npm:^0.20.0-alpha.3":
-  version: 0.20.0-alpha.3
-  resolution: "@jupyter/chat@npm:0.20.0-alpha.3"
+"@jupyter/chat@npm:^0.20.0":
+  version: 0.20.0
+  resolution: "@jupyter/chat@npm:0.20.0"
   dependencies:
     "@emotion/react": ^11.10.5
     "@emotion/styled": ^11.10.5
@@ -2276,7 +2276,7 @@ __metadata:
     clsx: ^2.1.0
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: 005de21f0dd69b54cb686441eb20d399ca738ac432e1504274caf730043c1930f5ef06f5d37065fbf2fc7a2c20c7227553f21035f24a6372a5b750cfa3989654
+  checksum: 27ec154d9117a04a16f5d8a272fca995b0802059ef467259400382584e25dc4b1c0531865e8c42374d473e5f79050d96bd6840c65cda3d18893f34c886ddbdcd
   languageName: node
   linkType: hard
 
@@ -3035,7 +3035,7 @@ __metadata:
     "@ai-sdk/mistral": ^3.0.19
     "@ai-sdk/openai": ^3.0.26
     "@ai-sdk/openai-compatible": ^2.0.28
-    "@jupyter/chat": ^0.20.0-alpha.3
+    "@jupyter/chat": ^0.20.0
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/apputils": ^4.5.6
     "@jupyterlab/builder": ^4.0.0
