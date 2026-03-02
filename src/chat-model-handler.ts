@@ -4,20 +4,19 @@ import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 import { AISettingsModel } from './models/settings-model';
 import {
-  IChatModelRegistry,
+  IChatModelHandler,
   IProviderRegistry,
   ITokenUsage,
   IToolRegistry
 } from './tokens';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { UUID } from '@lumino/coreutils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
 /**
- * The chat model registry.
+ * The chat model handler.
  */
-export class ChatModelRegistry implements IChatModelRegistry {
-  constructor(options: ChatModelRegistry.IOptions) {
+export class ChatModelHandler implements IChatModelHandler {
+  constructor(options: ChatModelHandler.IOptions) {
     this._docManager = options.docManager;
     this._agentManagerFactory = options.agentManagerFactory;
     this._settingsModel = options.settingsModel;
@@ -29,8 +28,8 @@ export class ChatModelRegistry implements IChatModelRegistry {
   }
 
   createModel(
-    name?: string,
-    activeProvider?: string,
+    name: string,
+    activeProvider: string,
     tokenUsage?: ITokenUsage
   ): AIChatModel {
     // Create Agent Manager first so it can be shared
@@ -53,50 +52,9 @@ export class ChatModelRegistry implements IChatModelRegistry {
       trans: this._trans
     });
 
-    // Set the name of the chat if not provided.
-    // The name will be the name set by the user to the model if not already used by
-    // another chat.
-    if (!name || this._models.findIndex(m => m.name === name) !== -1) {
-      const existingName = this.getAll().map(model => model.name);
-
-      const modelName =
-        this._settingsModel.getProvider(agentManager.activeProvider)?.name ||
-        UUID.uuid4();
-      name = modelName;
-      let i = 1;
-      while (existingName.includes(name)) {
-        name = `${modelName}-${i}`;
-        i += 1;
-      }
-    }
     model.name = name;
-    this.add(model);
 
     return model;
-  }
-
-  add(model: AIChatModel): void {
-    if (!this._models.find(m => m.name === model.name)) {
-      this._models.push(model);
-      model.disposed.connect(() => {
-        this.remove(model.name);
-      });
-    }
-  }
-
-  get(name: string): AIChatModel | undefined {
-    return this._models.find(m => m.name === name);
-  }
-
-  getAll(): AIChatModel[] {
-    return this._models;
-  }
-
-  remove(name: string): void {
-    const index = this._models.findIndex(m => m.name === name);
-    if (index !== -1) {
-      this._models.splice(index, 1);
-    }
   }
 
   /**
@@ -109,7 +67,6 @@ export class ChatModelRegistry implements IChatModelRegistry {
     this._activeCellManager = manager;
   }
 
-  private _models: AIChatModel[] = [];
   private _docManager: IDocumentManager;
   private _agentManagerFactory: AgentManagerFactory;
   private _settingsModel: AISettingsModel;
@@ -120,7 +77,7 @@ export class ChatModelRegistry implements IChatModelRegistry {
   private _trans: TranslationBundle;
 }
 
-export namespace ChatModelRegistry {
+export namespace ChatModelHandler {
   export interface IOptions {
     /**
      * The document manager.

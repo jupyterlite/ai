@@ -344,21 +344,17 @@ export const IAgentManagerFactory = new Token<AgentManagerFactory>(
   '@jupyterlite/ai:agent-manager-factory'
 );
 
-export interface IChatModelRegistry {
-  add(model: AIChatModel): void;
-  get(name: string): AIChatModel | undefined;
-  getAll(): AIChatModel[];
-  remove(name: string): void;
+export interface IChatModelHandler {
   createModel(
-    name?: string,
-    activeProvider?: string,
+    name: string,
+    activeProvider: string,
     tokenUsage?: ITokenUsage
   ): AIChatModel;
   activeCellManager: ActiveCellManager | undefined;
 }
 
-export const IChatModelRegistry = new Token<IChatModelRegistry>(
-  '@jupyterlite/ai:chat-model-registry'
+export const IChatModelHandler = new Token<IChatModelHandler>(
+  '@jupyterlite/ai:chat-model-handler'
 );
 
 /**

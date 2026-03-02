@@ -1,4 +1,4 @@
-import { ChatWidget } from '@jupyter/chat';
+import { ChatWidget, IChatModel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
@@ -62,6 +62,8 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     this._outputAreaCompat = new RenderedMessageOutputAreaCompat({
       chatPanel: this.content
     });
+
+    this.model.writersChanged.connect(this._writersChanged);
   }
 
   dispose(): void {
@@ -69,6 +71,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     // Dispose of the approval buttons widget when the chat is disposed.
     this._approvalButtons.dispose();
     this._outputAreaCompat.dispose();
+    this.model.writersChanged.disconnect(this._writersChanged);
   }
 
   /**
@@ -84,6 +87,21 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   get area(): string | undefined {
     return this.content.area;
   }
+
+  private _writersChanged = (_: IChatModel, writers: IChatModel.IWriter[]) => {
+    // Check if AI is currently writing (streaming)
+    const aiWriting = writers.some(
+      writer => writer.user.username === 'ai-assistant'
+    );
+
+    if (aiWriting) {
+      this.content.inputToolbarRegistry?.hide('send');
+      this.content.inputToolbarRegistry?.show('stop');
+    } else {
+      this.content.inputToolbarRegistry?.hide('stop');
+      this.content.inputToolbarRegistry?.show('send');
+    }
+  };
 
   private _approvalButtons: ApprovalButtons;
   private _outputAreaCompat: RenderedMessageOutputAreaCompat;
