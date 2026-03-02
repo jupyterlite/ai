@@ -2,6 +2,46 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.13.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.12.0...c5abe843988546c920ae4a963b6342bfb8419280))
+
+### Enhancements made
+
+- Bumping @jupyter/chat to use the new sidepanel [#278](https://github.com/jupyterlite/ai/pull/278) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Providing a chat tracker [#277](https://github.com/jupyterlite/ai/pull/277) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Adding icon for JupyterLite AI setting [#274](https://github.com/jupyterlite/ai/pull/274) ([@nakul-py](https://github.com/nakul-py), [@jtpio](https://github.com/jtpio))
+- Support displaying mime bundles in the chat [#272](https://github.com/jupyterlite/ai/pull/272) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Web fetch and search tools [#265](https://github.com/jupyterlite/ai/pull/265) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Fix `maxOutputTokens` in the settings [#269](https://github.com/jupyterlite/ai/pull/269) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Bump secrets manager [#267](https://github.com/jupyterlite/ai/pull/267) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Update the style of the selected model in the dropdown [#266](https://github.com/jupyterlite/ai/pull/266) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio), [@nakul-py](https://github.com/nakul-py))
+
+### Maintenance and upkeep improvements
+
+- Bump to jupyter-chat 0.20.0 [#281](https://github.com/jupyterlite/ai/pull/281) ([@jtpio](https://github.com/jtpio))
+- Drop python 3.9 and add 3.14 [#279](https://github.com/jupyterlite/ai/pull/279) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Bump @jupyter/chat to 0.20.0-alpha.1 [#268](https://github.com/jupyterlite/ai/pull/268) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Documentation improvements
+
+- Expand MCP docs [#275](https://github.com/jupyterlite/ai/pull/275) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Include lite deployment in doc [#270](https://github.com/jupyterlite/ai/pull/270) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-02-11&to=2026-03-02&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-02-11..2026-03-02&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-02-11..2026-03-02&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2026-02-11..2026-03-02&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.12.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.11.1...56fc91778c2109b984aaeb193c593a5fefdff4b2))
@@ -24,8 +64,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-02-02&to=2026-02-11&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-02-02..2026-02-11&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-02-02..2026-02-11&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.11.1
 
