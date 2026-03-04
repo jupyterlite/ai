@@ -344,3 +344,17 @@
 .jp-ai-completion-status .jp-ai-completion-disabled path {
   fill: var(--jp-layout-color2);
 }
+
+/**
+ * Busy state styling for locking the chat input.
+ */
+.jp-ai-busy .jp-chat-input-container {
+  pointer-events: none;
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+.jp-ai-busy .jp-chat-input-textfield {
+  cursor: not-allowed;
+}

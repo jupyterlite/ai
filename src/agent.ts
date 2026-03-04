@@ -436,6 +436,20 @@ export class AgentManager {
   }
 
   /**
+   * Signal emitted when the agent's busy state changes (generating response or executing tools)
+   */
+  get busyChanged(): ISignal<this, boolean> {
+    return this._busyChanged;
+  }
+
+  /**
+   * Whether the agent is currently generating a response or executing tools
+   */
+  get busy(): boolean {
+    return this._busy;
+  }
+
+  /**
    * Refresh the skills snapshot and rebuild the agent if resources are ready.
    */
   refreshSkills(): void {
@@ -592,6 +606,9 @@ export class AgentManager {
    * @param message The user message to respond to (may include processed attachment content)
    */
   async generateResponse(message: string): Promise<void> {
+    // Abort any ongoing streaming immediately
+    this.stopStreaming();
+    this._setBusy(true);
     this._controller = new AbortController();
 
     try {
@@ -659,6 +676,7 @@ export class AgentManager {
       }
     } finally {
       this._controller = null;
+      this._setBusy(false);
     }
   }
 
@@ -1191,6 +1209,16 @@ WEB RETRIEVAL POLICY:
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
   }
 
+  /**
+   * Set busy state and emit signal
+   */
+  private _setBusy(busy: boolean): void {
+    if (this._busy !== busy) {
+      this._busy = busy;
+      this._busyChanged.emit(busy);
+    }
+  }
+
   // Private attributes
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
@@ -1201,6 +1229,8 @@ WEB RETRIEVAL POLICY:
   private _agent: ToolLoopAgent<never, ToolMap> | null;
   private _history: ModelMessage[];
   private _mcpTools: ToolMap;
+  private _busy: boolean = false;
+  private _busyChanged = new Signal<this, boolean>(this);
   private _controller: AbortController | null;
   private _agentEvent: Signal<this, IAgentEvent>;
   private _tokenUsage: ITokenUsage;
