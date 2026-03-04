@@ -604,6 +604,9 @@ export class AgentManager {
         throw new Error('Failed to initialize agent');
       }
 
+      // Before adding new message, ensure history is in a valid state
+      this._sanitizeHistory();
+
       // Add user message to history
       this._history.push({
         role: 'user',
@@ -657,6 +660,9 @@ export class AgentManager {
           data: { error: error as Error }
         });
       }
+      // After an error (including AbortError), sanitize the history
+      // to remove any trailing assistant messages without tool results
+      this._sanitizeHistory();
     } finally {
       this._controller = null;
     }
@@ -1189,6 +1195,108 @@ WEB RETRIEVAL POLICY:
     }
 
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
+  }
+
+  /**
+   * Sanitizes history to ensure it's in a valid state for the next user message.
+   * Removes any trailing assistant message that has tool calls without matching
+   * results, as several LLM providers (e.g. Mistral) require strict call/result order.
+   */
+  private _sanitizeHistory(): void {
+    if (this._history.length === 0) {
+      return;
+    }
+
+    const newHistory: ModelMessage[] = [];
+    for (let i = 0; i < this._history.length; i++) {
+      const msg = this._history[i];
+
+      if (msg.role === 'assistant') {
+        const toolCallIds = this._getToolCallIds(msg);
+        if (toolCallIds.length > 0) {
+          // Find if there's a following tool message that provides results for ALL these calls
+          const nextMsg = this._history[i + 1];
+          if (
+            nextMsg &&
+            nextMsg.role === 'tool' &&
+            this._matchesAllToolCalls(nextMsg, toolCallIds)
+          ) {
+            newHistory.push(msg);
+            // Valid turn, next loop iteration will add the tool results message
+          } else {
+            // Assistant message has unmatched tool calls, it's invalid
+            // Drop it and everything after it in the turn
+            break;
+          }
+        } else {
+          newHistory.push(msg);
+        }
+      } else if (msg.role === 'tool') {
+        // Tool messages are valid if they were preceded by a valid assistant message
+        // (which we check in the assistant branch above)
+        newHistory.push(msg);
+      } else {
+        // user or system messages
+        newHistory.push(msg);
+      }
+    }
+
+    this._history = newHistory;
+  }
+
+  /**
+   * Extracts tool call IDs from an assistant message
+   */
+  private _getToolCallIds(message: ModelMessage): string[] {
+    const ids: string[] = [];
+
+    // Check content array for tool-call parts
+    if (Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (
+          typeof part === 'object' &&
+          part !== null &&
+          'type' in part &&
+          part.type === 'tool-call'
+        ) {
+          ids.push((part as any).toolCallId);
+        }
+      }
+    }
+
+    // Also check toolCalls property (some SDK versions/adapters use this)
+    if ((message as any).toolCalls && Array.isArray((message as any).toolCalls)) {
+      for (const call of (message as any).toolCalls) {
+        if (call.toolCallId) {
+          ids.push(call.toolCallId);
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  /**
+   * Checks if a tool message contains results for all specified tool call IDs
+   */
+  private _matchesAllToolCalls(message: ModelMessage, callIds: string[]): boolean {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) {
+      return false;
+    }
+
+    const resultIds = new Set<string>();
+    for (const part of message.content) {
+      if (
+        typeof part === 'object' &&
+        part !== null &&
+        'type' in part &&
+        part.type === 'tool-result'
+      ) {
+        resultIds.add((part as any).toolCallId);
+      }
+    }
+
+    return callIds.every(id => resultIds.has(id));
   }
 
   // Private attributes
