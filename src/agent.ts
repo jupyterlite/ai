@@ -1198,9 +1198,7 @@ WEB RETRIEVAL POLICY:
   }
 
   /**
-   * Sanitizes history to ensure it's in a valid state for the next user message.
-   * Removes any trailing assistant message that has tool calls without matching
-   * results, as several LLM providers (e.g. Mistral) require strict call/result order.
+   * Sanitizes history to ensure it's in a valid state in case of abort or error.
    */
   private _sanitizeHistory(): void {
     if (this._history.length === 0) {
@@ -1214,7 +1212,7 @@ WEB RETRIEVAL POLICY:
       if (msg.role === 'assistant') {
         const toolCallIds = this._getToolCallIds(msg);
         if (toolCallIds.length > 0) {
-          // Find if there's a following tool message that provides results for ALL these calls
+          // Find if there's a following tool message with results for these calls
           const nextMsg = this._history[i + 1];
           if (
             nextMsg &&
@@ -1222,10 +1220,8 @@ WEB RETRIEVAL POLICY:
             this._matchesAllToolCalls(nextMsg, toolCallIds)
           ) {
             newHistory.push(msg);
-            // Valid turn, next loop iteration will add the tool results message
           } else {
-            // Assistant message has unmatched tool calls, it's invalid
-            // Drop it and everything after it in the turn
+            // Message has unmatched tool calls drop it and everything after it
             break;
           }
         } else {
@@ -1233,10 +1229,8 @@ WEB RETRIEVAL POLICY:
         }
       } else if (msg.role === 'tool') {
         // Tool messages are valid if they were preceded by a valid assistant message
-        // (which we check in the assistant branch above)
         newHistory.push(msg);
       } else {
-        // user or system messages
         newHistory.push(msg);
       }
     }
@@ -1263,16 +1257,7 @@ WEB RETRIEVAL POLICY:
         }
       }
     }
-
-    // Also check toolCalls property (some SDK versions/adapters use this)
-    if ((message as any).toolCalls && Array.isArray((message as any).toolCalls)) {
-      for (const call of (message as any).toolCalls) {
-        if (call.toolCallId) {
-          ids.push(call.toolCallId);
-        }
-      }
-    }
-
+    
     return ids;
   }
 
