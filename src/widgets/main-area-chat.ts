@@ -64,12 +64,6 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     });
 
     this.model.writersChanged.connect(this._writersChanged);
-    // Toggle busy class based on agent state
-    this.model.busyChanged.connect((_, busy) => {
-      this.content.toggleClass('jp-ai-busy', busy);
-    });
-    // Set initial state
-    this.content.toggleClass('jp-ai-busy', this.model.busy);
   }
 
   dispose(): void {
