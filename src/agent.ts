@@ -436,7 +436,7 @@ export class AgentManager {
   }
 
   /**
-   * Signal emitted when the agent's busy state changes (generating response or executing tools)
+   * Signal emitted when the agent's busy state changes.
    */
   get busyChanged(): ISignal<this, boolean> {
     return this._busyChanged;
@@ -606,8 +606,6 @@ export class AgentManager {
    * @param message The user message to respond to (may include processed attachment content)
    */
   async generateResponse(message: string): Promise<void> {
-    // Abort any ongoing streaming immediately
-    this.stopStreaming();
     this._setBusy(true);
     this._controller = new AbortController();
 
