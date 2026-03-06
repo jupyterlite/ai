@@ -604,9 +604,6 @@ export class AgentManager {
         throw new Error('Failed to initialize agent');
       }
 
-      // Before adding new message, ensure history is in a valid state
-      this._sanitizeHistory();
-
       // Add user message to history
       this._history.push({
         role: 'user',
@@ -1257,7 +1254,7 @@ WEB RETRIEVAL POLICY:
         }
       }
     }
-    
+
     return ids;
   }
 
