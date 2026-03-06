@@ -1236,7 +1236,7 @@ WEB RETRIEVAL POLICY:
   }
 
   /**
-   * Extracts tool call IDs from an assistant message
+   * Extracts tool call IDs from a message
    */
   private _getToolCallIds(message: ModelMessage): string[] {
     const ids: string[] = [];
