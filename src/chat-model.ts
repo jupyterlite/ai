@@ -166,7 +166,6 @@ export class AIChatModel extends AbstractChatModel {
     return this._agentManager;
   }
 
-
   /**
    * Creates a chat context for the current conversation.
    */
