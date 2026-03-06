@@ -325,6 +325,52 @@ export const IAISettingsModel = new Token<AISettingsModel>(
 );
 
 /**
+ * Interface for opening the AI settings panel.
+ */
+export interface IAISettingsPanel {
+  /**
+   * Open the AI settings panel in the main area.
+   */
+  open(): void;
+}
+
+/**
+ * Token for the AI settings panel service.
+ */
+export const IAISettingsPanel = new Token<IAISettingsPanel>(
+  '@jupyterlite/ai:settings-panel'
+);
+
+/**
+ * Internal interface for AI provider secret access within the shared namespace.
+ */
+export interface IAISecretsAccess {
+  /**
+   * Whether secrets access is currently available.
+   */
+  readonly isAvailable: boolean;
+
+  /**
+   * Get a secret value by ID.
+   */
+  get(id: string): Promise<string | undefined>;
+
+  /**
+   * Set a secret value by ID.
+   */
+  set(id: string, value: string): Promise<void>;
+
+  /**
+   * Attach an input field to a secret ID.
+   */
+  attach(
+    id: string,
+    input: HTMLInputElement,
+    callback?: (value: string) => void
+  ): Promise<void>;
+}
+
+/**
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<AgentManager>(
