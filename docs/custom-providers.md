@@ -61,6 +61,14 @@ edit provider settings, disable the `@jupyterlite/ai:settings-panel` plugin.
 This hides the AI settings command and the chat toolbar button without
 disabling the rest of `jupyterlite-ai`.
 
+For example, in your `jupyter-config-data` or `page_config.json`:
+
+```json
+{
+  "disabledExtensions": ["@jupyterlite/ai:settings-panel"]
+}
+```
+
 ### Example: Using a custom fetch function
 
 You can provide a custom `fetch` function to the provider, which is useful for adding custom headers, handling authentication, or routing requests through a proxy:
