@@ -109,11 +109,21 @@ export class AIChatModel extends AbstractChatModel {
     this._agentManager = options.agentManager;
     this._trans = options.trans;
 
-    // Listen for agent events
+    // Listen for agent events and busy state
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    // Prevent clearing input field when user sends a message while agent is busy
+    const originalSend = this.input.send;
+    this.input.send = (content: string) => {
+      if (this._agentManager.busy) {
+        return;
+      }
+      originalSend(content);
+    };
+
     this.setReady();
   }
 
@@ -211,6 +221,11 @@ export class AIChatModel extends AbstractChatModel {
     const hasBody = message.body.trim().length > 0;
     const hasAttachments = this.input.attachments.length > 0;
     if (!hasBody && !hasAttachments) {
+      return;
+    }
+
+    // Prevent sending multiple messages concurrently
+    if (this._agentManager.busy) {
       return;
     }
 
