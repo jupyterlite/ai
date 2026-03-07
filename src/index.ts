@@ -75,10 +75,12 @@ import { ChatModelHandler } from './chat-model-handler';
 import {
   CommandIds,
   IAgentManagerFactory,
+  type IAISecretsAccess,
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
   SECRETS_NAMESPACE,
+  IAISettingsPanel,
   IAISettingsModel,
   IChatModelHandler,
   IDiffManager
@@ -121,6 +123,61 @@ import { createBrowserFetchTool } from './tools/web';
 import { AISettingsWidget } from './widgets/ai-settings';
 
 import { MainAreaChat } from './widgets/main-area-chat';
+
+namespace Private {
+  let aiSecretsToken: symbol | null = null;
+
+  export function setAISecretsToken(token: symbol | null): void {
+    aiSecretsToken = token;
+  }
+
+  export function createAISecretsAccess(
+    secretsManager?: ISecretsManager
+  ): IAISecretsAccess {
+    return {
+      get isAvailable() {
+        return !!(aiSecretsToken && secretsManager);
+      },
+      async get(id: string): Promise<string | undefined> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        const secret = await secretsManager.get(
+          aiSecretsToken,
+          SECRETS_NAMESPACE,
+          id
+        );
+        return secret?.value;
+      },
+      async set(id: string, value: string): Promise<void> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        await secretsManager.set(aiSecretsToken, SECRETS_NAMESPACE, id, {
+          namespace: SECRETS_NAMESPACE,
+          id,
+          value
+        });
+      },
+      async attach(
+        id: string,
+        input: HTMLInputElement,
+        callback?: (value: string) => void
+      ): Promise<void> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        await secretsManager.attach(
+          aiSecretsToken,
+          SECRETS_NAMESPACE,
+          id,
+          input,
+          callback
+        );
+      }
+    };
+  }
+}
 
 /**
  * Provider registry plugin
@@ -303,6 +360,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     IChatCommandRegistry
   ],
   optional: [
+    IAISettingsPanel,
     IThemeManager,
     ILayoutRestorer,
     ILabShell,
@@ -316,6 +374,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     modelHandler: IChatModelHandler,
     settingsModel: AISettingsModel,
     chatCommandRegistry: IChatCommandRegistry,
+    settingsPanel?: IAISettingsPanel,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
@@ -360,7 +419,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           provider = settingsModel.getDefaultProvider()?.id;
           if (!provider) {
             showErrorMessage('Error creating chat', 'Please set up a provider');
-            app.commands.execute('@jupyterlite/ai:open-settings');
+            settingsPanel?.open();
             return {};
           }
         }
@@ -396,16 +455,18 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     chatPanel.title.caption = trans.__('Chat with AI assistant');
 
     chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    chatPanel.toolbar.addItem(
-      'settings',
-      new ToolbarButton({
-        icon: settingsIcon,
-        onClick: () => {
-          app.commands.execute('@jupyterlite/ai:open-settings');
-        },
-        tooltip: trans.__('Open AI Settings')
-      })
-    );
+    if (settingsPanel) {
+      chatPanel.toolbar.addItem(
+        'settings',
+        new ToolbarButton({
+          icon: settingsIcon,
+          onClick: () => {
+            settingsPanel.open();
+          },
+          tooltip: trans.__('Open AI Settings')
+        })
+      );
+    }
 
     let tokenUsageWidget: TokenUsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
@@ -787,117 +848,137 @@ function registerCommands(
 }
 
 /**
- * A plugin to provide the agent manager factory, the completion provider and
- * the settings model.
- * All these objects require the secrets manager token with the same namespace.
+ * A plugin to provide the agent manager factory and completion provider.
+ * These objects require the secrets manager token with the same namespace.
  */
 const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
-  SecretsManager.sign(SECRETS_NAMESPACE, token => ({
-    id: SECRETS_NAMESPACE,
-    description: 'Provide the AI agent manager',
-    autoStart: true,
-    provides: IAgentManagerFactory,
-    requires: [IAISettingsModel, IProviderRegistry],
-    optional: [
-      ISkillRegistry,
-      ICommandPalette,
-      ICompletionProviderManager,
-      ILayoutRestorer,
-      ISecretsManager,
-      IThemeManager,
-      ITranslator
-    ],
-    activate: (
-      app: JupyterFrontEnd,
-      settingsModel: AISettingsModel,
-      providerRegistry: IProviderRegistry,
-      skillRegistry?: ISkillRegistry,
-      palette?: ICommandPalette,
-      completionManager?: ICompletionProviderManager,
-      restorer?: ILayoutRestorer,
-      secretsManager?: ISecretsManager,
-      themeManager?: IThemeManager,
-      translator?: ITranslator
-    ): AgentManagerFactory => {
-      const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-      const agentManagerFactory = new AgentManagerFactory({
-        settingsModel,
-        skillRegistry,
-        secretsManager,
-        token
-      });
+  SecretsManager.sign(SECRETS_NAMESPACE, token => {
+    Private.setAISecretsToken(token);
 
-      // Build the settings panel
-      const settingsWidget = new AISettingsWidget({
-        settingsModel,
-        agentManagerFactory,
-        themeManager,
-        providerRegistry,
-        secretsManager,
-        token,
-        trans
-      });
-      settingsWidget.id = 'jupyterlite-ai-settings';
-      settingsWidget.title.icon = settingsIcon;
-      settingsWidget.title.iconClass = 'jp-ai-settings-icon';
-
-      // Build the completion provider
-      if (completionManager) {
-        const completionProvider = new AICompletionProvider({
+    return {
+      id: SECRETS_NAMESPACE,
+      description: 'Provide the AI agent manager',
+      autoStart: true,
+      provides: IAgentManagerFactory,
+      requires: [IAISettingsModel, IProviderRegistry],
+      optional: [ISkillRegistry, ICompletionProviderManager, ISecretsManager],
+      activate: (
+        app: JupyterFrontEnd,
+        settingsModel: AISettingsModel,
+        providerRegistry: IProviderRegistry,
+        skillRegistry?: ISkillRegistry,
+        completionManager?: ICompletionProviderManager,
+        secretsManager?: ISecretsManager
+      ): AgentManagerFactory => {
+        const agentManagerFactory = new AgentManagerFactory({
           settingsModel,
-          providerRegistry,
+          skillRegistry,
           secretsManager,
           token
         });
 
-        completionManager.registerInlineProvider(completionProvider);
-      } else {
-        console.info(
-          'Completion provider manager not available, skipping AI completion setup'
-        );
-      }
+        // Build the completion provider
+        if (completionManager) {
+          const completionProvider = new AICompletionProvider({
+            settingsModel,
+            providerRegistry,
+            secretsManager,
+            token
+          });
 
-      if (restorer) {
-        restorer.add(settingsWidget, settingsWidget.id);
-      }
-
-      app.commands.addCommand(CommandIds.openSettings, {
-        label: trans.__('AI Settings'),
-        caption: trans.__('Configure AI providers and behavior'),
-        icon: settingsIcon,
-        iconClass: 'jp-ai-settings-icon',
-        execute: () => {
-          // Check if the widget already exists in shell
-          let widget = Array.from(app.shell.widgets('main')).find(
-            w => w.id === 'jupyterlite-ai-settings'
-          ) as AISettingsWidget;
-
-          if (!widget && settingsWidget) {
-            // Use the pre-created widget
-            widget = settingsWidget;
-            app.shell.add(widget, 'main');
-          }
-
-          if (widget) {
-            app.shell.activateById(widget.id);
-          }
-        },
-        describedBy: {
-          args: {}
+          completionManager.registerInlineProvider(completionProvider);
+        } else {
+          console.info(
+            'Completion provider manager not available, skipping AI completion setup'
+          );
         }
-      });
 
-      // Add to command palette if available
-      if (palette) {
-        palette.addItem({
-          command: CommandIds.openSettings,
-          category: trans.__('AI Assistant')
-        });
+        return agentManagerFactory;
+      }
+    };
+  });
+
+/**
+ * AI settings panel plugin.
+ */
+const settingsPanelPlugin: JupyterFrontEndPlugin<IAISettingsPanel> = {
+  id: '@jupyterlite/ai:settings-panel',
+  description: 'Provide the AI settings panel',
+  autoStart: true,
+  provides: IAISettingsPanel,
+  requires: [IAISettingsModel, IAgentManagerFactory, IProviderRegistry],
+  optional: [
+    ICommandPalette,
+    ILayoutRestorer,
+    ISecretsManager,
+    IThemeManager,
+    ITranslator
+  ],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: AISettingsModel,
+    agentManagerFactory: AgentManagerFactory,
+    providerRegistry: IProviderRegistry,
+    palette?: ICommandPalette,
+    restorer?: ILayoutRestorer,
+    secretsManager?: ISecretsManager,
+    themeManager?: IThemeManager,
+    translator?: ITranslator
+  ): IAISettingsPanel => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    const settingsWidget = new AISettingsWidget({
+      settingsModel,
+      agentManagerFactory,
+      themeManager,
+      providerRegistry,
+      secretsAccess,
+      trans
+    });
+    settingsWidget.title.icon = settingsIcon;
+    settingsWidget.title.iconClass = 'jp-ai-settings-icon';
+
+    const open = () => {
+      let widget = Array.from(app.shell.widgets('main')).find(
+        w => w.id === 'jupyterlite-ai-settings'
+      ) as AISettingsWidget | undefined;
+
+      if (!widget) {
+        widget = settingsWidget;
+        app.shell.add(widget, 'main');
       }
 
-      return agentManagerFactory;
+      app.shell.activateById(widget.id);
+    };
+
+    if (restorer) {
+      restorer.add(settingsWidget, settingsWidget.id);
     }
-  }));
+
+    app.commands.addCommand(CommandIds.openSettings, {
+      label: trans.__('AI Settings'),
+      caption: trans.__('Configure AI providers and behavior'),
+      icon: settingsIcon,
+      iconClass: 'jp-ai-settings-icon',
+      execute: () => {
+        open();
+      },
+      describedBy: {
+        args: {}
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        command: CommandIds.openSettings,
+        category: trans.__('AI Assistant')
+      });
+    }
+
+    return { open };
+  }
+};
 
 /**
  * Built-in completion providers plugin
@@ -1220,6 +1301,7 @@ export default [
   plugin,
   toolRegistry,
   agentManagerFactory,
+  settingsPanelPlugin,
   inputToolbarFactory,
   completionStatus,
   skillsPlugin
