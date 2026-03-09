@@ -5,6 +5,91 @@ import { z } from 'zod';
 import { ITool } from '../tokens';
 import { AISettingsModel } from '../models/settings-model';
 
+interface ICommandEntry {
+  id: string;
+  label?: string;
+  caption?: string;
+  description?: string;
+  args?: any;
+}
+
+interface ISearchableField {
+  value?: string;
+  weight: number;
+}
+
+/**
+ * Search commands using case-insensitive term matching across command metadata.
+ *
+ * Multi-word queries are split into individual terms, and every term must be
+ * contained in at least one searchable field. Results are ranked by stronger
+ * field matches while keeping a stable fallback order.
+ */
+function searchCommands(
+  commands: ICommandEntry[],
+  query: string
+): ICommandEntry[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return commands;
+  }
+
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  return commands
+    .map((command, index) => {
+      const fields: ISearchableField[] = [
+        { value: command.label, weight: 4 },
+        { value: command.caption, weight: 3 },
+        { value: command.id, weight: 2 },
+        { value: command.description, weight: 1 }
+      ];
+
+      const normalizedFields = fields.map(field => ({
+        normalizedValue: field.value?.toLowerCase() ?? '',
+        weight: field.weight
+      }));
+
+      const matchesAllTerms = terms.every(term =>
+        normalizedFields.some(field => field.normalizedValue.includes(term))
+      );
+
+      if (!matchesAllTerms) {
+        return null;
+      }
+
+      const score = normalizedFields.reduce((total, field) => {
+        if (!field.normalizedValue) {
+          return total;
+        }
+
+        let fieldScore = 0;
+        if (field.normalizedValue.includes(normalizedQuery)) {
+          fieldScore += field.weight * 4;
+        }
+
+        fieldScore +=
+          terms.filter(term => field.normalizedValue.includes(term)).length *
+          field.weight;
+
+        return total + fieldScore;
+      }, 0);
+
+      return { command, index, score };
+    })
+    .filter(
+      (
+        result
+      ): result is {
+        command: ICommandEntry;
+        index: number;
+        score: number;
+      } => result !== null
+    )
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(result => result.command);
+}
+
 /**
  * Create a tool to discover all available commands and their metadata
  */
@@ -19,53 +104,34 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .optional()
         .nullable()
         .describe(
-          "Optional search query to filter commands. It doesn't need to be provided to list all commands"
+          'Optional search query to filter commands. Supports multi-word queries by requiring each word to be contained in the command id, label, caption, or description. Leave empty to list all commands.'
         )
     }),
     execute: async (input: { query?: string | null }) => {
       const { query } = input;
-      const commandList: Array<{
-        id: string;
-        label?: string;
-        caption?: string;
-        description?: string;
-        args?: any;
-      }> = [];
 
-      // Get all command IDs
+      // Build the full command list first.
       const commandIds = commands.listCommands();
+      const allCommands: ICommandEntry[] = [];
 
       for (const id of commandIds) {
-        // Get command metadata using various CommandRegistry methods
         const description = await commands.describedBy(id);
         const label = commands.label(id);
         const caption = commands.caption(id);
         const usage = commands.usage(id);
 
-        const command = {
+        allCommands.push({
           id,
           label: label || undefined,
           caption: caption || undefined,
           description: usage || undefined,
           args: description?.args || undefined
-        };
-
-        // Filter by query if provided
-        if (query) {
-          const searchTerm = query.toLowerCase();
-          const matchesQuery =
-            id.toLowerCase().includes(searchTerm) ||
-            label?.toLowerCase().includes(searchTerm) ||
-            caption?.toLowerCase().includes(searchTerm) ||
-            usage?.toLowerCase().includes(searchTerm);
-
-          if (matchesQuery) {
-            commandList.push(command);
-          }
-        } else {
-          commandList.push(command);
-        }
+        });
       }
+
+      const commandList = query
+        ? searchCommands(allCommands, query)
+        : allCommands;
 
       return {
         success: true,
