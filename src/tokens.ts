@@ -325,23 +325,6 @@ export const IAISettingsModel = new Token<AISettingsModel>(
 );
 
 /**
- * Interface for opening the AI settings panel.
- */
-export interface IAISettingsPanel {
-  /**
-   * Open the AI settings panel in the main area.
-   */
-  open(): void;
-}
-
-/**
- * Token for the AI settings panel service.
- */
-export const IAISettingsPanel = new Token<IAISettingsPanel>(
-  '@jupyterlite/ai:settings-panel'
-);
-
-/**
  * Internal interface for AI provider secret access within the shared namespace.
  */
 export interface IAISecretsAccess {

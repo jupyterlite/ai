@@ -80,7 +80,6 @@ import {
   IToolRegistry,
   ISkillRegistry,
   SECRETS_NAMESPACE,
-  IAISettingsPanel,
   IAISettingsModel,
   IChatModelHandler,
   IDiffManager
@@ -360,7 +359,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     IChatCommandRegistry
   ],
   optional: [
-    IAISettingsPanel,
     IThemeManager,
     ILayoutRestorer,
     ILabShell,
@@ -374,7 +372,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     modelHandler: IChatModelHandler,
     settingsModel: AISettingsModel,
     chatCommandRegistry: IChatCommandRegistry,
-    settingsPanel?: IAISettingsPanel,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
@@ -419,7 +416,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           provider = settingsModel.getDefaultProvider()?.id;
           if (!provider) {
             showErrorMessage('Error creating chat', 'Please set up a provider');
-            settingsPanel?.open();
+            app.commands.execute(CommandIds.openSettings);
             return {};
           }
         }
@@ -455,13 +452,13 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     chatPanel.title.caption = trans.__('Chat with AI assistant');
 
     chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    if (settingsPanel) {
+    if (app.commands.hasCommand(CommandIds.openSettings)) {
       chatPanel.toolbar.addItem(
         'settings',
         new ToolbarButton({
           icon: settingsIcon,
           onClick: () => {
-            settingsPanel.open();
+            app.commands.execute(CommandIds.openSettings);
           },
           tooltip: trans.__('Open AI Settings')
         })
@@ -901,11 +898,10 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
 /**
  * AI settings panel plugin.
  */
-const settingsPanelPlugin: JupyterFrontEndPlugin<IAISettingsPanel> = {
+const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/ai:settings-panel',
   description: 'Provide the AI settings panel',
   autoStart: true,
-  provides: IAISettingsPanel,
   requires: [IAISettingsModel, IAgentManagerFactory, IProviderRegistry],
   optional: [
     ICommandPalette,
@@ -924,7 +920,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<IAISettingsPanel> = {
     secretsManager?: ISecretsManager,
     themeManager?: IThemeManager,
     translator?: ITranslator
-  ): IAISettingsPanel => {
+  ): void => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
 
@@ -975,8 +971,6 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<IAISettingsPanel> = {
         category: trans.__('AI Assistant')
       });
     }
-
-    return { open };
   }
 };
 
