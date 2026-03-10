@@ -231,7 +231,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
     if (open && apiKeyRef.current) {
       handleSecretField(apiKeyRef.current, provider, 'apiKey');
     }
-  }, [open, provider, handleSecretField]);
+  }, [provider, handleSecretField, apiKeyRef.current]);
 
   const updateCustomSetting = React.useCallback(
     (section: 'webSearch' | 'webFetch', key: string, value: unknown) => {
