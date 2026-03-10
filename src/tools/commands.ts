@@ -66,11 +66,11 @@ function searchCommands(
         let fieldScore = 0;
         if (field.normalizedValue.includes(normalizedQuery)) {
           fieldScore += field.weight * 4;
+        } else {
+          fieldScore +=
+            terms.filter(term => field.normalizedValue.includes(term)).length *
+            field.weight;
         }
-
-        fieldScore +=
-          terms.filter(term => field.normalizedValue.includes(term)).length *
-          field.weight;
 
         return total + fieldScore;
       }, 0);
@@ -104,7 +104,7 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
         .optional()
         .nullable()
         .describe(
-          'Optional search query to filter commands. Supports multi-word queries by requiring each word to be contained in the command id, label, caption, or description. Leave empty to list all commands.'
+          'Optional search query to filter commands. Supports multi-word queries (whitespace-separated) by requiring each word to be contained in the command id, label, caption, or description. Leave empty to list all commands.'
         )
     }),
     execute: async (input: { query?: string | null }) => {
