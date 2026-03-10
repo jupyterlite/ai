@@ -276,7 +276,6 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): IChatModelHandler => {
-
     return new ChatModelHandler({
       settingsModel,
       agentManagerFactory,
