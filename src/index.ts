@@ -57,6 +57,7 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
 import { DisposableSet } from '@lumino/disposable';
+import { CommandRegistry } from '@lumino/commands';
 
 import { AgentManagerFactory } from './agent';
 
@@ -389,6 +390,12 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       app.commands.execute('docmanager:open', { path: attachment.value });
     });
 
+    const openSettings = () => {
+      if (app.commands.hasCommand(CommandIds.openSettings)) {
+        void app.commands.execute(CommandIds.openSettings);
+      }
+    };
+
     // Create ActiveCellManager if notebook tracker is available, and add it to the
     // model registry.
     let activeCellManager: ActiveCellManager | undefined;
@@ -416,7 +423,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           provider = settingsModel.getDefaultProvider()?.id;
           if (!provider) {
             showErrorMessage('Error creating chat', 'Please set up a provider');
-            app.commands.execute(CommandIds.openSettings);
+            openSettings();
             return {};
           }
         }
@@ -452,17 +459,38 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     chatPanel.title.caption = trans.__('Chat with AI assistant');
 
     chatPanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    if (app.commands.hasCommand(CommandIds.openSettings)) {
+
+    const addSettingsButton = () => {
       chatPanel.toolbar.addItem(
         'settings',
         new ToolbarButton({
           icon: settingsIcon,
-          onClick: () => {
-            app.commands.execute(CommandIds.openSettings);
-          },
+          onClick: openSettings,
           tooltip: trans.__('Open AI Settings')
         })
       );
+    };
+
+    if (app.commands.hasCommand(CommandIds.openSettings)) {
+      addSettingsButton();
+    } else {
+      const disconnectSettingsButtonListener = () => {
+        app.commands.commandChanged.disconnect(onCommandChanged);
+        chatPanel.disposed.disconnect(disconnectSettingsButtonListener);
+      };
+
+      const onCommandChanged = (
+        _: CommandRegistry,
+        args: CommandRegistry.ICommandChangedArgs
+      ) => {
+        if (args.id === CommandIds.openSettings && args.type === 'added') {
+          disconnectSettingsButtonListener();
+          addSettingsButton();
+        }
+      };
+
+      app.commands.commandChanged.connect(onCommandChanged);
+      chatPanel.disposed.connect(disconnectSettingsButtonListener);
     }
 
     let tokenUsageWidget: TokenUsageWidget | null = null;
