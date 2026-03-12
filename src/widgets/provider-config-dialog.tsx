@@ -138,7 +138,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   handleSecretField,
   trans
 }) => {
-  const apiKeyRef = React.useRef<HTMLInputElement>();
   const [name, setName] = React.useState(initialConfig?.name || '');
   const [provider, setProvider] = React.useState(
     initialConfig?.provider || 'anthropic'
@@ -225,13 +224,14 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
     }
   }, [provider, selectedProvider, model]);
 
-  React.useEffect(() => {
-    // Attach the API key field to the secrets manager, to automatically save the value
-    // when it is updated.
-    if (open && apiKeyRef.current) {
-      handleSecretField(apiKeyRef.current, provider, 'apiKey');
-    }
-  }, [provider, handleSecretField, apiKeyRef.current]);
+  const handleRef = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      if (open && node) {
+        handleSecretField(node, provider, 'apiKey');
+      }
+    },
+    [provider, handleSecretField, open]
+  );
 
   const updateCustomSetting = React.useCallback(
     (section: 'webSearch' | 'webFetch', key: string, value: unknown) => {
@@ -526,7 +526,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             selectedProvider?.apiKeyRequirement !== 'none' && (
               <TextField
                 fullWidth
-                inputRef={apiKeyRef}
+                inputRef={handleRef}
                 label={
                   selectedProvider?.apiKeyRequirement === 'required'
                     ? trans.__('API Key')
