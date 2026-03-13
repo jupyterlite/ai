@@ -671,6 +671,9 @@ export class AgentManager {
           data: { error: error as Error }
         });
       }
+      // After an error (including AbortError), sanitize the history
+      // to remove any trailing assistant messages without tool results
+      this._sanitizeHistory();
     } finally {
       this._controller = null;
     }
@@ -1203,6 +1206,96 @@ WEB RETRIEVAL POLICY:
     }
 
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
+  }
+
+  /**
+   * Sanitizes history to ensure it's in a valid state in case of abort or error.
+   */
+  private _sanitizeHistory(): void {
+    if (this._history.length === 0) {
+      return;
+    }
+
+    const newHistory: ModelMessage[] = [];
+    for (let i = 0; i < this._history.length; i++) {
+      const msg = this._history[i];
+
+      if (msg.role === 'assistant') {
+        const toolCallIds = this._getToolCallIds(msg);
+        if (toolCallIds.length > 0) {
+          // Find if there's a following tool message with results for these calls
+          const nextMsg = this._history[i + 1];
+          if (
+            nextMsg &&
+            nextMsg.role === 'tool' &&
+            this._matchesAllToolCalls(nextMsg, toolCallIds)
+          ) {
+            newHistory.push(msg);
+          } else {
+            // Message has unmatched tool calls drop it and everything after it
+            break;
+          }
+        } else {
+          newHistory.push(msg);
+        }
+      } else if (msg.role === 'tool') {
+        // Tool messages are valid if they were preceded by a valid assistant message
+        newHistory.push(msg);
+      } else {
+        newHistory.push(msg);
+      }
+    }
+
+    this._history = newHistory;
+  }
+
+  /**
+   * Extracts tool call IDs from a message
+   */
+  private _getToolCallIds(message: ModelMessage): string[] {
+    const ids: string[] = [];
+
+    // Check content array for tool-call parts
+    if (Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (
+          typeof part === 'object' &&
+          part !== null &&
+          'type' in part &&
+          part.type === 'tool-call'
+        ) {
+          ids.push(part.toolCallId);
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  /**
+   * Checks if a tool message contains results for all specified tool call IDs
+   */
+  private _matchesAllToolCalls(
+    message: ModelMessage,
+    callIds: string[]
+  ): boolean {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) {
+      return false;
+    }
+
+    const resultIds = new Set<string>();
+    for (const part of message.content) {
+      if (
+        typeof part === 'object' &&
+        part !== null &&
+        'type' in part &&
+        part.type === 'tool-result'
+      ) {
+        resultIds.add(part.toolCallId);
+      }
+    }
+
+    return callIds.every(id => resultIds.has(id));
   }
 
   // Private attributes
