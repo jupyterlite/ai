@@ -23,8 +23,6 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
 import { IRenderMime } from '@jupyterlab/rendermime';
 
-import { TranslationBundle } from '@jupyterlab/translation';
-
 import { UUID } from '@lumino/coreutils';
 
 import { ISignal, Signal } from '@lumino/signaling';
@@ -107,7 +105,6 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
-    this._trans = options.trans;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
@@ -483,13 +480,17 @@ export class AIChatModel extends AbstractChatModel {
     this._toolContexts.set(event.data.callId, context);
 
     const toolCallMessage: IMessageContent = {
-      body: Private.buildToolCallHtml({
-        toolName: context.toolName,
-        input: context.input,
-        status: context.status,
-        summary: context.summary,
-        trans: this._trans
-      }),
+      body: {
+        data: {
+          'application/vnd.jupyter.chat.components': 'tool-call'
+        },
+        metadata: {
+          toolName: context.toolName,
+          input: context.input,
+          status: context.status,
+          summary: context.summary
+        }
+      },
       sender: this._getAIUser(),
       id: messageId,
       time: Date.now() / 1000,
@@ -625,15 +626,20 @@ export class AIChatModel extends AbstractChatModel {
 
     context.status = status;
     existingMessage.update({
-      body: Private.buildToolCallHtml({
-        toolName: context.toolName,
-        input: context.input,
-        status: context.status,
-        summary: context.summary,
-        output,
-        approvalId: context.approvalId,
-        trans: this._trans
-      })
+      body: {
+        data: {
+          'application/vnd.jupyter.chat.components': 'tool-call'
+        },
+        metadata: {
+          toolName: context.toolName,
+          input: context.input,
+          status: context.status,
+          summary: context.summary,
+          output,
+          targetId: this.name,
+          approvalId: context.approvalId
+        }
+      }
     });
   }
 
@@ -922,7 +928,6 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
-  private _trans: TranslationBundle;
 }
 
 namespace Private {
@@ -1032,158 +1037,6 @@ namespace Private {
       return '[Complex object - cannot serialize]';
     }
   }
-
-  export function escapeHtml(value: string): string {
-    // Prefer the same native escaping approach used in JupyterLab itself
-    // (e.g. `@jupyterlab/completer`).
-    if (typeof document !== 'undefined') {
-      const node = document.createElement('span');
-      node.textContent = value;
-      return node.innerHTML;
-    }
-
-    // Fallback
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  /**
-   * Configuration for rendering tool call status.
-   */
-  interface IStatusConfig {
-    cssClass: string;
-    statusClass: string;
-    open?: boolean;
-  }
-
-  const STATUS_CONFIG: Record<ToolStatus, IStatusConfig> = {
-    pending: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-pending'
-    },
-    awaiting_approval: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-approval',
-      open: true
-    },
-    approved: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-completed'
-    },
-    rejected: {
-      cssClass: 'jp-ai-tool-error',
-      statusClass: 'jp-ai-tool-status-error'
-    },
-    completed: {
-      cssClass: 'jp-ai-tool-completed',
-      statusClass: 'jp-ai-tool-status-completed'
-    },
-    error: {
-      cssClass: 'jp-ai-tool-error',
-      statusClass: 'jp-ai-tool-status-error'
-    }
-  };
-
-  /**
-   * Returns the translated status text for a given tool status.
-   */
-  const getStatusText = (
-    status: ToolStatus,
-    trans: TranslationBundle
-  ): string => {
-    switch (status) {
-      case 'pending':
-        return trans.__('Running...');
-      case 'awaiting_approval':
-        return trans.__('Awaiting Approval');
-      case 'approved':
-        return trans.__('Approved - Executing...');
-      case 'rejected':
-        return trans.__('Rejected');
-      case 'completed':
-        return trans.__('Completed');
-      case 'error':
-        return trans.__('Error');
-    }
-  };
-
-  /**
-   * Options for building tool call HTML.
-   */
-  interface IToolCallHtmlOptions {
-    toolName: string;
-    input: string;
-    status: ToolStatus;
-    summary?: string;
-    output?: string;
-    approvalId?: string;
-    trans: TranslationBundle;
-  }
-
-  /**
-   * Builds HTML for a tool call display.
-   */
-  export function buildToolCallHtml(
-    options: IToolCallHtmlOptions
-  ): Partial<IRenderMime.IMimeModel> & Pick<IRenderMime.IMimeModel, 'data'> {
-    const { toolName, input, status, summary, output, approvalId, trans } =
-      options;
-    const config = STATUS_CONFIG[status];
-    const statusText = getStatusText(status, trans);
-    const escapedToolName = escapeHtml(toolName);
-    const escapedInput = escapeHtml(input);
-    const openAttr = config.open ? ' open' : '';
-    const summaryHtml = summary
-      ? `<span class="jp-ai-tool-summary">${escapeHtml(summary)}</span>`
-      : '';
-
-    let bodyContent = `
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${trans.__('Input')}</div>
-<pre class="jp-ai-tool-code"><code>${escapedInput}</code></pre>
-</div>`;
-
-    // Add approval buttons if awaiting approval
-    if (status === 'awaiting_approval' && approvalId) {
-      bodyContent += `
-<div class="jp-ai-tool-approval-buttons jp-ai-approval-id--${approvalId}">
-<button class="jp-ai-approval-btn jp-ai-approval-approve">${trans.__('Approve')}</button>
-<button class="jp-ai-approval-btn jp-ai-approval-reject">${trans.__('Reject')}</button>
-</div>`;
-    }
-
-    // Add output/result section if provided
-    if (output !== undefined) {
-      const escapedOutput = escapeHtml(output);
-      const label = status === 'error' ? trans.__('Error') : trans.__('Result');
-      bodyContent += `
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${label}</div>
-<pre class="jp-ai-tool-code"><code>${escapedOutput}</code></pre>
-</div>`;
-    }
-
-    const HTMLContent = `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${escapedToolName}${summaryHtml}</div>
-<div class="jp-ai-tool-status ${config.statusClass}">${statusText}</div>
-</summary>
-<div class="jp-ai-tool-body">${bodyContent}
-</div>
-</details>`;
-
-    return {
-      trusted: true,
-      data: {
-        'text/html': HTMLContent
-      }
-    };
-  }
 }
 
 /**
@@ -1214,10 +1067,6 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
-    /**
-     * The application language translation bundle.
-     */
-    trans: TranslationBundle;
   }
 
   /**

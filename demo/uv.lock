@@ -725,6 +725,15 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyter-chat-components"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/06/3d07a2392c334f48b83efc7114eb14c98545f5c09e7d386dd0ba37fd1c6a/jupyter_chat_components-0.1.3.tar.gz", hash = "sha256:091f3924961f16d4d7b9b16bd3401c1fdc7d36e44701c65b572d06ba8e949045", size = 216982, upload-time = "2026-03-10T21:11:32.807Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/e1/0b181b0d5b60256e4e8a9334aebb451ff5713e577a70e1659b45cb6ca9f4/jupyter_chat_components-0.1.3-py3-none-any.whl", hash = "sha256:492c27950a90037691c09f7f2c8ca2d215240d1e2c8c8975735041502faac38d", size = 18665, upload-time = "2026-03-10T21:11:30.231Z" },
+]
+
+[[package]]
 name = "jupyter-client"
 version = "8.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -965,6 +974,7 @@ wheels = [
 name = "jupyterlite-ai"
 source = { directory = "../" }
 dependencies = [
+    { name = "jupyter-chat-components" },
     { name = "jupyter-secrets-manager" },
     { name = "jupyterlab-ai-commands" },
 ]
@@ -973,6 +983,7 @@ dependencies = [
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=2.12.4,<3" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
+    { name = "jupyter-chat-components", specifier = ">=0.1.3,<0.2" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.2.1,<0.3" },
