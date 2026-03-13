@@ -325,6 +325,35 @@ export const IAISettingsModel = new Token<AISettingsModel>(
 );
 
 /**
+ * Internal interface for AI provider secret access within the shared namespace.
+ */
+export interface IAISecretsAccess {
+  /**
+   * Whether secrets access is currently available.
+   */
+  readonly isAvailable: boolean;
+
+  /**
+   * Get a secret value by ID.
+   */
+  get(id: string): Promise<string | undefined>;
+
+  /**
+   * Set a secret value by ID.
+   */
+  set(id: string, value: string): Promise<void>;
+
+  /**
+   * Attach an input field to a secret ID.
+   */
+  attach(
+    id: string,
+    input: HTMLInputElement,
+    callback?: (value: string) => void
+  ): Promise<void>;
+}
+
+/**
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<AgentManager>(

@@ -111,6 +111,20 @@ export class AgentManagerFactory {
       secretsManager: this._secretsManager
     });
     this._agentManagers.push(agentManager);
+
+    // New chats can be created before MCP setup finishes.
+    // Reinitialize them with connected MCP tools once it does.
+    this._initQueue
+      .then(() => this.getMCPTools())
+      .then(mcpTools => {
+        if (Object.keys(mcpTools).length > 0) {
+          agentManager.initializeAgent(mcpTools);
+        }
+      })
+      .catch(error =>
+        console.warn('Failed to pass MCP tools to new agent:', error)
+      );
+
     return agentManager;
   }
 
