@@ -2,6 +2,35 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.14.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.13.0...565b3a02e70706022dde4c2ee9394bed35ac7137))
+
+### Enhancements made
+
+- Improve command discovery [#287](https://github.com/jupyterlite/ai/pull/287) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Fix the attachment of the secrets field to the secrets manager [#289](https://github.com/jupyterlite/ai/pull/289) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Sanitize history to prevent chat errors [#284](https://github.com/jupyterlite/ai/pull/284) ([@Yahiewi](https://github.com/Yahiewi), [@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Settings panel plugin [#286](https://github.com/jupyterlite/ai/pull/286) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Bump dependencies [#282](https://github.com/jupyterlite/ai/pull/282) ([@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-03-02&to=2026-03-13&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-03-02..2026-03-13&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-03-02..2026-03-13&type=Issues)) | @Yahiewi ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AYahiewi+updated%3A2026-03-02..2026-03-13&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.13.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.12.0...c5abe843988546c920ae4a963b6342bfb8419280))
@@ -39,8 +68,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-02-11&to=2026-03-02&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-02-11..2026-03-02&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-02-11..2026-03-02&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2026-02-11..2026-03-02&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.12.0
 
