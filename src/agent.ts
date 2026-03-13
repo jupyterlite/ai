@@ -1250,7 +1250,7 @@ WEB RETRIEVAL POLICY:
           'type' in part &&
           part.type === 'tool-call'
         ) {
-          ids.push((part as any).toolCallId);
+          ids.push(part.toolCallId);
         }
       }
     }
@@ -1261,7 +1261,10 @@ WEB RETRIEVAL POLICY:
   /**
    * Checks if a tool message contains results for all specified tool call IDs
    */
-  private _matchesAllToolCalls(message: ModelMessage, callIds: string[]): boolean {
+  private _matchesAllToolCalls(
+    message: ModelMessage,
+    callIds: string[]
+  ): boolean {
     if (message.role !== 'tool' || !Array.isArray(message.content)) {
       return false;
     }
@@ -1274,7 +1277,7 @@ WEB RETRIEVAL POLICY:
         'type' in part &&
         part.type === 'tool-result'
       ) {
-        resultIds.add((part as any).toolCallId);
+        resultIds.add(part.toolCallId);
       }
     }
 
