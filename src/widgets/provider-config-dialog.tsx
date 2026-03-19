@@ -497,28 +497,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             onInputChange={(_, value) => {
               setModel(value);
             }}
-            renderOption={(props, option) => (
-              <Box component="li" {...props} key={option}>
-                <Box>
-                  <Typography variant="body1">{option}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.includes('sonnet')
-                      ? trans.__('Balanced performance')
-                      : option.includes('opus')
-                        ? trans.__('Advanced reasoning')
-                        : option.includes('haiku')
-                          ? trans.__('Fast and lightweight')
-                          : option.includes('large')
-                            ? trans.__('Most capable model')
-                            : option.includes('small')
-                              ? trans.__('Fast and efficient')
-                              : option.includes('codestral')
-                                ? trans.__('Code-specialized')
-                                : trans.__('General purpose')}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
             renderInput={params => (
               <TextField
                 {...params}
