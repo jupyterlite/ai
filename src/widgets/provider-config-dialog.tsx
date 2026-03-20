@@ -199,12 +199,13 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   React.useEffect(() => {
     if (open) {
       // Reset form when dialog opens
-      const nextProvider = initialConfig?.provider || 'anthropic';
-      const nextProviderInfo = providerRegistry.getProviderInfo(nextProvider);
+      const initialProvider = initialConfig?.provider || 'anthropic';
+      const initialProviderInfo =
+        providerRegistry.getProviderInfo(initialProvider);
       setName(initialConfig?.name || '');
-      setProvider(nextProvider);
+      setProvider(initialProvider);
       setModel(
-        initialConfig?.model || nextProviderInfo?.defaultModels[0] || ''
+        initialConfig?.model || initialProviderInfo?.defaultModels[0] || ''
       );
       setApiKey(initialConfig?.apiKey || '');
       setBaseURL(initialConfig?.baseURL || '');
@@ -230,10 +231,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   );
 
   const handleProviderChange = React.useCallback(
-    (nextProvider: IProviderConfig['provider']) => {
-      const nextProviderInfo = providerRegistry.getProviderInfo(nextProvider);
-      setProvider(nextProvider);
-      setModel(nextProviderInfo?.defaultModels[0] || '');
+    (newProvider: IProviderConfig['provider']) => {
+      const newProviderInfo = providerRegistry.getProviderInfo(newProvider);
+      setProvider(newProvider);
+      setModel(newProviderInfo?.defaultModels[0] || '');
     },
     [providerRegistry]
   );
