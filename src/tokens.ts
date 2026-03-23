@@ -1,12 +1,13 @@
 import { ActiveCellManager } from '@jupyter/chat';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel } from 'ai';
-import { AgentManager } from './agent';
+import { ISecretsManager } from 'jupyter-secrets-manager';
+
 import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
-import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 import type {
   ISkillDefinition,
@@ -33,25 +34,16 @@ export namespace CommandIds {
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
 }
 
+/* THE TOOL REGISTRY */
 /**
  * Type definition for a tool
  */
 export type ITool = Tool;
 
 /**
- * Interface for token usage statistics from AI model interactions
+ * A map containing tools.
  */
-export interface ITokenUsage {
-  /**
-   * Number of input tokens consumed (prompt tokens)
-   */
-  inputTokens: number;
-
-  /**
-   * Number of output tokens generated (completion tokens)
-   */
-  outputTokens: number;
-}
+export type ToolMap = Record<string, ITool>;
 
 /**
  * Interface for a named tool (tool with a name identifier)
@@ -112,6 +104,8 @@ export const IToolRegistry = new Token<IToolRegistry>(
   'Tool registry for AI agent functionality'
 );
 
+/* THE SKILL REGISTRY */
+
 /**
  * Registry for skills available to the AI agent.
  */
@@ -153,13 +147,7 @@ export const ISkillRegistry = new Token<ISkillRegistry>(
   'Skill registry for AI agent functionality'
 );
 
-/**
- * Token for the provider registry.
- */
-export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/ai:provider-registry',
-  'Registry for AI providers'
-);
+/* THE LLM PROVIDER REGISTRY */
 
 /**
  * Interface for a provider factory function that creates language models
@@ -318,61 +306,246 @@ export interface IProviderRegistry {
 }
 
 /**
+ * Token for the provider registry.
+ */
+export const IProviderRegistry = new Token<IProviderRegistry>(
+  '@jupyterlite/ai:provider-registry',
+  'Registry for AI providers'
+);
+
+/* THE SETTINGS MODEL */
+
+/**
  * Token for the AI settings model.
  */
 export const IAISettingsModel = new Token<AISettingsModel>(
   '@jupyterlite/ai:IAISettingsModel'
 );
 
+/* THE AGENT MANAGER */
+
 /**
- * Internal interface for AI provider secret access within the shared namespace.
+ * A namespace for agent manager.
  */
-export interface IAISecretsAccess {
+export namespace IAgentManager {
   /**
-   * Whether secrets access is currently available.
+   * Configuration options for the AgentManager
    */
-  readonly isAvailable: boolean;
+  export interface IOptions {
+    /**
+     * AI settings model for configuration
+     */
+    settingsModel: AISettingsModel;
+
+    /**
+     * Optional tool registry for managing available tools
+     */
+    toolRegistry?: IToolRegistry;
+
+    /**
+     * Optional provider registry for model creation
+     */
+    providerRegistry?: IProviderRegistry;
+
+    /**
+     * The skill registry for discovering skills.
+     */
+    skillRegistry?: ISkillRegistry;
+
+    /**
+     * The secrets manager.
+     */
+    secretsManager?: ISecretsManager;
+
+    /**
+     * The active provider to use with this agent.
+     */
+    activeProvider?: string;
+
+    /**
+     * Initial token usage.
+     */
+    tokenUsage?: ITokenUsage;
+
+    /**
+     * JupyterLab render mime registry for discovering supported MIME types.
+     */
+    renderMimeRegistry?: IRenderMimeRegistry;
+  }
 
   /**
-   * Get a secret value by ID.
+   * Event type mapping for type safety with inlined interface definitions
    */
-  get(id: string): Promise<string | undefined>;
+  export interface IAgentEventTypeMap {
+    message_start: {
+      messageId: string;
+    };
+    message_chunk: {
+      messageId: string;
+      chunk: string;
+      fullContent: string;
+    };
+    message_complete: {
+      messageId: string;
+      content: string;
+    };
+    tool_call_start: {
+      callId: string;
+      toolName: string;
+      input: string;
+    };
+    tool_call_complete: {
+      callId: string;
+      toolName: string;
+      outputData: unknown;
+      isError: boolean;
+    };
+    tool_approval_request: {
+      approvalId: string;
+      toolCallId: string;
+      toolName: string;
+      args: unknown;
+    };
+    tool_approval_resolved: {
+      approvalId: string;
+      approved: boolean;
+    };
+    error: {
+      error: Error;
+    };
+  }
 
   /**
-   * Set a secret value by ID.
+   * Events emitted by the AgentManager
    */
-  set(id: string, value: string): Promise<void>;
+  export type IAgentEvent<
+    T extends keyof IAgentEventTypeMap = keyof IAgentEventTypeMap
+  > = T extends keyof IAgentEventTypeMap
+    ? {
+        type: T;
+        data: IAgentEventTypeMap[T];
+      }
+    : never;
+}
 
+export interface IAgentManager {
   /**
-   * Attach an input field to a secret ID.
+   * The active provider for this agent.
    */
-  attach(
-    id: string,
-    input: HTMLInputElement,
-    callback?: (value: string) => void
-  ): Promise<void>;
+  activeProvider: string;
+  /**
+   * Signal emitted when agent events occur
+   */
+  readonly agentEvent: ISignal<IAgentManager, IAgentManager.IAgentEvent>;
+  /**
+   * Signal emitted when the active provider has changed.
+   */
+  readonly activeProviderChanged: ISignal<IAgentManager, string | undefined>;
+  /**
+   * Gets the current token usage statistics.
+   */
+  readonly tokenUsage: ITokenUsage;
+  /**
+   * Signal emitted when token usage statistics change.
+   */
+  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
+  /**
+   * Refresh the skills snapshot and rebuild the agent if resources are ready.
+   */
+  refreshSkills(): void;
+  /**
+   * Sets the selected tools by name and reinitializes the agent.
+   * @param toolNames Array of tool names to select
+   */
+  setSelectedTools(toolNames: string[]): void;
+  /**
+   * Gets the currently selected tools as a record.
+   * @returns Record of selected tools
+   */
+  readonly selectedAgentTools: ToolMap;
+  /**
+   * Checks if the current configuration is valid for agent operations.
+   * Uses the provider registry to determine if an API key is required.
+   * @returns True if the configuration is valid, false otherwise
+   */
+  hasValidConfig(): boolean;
+  /**
+   * Clears conversation history and resets agent state.
+   */
+  clearHistory(): void;
+  /**
+   * Stops the current streaming response by aborting the request.
+   */
+  stopStreaming(): void;
+  /**
+   * Approves a pending tool call.
+   * @param approvalId The approval ID to approve
+   * @param reason Optional reason for approval
+   */
+  approveToolCall(approvalId: string, reason?: string): void;
+  /**
+   * Rejects a pending tool call.
+   * @param approvalId The approval ID to reject
+   * @param reason Optional reason for rejection
+   */
+  rejectToolCall(approvalId: string, reason?: string): void;
+  /**
+   * Generates AI response to user message using the agent.
+   * Handles the complete execution cycle including tool calls.
+   * @param message The user message to respond to (may include processed attachment content)
+   */
+  generateResponse(message: string): Promise<void>;
+  /**
+   * Initializes the AI agent with current settings and tools.
+   * Sets up the agent with model configuration, tools, and MCP tools.
+   */
+  initializeAgent(mcpTools?: ToolMap): Promise<void>;
 }
 
 /**
  * Token for the agent manager.
  */
-export const IAgentManager = new Token<AgentManager>(
+export const IAgentManager = new Token<IAgentManager>(
   '@jupyterlite/ai:agent-manager'
 );
 
+/* The AGENT MANAGER FACTORY */
 /**
- * The string that replaces a secret key in settings.
+ * The interface for a agent manager factory.
  */
-export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
-export const SECRETS_REPLACEMENT = '***';
+export interface IAgentManagerFactory {
+  /**
+   * Create a new agent.
+   */
+  createAgent(options: IAgentManager.IOptions): IAgentManager;
+  /**
+   * Signal emitted when MCP connection status changes
+   */
+  readonly mcpConnectionChanged: ISignal<IAgentManagerFactory, boolean>;
+  /**
+   * Checks whether a specific MCP server is connected.
+   * @param serverName The name of the MCP server to check
+   * @returns True if the server is connected, false otherwise
+   */
+  isMCPServerConnected(serverName: string): boolean;
+  /**
+   * Gets the MCP tools from connected servers
+   */
+  getMCPTools(): Promise<ToolMap>;
+}
 
 /*
- * Token for the agent manager registry.
+ * Token for the agent manager factory.
  */
-export const IAgentManagerFactory = new Token<AgentManagerFactory>(
+export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
   '@jupyterlite/ai:agent-manager-factory'
 );
 
+/* THE CHAT MODELS HANDLER */
+
+/**
+ * The interface for the chat model handler.
+ */
 export interface IChatModelHandler {
   createModel(
     name: string,
@@ -382,9 +555,14 @@ export interface IChatModelHandler {
   activeCellManager: ActiveCellManager | undefined;
 }
 
+/**
+ * Token for the chat model handler.
+ */
 export const IChatModelHandler = new Token<IChatModelHandler>(
   '@jupyterlite/ai:chat-model-handler'
 );
+
+/* THE DIFF MANAGER */
 
 /**
  * Parameters for showing cell diff
@@ -458,3 +636,53 @@ export interface IDiffManager {
 export const IDiffManager = new Token<IDiffManager>(
   '@jupyterlite/ai:diff-manager'
 );
+
+/**
+ * Interface for token usage statistics from AI model interactions
+ */
+export interface ITokenUsage {
+  /**
+   * Number of input tokens consumed (prompt tokens)
+   */
+  inputTokens: number;
+
+  /**
+   * Number of output tokens generated (completion tokens)
+   */
+  outputTokens: number;
+}
+
+/**
+ * The string that replaces a secret key in settings.
+ */
+export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
+export const SECRETS_REPLACEMENT = '***';
+
+/**
+ * Internal interface for AI provider secret access within the shared namespace.
+ */
+export interface IAISecretsAccess {
+  /**
+   * Whether secrets access is currently available.
+   */
+  readonly isAvailable: boolean;
+
+  /**
+   * Get a secret value by ID.
+   */
+  get(id: string): Promise<string | undefined>;
+
+  /**
+   * Set a secret value by ID.
+   */
+  set(id: string, value: string): Promise<void>;
+
+  /**
+   * Attach an input field to a secret ID.
+   */
+  attach(
+    id: string,
+    input: HTMLInputElement,
+    callback?: (value: string) => void
+  ): Promise<void>;
+}

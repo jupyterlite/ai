@@ -45,7 +45,6 @@ import {
   createTheme
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
-import { AgentManagerFactory } from '../agent';
 import {
   AISettingsModel,
   IAIConfig,
@@ -53,9 +52,10 @@ import {
   IProviderConfig
 } from '../models/settings-model';
 import {
-  SECRETS_REPLACEMENT,
+  type IAgentManagerFactory,
   type IAISecretsAccess,
-  type IProviderRegistry
+  type IProviderRegistry,
+  SECRETS_REPLACEMENT
 } from '../tokens';
 import { ProviderConfigDialog } from './provider-config-dialog';
 
@@ -123,7 +123,7 @@ export class AISettingsWidget extends ReactWidget {
   }
 
   private _settingsModel: AISettingsModel;
-  private _agentManagerFactory?: AgentManagerFactory;
+  private _agentManagerFactory?: IAgentManagerFactory;
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
   private _secretsAccess?: IAISecretsAccess;
@@ -135,7 +135,7 @@ export class AISettingsWidget extends ReactWidget {
  */
 interface IAISettingsComponentProps {
   model: AISettingsModel;
-  agentManagerFactory?: AgentManagerFactory;
+  agentManagerFactory?: IAgentManagerFactory;
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
   secretsAccess?: IAISecretsAccess;
@@ -1679,7 +1679,7 @@ export namespace AISettingsWidget {
    */
   export interface IOptions {
     settingsModel: AISettingsModel;
-    agentManagerFactory?: AgentManagerFactory;
+    agentManagerFactory?: IAgentManagerFactory;
     themeManager?: IThemeManager;
     providerRegistry: IProviderRegistry;
     /**

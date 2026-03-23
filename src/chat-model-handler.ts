@@ -1,16 +1,16 @@
 import { ActiveCellManager } from '@jupyter/chat';
+import { IDocumentManager } from '@jupyterlab/docmanager';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { TranslationBundle } from '@jupyterlab/translation';
-import { AgentManagerFactory } from './agent';
 import { AIChatModel } from './chat-model';
 import { AISettingsModel } from './models/settings-model';
-import {
+import type {
+  IAgentManagerFactory,
   IChatModelHandler,
   IProviderRegistry,
   ITokenUsage,
   IToolRegistry
 } from './tokens';
-import { IDocumentManager } from '@jupyterlab/docmanager';
-import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
 /**
  * The chat model handler.
@@ -68,7 +68,7 @@ export class ChatModelHandler implements IChatModelHandler {
   }
 
   private _docManager: IDocumentManager;
-  private _agentManagerFactory: AgentManagerFactory;
+  private _agentManagerFactory: IAgentManagerFactory;
   private _settingsModel: AISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
@@ -86,7 +86,7 @@ export namespace ChatModelHandler {
     /**
      * The agent manager factory.
      */
-    agentManagerFactory: AgentManagerFactory;
+    agentManagerFactory: IAgentManagerFactory;
     /**
      * AI settings model for configuration
      */

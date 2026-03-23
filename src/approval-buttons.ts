@@ -1,6 +1,6 @@
 import { ChatWidget } from '@jupyter/chat';
 import { IDisposable } from '@lumino/disposable';
-import type { AgentManager } from './agent';
+import type { IAgentManager } from './tokens';
 
 /**
  * Handles click events for approval buttons in the chat panel.
@@ -92,7 +92,7 @@ export class ApprovalButtons implements IDisposable {
 
   private _chatPanel: ChatWidget;
   private _isDisposed: boolean = false;
-  private _agentManager: AgentManager;
+  private _agentManager: IAgentManager;
 }
 
 /**
@@ -110,6 +110,6 @@ export namespace ApprovalButtons {
     /**
      * The agent manager for handling approvals.
      */
-    agentManager: AgentManager;
+    agentManager: IAgentManager;
   }
 }

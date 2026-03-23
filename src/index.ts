@@ -323,7 +323,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    agentManagerFactory: AgentManagerFactory,
+    agentManagerFactory: IAgentManagerFactory,
     docManager: IDocumentManager,
     rmRegistry: IRenderMimeRegistry,
     providerRegistry?: IProviderRegistry,
@@ -876,7 +876,7 @@ function registerCommands(
  * A plugin to provide the agent manager factory and completion provider.
  * These objects require the secrets manager token with the same namespace.
  */
-const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
+const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
   SecretsManager.sign(SECRETS_NAMESPACE, token => {
     Private.setAISecretsToken(token);
 
@@ -894,7 +894,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<AgentManagerFactory> =
         skillRegistry?: ISkillRegistry,
         completionManager?: ICompletionProviderManager,
         secretsManager?: ISecretsManager
-      ): AgentManagerFactory => {
+      ): IAgentManagerFactory => {
         const agentManagerFactory = new AgentManagerFactory({
           settingsModel,
           skillRegistry,
@@ -941,7 +941,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
   activate: (
     app: JupyterFrontEnd,
     settingsModel: AISettingsModel,
-    agentManagerFactory: AgentManagerFactory,
+    agentManagerFactory: IAgentManagerFactory,
     providerRegistry: IProviderRegistry,
     palette?: ICommandPalette,
     restorer?: ILayoutRestorer,
