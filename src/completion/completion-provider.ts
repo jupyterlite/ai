@@ -8,9 +8,12 @@ import { NotebookPanel } from '@jupyterlab/notebook';
 import { generateText, type LanguageModel } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import { AISettingsModel } from '../models/settings-model';
 import { createCompletionModel } from '../providers/models';
-import { SECRETS_NAMESPACE, type IProviderRegistry } from '../tokens';
+import {
+  type IAISettingsModel,
+  SECRETS_NAMESPACE,
+  type IProviderRegistry
+} from '../tokens';
 
 /**
  * Configuration interface for provider-specific completion behavior
@@ -304,7 +307,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
     };
   }
 
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _providerRegistry?: IProviderRegistry;
   private _model: LanguageModel | null = null;
   private _secretsManager?: ISecretsManager;
@@ -318,7 +321,7 @@ export namespace AICompletionProvider {
     /**
      * The AI settings model.
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     /**
      * The provider registry
      */

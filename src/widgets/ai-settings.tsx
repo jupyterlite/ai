@@ -46,14 +46,12 @@ import {
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  AISettingsModel,
-  IAIConfig,
-  IMCPServerConfig,
-  IProviderConfig
-} from '../models/settings-model';
-import {
   type IAgentManagerFactory,
+  type IAIConfig,
   type IAISecretsAccess,
+  type IAISettingsModel,
+  type IMCPServerConfig,
+  type IProviderConfig,
   type IProviderRegistry,
   SECRETS_REPLACEMENT
 } from '../tokens';
@@ -122,7 +120,7 @@ export class AISettingsWidget extends ReactWidget {
     );
   }
 
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _agentManagerFactory?: IAgentManagerFactory;
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
@@ -134,7 +132,7 @@ export class AISettingsWidget extends ReactWidget {
  * Props interface for the AISettingsComponent
  */
 interface IAISettingsComponentProps {
-  model: AISettingsModel;
+  model: IAISettingsModel;
   agentManagerFactory?: IAgentManagerFactory;
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
@@ -1678,7 +1676,7 @@ export namespace AISettingsWidget {
    * Options interface for constructing an AISettingsWidget
    */
   export interface IOptions {
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     agentManagerFactory?: IAgentManagerFactory;
     themeManager?: IThemeManager;
     providerRegistry: IProviderRegistry;

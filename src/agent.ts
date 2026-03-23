@@ -14,7 +14,6 @@ import {
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
 import {
   createProviderTools,
@@ -23,6 +22,7 @@ import {
 import {
   type IAgentManager,
   type IAgentManagerFactory,
+  type IAISettingsModel,
   type IProviderInfo,
   type IProviderRegistry,
   type ISkillRegistry,
@@ -64,7 +64,7 @@ export namespace AgentManagerFactory {
     /**
      * The settings model.
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     /**
      * The skill registry for discovering skills.
      */
@@ -265,7 +265,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
   }
 
   private _agentManagers: IAgentManager[] = [];
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
   private _mcpClients: IMCPClientWrapper[];
@@ -1211,7 +1211,7 @@ WEB RETRIEVAL POLICY:
   }
 
   // Private attributes
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
   private _skillRegistry?: ISkillRegistry;

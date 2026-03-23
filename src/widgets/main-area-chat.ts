@@ -7,14 +7,13 @@ import { CommandRegistry } from '@lumino/commands';
 import { ApprovalButtons } from '../approval-buttons';
 import { AIChatModel } from '../chat-model';
 import { TokenUsageWidget } from '../components/token-usage-display';
-import { AISettingsModel } from '../models/settings-model';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
-import { CommandIds } from '../tokens';
+import { CommandIds, type IAISettingsModel } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
     commands: CommandRegistry;
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     trans: TranslationBundle;
   }
 }

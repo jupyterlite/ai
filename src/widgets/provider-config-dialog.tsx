@@ -31,8 +31,12 @@ import {
 } from '@mui/material';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
-import { IProviderConfig, IProviderParameters } from '../models/settings-model';
-import type { IProviderRegistry, IProviderToolCapabilities } from '../tokens';
+import type {
+  IProviderConfig,
+  IProviderParameters,
+  IProviderRegistry,
+  IProviderToolCapabilities
+} from '../tokens';
 
 /**
  * Default parameter values for provider configuration

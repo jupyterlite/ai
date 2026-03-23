@@ -2,8 +2,7 @@ import { CommandRegistry } from '@lumino/commands';
 import { Widget } from '@lumino/widgets';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ITool } from '../tokens';
-import { AISettingsModel } from '../models/settings-model';
+import type { IAISettingsModel, ITool } from '../tokens';
 
 interface ICommandEntry {
   id: string;
@@ -148,7 +147,7 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
  */
 export function createExecuteCommandTool(
   commands: CommandRegistry,
-  settingsModel: AISettingsModel
+  settingsModel: IAISettingsModel
 ): ITool {
   return tool({
     title: 'Execute Command',

@@ -1,74 +1,16 @@
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+import {
+  IAIConfig,
+  IAISettingsModel,
+  IMCPServerConfig,
+  IProviderConfig
+} from '../tokens';
+
 const PLUGIN_ID = '@jupyterlite/ai:settings-model';
 
-export interface IProviderParameters {
-  temperature?: number;
-  maxOutputTokens?: number;
-  maxTurns?: number;
-  supportsFillInMiddle?: boolean;
-  useFilterText?: boolean;
-}
-
-export interface IProviderConfig {
-  id: string;
-  name: string;
-  provider: string;
-  model: string;
-  apiKey?: string;
-  baseURL?: string;
-  headers?: Record<string, string>;
-  parameters?: IProviderParameters;
-  customSettings?: Record<string, any>;
-  [key: string]: any; // Index signature for JupyterLab settings compatibility
-}
-
-export interface IMCPServerConfig {
-  id: string;
-  name: string;
-  url: string;
-  enabled: boolean;
-  [key: string]: any; // Index signature for JupyterLab settings compatibility
-}
-
-export interface IAIConfig {
-  // Whether to use the secrets manager
-  useSecretsManager: boolean;
-  // List of configured providers
-  providers: IProviderConfig[];
-  // Active provider IDs for different use cases
-  defaultProvider: string; // Default provider for chat
-  activeCompleterProvider?: string; // Provider for completions (if different)
-  // When true, use the same provider for chat and completions
-  useSameProviderForChatAndCompleter: boolean;
-  // MCP servers configuration
-  mcpServers: IMCPServerConfig[];
-  // Global settings
-  contextAwareness: boolean;
-  codeExecution: boolean;
-  systemPrompt: string;
-  completionSystemPrompt: string;
-  toolsEnabled: boolean;
-  // Chat behavior settings
-  sendWithShiftEnter: boolean;
-  // Token usage display setting
-  showTokenUsage: boolean;
-  // Commands that require approval before execution
-  commandsRequiringApproval: string[];
-  // Commands whose execute_command outputs may auto-render MIME bundles in chat
-  commandsAutoRenderMimeBundles: string[];
-  // MIME types that are trusted when auto-rendering execute_command outputs
-  trustedMimeTypesForAutoRender: string[];
-  // Diff display settings
-  showCellDiff: boolean;
-  showFileDiff: boolean;
-  diffDisplayMode: 'split' | 'unified';
-  // Paths to directories containing agent skills
-  skillsPaths: string[];
-}
-
-export class AISettingsModel extends VDomModel {
+export class AISettingsModel extends VDomModel implements IAISettingsModel {
   private _config: IAIConfig = {
     useSecretsManager: true,
     providers: [],
@@ -251,16 +193,16 @@ Rules:
   constructor(options: AISettingsModel.IOptions) {
     super();
     this._settingRegistry = options.settingRegistry;
-    this.initializeSettings();
+    this._initializeSettings();
   }
 
-  private async initializeSettings(): Promise<void> {
+  private async _initializeSettings(): Promise<void> {
     try {
       this._settings = await this._settingRegistry.load(PLUGIN_ID);
-      this.loadFromSettings();
+      this._loadFromSettings();
 
       // Listen for settings changes
-      this._settings.changed.connect(this.onSettingsChanged, this);
+      this._settings.changed.connect(this._onSettingsChanged, this);
 
       this.stateChanged.emit(void 0);
     } catch (error) {
@@ -269,12 +211,12 @@ Rules:
     }
   }
 
-  private onSettingsChanged(): void {
-    this.loadFromSettings();
+  private _onSettingsChanged(): void {
+    this._loadFromSettings();
     this.stateChanged.emit(void 0);
   }
 
-  private loadFromSettings(): void {
+  private _loadFromSettings(): void {
     if (!this._settings) {
       return;
     }
@@ -334,12 +276,12 @@ Rules:
     // If this is the first provider, make it active
     if (this._config.providers.length === 1) {
       // Save both providers and defaultProvider
-      await this.saveSetting('providers', this._config.providers);
+      await this._saveSetting('providers', this._config.providers);
       this._config.defaultProvider = id;
-      await this.saveSetting('defaultProvider', this._config.defaultProvider);
+      await this._saveSetting('defaultProvider', this._config.defaultProvider);
     } else {
       // Only save providers
-      await this.saveSetting('providers', this._config.providers);
+      await this._saveSetting('providers', this._config.providers);
     }
 
     return id;
@@ -352,18 +294,18 @@ Rules:
     }
 
     this._config.providers.splice(index, 1);
-    await this.saveSetting('providers', this._config.providers);
+    await this._saveSetting('providers', this._config.providers);
 
     // If this was the active provider, select a new one
     if (this._config.defaultProvider === id) {
       this._config.defaultProvider =
         this._config.providers.length > 0 ? this._config.providers[0].id : '';
-      await this.saveSetting('defaultProvider', this._config.defaultProvider);
+      await this._saveSetting('defaultProvider', this._config.defaultProvider);
     }
 
     if (this._config.activeCompleterProvider === id) {
       this._config.activeCompleterProvider = undefined;
-      await this.saveSetting(
+      await this._saveSetting(
         'activeCompleterProvider',
         this._config.activeCompleterProvider
       );
@@ -385,19 +327,19 @@ Rules:
         delete provider[key];
       }
     });
-    await this.saveSetting('providers', this._config.providers);
+    await this._saveSetting('providers', this._config.providers);
   }
 
   async setActiveProvider(id: string): Promise<void> {
     if (this.getProvider(id)) {
       this._config.defaultProvider = id;
-      await this.saveSetting('defaultProvider', this._config.defaultProvider);
+      await this._saveSetting('defaultProvider', this._config.defaultProvider);
     }
   }
 
   async setActiveCompleterProvider(id: string | undefined): Promise<void> {
     this._config.activeCompleterProvider = id;
-    await this.saveSetting(
+    await this._saveSetting(
       'activeCompleterProvider',
       this._config.activeCompleterProvider
     );
@@ -423,7 +365,7 @@ Rules:
     };
 
     this._config.mcpServers.push(newServer);
-    await this.saveSetting('mcpServers', this._config.mcpServers);
+    await this._saveSetting('mcpServers', this._config.mcpServers);
     return id;
   }
 
@@ -434,7 +376,7 @@ Rules:
     }
 
     this._config.mcpServers.splice(index, 1);
-    await this.saveSetting('mcpServers', this._config.mcpServers);
+    await this._saveSetting('mcpServers', this._config.mcpServers);
   }
 
   async updateMCPServer(
@@ -447,7 +389,7 @@ Rules:
     }
 
     Object.assign(server, updates);
-    await this.saveSetting('mcpServers', this._config.mcpServers);
+    await this._saveSetting('mcpServers', this._config.mcpServers);
   }
 
   async updateConfig(updates: Partial<IAIConfig>): Promise<void> {
@@ -460,7 +402,7 @@ Rules:
         this._config[key as keyof IAIConfig] !== value
       ) {
         (this._config as any)[key] = value;
-        promises.push(this.saveSetting(key as keyof IAIConfig, value));
+        promises.push(this._saveSetting(key as keyof IAIConfig, value));
       }
     }
 
@@ -468,6 +410,11 @@ Rules:
     await Promise.all(promises);
   }
 
+  /**
+   * Get the API key saved in the settings file for a given provider.
+   *
+   * @param id - the id of the provider.
+   */
   getApiKey(id: string): string {
     // First check the active completer provider
     const activeCompleterProvider = this.getCompleterProvider();
@@ -484,7 +431,7 @@ Rules:
     return '';
   }
 
-  private async saveSetting(key: keyof IAIConfig, value: any): Promise<void> {
+  private async _saveSetting(key: keyof IAIConfig, value: any): Promise<void> {
     try {
       if (this._settings) {
         // Only save the specific setting that changed

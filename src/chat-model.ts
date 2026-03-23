@@ -31,9 +31,7 @@ import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
 
-import { AISettingsModel } from './models/settings-model';
-
-import type { IAgentManager, ITokenUsage } from './tokens';
+import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
 
 /**
  * Tool call status types.
@@ -923,7 +921,7 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   // Private fields
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: IAgentManager;
@@ -1208,7 +1206,7 @@ export namespace AIChatModel {
     /**
      * Settings model for AI configuration
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     /**
      * Optional agent manager for handling AI agent lifecycle
      */

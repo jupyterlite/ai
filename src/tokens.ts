@@ -1,4 +1,5 @@
 import { ActiveCellManager } from '@jupyter/chat';
+import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
@@ -6,7 +7,6 @@ import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import type { AISettingsModel } from './models/settings-model';
 import type { IModelOptions } from './providers/models';
 import { AIChatModel } from './chat-model';
 import type {
@@ -315,10 +315,103 @@ export const IProviderRegistry = new Token<IProviderRegistry>(
 
 /* THE SETTINGS MODEL */
 
+export interface IProviderParameters {
+  temperature?: number;
+  maxOutputTokens?: number;
+  maxTurns?: number;
+  supportsFillInMiddle?: boolean;
+  useFilterText?: boolean;
+}
+
+export interface IProviderConfig {
+  id: string;
+  name: string;
+  provider: string;
+  model: string;
+  apiKey?: string;
+  baseURL?: string;
+  headers?: Record<string, string>;
+  parameters?: IProviderParameters;
+  customSettings?: Record<string, any>;
+  [key: string]: any; // Index signature for JupyterLab settings compatibility
+}
+
+export interface IMCPServerConfig {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  [key: string]: any; // Index signature for JupyterLab settings compatibility
+}
+
+export interface IAIConfig {
+  // Whether to use the secrets manager
+  useSecretsManager: boolean;
+  // List of configured providers
+  providers: IProviderConfig[];
+  // Active provider IDs for different use cases
+  defaultProvider: string; // Default provider for chat
+  activeCompleterProvider?: string; // Provider for completions (if different)
+  // When true, use the same provider for chat and completions
+  useSameProviderForChatAndCompleter: boolean;
+  // MCP servers configuration
+  mcpServers: IMCPServerConfig[];
+  // Global settings
+  contextAwareness: boolean;
+  codeExecution: boolean;
+  systemPrompt: string;
+  completionSystemPrompt: string;
+  toolsEnabled: boolean;
+  // Chat behavior settings
+  sendWithShiftEnter: boolean;
+  // Token usage display setting
+  showTokenUsage: boolean;
+  // Commands that require approval before execution
+  commandsRequiringApproval: string[];
+  // Commands whose execute_command outputs may auto-render MIME bundles in chat
+  commandsAutoRenderMimeBundles: string[];
+  // MIME types that are trusted when auto-rendering execute_command outputs
+  trustedMimeTypesForAutoRender: string[];
+  // Diff display settings
+  showCellDiff: boolean;
+  showFileDiff: boolean;
+  diffDisplayMode: 'split' | 'unified';
+  // Paths to directories containing agent skills
+  skillsPaths: string[];
+}
+
+export interface IAISettingsModel extends VDomRenderer.IModel {
+  readonly config: IAIConfig;
+  updateConfig(updates: Partial<IAIConfig>): Promise<void>;
+  readonly providers: IProviderConfig[];
+  getProvider(id: string): IProviderConfig | undefined;
+  getDefaultProvider(): IProviderConfig | undefined;
+  getCompleterProvider(): IProviderConfig | undefined;
+  addProvider(providerConfig: Omit<IProviderConfig, 'id'>): Promise<string>;
+  removeProvider(id: string): Promise<void>;
+  updateProvider(id: string, updates: Partial<IProviderConfig>): Promise<void>;
+  setActiveProvider(id: string): Promise<void>;
+  setActiveCompleterProvider(id: string | undefined): Promise<void>;
+  readonly mcpServers: IMCPServerConfig[];
+  getMCPServer(id: string): IMCPServerConfig | undefined;
+  addMCPServer(serverConfig: Omit<IMCPServerConfig, 'id'>): Promise<string>;
+  removeMCPServer(id: string): Promise<void>;
+  updateMCPServer(
+    id: string,
+    updates: Partial<IMCPServerConfig>
+  ): Promise<void>;
+  /**
+   * Get the API key saved in the settings file for a given provider.
+   *
+   * @param id - the id of the provider.
+   */
+  getApiKey(id: string): string;
+}
+
 /**
  * Token for the AI settings model.
  */
-export const IAISettingsModel = new Token<AISettingsModel>(
+export const IAISettingsModel = new Token<IAISettingsModel>(
   '@jupyterlite/ai:IAISettingsModel'
 );
 
@@ -335,7 +428,7 @@ export namespace IAgentManager {
     /**
      * AI settings model for configuration
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
 
     /**
      * Optional tool registry for managing available tools

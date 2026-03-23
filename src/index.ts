@@ -77,13 +77,14 @@ import {
   CommandIds,
   IAgentManagerFactory,
   type IAISecretsAccess,
+  IAISettingsModel,
+  IChatModelHandler,
+  IDiffManager,
+  type IProviderConfig,
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
-  SECRETS_NAMESPACE,
-  IAISettingsModel,
-  IChatModelHandler,
-  IDiffManager
+  SECRETS_NAMESPACE
 } from './tokens';
 
 import {
@@ -105,7 +106,7 @@ import {
   TokenUsageWidget
 } from './components';
 
-import { AISettingsModel, IProviderConfig } from './models/settings-model';
+import { AISettingsModel } from './models/settings-model';
 
 import { loadSkillsFromPaths, SkillRegistry } from './skills';
 
@@ -322,7 +323,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
   provides: IChatModelHandler,
   activate: (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     agentManagerFactory: IAgentManagerFactory,
     docManager: IDocumentManager,
     rmRegistry: IRenderMimeRegistry,
@@ -371,7 +372,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     rmRegistry: IRenderMimeRegistry,
     inputToolbarFactory: IInputToolbarRegistryFactory,
     modelHandler: IChatModelHandler,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     chatCommandRegistry: IChatCommandRegistry,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
@@ -615,7 +616,7 @@ function registerCommands(
   chatPanel: MultiChatPanel,
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
-  settingsModel: AISettingsModel,
+  settingsModel: IAISettingsModel,
   chatCommandRegistry: IChatCommandRegistry,
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelHandler,
@@ -889,7 +890,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
       optional: [ISkillRegistry, ICompletionProviderManager, ISecretsManager],
       activate: (
         app: JupyterFrontEnd,
-        settingsModel: AISettingsModel,
+        settingsModel: IAISettingsModel,
         providerRegistry: IProviderRegistry,
         skillRegistry?: ISkillRegistry,
         completionManager?: ICompletionProviderManager,
@@ -940,7 +941,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
   ],
   activate: (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     agentManagerFactory: IAgentManagerFactory,
     providerRegistry: IProviderRegistry,
     palette?: ICommandPalette,
@@ -1005,13 +1006,16 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
 /**
  * Built-in completion providers plugin
  */
-const settingsModel: JupyterFrontEndPlugin<AISettingsModel> = {
+const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
   id: '@jupyterlite/ai:settings-model',
   description: 'Provide the AI settings model',
   autoStart: true,
   provides: IAISettingsModel,
   requires: [ISettingRegistry],
-  activate: (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
+  activate: (
+    app: JupyterFrontEnd,
+    settingRegistry: ISettingRegistry
+  ): IAISettingsModel => {
     return new AISettingsModel({ settingRegistry });
   }
 };
@@ -1027,7 +1031,7 @@ const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
   requires: [IAISettingsModel],
   activate: (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel
+    settingsModel: IAISettingsModel
   ): IDiffManager => {
     return new DiffManager({
       commands: app.commands,
@@ -1058,7 +1062,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   provides: IToolRegistry,
   activate: (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     skillRegistry?: ISkillRegistry
   ) => {
     const toolRegistry = new ToolRegistry();
@@ -1098,7 +1102,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     optional: [ITranslator],
     activate: (
       app: JupyterFrontEnd,
-      settingsModel: AISettingsModel,
+      settingsModel: IAISettingsModel,
       toolRegistry: IToolRegistry,
       providerRegistry: IProviderRegistry,
       translator?: ITranslator
@@ -1148,7 +1152,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
   optional: [IStatusBar, ITranslator],
   activate: (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     statusBar: IStatusBar | null,
     translator?: ITranslator
   ) => {
@@ -1179,7 +1183,7 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   optional: [ICommandPalette, ITranslator],
   activate: async (
     app: JupyterFrontEnd,
-    settingsModel: AISettingsModel,
+    settingsModel: IAISettingsModel,
     docManager: IDocumentManager,
     skillRegistry: ISkillRegistry,
     palette?: ICommandPalette,

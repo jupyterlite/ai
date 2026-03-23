@@ -2,8 +2,7 @@ import { ReactWidget, UseSignal } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
 import { ISignal } from '@lumino/signaling';
-import { AISettingsModel } from '../models/settings-model';
-import { ITokenUsage } from '../tokens';
+import type { IAISettingsModel, ITokenUsage } from '../tokens';
 
 /**
  * Props for the TokenUsageDisplay component.
@@ -17,7 +16,7 @@ export interface ITokenUsageDisplayProps {
   /**
    * The settings model instance for configuration options
    */
-  settingsModel: AISettingsModel;
+  settingsModel: IAISettingsModel;
 
   /**
    * Initial token usage.

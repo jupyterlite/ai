@@ -3,9 +3,9 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { TranslationBundle } from '@jupyterlab/translation';
 import { AIChatModel } from './chat-model';
-import { AISettingsModel } from './models/settings-model';
 import type {
   IAgentManagerFactory,
+  IAISettingsModel,
   IChatModelHandler,
   IProviderRegistry,
   ITokenUsage,
@@ -69,7 +69,7 @@ export class ChatModelHandler implements IChatModelHandler {
 
   private _docManager: IDocumentManager;
   private _agentManagerFactory: IAgentManagerFactory;
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
   private _rmRegistry: IRenderMimeRegistry;
@@ -90,7 +90,7 @@ export namespace ChatModelHandler {
     /**
      * AI settings model for configuration
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     /**
      * Optional tool registry for managing available tools
      */

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { AISettingsModel } from '../models/settings-model';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { jupyternautIcon } from '../icons';
+import type { IAISettingsModel } from '../tokens';
 
 const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
 const COMPLETION_DISABLED_CLASS = 'jp-ai-completion-disabled';
@@ -14,7 +14,7 @@ interface ICompletionStatusProps {
   /**
    * The settings model.
    */
-  settingsModel: AISettingsModel;
+  settingsModel: IAISettingsModel;
   /**
    * The application language translator.
    */
@@ -33,7 +33,7 @@ function CompletionStatus(props: ICompletionStatusProps): JSX.Element {
    * Handle changes in the settings.
    */
   useEffect(() => {
-    const stateChanged = (model: AISettingsModel) => {
+    const stateChanged = (model: IAISettingsModel) => {
       if (model.config.useSameProviderForChatAndCompleter) {
         setDisabled(false);
         setTitle(
