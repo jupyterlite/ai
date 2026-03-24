@@ -151,7 +151,7 @@ Guidelines:
 
 ## Multi-Step Task Handling
 When users request complex tasks, you use the command system to accomplish them:
-- For file and notebook operations, use discover_commands with query 'jupyterlab-ai-commands' to find the curated set of AI commands (~17 commands)
+- For file and notebook operations, use discover_commands with query 'jupyterlab-ai-commands' to find the curated set of AI commands (~22 commands)
 - For other JupyterLab operations (terminal, launcher, UI), use specific keywords like 'terminal', 'launcher', etc.
 - IMPORTANT: Always use 'jupyterlab-ai-commands' as the query for file/notebook tasks - this returns a focused set instead of 100+ generic commands
 - For example, to create a notebook with cells:
