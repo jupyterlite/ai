@@ -41,6 +41,18 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       })
     );
 
+    // add the move to side button.
+    this.toolbar.addItem(
+      'saveChat',
+      new CommandToolbarButton({
+        commands: options.commands,
+        id: CommandIds.saveChat,
+        args: {
+          name: this.content.model.name
+        }
+      })
+    );
+
     // Add the token usage button.
     const tokenUsageWidget = new TokenUsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,

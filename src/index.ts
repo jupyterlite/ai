@@ -48,6 +48,8 @@ import {
 } from '@jupyterlab/translation';
 
 import {
+  CommandToolbarButton,
+  saveIcon,
   settingsIcon,
   Toolbar,
   ToolbarButton
@@ -56,6 +58,7 @@ import {
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
 
 import { DisposableSet } from '@lumino/disposable';
+
 import { CommandRegistry } from '@lumino/commands';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
@@ -65,6 +68,7 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
+
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
@@ -72,6 +76,8 @@ import { ClearCommandProvider } from './chat-commands/clear';
 import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
+
+import { saveChat } from './backup';
 
 import { ChatModelHandler } from './chat-model-handler';
 
@@ -366,7 +372,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     ILabShell,
     INotebookTracker,
     ITranslator,
-    IComponentsRendererFactory
+    IComponentsRendererFactory,
+    ICommandPalette
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -380,7 +387,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     labShell?: ILabShell,
     notebookTracker?: INotebookTracker,
     translator?: ITranslator,
-    chatComponentsFactory?: IComponentsRendererFactory
+    chatComponentsFactory?: IComponentsRendererFactory,
+    palette?: ICommandPalette
   ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -529,6 +537,20 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         tokenUsageWidget
       );
 
+      const saveChatButton = new CommandToolbarButton({
+        commands: app.commands,
+        id: CommandIds.saveChat,
+        args: {
+          name: model.name
+        }
+      });
+
+      chatPanel.current?.toolbar.insertAfter(
+        'markRead',
+        'saveChat',
+        saveChatButton
+      );
+
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
         // Check if AI is currently writing (streaming)
@@ -600,7 +622,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       modelHandler,
       trans,
       themeManager,
-      labShell
+      labShell,
+      palette
     );
 
     /**
@@ -640,7 +663,8 @@ function registerCommands(
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
   themeManager?: IThemeManager,
-  labShell?: ILabShell
+  labShell?: ILabShell,
+  palette?: ICommandPalette
 ) {
   const { commands } = app;
 
@@ -888,6 +912,62 @@ function registerCommands(
         }
       }
     });
+
+    commands.addCommand(CommandIds.saveChat, {
+      label: args => (args.isPalette ? trans.__('Save chat') : ''),
+      caption: trans.__('Save the chat as local file'),
+      icon: saveIcon,
+      execute: async (args): Promise<boolean> => {
+        let model: AIChatModel | null = null;
+        if (args.name) {
+          tracker.forEach(widget => {
+            if (widget.model.name === args.name) {
+              model = widget.model as AIChatModel;
+            }
+          });
+        } else {
+          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+        }
+        if (model === null) {
+          console.log('No chat to save');
+          return false;
+        }
+
+        console.log('Saving the chat');
+        saveChat(
+          app.serviceManager.contents,
+          model.agentManager.activeProvider,
+          model
+        );
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            isPalette: {
+              type: 'boolean',
+              description: trans.__('Whether the command is in palette')
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat to save')
+            }
+          },
+          requires: ['area', 'name']
+        }
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        category: trans.__('AI Assistant'),
+        command: CommandIds.saveChat,
+        args: {
+          isPalette: true
+        }
+      });
+    }
   }
 }
 
