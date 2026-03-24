@@ -450,7 +450,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         );
 
         if (aiWriting) {
-          widget.inputToolbarRegistry?.hide('send');
+          widget.inputToolbarRegistry?.show('send');
           widget.inputToolbarRegistry?.show('stop');
         } else {
           widget.inputToolbarRegistry?.hide('stop');
@@ -535,6 +535,22 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
     if (chatComponentsFactory) {
       chatComponentsFactory.toolCallApproval = toolCallApproval;
+
+      /**
+       * The callback to remove a queued message.
+       */
+      chatComponentsFactory.removeQueuedMessage = (
+        targetId: string,
+        messageId: string
+      ) => {
+        const model = tracker.find(
+          chat => chat.model.name === targetId
+        )?.model;
+        if (!model) {
+          return;
+        }
+        (model as AIChatModel).removeQueuedMessage(messageId);
+      };
     }
 
     return tracker;

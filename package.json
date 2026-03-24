@@ -87,7 +87,7 @@
         "@mui/icons-material": "^7",
         "@mui/material": "^7",
         "ai": "^6.0.108",
-        "jupyter-chat-components": "^0.1.3",
+        "jupyter-chat-components": "^0.2.0",
         "jupyter-secrets-manager": "^0.5.0",
         "yaml": "^2.8.1",
         "zod": "^4.3.6"
@@ -251,5 +251,8 @@
             "selector-no-vendor-prefix": null,
             "value-no-vendor-prefix": null
         }
+    },
+    "resolutions": {
+        "jupyter-chat-components": "portal:/home/yahia/Documents/git/jupyter-chat-components"
     }
 }

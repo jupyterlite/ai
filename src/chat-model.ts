@@ -165,7 +165,8 @@ export class AIChatModel extends AbstractChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
-      addSystemMessage: (body: string) => this.addSystemMessage(body)
+      addSystemMessage: (body: string) => this.addSystemMessage(body),
+      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id)
     };
   }
 
@@ -201,7 +202,18 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Overridden to ensure the message queue display stays at the bottom.
+   */
+  public messageAdded(message: IMessageContent): void {
+    super.messageAdded(message);
+    if (this._queueMessageId && message.id !== this._queueMessageId) {
+      this._updateQueueUI();
+    }
+  }
+
+  /**
    * Sends a message to the AI and generates a response.
+   * If agent is busy, the message is queued.
    * @param message The user message to send
    */
   async sendMessage(message: INewMessage): Promise<void> {
@@ -210,18 +222,6 @@ export class AIChatModel extends AbstractChatModel {
     if (!hasBody && !hasAttachments) {
       return;
     }
-
-    // Add user message to chat
-    const userMessage: IMessageContent = {
-      body: message.body,
-      sender: this.user || { username: 'user', display_name: 'User' },
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false,
-      attachments: [...this.input.attachments]
-    };
-    this.messageAdded(userMessage);
 
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
@@ -237,7 +237,34 @@ export class AIChatModel extends AbstractChatModel {
       return;
     }
 
+    // Create user message content
+    const userMessage: IMessageContent = {
+      body: message.body,
+      sender: this.user || { username: 'user', display_name: 'User' },
+      id: UUID.uuid4(),
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false,
+      attachments: [...this.input.attachments]
+    };
+
+    if (this._isBusy) {
+      this._messageQueue.push({
+        id: UUID.uuid4(),
+        body: message.body,
+        _originalMsg: userMessage
+      });
+      this.input.clearAttachments();
+      this._updateQueueUI();
+      return;
+    }
+
+    this._isBusy = true;
+    this.messageAdded(userMessage);
+
     try {
+      this.updateWriters([{ user: this._getAIUser() }]);
+
       // Process attachments and add their content to the message
       let enhancedMessage = message.body;
       if (this.input.attachments.length > 0) {
@@ -252,8 +279,6 @@ export class AIChatModel extends AbstractChatModel {
         }
       }
 
-      this.updateWriters([{ user: this._getAIUser() }]);
-
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
       const errorMessage: IMessageContent = {
@@ -266,8 +291,19 @@ export class AIChatModel extends AbstractChatModel {
       };
       this.messageAdded(errorMessage);
     } finally {
-      this.updateWriters([]);
+      this._drainQueue();
     }
+  }
+
+  /**
+   * Removes a queued message by its ID.
+   * @param messageId The ID of the queued message to remove
+   */
+  removeQueuedMessage(messageId: string): void {
+    this._messageQueue = this._messageQueue.filter(
+      msg => msg.id !== messageId
+    );
+    this._updateQueueUI();
   }
 
   /**
@@ -644,6 +680,110 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * Processes the next message in the queue, or marks the agent as idle.
+   */
+  private async _drainQueue(): Promise<void> {
+    if (this._messageQueue.length === 0) {
+      this._isBusy = false;
+      this.updateWriters([]);
+      // Remove the queue display message
+      if (this._queueMessageId) {
+        const queueMsg = this.messages.find(
+          msg => msg.id === this._queueMessageId
+        );
+        if (queueMsg) {
+          const idx = this.messages.indexOf(queueMsg);
+          if (idx !== -1) {
+            this.messagesDeleted(idx, 1);
+          }
+        }
+        this._queueMessageId = null;
+      }
+      return;
+    }
+
+    // Dequeue and push to chat
+    const next = this._messageQueue.shift()!;
+    next._originalMsg.time = Date.now() / 1000;
+    this.messageAdded(next._originalMsg!);
+    this._updateQueueUI();
+
+    try {
+      // Process attachments now. 
+      // TODO: STILL NEED TO LOOK INTO THIS
+      let body = next.body;
+      if (next._originalMsg?.attachments?.length) {
+        const attachmentContents = await this._processAttachments(
+          next._originalMsg.attachments
+        );
+        if (attachmentContents.length > 0) {
+          body +=
+            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
+        }
+      }
+
+      await this._agentManager.generateResponse(body);
+    } catch (error) {
+      const errorMessage: IMessageContent = {
+        body: `Error generating AI response: ${(error as Error).message}`,
+        sender: this._getAIUser(),
+        id: UUID.uuid4(),
+        time: Date.now() / 1000,
+        type: 'msg',
+        raw_time: false
+      };
+      this.messageAdded(errorMessage);
+    } finally {
+      this._drainQueue();
+    }
+  }
+
+  /**
+   * Creates or updates the message-queue chat component.
+   */
+  private _updateQueueUI(): void {
+    // Delete existing queue message if it exists to
+    // ensure the new one goes to the bottom.
+    if (this._queueMessageId) {
+      const existingMsg = this.messages.find(
+        msg => msg.id === this._queueMessageId
+      );
+      if (existingMsg) {
+        const idx = this.messages.indexOf(existingMsg);
+        if (idx !== -1) {
+          this.messagesDeleted(idx, 1);
+        }
+      }
+      this._queueMessageId = null;
+    }
+
+    if (this._messageQueue.length === 0) {
+      return;
+    }
+
+    this._queueMessageId = UUID.uuid4();
+    const queueBody = {
+      data: {
+        'application/vnd.jupyter.chat.components': 'message-queue'
+      },
+      metadata: {
+        messages: this._messageQueue.map(m => ({ id: m.id, body: m.body })),
+        targetId: this.name
+      }
+    };
+
+    const queueMessage: IMessageContent = {
+      body: queueBody,
+      sender: this._getAIUser(),
+      id: this._queueMessageId,
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+    this.messageAdded(queueMessage);
+  }
+
+  /**
    * Processes file attachments and returns their content as formatted strings.
    * @param attachments Array of file attachments to process
    * @returns Array of formatted attachment contents
@@ -928,6 +1068,9 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: AgentManager;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _messageQueue: Private.IQueuedItem[] = [];
+  private _isBusy = false;
+  private _queueMessageId: string | null = null;
 }
 
 namespace Private {
@@ -1006,6 +1149,15 @@ namespace Private {
 
     return [];
   };
+
+  /**
+   * Internal wrapper for queued messages.
+   */
+  export interface IQueuedItem {
+    id: string;
+    body: string;
+    _originalMsg: IMessageContent;
+  }
 
   /**
    * Extract rendermime-ready mime bundles from arbitrary tool results.
@@ -1089,5 +1241,9 @@ export namespace AIChatModel {
      * The agent manager of the chat.
      */
     agentManager: AgentManager;
+    /**
+     * Removes a queued message by its ID.
+     */
+    removeQueuedMessage: (id: string) => void;
   }
 }

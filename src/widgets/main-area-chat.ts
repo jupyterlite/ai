@@ -88,7 +88,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     );
 
     if (aiWriting) {
-      this.content.inputToolbarRegistry?.hide('send');
+      this.content.inputToolbarRegistry?.show('send');
       this.content.inputToolbarRegistry?.show('stop');
     } else {
       this.content.inputToolbarRegistry?.hide('stop');
