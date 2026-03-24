@@ -25,7 +25,7 @@ classifiers = [
 
 dependencies = [
     "jupyter-secrets-manager >=0.5,<0.6",
-    "jupyterlab-ai-commands >=0.3.0,<0.4",
+    "jupyterlab-ai-commands >=0.3.1,<0.4",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
