@@ -23,6 +23,7 @@ import {
 import {
   ICommandPalette,
   IThemeManager,
+  showDialog,
   showErrorMessage,
   WidgetTracker
 } from '@jupyterlab/apputils';
@@ -49,6 +50,7 @@ import {
 
 import {
   CommandToolbarButton,
+  fileUploadIcon,
   saveIcon,
   settingsIcon,
   Toolbar,
@@ -77,7 +79,7 @@ import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
-import { saveChat } from './backup';
+import { restoreChat, saveChat } from './backup';
 
 import { ChatModelHandler } from './chat-model-handler';
 
@@ -551,6 +553,20 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         saveChatButton
       );
 
+      const restoreChatButton = new CommandToolbarButton({
+        commands: app.commands,
+        id: CommandIds.restoreChat,
+        args: {
+          name: model.name
+        }
+      });
+
+      chatPanel.current?.toolbar.insertAfter(
+        'saveChat',
+        'restoreChat',
+        restoreChatButton
+      );
+
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
         // Check if AI is currently writing (streaming)
@@ -933,12 +949,7 @@ function registerCommands(
           return false;
         }
 
-        console.log('Saving the chat');
-        saveChat(
-          app.serviceManager.contents,
-          model.agentManager.activeProvider,
-          model
-        );
+        saveChat(app.serviceManager.contents, model);
         return true;
       },
       describedBy: {
@@ -953,8 +964,54 @@ function registerCommands(
               type: 'string',
               description: trans.__('The name of the chat to save')
             }
-          },
-          requires: ['area', 'name']
+          }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.restoreChat, {
+      label: args => (args.isPalette ? trans.__('Restore chat') : ''),
+      caption: trans.__('Restore the chat from a local file'),
+      icon: fileUploadIcon,
+      execute: async (args): Promise<boolean> => {
+        let model: AIChatModel | null = null;
+        if (args.name) {
+          tracker.forEach(widget => {
+            if (widget.model.name === args.name) {
+              model = widget.model as AIChatModel;
+            }
+          });
+        } else {
+          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+        }
+        if (model === null) {
+          console.log('No chat to save');
+          return false;
+        }
+
+        if (model.messages.length) {
+          const result = await showDialog({
+            body: trans.__('All the message will be deleted')
+          });
+          if (!result.button.accept) {
+            return false;
+          }
+        }
+        return restoreChat(app.serviceManager.contents, model, settingsModel);
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            isPalette: {
+              type: 'boolean',
+              description: trans.__('Whether the command is in palette')
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat to save')
+            }
+          }
         }
       }
     });
@@ -963,6 +1020,13 @@ function registerCommands(
       palette.addItem({
         category: trans.__('AI Assistant'),
         command: CommandIds.saveChat,
+        args: {
+          isPalette: true
+        }
+      });
+      palette.addItem({
+        category: trans.__('AI Assistant'),
+        command: CommandIds.restoreChat,
         args: {
           isPalette: true
         }

@@ -27,7 +27,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
 
     const { trans } = options;
 
-    // add the move to side button.
+    // Move to side button.
     this.toolbar.addItem(
       'moveToSide',
       new CommandToolbarButton({
@@ -41,12 +41,24 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       })
     );
 
-    // add the move to side button.
+    // Save chat button
     this.toolbar.addItem(
       'saveChat',
       new CommandToolbarButton({
         commands: options.commands,
         id: CommandIds.saveChat,
+        args: {
+          name: this.content.model.name
+        }
+      })
+    );
+
+    // Restore chat button
+    this.toolbar.addItem(
+      'restoreChat',
+      new CommandToolbarButton({
+        commands: options.commands,
+        id: CommandIds.restoreChat,
         args: {
           name: this.content.model.name
         }

@@ -33,6 +33,7 @@ export namespace CommandIds {
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
   export const saveChat = '@jupyterlite/ai:save-chat';
+  export const restoreChat = '@jupyterlite/ai:restore-chat';
 }
 
 /* THE TOOL REGISTRY */
