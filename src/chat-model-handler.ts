@@ -1,6 +1,8 @@
 import { ActiveCellManager } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+
+import { restoreChat } from './backup';
 import { AIChatModel } from './chat-model';
 import type {
   IAgentManagerFactory,
@@ -50,6 +52,8 @@ export class ChatModelHandler implements IChatModelHandler {
     });
 
     model.name = name;
+
+    restoreChat(this._docManager.services.contents, model, this._settingsModel);
 
     return model;
   }
