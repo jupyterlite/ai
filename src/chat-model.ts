@@ -23,6 +23,8 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
 import { IRenderMime } from '@jupyterlab/rendermime';
 
+import { Contents } from '@jupyterlab/services';
+
 import { UUID } from '@lumino/coreutils';
 
 import { ISignal, Signal } from '@lumino/signaling';
@@ -101,13 +103,13 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
+    this._contentsManager = options.contentsManager;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
-    this.setReady();
   }
 
   /**
@@ -119,6 +121,8 @@ export class AIChatModel extends AbstractChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
+    this.restore(true);
+    this.setReady();
   }
 
   /**
@@ -264,6 +268,27 @@ export class AIChatModel extends AbstractChatModel {
     } finally {
       this.updateWriters([]);
     }
+  }
+
+  /**
+   * Save the chat as json file.
+   */
+  async save(): Promise<void> {
+    if (this._contentsManager) {
+      return Private.saveChat(this._contentsManager, this);
+    }
+  }
+
+  async restore(silent = false): Promise<boolean> {
+    if (this._contentsManager) {
+      return Private.restoreChat(
+        this._contentsManager,
+        this,
+        this._settingsModel,
+        silent
+      );
+    }
+    return false;
   }
 
   /**
@@ -935,6 +960,7 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: IAgentManager;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _contentsManager?: Contents.IManager;
 }
 
 namespace Private {
@@ -1044,6 +1070,88 @@ namespace Private {
       return '[Complex object - cannot serialize]';
     }
   }
+
+  export async function saveChat(
+    contentsManager: Contents.IManager,
+    model: AIChatModel
+  ) {
+    const directory = '.chats-backup';
+    const filepath = PathExt.join(directory, `${model.name}.json`);
+    const content = JSON.stringify(serializeModel(model));
+    await contentsManager.get(filepath, { content: false }).catch(async () => {
+      await contentsManager
+        .get(directory, { content: false })
+        .catch(async () => {
+          const dir = await contentsManager.newUntitled({ type: 'directory' });
+          await contentsManager.rename(dir.path, directory);
+        });
+      const file = await contentsManager.newUntitled({ ext: '.json' });
+      await contentsManager.rename(file.path, filepath);
+    });
+    await contentsManager.save(filepath, {
+      content,
+      type: 'file',
+      format: 'text'
+    });
+  }
+
+  export async function restoreChat(
+    contentsManager: Contents.IManager,
+    model: AIChatModel,
+    settingsModel: IAISettingsModel,
+    silent = false
+  ): Promise<boolean> {
+    const directory = '.chats-backup';
+    const filepath = PathExt.join(directory, `${model.name}.json`);
+    const contentModel = await contentsManager.get(filepath).catch(() => {
+      if (!silent) {
+        console.log(`There is no backup for chat '${model.name}'`);
+      }
+      return;
+    });
+    if (!contentModel) {
+      return false;
+    }
+    const content = JSON.parse(
+      contentModel.content
+    ) as AIChatModel.ExportedChat;
+    if (settingsModel.getProvider(content.provider)) {
+      model.agentManager.activeProvider = content.provider;
+    } else if (!silent) {
+      console.log(
+        `Provider '${content.provider}' doesn't exist, it can't be restored.`
+      );
+    }
+    const messages: IMessageContent[] = content.messages.map(message => ({
+      ...message,
+      sender: content.users[message.sender] ?? { username: 'unknown' },
+      mentions: message.mentions?.map(mention => content.users[mention])
+    }));
+    model.clearMessages();
+    model.messagesInserted(0, messages);
+    return true;
+  }
+
+  const serializeModel = (model: AIChatModel): AIChatModel.ExportedChat => {
+    const provider = model.agentManager.activeProvider;
+    const messages: IMessageContent<string>[] = [];
+    const users: { [id: string]: IUser } = {};
+    model.messages.forEach(message => {
+      messages.push({
+        ...message.content,
+        sender: message.sender.username,
+        mentions: message.mentions?.map(user => user.username)
+      });
+      if (!users[message.sender.username]) {
+        users[message.sender.username] = message.sender;
+      }
+    });
+    return {
+      provider,
+      messages,
+      users
+    };
+  };
 }
 
 /**
@@ -1074,6 +1182,10 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
+    /**
+     * The contents manager.
+     */
+    contentsManager?: Contents.IManager;
   }
 
   /**
@@ -1097,4 +1209,22 @@ export namespace AIChatModel {
      */
     agentManager: IAgentManager;
   }
+
+  /**
+   * The exported chat format.
+   */
+  export type ExportedChat = {
+    /**
+     * Provider of the chat
+     */
+    provider: string;
+    /**
+     * Message list (user are only string to avoid duplication)
+     */
+    messages: IMessageContent<string>[];
+    /**
+     * The user list.
+     */
+    users: { [id: string]: IUser };
+  };
 }

@@ -1,8 +1,8 @@
 import { ActiveCellManager } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { Contents } from '@jupyterlab/services';
 
-import { restoreChat } from './backup';
 import { AIChatModel } from './chat-model';
 import type {
   IAgentManagerFactory,
@@ -25,6 +25,7 @@ export class ChatModelHandler implements IChatModelHandler {
     this._providerRegistry = options.providerRegistry;
     this._rmRegistry = options.rmRegistry;
     this._activeCellManager = options.activeCellManager;
+    this._contentsManager = options.contentsManager;
   }
 
   createModel(
@@ -48,12 +49,11 @@ export class ChatModelHandler implements IChatModelHandler {
       settingsModel: this._settingsModel,
       agentManager,
       activeCellManager: this._activeCellManager,
-      documentManager: this._docManager
+      documentManager: this._docManager,
+      contentsManager: this._contentsManager
     });
 
     model.name = name;
-
-    restoreChat(this._docManager.services.contents, model, this._settingsModel);
 
     return model;
   }
@@ -75,6 +75,7 @@ export class ChatModelHandler implements IChatModelHandler {
   private _providerRegistry?: IProviderRegistry;
   private _rmRegistry: IRenderMimeRegistry;
   private _activeCellManager?: ActiveCellManager;
+  private _contentsManager?: Contents.IManager;
 }
 
 export namespace ChatModelHandler {
@@ -107,5 +108,9 @@ export namespace ChatModelHandler {
      * The active cell manager.
      */
     activeCellManager?: ActiveCellManager | undefined;
+    /**
+     * The contents manager.
+     */
+    contentsManager?: Contents.IManager;
   }
 }

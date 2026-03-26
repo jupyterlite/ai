@@ -79,8 +79,6 @@ import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
 
-import { restoreChat, saveChat } from './backup';
-
 import { ChatModelHandler } from './chat-model-handler';
 
 import {
@@ -333,7 +331,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
   ],
   optional: [IProviderRegistry, IToolRegistry, ITranslator],
   provides: IChatModelHandler,
-  activate: (
+  activate: async (
     app: JupyterFrontEnd,
     settingsModel: IAISettingsModel,
     agentManagerFactory: IAgentManagerFactory,
@@ -341,14 +339,17 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     rmRegistry: IRenderMimeRegistry,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
-  ): IChatModelHandler => {
+  ): Promise<IChatModelHandler> => {
+    await app.serviceManager.ready;
+
     return new ChatModelHandler({
       settingsModel,
       agentManagerFactory,
       docManager,
       rmRegistry,
       providerRegistry,
-      toolRegistry
+      toolRegistry,
+      contentsManager: app.serviceManager.contents
     });
   }
 };
@@ -949,7 +950,7 @@ function registerCommands(
           return false;
         }
 
-        saveChat(app.serviceManager.contents, model);
+        model.save();
         return true;
       },
       describedBy: {
@@ -997,7 +998,7 @@ function registerCommands(
             return false;
           }
         }
-        return restoreChat(app.serviceManager.contents, model, settingsModel);
+        return model.restore();
       },
       describedBy: {
         args: {
