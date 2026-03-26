@@ -5,7 +5,7 @@ import {
   ToolbarButtonComponent
 } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { AIChatModel } from '../chat-model';
 
@@ -34,28 +34,21 @@ export interface ISaveButtonProps {
 export function SaveComponent(props: ISaveButtonProps): JSX.Element {
   const { model, translator: trans } = props;
 
-  const [autoSave, setAutoSave] = useState(model.autoSave);
-  const autoSaveRef = useRef(autoSave);
-
-  // Keep ref in sync with state so the signal handler always sees the latest
-  // value without needing to reconnect on every toggle.
-  useEffect(() => {
-    autoSaveRef.current = autoSave;
-  }, [autoSave]);
+  const [autosave, setAutosave] = useState(model.autosave);
 
   const handleSave = useCallback(() => {
     model.save();
   }, [model]);
 
-  const toggleAutoSave = useCallback(() => {
-    setAutoSave(prev => {
-      model.autoSave = !prev;
+  const toggleAutosave = useCallback(() => {
+    setAutosave(prev => {
+      model.autosave = !prev;
       return !prev;
     });
   }, []);
 
   return (
-    <div className={`${COMPONENT_CLASS}${autoSave ? ' lm-mod-toggled' : ''}`}>
+    <div className={`${COMPONENT_CLASS}${autosave ? ' lm-mod-toggled' : ''}`}>
       <ToolbarButtonComponent
         icon={saveIcon}
         onClick={handleSave}
@@ -64,7 +57,7 @@ export function SaveComponent(props: ISaveButtonProps): JSX.Element {
       <ToolbarButtonComponent
         className={AUTOSAVE_BUTTON_CLASS}
         icon={historyIcon}
-        onClick={toggleAutoSave}
+        onClick={toggleAutosave}
         tooltip={trans.__('Auto-save')}
       />
     </div>

@@ -8,8 +8,8 @@ import type {
   IAgentManagerFactory,
   IAISettingsModel,
   IChatModelHandler,
+  ICreateChatOptions,
   IProviderRegistry,
-  ITokenUsage,
   IToolRegistry
 } from './tokens';
 
@@ -28,11 +28,9 @@ export class ChatModelHandler implements IChatModelHandler {
     this._contentsManager = options.contentsManager;
   }
 
-  createModel(
-    name: string,
-    activeProvider: string,
-    tokenUsage?: ITokenUsage
-  ): AIChatModel {
+  createModel(options: ICreateChatOptions): AIChatModel {
+    const { name, activeProvider, tokenUsage, messages, autosave } = options;
+
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
       settingsModel: this._settingsModel,
@@ -52,6 +50,11 @@ export class ChatModelHandler implements IChatModelHandler {
       documentManager: this._docManager,
       contentsManager: this._contentsManager
     });
+
+    messages?.forEach(message => {
+      model.messageAdded({ ...message.content });
+    });
+    model.autosave = autosave ?? false;
 
     model.name = name;
 

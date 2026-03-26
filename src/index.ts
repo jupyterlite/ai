@@ -456,7 +456,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           name = `${modelName}-${i}`;
           i += 1;
         }
-        const model = modelHandler.createModel(name, provider);
+        const model = modelHandler.createModel({ name, activeProvider: provider });
         return { model };
       },
       getChatNames: async () => {
@@ -787,7 +787,7 @@ function registerCommands(
           name = providerConfig.name;
         }
 
-        const model = modelRegistry.createModel(name, provider);
+        const model = modelRegistry.createModel({ name, activeProvider: provider });
         if (!model) {
           return false;
         }
@@ -869,13 +869,12 @@ function registerCommands(
         previousModel.name = UUID.uuid4();
 
         // Create a new model by duplicating the previous model attributes.
-        const model = modelRegistry.createModel(
-          args.name as string,
-          previousModel.agentManager.activeProvider,
-          previousModel.agentManager.tokenUsage
-        );
-        previousModel?.messages.forEach(message => {
-          model?.messageAdded({ ...message.content });
+        const model = modelRegistry.createModel({
+          name: args.name as string,
+          activeProvider: previousModel.agentManager.activeProvider,
+          tokenUsage: previousModel.agentManager.tokenUsage,
+          messages: previousModel.messages,
+          autosave: previousModel.autosave
         });
 
         // Wait (with timeout) for the tracker to have updated the previous widget.
@@ -987,10 +986,18 @@ function registerCommands(
           return false;
         }
 
+        let backupDirExists = false;
+        await app.serviceManager.contents
+          .get(settingsModel.config.chatBackupDirectory, { content: false })
+          .then(() => (backupDirExists = true))
+          .catch(() => (backupDirExists = false));
+
         const selection = await FileDialog.getOpenFiles({
           title: trans.__('Select files to attach'),
           manager: documentManager,
-          defaultPath: '.chats-backup'
+          defaultPath: backupDirExists
+            ? settingsModel.config.chatBackupDirectory
+            : ''
         });
 
         const filepath = selection.value?.[0].path;
