@@ -42,25 +42,13 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       })
     );
 
-    if (this.model.backupAvailable) {
+    if (this.model.saveAvailable) {
       // Save chat component
       this.toolbar.addItem(
         'saveChat',
         new SaveComponentWidget({
           model: this.model,
           translator: trans
-        })
-      );
-
-      // Restore chat button
-      this.toolbar.addItem(
-        'restoreChat',
-        new CommandToolbarButton({
-          commands: options.commands,
-          id: CommandIds.restoreChat,
-          args: {
-            name: this.content.model.name
-          }
         })
       );
     }

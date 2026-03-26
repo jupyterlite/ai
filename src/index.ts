@@ -32,6 +32,8 @@ import { ICompletionProviderManager } from '@jupyterlab/completer';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
+import { FileDialog } from '@jupyterlab/filebrowser';
+
 import { INotebookTracker } from '@jupyterlab/notebook';
 
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
@@ -49,7 +51,6 @@ import {
 } from '@jupyterlab/translation';
 
 import {
-  CommandToolbarButton,
   fileUploadIcon,
   saveIcon,
   settingsIcon,
@@ -378,7 +379,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     INotebookTracker,
     ITranslator,
     IComponentsRendererFactory,
-    ICommandPalette
+    ICommandPalette,
+    IDocumentManager
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -393,7 +395,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     notebookTracker?: INotebookTracker,
     translator?: ITranslator,
     chatComponentsFactory?: IComponentsRendererFactory,
-    palette?: ICommandPalette
+    palette?: ICommandPalette,
+    documentManager?: IDocumentManager
   ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -542,7 +545,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         tokenUsageWidget
       );
 
-      if (model.backupAvailable) {
+      if (model.saveAvailable) {
         const saveChatButton = new SaveComponentWidget({
           model,
           translator: trans
@@ -552,20 +555,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           'markRead',
           'saveChat',
           saveChatButton
-        );
-
-        const restoreChatButton = new CommandToolbarButton({
-          commands: app.commands,
-          id: CommandIds.restoreChat,
-          args: {
-            name: model.name
-          }
-        });
-
-        chatPanel.current?.toolbar.insertAfter(
-          'saveChat',
-          'restoreChat',
-          restoreChatButton
         );
       }
 
@@ -641,7 +630,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       trans,
       themeManager,
       labShell,
-      palette
+      palette,
+      documentManager
     );
 
     /**
@@ -682,7 +672,8 @@ function registerCommands(
   trans: TranslationBundle,
   themeManager?: IThemeManager,
   labShell?: ILabShell,
-  palette?: ICommandPalette
+  palette?: ICommandPalette,
+  documentManager?: IDocumentManager
 ) {
   const { commands } = app;
 
@@ -975,7 +966,12 @@ function registerCommands(
       label: args => (args.isPalette ? trans.__('Restore chat') : ''),
       caption: trans.__('Restore the chat from a local file'),
       icon: fileUploadIcon,
+      isVisible: () => !!documentManager,
       execute: async (args): Promise<boolean> => {
+        if (!documentManager) {
+          console.warn('The restoration is not possible');
+          return false;
+        }
         let model: AIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
@@ -987,7 +983,19 @@ function registerCommands(
           model = (tracker.currentWidget?.model as AIChatModel) ?? null;
         }
         if (model === null) {
-          console.log('No chat to save');
+          console.warn('There is no chat to restore');
+          return false;
+        }
+
+        const selection = await FileDialog.getOpenFiles({
+          title: trans.__('Select files to attach'),
+          manager: documentManager,
+          defaultPath: '.chats-backup'
+        });
+
+        const filepath = selection.value?.[0].path;
+
+        if (!filepath) {
           return false;
         }
 
@@ -999,7 +1007,7 @@ function registerCommands(
             return false;
           }
         }
-        return model.restore();
+        return model.restore(filepath);
       },
       describedBy: {
         args: {

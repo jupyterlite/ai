@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AIChatModel } from '../chat-model';
 
 const COMPONENT_CLASS = 'jp-ai-SaveButton';
+const AUTOSAVE_BUTTON_CLASS = 'jp-ai-AutoSaveButton';
 
 /**
  * Properties for the SaveButton component.
@@ -61,7 +62,7 @@ export function SaveComponent(props: ISaveButtonProps): JSX.Element {
         tooltip={trans.__('Save chat')}
       />
       <ToolbarButtonComponent
-        className="jp-ai-AutoSaveButton"
+        className={AUTOSAVE_BUTTON_CLASS}
         icon={historyIcon}
         onClick={toggleAutoSave}
         tooltip={trans.__('Auto-save')}

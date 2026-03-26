@@ -125,7 +125,11 @@ export class AIChatModel extends AbstractChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
-    this.restore(true);
+    if (!this.messages.length) {
+      const directory = '.chats-backup';
+      const filepath = PathExt.join(directory, `${this.name}.json`);
+      this.restore(filepath, true);
+    }
     this.setReady();
   }
 
@@ -181,7 +185,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Whether save/restore is available.
    */
-  get backupAvailable(): boolean {
+  get saveAvailable(): boolean {
     return !!this._contentsManager;
   }
 
@@ -328,11 +332,12 @@ export class AIChatModel extends AbstractChatModel {
    * @param silent - Whether a log should be displayed in the console if the
    * restoration is not possible.
    */
-  restore = async (silent = false): Promise<boolean> => {
+  restore = async (filepath: string, silent = false): Promise<boolean> => {
     if (this._contentsManager) {
       return Private.restoreChat(
-        this._contentsManager,
         this,
+        filepath,
+        this._contentsManager,
         this._settingsModel,
         silent
       );
@@ -1147,13 +1152,12 @@ namespace Private {
   }
 
   export async function restoreChat(
-    contentsManager: Contents.IManager,
     model: AIChatModel,
+    filepath: string,
+    contentsManager: Contents.IManager,
     settingsModel: IAISettingsModel,
     silent = false
   ): Promise<boolean> {
-    const directory = '.chats-backup';
-    const filepath = PathExt.join(directory, `${model.name}.json`);
     const contentModel = await contentsManager.get(filepath).catch(() => {
       if (!silent) {
         console.log(`There is no backup for chat '${model.name}'`);
