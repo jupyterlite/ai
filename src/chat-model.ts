@@ -321,13 +321,31 @@ export class AIChatModel extends AbstractChatModel {
    * Save the chat as json file.
    */
   save = async (): Promise<void> => {
-    if (this._contentsManager) {
-      return Private.saveChat(
-        this,
-        this._contentsManager,
-        this._settingsModel.config.chatBackupDirectory
-      );
+    if (!this._contentsManager) {
+      return;
     }
+    const directory = this._settingsModel.config.chatBackupDirectory;
+    const filepath = PathExt.join(directory, `${this.name}.json`);
+    const content = JSON.stringify(this._serializeModel());
+    await this._contentsManager
+      .get(filepath, { content: false })
+      .catch(async () => {
+        await this._contentsManager
+          ?.get(directory, { content: false })
+          .catch(async () => {
+            const dir = await this._contentsManager!.newUntitled({
+              type: 'directory'
+            });
+            await this._contentsManager!.rename(dir.path, directory);
+          });
+        const file = await this._contentsManager!.newUntitled({ ext: '.json' });
+        await this._contentsManager?.rename(file.path, filepath);
+      });
+    await this._contentsManager.save(filepath, {
+      content,
+      type: 'file',
+      format: 'text'
+    });
   };
 
   /**
@@ -337,18 +355,63 @@ export class AIChatModel extends AbstractChatModel {
    * restoration is not possible.
    */
   restore = async (filepath: string, silent = false): Promise<boolean> => {
-    if (this._contentsManager) {
-      return Private.restoreChat(
-        this,
-        filepath,
-        this._contentsManager,
-        this._settingsModel,
-        silent
+    if (!this._contentsManager) {
+      return false;
+    }
+    const contentModel = await this._contentsManager.get(filepath).catch(() => {
+      if (!silent) {
+        console.log(`There is no backup for chat '${this.name}'`);
+      }
+      return;
+    });
+    if (!contentModel) {
+      return false;
+    }
+    const content = JSON.parse(
+      contentModel.content
+    ) as AIChatModel.ExportedChat;
+    if (this._settingsModel.getProvider(content.provider)) {
+      this._agentManager.activeProvider = content.provider;
+    } else if (!silent) {
+      console.log(
+        `Provider '${content.provider}' doesn't exist, it can't be restored.`
       );
     }
-    return false;
+    const messages: IMessageContent[] = content.messages.map(message => ({
+      ...message,
+      sender: content.users[message.sender] ?? { username: 'unknown' },
+      mentions: message.mentions?.map(mention => content.users[mention])
+    }));
+    this.clearMessages();
+    this.messagesInserted(0, messages);
+    this.autosave = content.autosave ?? false;
+    return true;
   };
 
+  /**
+   * Serialize the model for backup
+   */
+  private _serializeModel(): AIChatModel.ExportedChat {
+    const provider = this._agentManager.activeProvider;
+    const messages: IMessageContent<string>[] = [];
+    const users: { [id: string]: IUser } = {};
+    this.messages.forEach(message => {
+      messages.push({
+        ...message.content,
+        sender: message.sender.username,
+        mentions: message.mentions?.map(user => user.username)
+      });
+      if (!users[message.sender.username]) {
+        users[message.sender.username] = message.sender;
+      }
+    });
+    return {
+      provider,
+      messages,
+      users,
+      autosave: this.autosave
+    };
+  }
   /**
    * Gets the AI user information for system messages.
    */
@@ -1130,89 +1193,6 @@ namespace Private {
       return '[Complex object - cannot serialize]';
     }
   }
-
-  export async function saveChat(
-    model: AIChatModel,
-    contentsManager: Contents.IManager,
-    directory: string
-  ) {
-    const filepath = PathExt.join(directory, `${model.name}.json`);
-    const content = JSON.stringify(serializeModel(model));
-    await contentsManager.get(filepath, { content: false }).catch(async () => {
-      await contentsManager
-        .get(directory, { content: false })
-        .catch(async () => {
-          const dir = await contentsManager.newUntitled({ type: 'directory' });
-          await contentsManager.rename(dir.path, directory);
-        });
-      const file = await contentsManager.newUntitled({ ext: '.json' });
-      await contentsManager.rename(file.path, filepath);
-    });
-    await contentsManager.save(filepath, {
-      content,
-      type: 'file',
-      format: 'text'
-    });
-  }
-
-  export async function restoreChat(
-    model: AIChatModel,
-    filepath: string,
-    contentsManager: Contents.IManager,
-    settingsModel: IAISettingsModel,
-    silent = false
-  ): Promise<boolean> {
-    const contentModel = await contentsManager.get(filepath).catch(() => {
-      if (!silent) {
-        console.log(`There is no backup for chat '${model.name}'`);
-      }
-      return;
-    });
-    if (!contentModel) {
-      return false;
-    }
-    const content = JSON.parse(
-      contentModel.content
-    ) as AIChatModel.ExportedChat;
-    if (settingsModel.getProvider(content.provider)) {
-      model.agentManager.activeProvider = content.provider;
-    } else if (!silent) {
-      console.log(
-        `Provider '${content.provider}' doesn't exist, it can't be restored.`
-      );
-    }
-    const messages: IMessageContent[] = content.messages.map(message => ({
-      ...message,
-      sender: content.users[message.sender] ?? { username: 'unknown' },
-      mentions: message.mentions?.map(mention => content.users[mention])
-    }));
-    model.clearMessages();
-    model.messagesInserted(0, messages);
-    model.autosave = content.autosave ?? false;
-    return true;
-  }
-
-  const serializeModel = (model: AIChatModel): AIChatModel.ExportedChat => {
-    const provider = model.agentManager.activeProvider;
-    const messages: IMessageContent<string>[] = [];
-    const users: { [id: string]: IUser } = {};
-    model.messages.forEach(message => {
-      messages.push({
-        ...message.content,
-        sender: message.sender.username,
-        mentions: message.mentions?.map(user => user.username)
-      });
-      if (!users[message.sender.username]) {
-        users[message.sender.username] = message.sender;
-      }
-    });
-    return {
-      provider,
-      messages,
-      users,
-      autosave: model.autosave
-    };
-  };
 }
 
 /**
