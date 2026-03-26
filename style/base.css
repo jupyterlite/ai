@@ -129,6 +129,35 @@
   stroke-width: 2;
 }
 
+/* Save button */
+.jp-ai-SaveButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--jp-layout-color1);
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.jp-ai-SaveButton.lm-mod-toggled {
+  box-shadow: inset 0px 0px 2px 2px var(--neutral-fill-strong-active);
+}
+
+.jp-ai-SaveButton .jp-ToolbarButtonComponent {
+  margin: unset;
+  height: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton {
+  min-width: unset;
+  width: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* Disabled color for the completion status */
 .jp-ai-completion-status .jp-ai-completion-disabled circle {
   fill: var(--jp-layout-color3);

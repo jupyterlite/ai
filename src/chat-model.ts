@@ -27,6 +27,8 @@ import { Contents } from '@jupyterlab/services';
 
 import { UUID } from '@lumino/coreutils';
 
+import { Debouncer } from '@lumino/polling';
+
 import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
@@ -110,6 +112,8 @@ export class AIChatModel extends AbstractChatModel {
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    this._autoSaveDebouncer = new Debouncer(this.save, 3000);
   }
 
   /**
@@ -123,6 +127,27 @@ export class AIChatModel extends AbstractChatModel {
     this._nameChanged.emit(value);
     this.restore(true);
     this.setReady();
+  }
+
+  /**
+   * Whether to save the chat automatically.
+   */
+  get autoSave(): boolean {
+    return this._autoSave;
+  }
+  set autoSave(value: boolean) {
+    this._autoSave = value;
+    if (value) {
+      this.messagesUpdated.connect(
+        this._autoSaveDebouncer.invoke,
+        this._autoSaveDebouncer
+      );
+    } else {
+      this.messagesUpdated.disconnect(
+        this._autoSaveDebouncer.invoke,
+        this._autoSaveDebouncer
+      );
+    }
   }
 
   /**
@@ -151,6 +176,24 @@ export class AIChatModel extends AbstractChatModel {
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
+  }
+
+  /**
+   * Whether save/restore is available.
+   */
+  get backupAvailable(): boolean {
+    return !!this._contentsManager;
+  }
+
+  /**
+   * Dispose of the model.
+   */
+  dispose(): void {
+    this.messagesUpdated.disconnect(
+      this._autoSaveDebouncer.invoke,
+      this._autoSaveDebouncer
+    );
+    super.dispose();
   }
 
   /**
@@ -273,13 +316,19 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Save the chat as json file.
    */
-  async save(): Promise<void> {
+  save = async (): Promise<void> => {
     if (this._contentsManager) {
       return Private.saveChat(this._contentsManager, this);
     }
-  }
+  };
 
-  async restore(silent = false): Promise<boolean> {
+  /**
+   * Restore the chat from a json file.
+   *
+   * @param silent - Whether a log should be displayed in the console if the
+   * restoration is not possible.
+   */
+  restore = async (silent = false): Promise<boolean> => {
     if (this._contentsManager) {
       return Private.restoreChat(
         this._contentsManager,
@@ -289,7 +338,7 @@ export class AIChatModel extends AbstractChatModel {
       );
     }
     return false;
-  }
+  };
 
   /**
    * Gets the AI user information for system messages.
@@ -961,6 +1010,8 @@ export class AIChatModel extends AbstractChatModel {
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _contentsManager?: Contents.IManager;
+  private _autoSave: boolean = false;
+  private _autoSaveDebouncer: Debouncer;
 }
 
 namespace Private {
