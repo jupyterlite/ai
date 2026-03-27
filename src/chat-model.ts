@@ -358,12 +358,14 @@ export class AIChatModel extends AbstractChatModel {
     if (!this._contentsManager) {
       return false;
     }
-    const contentModel = await this._contentsManager.get(filepath).catch(() => {
-      if (!silent) {
-        console.log(`There is no backup for chat '${this.name}'`);
-      }
-      return;
-    });
+    const contentModel = await this._contentsManager
+      .get(filepath, { content: true })
+      .catch(() => {
+        if (!silent) {
+          console.log(`There is no backup for chat '${this.name}'`);
+        }
+        return;
+      });
     if (!contentModel) {
       return false;
     }
