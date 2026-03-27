@@ -12,7 +12,7 @@ import {
 } from './test-utils';
 
 const BACKUP_DIR = 'chats-backup';
-const BACKUP_FILE = `${BACKUP_DIR}/${QWEN_MODEL_NAME}.json`;
+const BACKUP_FILE = `${BACKUP_DIR}/${QWEN_MODEL_NAME}.chat`;
 const EXPECT_TIMEOUT = 120000;
 
 test.describe('#chatSaveRestore', () => {
@@ -157,7 +157,7 @@ test.describe('#chatSaveRestore', () => {
     test.setTimeout(EXPECT_TIMEOUT);
 
     const customDir = 'custom-chat-backup';
-    const backupPath = `${customDir}/${QWEN_MODEL_NAME}.json`;
+    const backupPath = `${customDir}/${QWEN_MODEL_NAME}.chat`;
 
     // Update settings to use a custom backup directory.
     await page.evaluate(async (dir: string) => {

@@ -127,7 +127,7 @@ export class AIChatModel extends AbstractChatModel {
     this._nameChanged.emit(value);
     if (!this.messages.length) {
       const directory = this._settingsModel.config.chatBackupDirectory;
-      const filepath = PathExt.join(directory, `${this.name}.json`);
+      const filepath = PathExt.join(directory, `${this.name}.chat`);
       this.restore(filepath, true);
     }
     this.setReady();
@@ -325,7 +325,7 @@ export class AIChatModel extends AbstractChatModel {
       return;
     }
     const directory = this._settingsModel.config.chatBackupDirectory;
-    const filepath = PathExt.join(directory, `${this.name}.json`);
+    const filepath = PathExt.join(directory, `${this.name}.chat`);
     const content = JSON.stringify(this._serializeModel());
     await this._contentsManager
       .get(filepath, { content: false })
@@ -338,7 +338,7 @@ export class AIChatModel extends AbstractChatModel {
             });
             await this._contentsManager!.rename(dir.path, directory);
           });
-        const file = await this._contentsManager!.newUntitled({ ext: '.json' });
+        const file = await this._contentsManager!.newUntitled({ ext: '.chat' });
         await this._contentsManager?.rename(file.path, filepath);
       });
     await this._contentsManager.save(filepath, {
@@ -372,21 +372,35 @@ export class AIChatModel extends AbstractChatModel {
     const content = JSON.parse(
       contentModel.content
     ) as AIChatModel.ExportedChat;
-    if (this._settingsModel.getProvider(content.provider)) {
-      this._agentManager.activeProvider = content.provider;
+
+    if (content.metadata?.provider) {
+      if (this._settingsModel.getProvider(content.metadata.provider)) {
+        this._agentManager.activeProvider = content.metadata.provider;
+      } else if (!silent) {
+        console.log(
+          `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
+        );
+      }
     } else if (!silent) {
-      console.log(
-        `Provider '${content.provider}' doesn't exist, it can't be restored.`
-      );
+      console.log(`Provider not providing when restoring ${filepath}.`);
     }
-    const messages: IMessageContent[] = content.messages.map(message => ({
-      ...message,
-      sender: content.users[message.sender] ?? { username: 'unknown' },
-      mentions: message.mentions?.map(mention => content.users[mention])
-    }));
+
+    const messages: IMessageContent[] = content.messages.map(message => {
+      let attachments: IAttachment[] = [];
+      if (content.attachments && message.attachments) {
+        attachments =
+          message.attachments.map(index => content.attachments![index]) ?? [];
+      }
+      return {
+        ...message,
+        sender: content.users[message.sender] ?? { username: 'unknown' },
+        mentions: message.mentions?.map(mention => content.users[mention]),
+        attachments
+      };
+    });
     this.clearMessages();
     this.messagesInserted(0, messages);
-    this.autosave = content.autosave ?? false;
+    this.autosave = content.metadata?.autosave ?? false;
     return true;
   };
 
@@ -395,23 +409,52 @@ export class AIChatModel extends AbstractChatModel {
    */
   private _serializeModel(): AIChatModel.ExportedChat {
     const provider = this._agentManager.activeProvider;
-    const messages: IMessageContent<string>[] = [];
+    const messages: IMessageContent<string, string>[] = [];
     const users: { [id: string]: IUser } = {};
+    const attachmentMap = new Map<string, number>(); // JSON → index
+    const attachmentsList: IAttachment[] = []; // Actual attachments
+
     this.messages.forEach(message => {
+      let attachmentIndexes: string[] = [];
+      if (message.attachments) {
+        attachmentIndexes = message.attachments.map(attachment => {
+          const attachmentJson = JSON.stringify(attachment);
+          let index: number;
+          if (attachmentMap.has(attachmentJson)) {
+            index = attachmentMap.get(attachmentJson)!;
+          } else {
+            index = attachmentsList.length;
+            attachmentMap.set(attachmentJson, index);
+            attachmentsList.push(attachment);
+          }
+          return index.toString();
+        });
+      }
+
       messages.push({
         ...message.content,
         sender: message.sender.username,
-        mentions: message.mentions?.map(user => user.username)
+        mentions: message.mentions?.map(user => user.username),
+        attachments: attachmentIndexes
       });
+
       if (!users[message.sender.username]) {
         users[message.sender.username] = message.sender;
       }
     });
+
+    const attachments = Object.fromEntries(
+      attachmentsList.map((item, index) => [index, item])
+    );
+
     return {
-      provider,
       messages,
       users,
-      autosave: this.autosave
+      attachments,
+      metadata: {
+        provider,
+        autosave: this.autosave
+      }
     };
   }
   /**
@@ -1262,20 +1305,29 @@ export namespace AIChatModel {
    */
   export type ExportedChat = {
     /**
-     * Provider of the chat
+     * Message list (user are only string to avoid duplication).
      */
-    provider: string;
-    /**
-     * Message list (user are only string to avoid duplication)
-     */
-    messages: IMessageContent<string>[];
+    messages: IMessageContent<string, string>[];
     /**
      * The user list.
      */
     users: { [id: string]: IUser };
     /**
-     * Whether the chat is automatically saved.
+     * The attachments of the chat.
      */
-    autosave: boolean;
+    attachments?: { [id: string]: IAttachment };
+    /**
+     * The metadata associated to the chat.
+     */
+    metadata?: {
+      /**
+       * Provider of the chat.
+       */
+      provider?: string;
+      /**
+       * Whether the chat is automatically saved.
+       */
+      autosave?: boolean;
+    };
   };
 }

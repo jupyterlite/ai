@@ -644,7 +644,13 @@ export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
  * The interface for the chat model handler.
  */
 export interface IChatModelHandler {
+  /**
+   * The function to create a new model.
+   */
   createModel(options: ICreateChatOptions): AIChatModel;
+  /**
+   * The active cell manager (to copy code from chat to cell).
+   */
   activeCellManager: ActiveCellManager | undefined;
 }
 
