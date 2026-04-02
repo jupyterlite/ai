@@ -630,9 +630,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         targetId: string,
         messageId: string
       ) => {
-        const model = tracker.find(
-          chat => chat.model.name === targetId
-        )?.model;
+        const model = tracker.find(chat => chat.model.name === targetId)?.model;
         if (!model) {
           return;
         }

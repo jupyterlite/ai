@@ -296,9 +296,7 @@ export class AIChatModel extends AbstractChatModel {
    * @param messageId The ID of the queued message to remove
    */
   removeQueuedMessage(messageId: string): void {
-    this._messageQueue = this._messageQueue.filter(
-      msg => msg.id !== messageId
-    );
+    this._messageQueue = this._messageQueue.filter(msg => msg.id !== messageId);
     this._updateQueueUI();
   }
 
@@ -714,8 +712,7 @@ export class AIChatModel extends AbstractChatModel {
     this._updateQueueUI();
 
     try {
-      // Process attachments now. 
-      // TODO: STILL NEED TO LOOK INTO THIS
+      // Process attachments now.
       let body = next.body;
       if (next._originalMsg?.attachments?.length) {
         const attachmentContents = await this._processAttachments(
