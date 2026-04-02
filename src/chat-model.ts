@@ -409,6 +409,7 @@ export class AIChatModel extends AbstractChatModel {
     });
     this.clearMessages();
     this.messagesInserted(0, messages);
+    this._agentManager.setHistory(messages);
     this.autosave = content.metadata?.autosave ?? false;
     return true;
   };
