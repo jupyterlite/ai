@@ -11,8 +11,7 @@ import {
   openChatPanel
 } from './test-utils';
 
-const BACKUP_DIR = 'chats-backup';
-const BACKUP_FILE = `${BACKUP_DIR}/${QWEN_MODEL_NAME}.chat`;
+const BACKUP_FILE = `${QWEN_MODEL_NAME}.chat`;
 const EXPECT_TIMEOUT = 120000;
 
 test.describe('#chatSaveRestore', () => {
@@ -30,8 +29,8 @@ test.describe('#chatSaveRestore', () => {
 
   test.afterEach(async ({ page }) => {
     // Clean up backup files created during tests.
-    if (await page.filebrowser.contents.directoryExists(BACKUP_DIR)) {
-      await page.filebrowser.contents.deleteDirectory(BACKUP_DIR);
+    if (await page.filebrowser.contents.fileExists(BACKUP_FILE)) {
+      await page.filebrowser.contents.deleteFile(BACKUP_FILE);
     }
   });
 

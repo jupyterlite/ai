@@ -27,7 +27,7 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     showFileDiff: true,
     diffDisplayMode: 'split',
     skillsPaths: ['.agents/skills', '_agents/skills'],
-    chatBackupDirectory: 'chats-backup',
+    chatBackupDirectory: '',
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',
