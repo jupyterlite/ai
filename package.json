@@ -251,8 +251,5 @@
             "selector-no-vendor-prefix": null,
             "value-no-vendor-prefix": null
         }
-    },
-    "resolutions": {
-        "jupyter-chat-components": "portal:/home/yahia/Documents/git/jupyter-chat-components"
     }
 }
