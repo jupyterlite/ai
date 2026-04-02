@@ -287,9 +287,9 @@
     },
     "chatBackupDirectory": {
       "title": "Chat Backup Directory",
-      "description": "Directory where chat history backups are saved, relative to the server root.",
+      "description": "Directory where chat history backups are saved, relative to the server root. Default is the server root.",
       "type": "string",
-      "default": "chats-backup"
+      "default": ""
     }
   },
   "additionalProperties": false
