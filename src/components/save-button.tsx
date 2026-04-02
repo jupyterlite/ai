@@ -5,7 +5,7 @@ import {
   ToolbarButtonComponent
 } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
-import React, { useCallback, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { AIChatModel } from '../chat-model';
 
@@ -27,7 +27,7 @@ export interface ISaveButtonProps {
 }
 
 /**
- * A split button for saving the chat, with a dropdown to toggle auto-save.
+ * A split button for saving the chat, with a button to toggle auto-save.
  * When auto-save is active, the save button displays the JupyterLab
  * toggled-on appearance (inset box-shadow all around).
  */
@@ -36,28 +36,27 @@ export function SaveComponent(props: ISaveButtonProps): JSX.Element {
 
   const [autosave, setAutosave] = useState(model.autosave);
 
-  const handleSave = useCallback(() => {
-    model.save();
+  /**
+   * Effect that update the autosave state when it is updated on the model.
+   */
+  useEffect(() => {
+    model.autosaveChanged.connect((_, value) => setAutosave(value));
+    return () => {
+      model.autosaveChanged.disconnect((_, value) => setAutosave(value));
+    };
   }, [model]);
-
-  const toggleAutosave = useCallback(() => {
-    setAutosave(prev => {
-      model.autosave = !prev;
-      return !prev;
-    });
-  }, []);
 
   return (
     <div className={`${COMPONENT_CLASS}${autosave ? ' lm-mod-toggled' : ''}`}>
       <ToolbarButtonComponent
         icon={saveIcon}
-        onClick={handleSave}
+        onClick={() => model.save()}
         tooltip={trans.__('Save chat')}
       />
       <ToolbarButtonComponent
         className={AUTOSAVE_BUTTON_CLASS}
         icon={historyIcon}
-        onClick={toggleAutosave}
+        onClick={() => (model.autosave = !model.autosave)}
         tooltip={trans.__('Auto-save')}
       />
     </div>

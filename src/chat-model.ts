@@ -141,17 +141,26 @@ export class AIChatModel extends AbstractChatModel {
   }
   set autosave(value: boolean) {
     this._autosave = value;
+    this._autosaveChanged.emit(value);
     if (value) {
       this.messagesUpdated.connect(
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
+      this._autosaveDebouncer.invoke();
     } else {
       this.messagesUpdated.disconnect(
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
     }
+  }
+
+  /**
+   * A signal emitting when the autosave flag changed.
+   */
+  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+    return this._autosaveChanged;
   }
 
   /**
@@ -1128,6 +1137,7 @@ export class AIChatModel extends AbstractChatModel {
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _contentsManager?: Contents.IManager;
   private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
 }
 
