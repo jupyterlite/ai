@@ -1,3 +1,5 @@
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
   ToolLoopAgent,
@@ -5,29 +7,30 @@ import {
   type LanguageModel,
   stepCountIs,
   type StreamTextResult,
-  type Tool,
   type ToolApprovalRequestOutput,
   type TypedToolError,
   type TypedToolOutputDenied,
   type TypedToolResult
 } from 'ai';
-import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { ISecretsManager } from 'jupyter-secrets-manager';
-import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
-import { AISettingsModel } from './models/settings-model';
 import { createModel } from './providers/models';
 import {
   createProviderTools,
   type IProviderCustomSettings
 } from './providers/provider-tools';
-import type { IProviderInfo, IProviderRegistry } from './tokens';
 import {
-  ISkillRegistry,
-  ISkillSummary,
-  ITool,
-  IToolRegistry,
-  ITokenUsage,
+  type IAgentManager,
+  type IAgentManagerFactory,
+  type IAISettingsModel,
+  type IProviderInfo,
+  type IProviderRegistry,
+  type ISkillRegistry,
+  type ISkillSummary,
+  type ITool,
+  type IToolRegistry,
+  type ITokenUsage,
+  type ToolMap,
   SECRETS_NAMESPACE
 } from './tokens';
 
@@ -38,8 +41,6 @@ interface IMCPClientWrapper {
   name: string;
   client: MCPClient;
 }
-
-type ToolMap = Record<string, Tool>;
 
 /**
  * Result from processing a stream, including approval info if applicable.
@@ -55,12 +56,15 @@ interface IStreamProcessResult {
   approvalResponse?: ModelMessage;
 }
 
+/**
+ * The agent manager factory namespace.
+ */
 export namespace AgentManagerFactory {
   export interface IOptions {
     /**
      * The settings model.
      */
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
     /**
      * The skill registry for discovering skills.
      */
@@ -75,7 +79,11 @@ export namespace AgentManagerFactory {
     token: symbol | null;
   }
 }
-export class AgentManagerFactory {
+
+/**
+ * The agent manager factory.
+ */
+export class AgentManagerFactory implements IAgentManagerFactory {
   constructor(options: AgentManagerFactory.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
@@ -104,13 +112,30 @@ export class AgentManagerFactory {
     }
   }
 
-  createAgent(options: IAgentManagerOptions): AgentManager {
+  /**
+   * Create a new agent.
+   */
+  createAgent(options: IAgentManager.IOptions): IAgentManager {
     const agentManager = new AgentManager({
       ...options,
       skillRegistry: this._skillRegistry,
       secretsManager: this._secretsManager
     });
     this._agentManagers.push(agentManager);
+
+    // New chats can be created before MCP setup finishes.
+    // Reinitialize them with connected MCP tools once it does.
+    this._initQueue
+      .then(() => this.getMCPTools())
+      .then(mcpTools => {
+        if (Object.keys(mcpTools).length > 0) {
+          agentManager.initializeAgent(mcpTools);
+        }
+      })
+      .catch(error =>
+        console.warn('Failed to pass MCP tools to new agent:', error)
+      );
+
     return agentManager;
   }
 
@@ -122,7 +147,7 @@ export class AgentManagerFactory {
   }
 
   /**
-   * Checks if a specific MCP server is connected by server name.
+   * Checks whether a specific MCP server is connected.
    * @param serverName The name of the MCP server to check
    * @returns True if the server is connected, false otherwise
    */
@@ -239,8 +264,8 @@ export class AgentManagerFactory {
     });
   }
 
-  private _agentManagers: AgentManager[] = [];
-  private _settingsModel: AISettingsModel;
+  private _agentManagers: IAgentManager[] = [];
+  private _settingsModel: IAISettingsModel;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
   private _mcpClients: IMCPClientWrapper[];
@@ -253,60 +278,6 @@ export class AgentManagerFactory {
  */
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TURNS = 25;
-
-/**
- * Event type mapping for type safety with inlined interface definitions
- */
-export interface IAgentEventTypeMap {
-  message_start: {
-    messageId: string;
-  };
-  message_chunk: {
-    messageId: string;
-    chunk: string;
-    fullContent: string;
-  };
-  message_complete: {
-    messageId: string;
-    content: string;
-  };
-  tool_call_start: {
-    callId: string;
-    toolName: string;
-    input: string;
-  };
-  tool_call_complete: {
-    callId: string;
-    toolName: string;
-    outputData: unknown;
-    isError: boolean;
-  };
-  tool_approval_request: {
-    approvalId: string;
-    toolCallId: string;
-    toolName: string;
-    args: unknown;
-  };
-  tool_approval_resolved: {
-    approvalId: string;
-    approved: boolean;
-  };
-  error: {
-    error: Error;
-  };
-}
-
-/**
- * Events emitted by the AgentManager
- */
-export type IAgentEvent<
-  T extends keyof IAgentEventTypeMap = keyof IAgentEventTypeMap
-> = T extends keyof IAgentEventTypeMap
-  ? {
-      type: T;
-      data: IAgentEventTypeMap[T];
-    }
-  : never;
 
 /**
  * Cached configuration used to (re)build the agent.
@@ -322,62 +293,17 @@ interface IAgentConfig {
 }
 
 /**
- * Configuration options for the AgentManager
- */
-export interface IAgentManagerOptions {
-  /**
-   * AI settings model for configuration
-   */
-  settingsModel: AISettingsModel;
-
-  /**
-   * Optional tool registry for managing available tools
-   */
-  toolRegistry?: IToolRegistry;
-
-  /**
-   * Optional provider registry for model creation
-   */
-  providerRegistry?: IProviderRegistry;
-
-  /**
-   * The skill registry for discovering skills.
-   */
-  skillRegistry?: ISkillRegistry;
-
-  /**
-   * The secrets manager.
-   */
-  secretsManager?: ISecretsManager;
-
-  /**
-   * The active provider to use with this agent.
-   */
-  activeProvider?: string;
-
-  /**
-   * Initial token usage.
-   */
-  tokenUsage?: ITokenUsage;
-
-  /**
-   * JupyterLab render mime registry for discovering supported MIME types.
-   */
-  renderMimeRegistry?: IRenderMimeRegistry;
-}
-
-/**
  * Manages the AI agent lifecycle and execution loop.
  * Provides agent initialization, tool management, MCP server integration,
  * and handles the complete agent execution cycle.
  * Emits events for UI updates instead of directly manipulating the chat interface.
  */
-export class AgentManager {
+export class AgentManager implements IAgentManager {
   /**
    * Creates a new AgentManager instance.
    * @param options Configuration options for the agent manager
    */
-  constructor(options: IAgentManagerOptions) {
+  constructor(options: IAgentManager.IOptions) {
     this._settingsModel = options.settingsModel;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
@@ -388,7 +314,7 @@ export class AgentManager {
     this._history = [];
     this._mcpTools = {};
     this._controller = null;
-    this._agentEvent = new Signal<this, IAgentEvent>(this);
+    this._agentEvent = new Signal<this, IAgentManager.IAgentEvent>(this);
     this._tokenUsage = options.tokenUsage ?? {
       inputTokens: 0,
       outputTokens: 0
@@ -410,7 +336,7 @@ export class AgentManager {
   /**
    * Signal emitted when agent events occur
    */
-  get agentEvent(): ISignal<this, IAgentEvent> {
+  get agentEvent(): ISignal<this, IAgentManager.IAgentEvent> {
     return this._agentEvent;
   }
 
@@ -477,12 +403,12 @@ export class AgentManager {
    * Gets the currently selected tools as a record.
    * @returns Record of selected tools
    */
-  get selectedAgentTools(): Record<string, ITool> {
+  get selectedAgentTools(): ToolMap {
     if (!this._toolRegistry) {
       return {};
     }
 
-    const result: Record<string, ITool> = {};
+    const result: ToolMap = {};
     for (const name of this._selectedToolNames) {
       const tool: ITool | null = this._toolRegistry.get(name);
       if (tool) {
@@ -657,6 +583,9 @@ export class AgentManager {
           data: { error: error as Error }
         });
       }
+      // After an error (including AbortError), sanitize the history
+      // to remove any trailing assistant messages without tool results
+      this._sanitizeHistory();
     } finally {
       this._controller = null;
     }
@@ -1191,8 +1120,98 @@ WEB RETRIEVAL POLICY:
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
   }
 
+  /**
+   * Sanitizes history to ensure it's in a valid state in case of abort or error.
+   */
+  private _sanitizeHistory(): void {
+    if (this._history.length === 0) {
+      return;
+    }
+
+    const newHistory: ModelMessage[] = [];
+    for (let i = 0; i < this._history.length; i++) {
+      const msg = this._history[i];
+
+      if (msg.role === 'assistant') {
+        const toolCallIds = this._getToolCallIds(msg);
+        if (toolCallIds.length > 0) {
+          // Find if there's a following tool message with results for these calls
+          const nextMsg = this._history[i + 1];
+          if (
+            nextMsg &&
+            nextMsg.role === 'tool' &&
+            this._matchesAllToolCalls(nextMsg, toolCallIds)
+          ) {
+            newHistory.push(msg);
+          } else {
+            // Message has unmatched tool calls drop it and everything after it
+            break;
+          }
+        } else {
+          newHistory.push(msg);
+        }
+      } else if (msg.role === 'tool') {
+        // Tool messages are valid if they were preceded by a valid assistant message
+        newHistory.push(msg);
+      } else {
+        newHistory.push(msg);
+      }
+    }
+
+    this._history = newHistory;
+  }
+
+  /**
+   * Extracts tool call IDs from a message
+   */
+  private _getToolCallIds(message: ModelMessage): string[] {
+    const ids: string[] = [];
+
+    // Check content array for tool-call parts
+    if (Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (
+          typeof part === 'object' &&
+          part !== null &&
+          'type' in part &&
+          part.type === 'tool-call'
+        ) {
+          ids.push(part.toolCallId);
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  /**
+   * Checks if a tool message contains results for all specified tool call IDs
+   */
+  private _matchesAllToolCalls(
+    message: ModelMessage,
+    callIds: string[]
+  ): boolean {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) {
+      return false;
+    }
+
+    const resultIds = new Set<string>();
+    for (const part of message.content) {
+      if (
+        typeof part === 'object' &&
+        part !== null &&
+        'type' in part &&
+        part.type === 'tool-result'
+      ) {
+        resultIds.add(part.toolCallId);
+      }
+    }
+
+    return callIds.every(id => resultIds.has(id));
+  }
+
   // Private attributes
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
   private _skillRegistry?: ISkillRegistry;
@@ -1202,7 +1221,7 @@ WEB RETRIEVAL POLICY:
   private _history: ModelMessage[];
   private _mcpTools: ToolMap;
   private _controller: AbortController | null;
-  private _agentEvent: Signal<this, IAgentEvent>;
+  private _agentEvent: Signal<this, IAgentManager.IAgentEvent>;
   private _tokenUsage: ITokenUsage;
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';

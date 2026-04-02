@@ -10,10 +10,16 @@ import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { INamedTool, IProviderRegistry, IToolRegistry } from '../tokens';
 import { AIChatModel } from '../chat-model';
-import { AISettingsModel } from '../models/settings-model';
+
 import { createProviderTools } from '../providers/provider-tools';
+
+import type {
+  IAISettingsModel,
+  INamedTool,
+  IProviderRegistry,
+  IToolRegistry
+} from '../tokens';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -40,7 +46,7 @@ export interface IToolSelectProps
   /**
    * The settings model to compute provider-level web tools.
    */
-  settingsModel: AISettingsModel;
+  settingsModel: IAISettingsModel;
 
   /**
    * Registry for provider metadata used to resolve provider tool capabilities.
@@ -307,7 +313,7 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
  */
 export function createToolSelectItem(
   toolRegistry: IToolRegistry,
-  settingsModel: AISettingsModel,
+  settingsModel: IAISettingsModel,
   providerRegistry: IProviderRegistry,
   toolsEnabled: boolean = true,
   translator: TranslationBundle

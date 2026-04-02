@@ -31,8 +31,12 @@ import {
 } from '@mui/material';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import React from 'react';
-import { IProviderConfig, IProviderParameters } from '../models/settings-model';
-import type { IProviderRegistry, IProviderToolCapabilities } from '../tokens';
+import type {
+  IProviderConfig,
+  IProviderParameters,
+  IProviderRegistry,
+  IProviderToolCapabilities
+} from '../tokens';
 
 /**
  * Default parameter values for provider configuration
@@ -138,7 +142,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   handleSecretField,
   trans
 }) => {
-  const apiKeyRef = React.useRef<HTMLInputElement>();
   const [name, setName] = React.useState(initialConfig?.name || '');
   const [provider, setProvider] = React.useState(
     initialConfig?.provider || 'anthropic'
@@ -188,7 +191,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         label: info.name,
         models: info.defaultModels,
         apiKeyRequirement: info.apiKeyRequirement,
-        allowCustomModel: id === 'generic', // Generic allows custom models
         supportsBaseURL: info.supportsBaseURL,
         description: info.description,
         baseUrls: info.baseUrls
@@ -201,9 +203,14 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   React.useEffect(() => {
     if (open) {
       // Reset form when dialog opens
+      const initialProvider = initialConfig?.provider || 'anthropic';
+      const initialProviderInfo =
+        providerRegistry.getProviderInfo(initialProvider);
       setName(initialConfig?.name || '');
-      setProvider(initialConfig?.provider || 'anthropic');
-      setModel(initialConfig?.model || '');
+      setProvider(initialProvider);
+      setModel(
+        initialConfig?.model || initialProviderInfo?.defaultModels[0] || ''
+      );
       setApiKey(initialConfig?.apiKey || '');
       setBaseURL(initialConfig?.baseURL || '');
       setParameters(initialConfig?.parameters || {});
@@ -216,22 +223,25 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       setDomainInputs(createEmptyDomainInputs());
       setExpandedAdvanced(false);
     }
-  }, [open, initialConfig]);
+  }, [open, initialConfig, providerRegistry]);
 
-  React.useEffect(() => {
-    // Auto-select first model when provider changes
-    if (selectedProvider && selectedProvider.models.length > 0 && !model) {
-      setModel(selectedProvider.models[0]);
-    }
-  }, [provider, selectedProvider, model]);
+  const handleRef = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      if (open && node) {
+        handleSecretField(node, provider, 'apiKey');
+      }
+    },
+    [provider, handleSecretField, open]
+  );
 
-  React.useEffect(() => {
-    // Attach the API key field to the secrets manager, to automatically save the value
-    // when it is updated.
-    if (open && apiKeyRef.current) {
-      handleSecretField(apiKeyRef.current, provider, 'apiKey');
-    }
-  }, [open, provider, handleSecretField]);
+  const handleProviderChange = React.useCallback(
+    (newProvider: IProviderConfig['provider']) => {
+      const newProviderInfo = providerRegistry.getProviderInfo(newProvider);
+      setProvider(newProvider);
+      setModel(newProviderInfo?.defaultModels[0] || '');
+    },
+    [providerRegistry]
+  );
 
   const updateCustomSetting = React.useCallback(
     (section: 'webSearch' | 'webFetch', key: string, value: unknown) => {
@@ -450,7 +460,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
               value={provider}
               label={trans.__('Provider Type')}
               onChange={e =>
-                setProvider(e.target.value as IProviderConfig['provider'])
+                handleProviderChange(
+                  e.target.value as IProviderConfig['provider']
+                )
               }
             >
               {providerOptions.map(option => (
@@ -478,55 +490,38 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             </Select>
           </FormControl>
 
-          {selectedProvider?.allowCustomModel ? (
-            <TextField
-              fullWidth
-              label={trans.__('Model')}
-              value={model}
-              onChange={e => setModel(e.target.value)}
-              placeholder={trans.__('Enter model name')}
-              helperText={trans.__('Enter any compatible model name')}
-              required
-            />
-          ) : (
-            <FormControl fullWidth required>
-              <InputLabel>{trans.__('Model')}</InputLabel>
-              <Select
-                value={model}
+          <Autocomplete
+            freeSolo
+            fullWidth
+            options={selectedProvider?.models ?? []}
+            value={model}
+            onChange={(_, value) => {
+              setModel(typeof value === 'string' ? value : '');
+            }}
+            inputValue={model}
+            onInputChange={(_, value) => {
+              setModel(value);
+            }}
+            renderInput={params => (
+              <TextField
+                {...params}
+                fullWidth
                 label={trans.__('Model')}
-                onChange={e => setModel(e.target.value)}
-              >
-                {selectedProvider?.models.map(modelOption => (
-                  <MenuItem key={modelOption} value={modelOption}>
-                    <Box>
-                      <Typography variant="body1">{modelOption}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {modelOption.includes('sonnet')
-                          ? trans.__('Balanced performance')
-                          : modelOption.includes('opus')
-                            ? trans.__('Advanced reasoning')
-                            : modelOption.includes('haiku')
-                              ? trans.__('Fast and lightweight')
-                              : modelOption.includes('large')
-                                ? trans.__('Most capable model')
-                                : modelOption.includes('small')
-                                  ? trans.__('Fast and efficient')
-                                  : modelOption.includes('codestral')
-                                    ? trans.__('Code-specialized')
-                                    : trans.__('General purpose')}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+                placeholder={trans.__('Select or type a model ID')}
+                required
+                helperText={trans.__(
+                  'Choose from the list or enter a custom model ID'
+                )}
+              />
+            )}
+            clearOnBlur={false}
+          />
 
           {selectedProvider &&
             selectedProvider?.apiKeyRequirement !== 'none' && (
               <TextField
                 fullWidth
-                inputRef={apiKeyRef}
+                inputRef={handleRef}
                 label={
                   selectedProvider?.apiKeyRequirement === 'required'
                     ? trans.__('API Key')

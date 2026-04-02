@@ -1,6 +1,6 @@
 import { CommandRegistry } from '@lumino/commands';
-import { AISettingsModel } from './models/settings-model';
-import {
+import type {
+  IAISettingsModel,
   IDiffManager,
   IShowCellDiffParams,
   IShowFileDiffParams
@@ -30,7 +30,7 @@ export class DiffManager implements IDiffManager {
    */
   constructor(options: {
     commands: CommandRegistry;
-    settingsModel: AISettingsModel;
+    settingsModel: IAISettingsModel;
   }) {
     this._commands = options.commands;
     this._settingsModel = options.settingsModel;
@@ -77,5 +77,5 @@ export class DiffManager implements IDiffManager {
   }
 
   private _commands: CommandRegistry;
-  private _settingsModel: AISettingsModel;
+  private _settingsModel: IAISettingsModel;
 }

@@ -44,19 +44,16 @@ import {
   Typography,
   createTheme
 } from '@mui/material';
-import { ISecretsManager } from 'jupyter-secrets-manager';
 import React, { useEffect, useMemo, useState } from 'react';
-import { AgentManagerFactory } from '../agent';
 import {
-  AISettingsModel,
-  IAIConfig,
-  IMCPServerConfig,
-  IProviderConfig
-} from '../models/settings-model';
-import {
-  SECRETS_NAMESPACE,
-  SECRETS_REPLACEMENT,
-  type IProviderRegistry
+  type IAgentManagerFactory,
+  type IAIConfig,
+  type IAISecretsAccess,
+  type IAISettingsModel,
+  type IMCPServerConfig,
+  type IProviderConfig,
+  type IProviderRegistry,
+  SECRETS_REPLACEMENT
 } from '../tokens';
 import { ProviderConfigDialog } from './provider-config-dialog';
 
@@ -88,12 +85,11 @@ export class AISettingsWidget extends ReactWidget {
    */
   constructor(options: AISettingsWidget.IOptions) {
     super();
-    Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._agentManagerFactory = options.agentManagerFactory;
     this._themeManager = options.themeManager;
     this._providerRegistry = options.providerRegistry;
-    this._secretsManager = options.secretsManager;
+    this._secretsAccess = options.secretsAccess;
     this._trans = options.trans;
     this.id = 'jupyterlite-ai-settings';
     this.title.label = this._trans.__('AI Settings');
@@ -101,9 +97,9 @@ export class AISettingsWidget extends ReactWidget {
     this.title.closable = true;
 
     // Disable the secrets manager if the token is empty.
-    if (!options.token) {
+    if (!options.secretsAccess.isAvailable) {
       this._settingsModel.updateConfig({ useSecretsManager: false });
-      this._secretsManager = undefined;
+      this._secretsAccess = undefined;
     }
   }
 
@@ -118,17 +114,17 @@ export class AISettingsWidget extends ReactWidget {
         agentManagerFactory={this._agentManagerFactory}
         themeManager={this._themeManager}
         providerRegistry={this._providerRegistry}
-        secretsManager={this._secretsManager}
+        secretsAccess={this._secretsAccess}
         trans={this._trans}
       />
     );
   }
 
-  private _settingsModel: AISettingsModel;
-  private _agentManagerFactory?: AgentManagerFactory;
+  private _settingsModel: IAISettingsModel;
+  private _agentManagerFactory?: IAgentManagerFactory;
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
-  private _secretsManager?: ISecretsManager;
+  private _secretsAccess?: IAISecretsAccess;
   private _trans: TranslationBundle;
 }
 
@@ -136,11 +132,11 @@ export class AISettingsWidget extends ReactWidget {
  * Props interface for the AISettingsComponent
  */
 interface IAISettingsComponentProps {
-  model: AISettingsModel;
-  agentManagerFactory?: AgentManagerFactory;
+  model: IAISettingsModel;
+  agentManagerFactory?: IAgentManagerFactory;
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
-  secretsManager?: ISecretsManager;
+  secretsAccess?: IAISecretsAccess;
   trans: TranslationBundle;
 }
 
@@ -154,7 +150,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   agentManagerFactory,
   themeManager,
   providerRegistry,
-  secretsManager,
+  secretsAccess,
   trans
 }) => {
   if (!model) {
@@ -287,16 +283,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     provider: string,
     fieldName: string
   ): Promise<string | undefined> => {
-    const token = Private.getToken();
-    if (!token) {
-      return;
-    }
-    const secret = await secretsManager?.get(
-      token,
-      SECRETS_NAMESPACE,
-      `${provider}:${fieldName}`
-    );
-    return secret?.value;
+    return secretsAccess?.get(`${provider}:${fieldName}`);
   };
 
   const setSecretToManager = async (
@@ -304,20 +291,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     fieldName: string,
     value: string
   ): Promise<void> => {
-    const token = Private.getToken();
-    if (!token) {
-      return;
-    }
-    await secretsManager?.set(
-      token,
-      SECRETS_NAMESPACE,
-      `${provider}:${fieldName}`,
-      {
-        namespace: SECRETS_NAMESPACE,
-        id: `${provider}:${fieldName}`,
-        value
-      }
-    );
+    await secretsAccess?.set(`${provider}:${fieldName}`, value);
   };
 
   /**
@@ -331,19 +305,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     provider: string,
     fieldName: string
   ): Promise<void> => {
-    if (!(model.config.useSecretsManager && secretsManager)) {
+    if (!(model.config.useSecretsManager && secretsAccess?.isAvailable)) {
       return;
     }
-    const token = Private.getToken();
-    if (!token) {
-      return;
-    }
-    await secretsManager?.attach(
-      token,
-      SECRETS_NAMESPACE,
-      `${provider}:${fieldName}`,
-      input
-    );
+    await secretsAccess.attach(`${provider}:${fieldName}`, input);
   };
 
   /**
@@ -355,7 +320,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   ) => {
     if (
       model.config.useSecretsManager &&
-      secretsManager &&
+      secretsAccess?.isAvailable &&
       providerConfig.apiKey
     ) {
       providerConfig.apiKey = SECRETS_REPLACEMENT;
@@ -373,7 +338,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     if (editingProvider) {
       if (
         model.config.useSecretsManager &&
-        secretsManager &&
+        secretsAccess?.isAvailable &&
         providerConfig.apiKey
       ) {
         providerConfig.apiKey = SECRETS_REPLACEMENT;
@@ -398,7 +363,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
    */
   const openEditDialog = async (provider: IProviderConfig) => {
     // Retrieve the API key from the secrets manager if necessary.
-    if (model.config.useSecretsManager && secretsManager) {
+    if (model.config.useSecretsManager && secretsAccess?.isAvailable) {
       provider.apiKey =
         (await getSecretFromManager(provider.provider, 'apiKey')) ?? '';
     }
@@ -851,7 +816,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             </Card>
 
             {/* Secrets Manager Settings */}
-            {secretsManager !== undefined && (
+            {secretsAccess?.isAvailable && (
               <FormControlLabel
                 control={
                   <Switch
@@ -1711,34 +1676,17 @@ export namespace AISettingsWidget {
    * Options interface for constructing an AISettingsWidget
    */
   export interface IOptions {
-    settingsModel: AISettingsModel;
-    agentManagerFactory?: AgentManagerFactory;
+    settingsModel: IAISettingsModel;
+    agentManagerFactory?: IAgentManagerFactory;
     themeManager?: IThemeManager;
     providerRegistry: IProviderRegistry;
     /**
-     * The secrets manager.
+     * Access to provider secrets in the shared namespace.
      */
-    secretsManager?: ISecretsManager;
-    /**
-     * The token used to request the secrets manager.
-     */
-    token: symbol | null;
+    secretsAccess: IAISecretsAccess;
     /**
      * The application language translation bundle.
      */
     trans: TranslationBundle;
-  }
-}
-
-namespace Private {
-  /**
-   * The token to use with the secrets manager, setter and getter.
-   */
-  let secretsToken: symbol | null;
-  export function setToken(value: symbol | null): void {
-    secretsToken = value;
-  }
-  export function getToken(): symbol | null {
-    return secretsToken;
   }
 }

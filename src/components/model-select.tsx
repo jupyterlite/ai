@@ -4,7 +4,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
-import { AISettingsModel } from '../models/settings-model';
+import type { IAISettingsModel } from '../tokens';
+
 /**
  * Properties for the model select component.
  */
@@ -13,7 +14,7 @@ export interface IModelSelectProps
   /**
    * The settings model to get available models and current selection from.
    */
-  settingsModel: AISettingsModel;
+  settingsModel: IAISettingsModel;
   /**
    * The application language translator.
    */
@@ -243,7 +244,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
  * Factory function returning the toolbar item for model selection.
  */
 export function createModelSelectItem(
-  settingsModel: AISettingsModel,
+  settingsModel: IAISettingsModel,
   translator: TranslationBundle
 ): InputToolbarRegistry.IToolbarItem {
   return {
