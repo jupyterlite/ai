@@ -4,7 +4,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
-import type { Tool, LanguageModel } from 'ai';
+import type { Tool, LanguageModel, UserContent } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
@@ -587,7 +587,7 @@ export interface IAgentManager {
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
-  generateResponse(message: string): Promise<void>;
+  generateResponse(message: UserContent): Promise<void>;
   /**
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP tools.

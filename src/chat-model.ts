@@ -31,6 +31,8 @@ import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
 
+import type { UserContent, ImagePart, FilePart } from 'ai'
+
 import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
 
 /**
@@ -238,16 +240,23 @@ export class AIChatModel extends AbstractChatModel {
 
     try {
       // Process attachments and add their content to the message
-      let enhancedMessage = message.body;
+      let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const attachmentContents = await this._processAttachments(
+        const { textContents, binaryParts } = await this._processAttachments(
           this.input.attachments
         );
         this.input.clearAttachments();
 
-        if (attachmentContents.length > 0) {
-          enhancedMessage +=
-            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
+        let textPart = message.body;
+        if (textContents.length > 0) {
+          textPart +=
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+
+        if (binaryParts.length > 0) {
+          enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
+        } else {
+          enhancedMessage = textPart;
         }
       }
 
@@ -643,41 +652,105 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Processes file attachments and returns their content as formatted strings.
+   * Processes file attachments and returns text contents and binary parts separately.
    * @param attachments Array of file attachments to process
-   * @returns Array of formatted attachment contents
+   * @returns Text contents and binary parts
    */
-  private async _processAttachments(
-    attachments: IAttachment[]
-  ): Promise<string[]> {
-    const contents: string[] = [];
+  private async _processAttachments(attachments: IAttachment[]): Promise<{
+    textContents: string[];
+    binaryParts: Array<ImagePart | FilePart>;
+  }> {
+    const textContents: string[] = [];
+    const binaryParts: Array<ImagePart | FilePart> = [];
+    const imageMimeTypes: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.bmp': 'image/bmp'
+    };
+    const fileMimeTypes: Record<string, string> = {
+      '.pdf': 'application/pdf'
+    };
 
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
           const cellContents = await this._readNotebookCells(attachment);
           if (cellContents) {
-            contents.push(cellContents);
+            textContents.push(cellContents);
           }
         } else {
-          const fileContent = await this._readFileAttachment(attachment);
-          if (fileContent) {
-            const fileExtension = PathExt.extname(
-              attachment.value
-            ).toLowerCase();
-            const language = fileExtension === '.ipynb' ? 'json' : '';
-            contents.push(
-              `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
-            );
+          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+          const imageMimeType = imageMimeTypes[fileExtension];
+          const fileMimeType = fileMimeTypes[fileExtension];
+
+          if (imageMimeType) {
+            const data = await this._readBinaryAttachment(attachment);
+            if (data) {
+              binaryParts.push({
+                type: 'image',
+                image: data,
+                mediaType: imageMimeType
+              });
+            }
+          } else if (fileMimeType) {
+            const data = await this._readBinaryAttachment(attachment);
+            if (data) {
+              binaryParts.push({
+                type: 'file',
+                data,
+                mediaType: fileMimeType,
+                filename: PathExt.basename(attachment.value)
+              });
+            }
+          } else {
+            const fileContent = await this._readFileAttachment(attachment);
+            if (fileContent) {
+              const language = fileExtension === '.ipynb' ? 'json' : '';
+              textContents.push(
+                `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+              );
+            }
           }
         }
       } catch (error) {
         console.warn(`Failed to read attachment ${attachment.value}:`, error);
-        contents.push(`**File: ${attachment.value}** (Could not read file)`);
+        textContents.push(
+          `**File: ${attachment.value}** (Could not read file)`
+        );
       }
     }
 
-    return contents;
+    return { textContents, binaryParts };
+  }
+
+  /**
+   * Reads a binary attachment and returns its base64-encoded content.
+   * @param attachment The attachment to read
+   * @returns Base64 string or null if unable to read
+   */
+  private async _readBinaryAttachment(
+    attachment: IAttachment
+  ): Promise<string | null> {
+    try {
+      const diskModel = await this.input.documentManager?.services.contents.get(
+        attachment.value,
+        { content: true }
+      );
+      if (diskModel?.content && diskModel.format === 'base64') {
+        // Strip whitespace/newlines
+        return (diskModel.content as string).replace(/\s/g, '');
+      }
+      return null;
+    } catch (error) {
+      console.warn(
+        `Failed to read binary attachment ${attachment.value}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**

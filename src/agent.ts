@@ -10,7 +10,8 @@ import {
   type ToolApprovalRequestOutput,
   type TypedToolError,
   type TypedToolOutputDenied,
-  type TypedToolResult
+  type TypedToolResult,
+  type UserContent
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -517,7 +518,7 @@ export class AgentManager implements IAgentManager {
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
-  async generateResponse(message: string): Promise<void> {
+  async generateResponse(message: UserContent): Promise<void> {
     this._controller = new AbortController();
 
     try {
