@@ -4,7 +4,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
-import type { Tool, LanguageModel } from 'ai';
+import type { Tool, LanguageModel, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
@@ -566,6 +566,19 @@ export interface IAgentManager {
    * Clears conversation history and resets agent state.
    */
   clearHistory(): void;
+  /**
+   * Returns a snapshot of the current conversation history.
+   */
+  getHistory(): ModelMessage[];
+  /**
+   * Restores the conversation history from a snapshot.
+   */
+  setHistory(history: ModelMessage[]): void;
+  /**
+   * Truncates history to keep only the first N user turns and their responses.
+   * @param userTurnCount Number of user turns to keep (0 clears all).
+   */
+  truncateHistory(userTurnCount: number): void;
   /**
    * Stops the current streaming response by aborting the request.
    */

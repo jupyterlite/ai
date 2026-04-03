@@ -9,6 +9,8 @@ import {
   IUser
 } from '@jupyter/chat';
 
+import type { ModelMessage } from 'ai';
+
 import { YNotebook } from '@jupyter/ydoc';
 
 import { PathExt } from '@jupyterlab/coreutils';
@@ -181,8 +183,151 @@ export class AIChatModel extends AbstractChatModel {
   clearMessages = (): void => {
     this.messagesDeleted(0, this.messages.length);
     this._toolContexts.clear();
+    this._branchPoints.clear();
     this._agentManager.clearHistory();
   };
+
+  /**
+   * Edits a previous user message. Saves the current branch, truncates
+   * history from the edit point, and re-sends the new message body.
+   * The original message ID is preserved so branch navigation remains stable.
+   * @param messageId The ID of the message to edit
+   * @param newBody The new message body to send
+   */
+  editMessage(messageId: string, newBody: string): void {
+    const index = this.messages.findIndex(m => m.id === messageId);
+    if (index === -1) {
+      return;
+    }
+
+    const snapshot = this._snapshotFrom(index);
+    // Placeholder filled when the user navigates away from this branch
+    const emptyBranch: AIChatModel.IBranchSnapshot = { messages: [], history: [] };
+    const existing = this._branchPoints.get(messageId);
+    if (!existing) {
+      this._branchPoints.set(messageId, {
+        branches: [snapshot, emptyBranch],
+        currentIndex: 1
+      });
+    } else {
+      existing.branches[existing.currentIndex] = snapshot;
+      existing.branches.push(emptyBranch);
+      existing.currentIndex = existing.branches.length - 1;
+    }
+
+    // Count user turns before the edit point to truncate agent history correctly
+    const userTurnsBefore = this.messages
+      .slice(0, index)
+      .filter(m => m.sender.username !== 'ai-assistant').length;
+
+    // update() preserves the original timestamp (avoids re-ordering) and fires
+    // `changed` so the header re-renders without a stale-state issue.
+    this.messages[index].update({ body: newBody });
+    if (this.messages.length > index + 1) {
+      this.messagesDeleted(index + 1, this.messages.length - index - 1);
+    }
+    this._toolContexts.clear();
+    this._agentManager.truncateHistory(userTurnsBefore);
+
+    this.updateWriters([{ user: this._getAIUser() }]);
+    this._agentManager
+      .generateResponse(newBody)
+      .catch((error: Error) => {
+        this.messageAdded(this._createErrorMessage(error));
+      })
+      .finally(() => {
+        this.updateWriters([]);
+      });
+  }
+
+  /**
+   * Navigates to the previous or next branch at the given message (branch point).
+   * @param messageId The ID of the branch-point message
+   * @param direction 'prev' or 'next'
+   */
+  switchBranch(messageId: string, direction: 'prev' | 'next'): void {
+    const branchPoint = this._branchPoints.get(messageId);
+    if (!branchPoint) {
+      return;
+    }
+
+    const targetIndex =
+      direction === 'prev'
+        ? branchPoint.currentIndex - 1
+        : branchPoint.currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= branchPoint.branches.length) {
+      return;
+    }
+
+    const index = this.messages.findIndex(m => m.id === messageId);
+    if (index === -1) {
+      return;
+    }
+
+    branchPoint.branches[branchPoint.currentIndex] = this._snapshotFrom(index);
+    const target = branchPoint.branches[targetIndex];
+    this.messagesDeleted(index, this.messages.length - index);
+    this._toolContexts.clear();
+    if (target.messages.length > 0) {
+      this.messagesInserted(index, target.messages);
+    }
+    this._agentManager.setHistory(target.history);
+    branchPoint.currentIndex = targetIndex;
+  }
+
+  /**
+   * Called by @jupyter/chat's native edit UI when the user submits an edit.
+   * Delegates to editMessage to handle branching and history truncation.
+   */
+  updateMessage(id: string, message: IMessageContent): void {
+    if (typeof message.body !== 'string') {
+      return;
+    }
+    this.editMessage(id, message.body);
+  }
+
+  /**
+   * Returns branch navigation info for a message, or null if it has no branches.
+   */
+  getBranchInfo(
+    messageId: string
+  ): { current: number; total: number } | null {
+    const branchPoint = this._branchPoints.get(messageId);
+    if (!branchPoint) {
+      return null;
+    }
+    return {
+      current: branchPoint.currentIndex + 1,
+      total: branchPoint.branches.length
+    };
+  }
+
+  private _createErrorMessage(error: Error): IMessageContent {
+    return {
+      body: `Error generating AI response: ${error.message}`,
+      sender: this._getAIUser(),
+      id: UUID.uuid4(),
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+  }
+
+  private _snapshotFrom(index: number): AIChatModel.IBranchSnapshot {
+    return {
+      messages: this.messages.slice(index).map(m => ({
+        body: m.body,
+        sender: m.sender,
+        id: m.id,
+        time: m.time,
+        type: m.type,
+        raw_time: m.raw_time,
+        ...(m.attachments ? { attachments: m.attachments } : {})
+      })),
+      history: this._agentManager.getHistory()
+    };
+  }
 
   /**
    * Adds a non-user message to the chat (used by chat commands).
@@ -255,15 +400,7 @@ export class AIChatModel extends AbstractChatModel {
 
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
-      const errorMessage: IMessageContent = {
-        body: `Error generating AI response: ${(error as Error).message}`,
-        sender: this._getAIUser(),
-        id: UUID.uuid4(),
-        time: Date.now() / 1000,
-        type: 'msg',
-        raw_time: false
-      };
-      this.messageAdded(errorMessage);
+      this.messageAdded(this._createErrorMessage(error as Error));
     } finally {
       this.updateWriters([]);
     }
@@ -928,6 +1065,10 @@ export class AIChatModel extends AbstractChatModel {
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _trans: TranslationBundle;
+  private _branchPoints: Map<
+    string,
+    { branches: AIChatModel.IBranchSnapshot[]; currentIndex: number }
+  > = new Map();
 }
 
 namespace Private {
@@ -1195,6 +1336,14 @@ namespace Private {
  * Namespace containing types and interfaces for AIChatModel.
  */
 export namespace AIChatModel {
+  /**
+   * A snapshot of messages and agent history from a branch point onwards.
+   */
+  export interface IBranchSnapshot {
+    messages: IMessageContent[];
+    history: ModelMessage[];
+  }
+
   /**
    * Configuration options for constructing an AIChatModel instance.
    */
