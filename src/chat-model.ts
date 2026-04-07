@@ -29,7 +29,7 @@ import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
 
-import type { UserContent, ImagePart, FilePart } from 'ai'
+import type { UserContent, ImagePart, FilePart } from 'ai';
 
 import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
 
