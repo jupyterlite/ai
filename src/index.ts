@@ -53,11 +53,14 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
-import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
-
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
+
 import { DisposableSet } from '@lumino/disposable';
 import { CommandRegistry } from '@lumino/commands';
+
+import { IComponentsRendererFactory } from 'jupyter-chat-components';
+
+import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManagerFactory } from './agent';
 
@@ -65,11 +68,10 @@ import { AIChatModel } from './chat-model';
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
+
 import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
-
-import { ApprovalButtons } from './approval-buttons';
 
 import { ChatModelHandler } from './chat-model-handler';
 
@@ -118,7 +120,9 @@ import {
   createDiscoverCommandsTool,
   createExecuteCommandTool
 } from './tools/commands';
+
 import { createDiscoverSkillsTool, createLoadSkillTool } from './tools/skills';
+
 import { createBrowserFetchTool } from './tools/web';
 
 import { AISettingsWidget } from './widgets/ai-settings';
@@ -328,19 +332,15 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     docManager: IDocumentManager,
     rmRegistry: IRenderMimeRegistry,
     providerRegistry?: IProviderRegistry,
-    toolRegistry?: IToolRegistry,
-    translator?: ITranslator
+    toolRegistry?: IToolRegistry
   ): IChatModelHandler => {
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-
     return new ChatModelHandler({
       settingsModel,
       agentManagerFactory,
       docManager,
       rmRegistry,
       providerRegistry,
-      toolRegistry,
-      trans
+      toolRegistry
     });
   }
 };
@@ -365,7 +365,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     ILayoutRestorer,
     ILabShell,
     INotebookTracker,
-    ITranslator
+    ITranslator,
+    IComponentsRendererFactory
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -378,9 +379,11 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
     notebookTracker?: INotebookTracker,
-    translator?: ITranslator
+    translator?: ITranslator,
+    chatComponentsFactory?: IComponentsRendererFactory
   ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
     attachmentOpenerRegistry.set('file', attachment => {
@@ -544,11 +547,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
       model.writersChanged?.connect(writersChanged);
 
-      // Associate an approval buttons object to the chat.
-      const approvalButton = new ApprovalButtons({
-        chatPanel: widget,
-        agentManager: model.agentManager
-      });
       // Temporary compat: keep output-area CSS context for MIME renderers
       // until jupyter-chat provides it natively.
       const outputAreaCompat = new RenderedMessageOutputAreaCompat({
@@ -561,7 +559,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         model.writersChanged?.disconnect(writersChanged);
 
         // Dispose of the approval buttons widget when the chat is disposed.
-        approvalButton.dispose();
         outputAreaCompat.dispose();
       });
     });
@@ -605,6 +602,27 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       themeManager,
       labShell
     );
+
+    /**
+     * The callback to approve or reject a tool.
+     */
+    function toolCallApproval(
+      targetId: string,
+      approvalId: string,
+      isApproved: boolean
+    ) {
+      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      if (!model) {
+        return;
+      }
+      isApproved
+        ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
+        : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+    }
+
+    if (chatComponentsFactory) {
+      chatComponentsFactory.toolCallApproval = toolCallApproval;
+    }
 
     return tracker;
   }
