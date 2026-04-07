@@ -670,18 +670,6 @@ export class AIChatModel extends AbstractChatModel {
   }> {
     const textContents: string[] = [];
     const binaryParts: Array<ImagePart | FilePart> = [];
-    const imageMimeTypes: Record<string, string> = {
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
-      '.bmp': 'image/bmp'
-    };
-    const fileMimeTypes: Record<string, string> = {
-      '.pdf': 'application/pdf'
-    };
-
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
@@ -690,33 +678,53 @@ export class AIChatModel extends AbstractChatModel {
             textContents.push(cellContents);
           }
         } else {
+          let mimetype = (attachment as any).mimetype;
           const fileExtension = PathExt.extname(attachment.value).toLowerCase();
-          const imageMimeType = imageMimeTypes[fileExtension];
-          const fileMimeType = fileMimeTypes[fileExtension];
 
-          if (imageMimeType) {
+          // Fetch mimetype from server metadata if not provided
+          if (!mimetype) {
+            try {
+              const diskModel =
+                await this.input.documentManager?.services.contents.get(
+                  attachment.value,
+                  { content: false }
+                );
+              mimetype = diskModel?.mimetype;
+            } catch (e) {
+              console.warn(
+                `Failed to fetch metadata for ${attachment.value}:`,
+                e
+              );
+            }
+          }
+
+          if (mimetype?.startsWith('image/')) {
             const data = await this._readBinaryAttachment(attachment);
             if (data) {
               binaryParts.push({
                 type: 'image',
                 image: data,
-                mediaType: imageMimeType
+                mediaType: mimetype
               });
             }
-          } else if (fileMimeType) {
+          } else if (mimetype === 'application/pdf') {
             const data = await this._readBinaryAttachment(attachment);
             if (data) {
               binaryParts.push({
                 type: 'file',
                 data,
-                mediaType: fileMimeType,
+                mediaType: mimetype,
                 filename: PathExt.basename(attachment.value)
               });
             }
           } else {
             const fileContent = await this._readFileAttachment(attachment);
             if (fileContent) {
-              const language = fileExtension === '.ipynb' ? 'json' : '';
+              const language =
+                fileExtension === '.ipynb' ||
+                mimetype === 'application/x-ipynb+json'
+                  ? 'json'
+                  : '';
               textContents.push(
                 `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
               );
