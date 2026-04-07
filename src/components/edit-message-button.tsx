@@ -9,35 +9,34 @@ import React, { useRef } from 'react'
 import type { AIChatModel } from '../chat-model'
 
 /**
- * A footer section that shows branch navigation arrows on user messages
- * that have been edited. The edit UI itself is provided natively by
- * @jupyter/chat via model.updateMessage.
+ * A footer section that shows branch navigation arrows on edited user messages.
+ * The edit UI is provided natively by @jupyter/chat via model.updateMessage.
  */
 function BranchNavigation({
   model,
   message
 }: MessageFooterSectionProps): JSX.Element | null {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const aiModel = model as AIChatModel
-  const branchInfo = aiModel.getBranchInfo?.(message.id) ?? null
+  const containerRef = useRef<HTMLDivElement>(null);
+  const aiModel = model as AIChatModel;
+  const branchInfo = aiModel.getBranchInfo?.(message.id) ?? null;
 
   if (!branchInfo) {
-    return null
+    return null;
   }
 
   const handleSwitch = (direction: 'prev' | 'next') => {
-    // Preserve scroll position — @jupyter/chat scrolls to bottom on messagesUpdated
-    let scrollEl: HTMLElement | null = containerRef.current
+    // Preserve scroll position by saving it before switching branches
+    let scrollEl: HTMLElement | null = containerRef.current;
     while (scrollEl) {
-      const oy = getComputedStyle(scrollEl).overflowY
-      if (oy === 'auto' || oy === 'scroll') break
-      scrollEl = scrollEl.parentElement
+      const oy = getComputedStyle(scrollEl).overflowY;
+      if (oy === 'auto' || oy === 'scroll') break;
+      scrollEl = scrollEl.parentElement;
     }
-    const savedTop = scrollEl?.scrollTop
-    aiModel.switchBranch(message.id, direction)
+    const savedTop = scrollEl?.scrollTop;
+    aiModel.switchBranch(message.id, direction);
     setTimeout(() => {
-      if (scrollEl && savedTop !== undefined) scrollEl.scrollTop = savedTop
-    }, 0)
+      if (scrollEl && savedTop !== undefined) scrollEl.scrollTop = savedTop;
+    }, 0);
   }
 
   return (

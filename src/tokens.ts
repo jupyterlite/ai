@@ -572,6 +572,7 @@ export interface IAgentManager {
   getHistory(): ModelMessage[];
   /**
    * Restores the conversation history from a snapshot.
+   * @param history The conversation history to restore
    */
   setHistory(history: ModelMessage[]): void;
   /**

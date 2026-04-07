@@ -189,10 +189,10 @@ export class AIChatModel extends AbstractChatModel {
 
   /**
    * Edits a previous user message. Saves the current branch, truncates
-   * history from the edit point, and re-sends the new message body.
-   * The original message ID is preserved so branch navigation remains stable.
-   * @param messageId The ID of the message to edit
-   * @param newBody The new message body to send
+   * history from the edit point, and resends the new message body.
+   * Original message ID is preserved so branch navigation remains stable.
+   * @param messageId ID of the message to edit
+   * @param newBody New message body to send
    */
   editMessage(messageId: string, newBody: string): void {
     const index = this.messages.findIndex(m => m.id === messageId);
@@ -215,13 +215,12 @@ export class AIChatModel extends AbstractChatModel {
       existing.currentIndex = existing.branches.length - 1;
     }
 
-    // Count user turns before the edit point to truncate agent history correctly
+    // Count user turns before edit point
     const userTurnsBefore = this.messages
       .slice(0, index)
       .filter(m => m.sender.username !== 'ai-assistant').length;
 
-    // update() preserves the original timestamp (avoids re-ordering) and fires
-    // `changed` so the header re-renders without a stale-state issue.
+    // Update the message
     this.messages[index].update({ body: newBody });
     if (this.messages.length > index + 1) {
       this.messagesDeleted(index + 1, this.messages.length - index - 1);
@@ -241,7 +240,7 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Navigates to the previous or next branch at the given message (branch point).
+   * Navigates to the previous or next branch at the given message.
    * @param messageId The ID of the branch-point message
    * @param direction 'prev' or 'next'
    */
@@ -303,6 +302,9 @@ export class AIChatModel extends AbstractChatModel {
     };
   }
 
+  /**
+   * Create an error message.
+   */
   private _createErrorMessage(error: Error): IMessageContent {
     return {
       body: `Error generating AI response: ${error.message}`,
@@ -314,6 +316,9 @@ export class AIChatModel extends AbstractChatModel {
     };
   }
 
+  /**
+   * Create a snapshot of the current messages and history from the given index.
+   */
   private _snapshotFrom(index: number): AIChatModel.IBranchSnapshot {
     return {
       messages: this.messages.slice(index).map(m => ({
