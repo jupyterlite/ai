@@ -147,9 +147,17 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
+      this.messageChanged.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
       this._autosaveDebouncer.invoke();
     } else {
       this.messagesUpdated.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.disconnect(
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
