@@ -41,10 +41,7 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
   translator: trans
 }) => {
   const formatContextPercent = (value: number): string => {
-    const maximumFractionDigits = value >= 10 ? 1 : 2;
-    return value.toLocaleString(undefined, {
-      maximumFractionDigits
-    });
+    return Math.round(value).toLocaleString();
   };
 
   const badgeStyle: React.CSSProperties = {
