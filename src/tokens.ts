@@ -202,6 +202,13 @@ export interface IProviderToolCapabilities {
 /**
  * Provider information
  */
+export interface IProviderModelInfo {
+  /**
+   * Default context window for the model in tokens.
+   */
+  contextWindow?: number;
+}
+
 export interface IProviderInfo {
   /**
    * Unique identifier for the provider
@@ -225,6 +232,11 @@ export interface IProviderInfo {
    * Default model names for this provider
    */
   defaultModels: string[];
+
+  /**
+   * Optional per-model metadata keyed by model ID.
+   */
+  modelInfo?: Record<string, IProviderModelInfo>;
 
   /**
    * Whether this provider supports custom base URLs

@@ -37,6 +37,7 @@ import type {
   IProviderRegistry,
   IProviderToolCapabilities
 } from '../tokens';
+import { getProviderModelInfo } from '../providers/model-info';
 
 /**
  * Default parameter values for provider configuration
@@ -168,6 +169,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   );
   const providerToolCapabilities =
     selectedProviderInfo?.providerToolCapabilities;
+  const selectedModelInfo = React.useMemo(
+    () => getProviderModelInfo(selectedProviderInfo, model),
+    [selectedProviderInfo, model]
+  );
   const webSearchImplementation =
     providerToolCapabilities?.webSearch?.implementation;
   const supportsWebSearch = !!providerToolCapabilities?.webSearch;
@@ -689,10 +694,25 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                         : undefined
                     })
                   }
-                  placeholder={trans.__('e.g., 128000')}
-                  helperText={trans.__(
-                    'Model context window size in tokens (used for context usage estimation)'
-                  )}
+                  placeholder={
+                    selectedModelInfo?.contextWindow !== undefined
+                      ? trans.__(
+                          'Default: %1',
+                          selectedModelInfo.contextWindow.toLocaleString()
+                        )
+                      : trans.__('e.g., 128000')
+                  }
+                  helperText={
+                    selectedModelInfo?.contextWindow !== undefined &&
+                    parameters.contextWindow === undefined
+                      ? trans.__(
+                          'Using provider metadata default of %1 tokens for this model unless you override it here.',
+                          selectedModelInfo.contextWindow.toLocaleString()
+                        )
+                      : trans.__(
+                          'Model context window size in tokens (used for context usage estimation)'
+                        )
+                  }
                   inputProps={{ min: 1 }}
                 />
 

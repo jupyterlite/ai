@@ -45,6 +45,7 @@ import {
   createTheme
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
+import { getEffectiveContextWindow } from '../providers/model-info';
 import {
   type IAgentManagerFactory,
   type IAIConfig,
@@ -670,6 +671,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                       const providerToolCapabilities =
                         providerInfo?.providerToolCapabilities;
                       const params = provider.parameters;
+                      const effectiveContextWindow = getEffectiveContextWindow(
+                        provider,
+                        providerRegistry
+                      );
                       const webSearchEnabled =
                         !!providerToolCapabilities?.webSearch &&
                         provider.customSettings?.webSearch?.enabled === true;
@@ -741,7 +746,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                               {(params?.temperature !== undefined ||
                                 params?.maxOutputTokens !== undefined ||
                                 params?.maxTurns !== undefined ||
-                                params?.contextWindow !== undefined ||
+                                effectiveContextWindow !== undefined ||
                                 webSearchEnabled ||
                                 webFetchEnabled) && (
                                 <Box
@@ -782,11 +787,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                                       variant="outlined"
                                     />
                                   )}
-                                  {params?.contextWindow !== undefined && (
+                                  {effectiveContextWindow !== undefined && (
                                     <Chip
                                       label={trans.__(
                                         'Context: %1',
-                                        params.contextWindow
+                                        effectiveContextWindow
                                       )}
                                       size="small"
                                       variant="outlined"

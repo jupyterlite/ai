@@ -4,6 +4,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
+import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-context-windows';
 import type { IProviderInfo } from '../tokens';
 import type { IModelOptions } from './models';
 
@@ -30,6 +31,7 @@ export const anthropicProvider: IProviderInfo = {
     'claude-sonnet-4-0',
     'claude-sonnet-4-20250514'
   ],
+  modelInfo: BUILT_IN_PROVIDER_MODEL_INFO.anthropic,
   supportsBaseURL: true,
   supportsHeaders: true,
   providerToolCapabilities: {
@@ -77,6 +79,7 @@ export const googleProvider: IProviderInfo = {
     'gemini-flash-latest',
     'gemini-flash-lite-latest'
   ],
+  modelInfo: BUILT_IN_PROVIDER_MODEL_INFO.google,
   supportsBaseURL: true,
   factory: (options: IModelOptions) => {
     if (!options.apiKey) {
@@ -113,6 +116,7 @@ export const mistralProvider: IProviderInfo = {
     'codestral-latest',
     'devstral-latest'
   ],
+  modelInfo: BUILT_IN_PROVIDER_MODEL_INFO.mistral,
   supportsBaseURL: true,
   factory: (options: IModelOptions) => {
     if (!options.apiKey) {
@@ -182,6 +186,7 @@ export const openaiProvider: IProviderInfo = {
     'gpt-3.5-turbo',
     'gpt-3.5-turbo-0125'
   ],
+  modelInfo: BUILT_IN_PROVIDER_MODEL_INFO.openai,
   supportsBaseURL: true,
   supportsHeaders: true,
   providerToolCapabilities: {

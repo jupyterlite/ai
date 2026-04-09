@@ -40,6 +40,26 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
   initialTokenUsage,
   translator: trans
 }) => {
+  const formatContextPercent = (value: number): string => {
+    const maximumFractionDigits = value >= 10 ? 1 : 2;
+    return value.toLocaleString(undefined, {
+      maximumFractionDigits
+    });
+  };
+
+  const badgeStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
+    color: 'var(--jp-ui-font-color2)',
+    padding: '4px 8px',
+    backgroundColor: 'var(--jp-layout-color1)',
+    border: '1px solid var(--jp-border-color1)',
+    borderRadius: '4px',
+    whiteSpace: 'nowrap'
+  };
+
   return (
     <UseSignal signal={settingsModel.stateChanged} initialArgs={undefined}>
       {() => {
@@ -59,97 +79,91 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
 
               const total = tokenUsage.inputTokens + tokenUsage.outputTokens;
               const hasTokenUsage = showTokenUsage && total > 0;
-              const hasContextUsage =
-                showContextUsage &&
+              const hasKnownContextWindow =
+                showContextUsage && tokenUsage.contextWindow !== undefined;
+              const hasContextEstimate =
+                hasKnownContextWindow &&
                 tokenUsage.contextUsagePercent !== undefined &&
-                tokenUsage.contextWindow !== undefined &&
                 tokenUsage.lastRequestInputTokens !== undefined;
+              const shouldShowContextBadge = showContextUsage;
 
-              if (!hasTokenUsage && !hasContextUsage) {
+              if (!hasTokenUsage && !shouldShowContextBadge) {
                 return null;
               }
 
-              const contextTitle = hasContextUsage
+              const contextLabel = hasContextEstimate
+                ? `${formatContextPercent(tokenUsage.contextUsagePercent!)}%`
+                : hasKnownContextWindow
+                  ? '0%'
+                  : '?';
+
+              const contextTitle = hasContextEstimate
                 ? trans.__(
                     'Context Usage (estimated): %1% (%2 / %3 tokens)',
-                    tokenUsage.contextUsagePercent!.toLocaleString(undefined, {
-                      maximumFractionDigits: 1
-                    }),
+                    formatContextPercent(tokenUsage.contextUsagePercent!),
                     tokenUsage.lastRequestInputTokens!.toLocaleString(),
                     tokenUsage.contextWindow!.toLocaleString()
                   )
-                : '';
+                : hasKnownContextWindow
+                  ? trans.__(
+                      'Context usage estimate will appear after the next request. Showing 0% until then. Context window: %1 tokens',
+                      tokenUsage.contextWindow!.toLocaleString()
+                    )
+                  : trans.__(
+                      'Context Usage unavailable. Configure a context window for the active provider/model to enable estimation.'
+                    );
 
               return (
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '12px',
-                    color: 'var(--jp-ui-font-color2)',
-                    padding: '4px 8px',
-                    backgroundColor: 'var(--jp-layout-color1)',
-                    border: '1px solid var(--jp-border-color1)',
-                    borderRadius: '4px',
-                    whiteSpace: 'nowrap'
+                    gap: '6px'
                   }}
-                  title={trans.__(
-                    '%1%2',
-                    hasTokenUsage
-                      ? trans.__(
-                          'Token Usage - Sent: %1, Received: %2, Total: %3',
-                          tokenUsage.inputTokens.toLocaleString(),
-                          tokenUsage.outputTokens.toLocaleString(),
-                          total.toLocaleString()
-                        )
-                      : '',
-                    hasTokenUsage && hasContextUsage
-                      ? `\n${contextTitle}`
-                      : contextTitle
-                  )}
                 >
                   {hasTokenUsage && (
                     <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
+                      style={badgeStyle}
+                      title={trans.__(
+                        'Token Usage - Sent: %1, Received: %2, Total: %3',
+                        tokenUsage.inputTokens.toLocaleString(),
+                        tokenUsage.outputTokens.toLocaleString(),
+                        total.toLocaleString()
+                      )}
                     >
-                      <span>↑</span>
-                      <span>{tokenUsage.inputTokens.toLocaleString()}</span>
+                      <span
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <span>↑</span>
+                        <span>{tokenUsage.inputTokens.toLocaleString()}</span>
+                      </span>
+                      <span
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <span>↓</span>
+                        <span>{tokenUsage.outputTokens.toLocaleString()}</span>
+                      </span>
                     </span>
                   )}
-                  {hasTokenUsage && (
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
-                    >
-                      <span>↓</span>
-                      <span>{tokenUsage.outputTokens.toLocaleString()}</span>
-                    </span>
-                  )}
-                  {hasContextUsage && (
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
-                    >
-                      <span>ctx</span>
-                      <span>
-                        {tokenUsage.contextUsagePercent!.toLocaleString(
-                          undefined,
-                          {
-                            maximumFractionDigits: 1
-                          }
-                        )}
-                        %
+                  {shouldShowContextBadge && (
+                    <span style={badgeStyle} title={contextTitle}>
+                      <span
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <span>ctx</span>
+                        <span>{contextLabel}</span>
                       </span>
                     </span>
                   )}
