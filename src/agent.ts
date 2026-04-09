@@ -491,7 +491,7 @@ export class AgentManager implements IAgentManager {
 
     // Convert chat messages to model messages
     const modelMessages = messages.map(msg => {
-      const isAIMessage = msg.sender.username === 'assistant';
+      const isAIMessage = msg.sender.username === 'ai-assistant';
       return {
         role: isAIMessage ? 'assistant' : 'user',
         content: msg.body

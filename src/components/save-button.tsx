@@ -40,9 +40,13 @@ export function SaveComponent(props: ISaveButtonProps): JSX.Element {
    * Effect that update the autosave state when it is updated on the model.
    */
   useEffect(() => {
-    model.autosaveChanged.connect((_, value) => setAutosave(value));
+    const updateAutosave = (_: AIChatModel, value: boolean) => {
+      setAutosave(value);
+    };
+
+    model.autosaveChanged.connect(updateAutosave);
     return () => {
-      model.autosaveChanged.disconnect((_, value) => setAutosave(value));
+      model.autosaveChanged.disconnect(updateAutosave);
     };
   }, [model]);
 
