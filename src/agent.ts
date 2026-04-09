@@ -1,4 +1,5 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
@@ -494,6 +495,34 @@ export class AgentManager implements IAgentManager {
       contextWindow: this._getActiveContextWindow()
     };
     this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Sets the history with a list of messages from the chat.
+   * @param messages The chat messages to set as history
+   */
+  setHistory(messages: IMessageContent[]): void {
+    // Stop any ongoing streaming and reject awaiting approvals
+    this.stopStreaming();
+
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, 'Chat history changed');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+    this._pendingApprovals.clear();
+
+    // Convert chat messages to model messages
+    const modelMessages = messages.map(msg => {
+      const isAIMessage = msg.sender.username === 'ai-assistant';
+      return {
+        role: isAIMessage ? 'assistant' : 'user',
+        content: msg.body
+      } as ModelMessage;
+    });
+    this._history = Private.sanitizeModelMessages(modelMessages);
   }
 
   /**

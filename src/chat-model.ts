@@ -23,7 +23,11 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
 import { IRenderMime } from '@jupyterlab/rendermime';
 
+import { Contents } from '@jupyterlab/services';
+
 import { UUID } from '@lumino/coreutils';
+
+import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
@@ -101,13 +105,15 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
+    this._contentsManager = options.contentsManager;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
-    this.setReady();
+
+    this._autosaveDebouncer = new Debouncer(this.save, 3000);
   }
 
   /**
@@ -119,6 +125,50 @@ export class AIChatModel extends AbstractChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
+    if (!this.messages.length) {
+      const directory = this._settingsModel.config.chatBackupDirectory;
+      const filepath = PathExt.join(directory, `${this.name}.chat`);
+      this.restore(filepath, true);
+    }
+    this.setReady();
+  }
+
+  /**
+   * Whether to save the chat automatically.
+   */
+  get autosave(): boolean {
+    return this._autosave;
+  }
+  set autosave(value: boolean) {
+    this._autosave = value;
+    this._autosaveChanged.emit(value);
+    if (value) {
+      this.messagesUpdated.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this._autosaveDebouncer.invoke();
+    } else {
+      this.messagesUpdated.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+    }
+  }
+
+  /**
+   * A signal emitting when the autosave flag changed.
+   */
+  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+    return this._autosaveChanged;
   }
 
   /**
@@ -147,6 +197,24 @@ export class AIChatModel extends AbstractChatModel {
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
+  }
+
+  /**
+   * Whether save/restore is available.
+   */
+  get saveAvailable(): boolean {
+    return !!this._contentsManager;
+  }
+
+  /**
+   * Dispose of the model.
+   */
+  dispose(): void {
+    this.messagesUpdated.disconnect(
+      this._autosaveDebouncer.invoke,
+      this._autosaveDebouncer
+    );
+    super.dispose();
   }
 
   /**
@@ -266,6 +334,147 @@ export class AIChatModel extends AbstractChatModel {
     }
   }
 
+  /**
+   * Save the chat as json file.
+   */
+  save = async (): Promise<void> => {
+    if (!this._contentsManager) {
+      return;
+    }
+    const directory = this._settingsModel.config.chatBackupDirectory;
+    const filepath = PathExt.join(directory, `${this.name}.chat`);
+    const content = JSON.stringify(this._serializeModel());
+    await this._contentsManager
+      .get(filepath, { content: false })
+      .catch(async () => {
+        await this._contentsManager
+          ?.get(directory, { content: false })
+          .catch(async () => {
+            const dir = await this._contentsManager!.newUntitled({
+              type: 'directory'
+            });
+            await this._contentsManager!.rename(dir.path, directory);
+          });
+        const file = await this._contentsManager!.newUntitled({ ext: '.chat' });
+        await this._contentsManager?.rename(file.path, filepath);
+      });
+    await this._contentsManager.save(filepath, {
+      content,
+      type: 'file',
+      format: 'text'
+    });
+  };
+
+  /**
+   * Restore the chat from a json file.
+   *
+   * @param silent - Whether a log should be displayed in the console if the
+   * restoration is not possible.
+   */
+  restore = async (filepath: string, silent = false): Promise<boolean> => {
+    if (!this._contentsManager) {
+      return false;
+    }
+    const contentModel = await this._contentsManager
+      .get(filepath, { content: true })
+      .catch(() => {
+        if (!silent) {
+          console.log(`There is no backup for chat '${this.name}'`);
+        }
+        return;
+      });
+    if (!contentModel) {
+      return false;
+    }
+    const content = JSON.parse(
+      contentModel.content
+    ) as AIChatModel.ExportedChat;
+
+    if (content.metadata?.provider) {
+      if (this._settingsModel.getProvider(content.metadata.provider)) {
+        this._agentManager.activeProvider = content.metadata.provider;
+      } else if (!silent) {
+        console.log(
+          `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
+        );
+      }
+    } else if (!silent) {
+      console.log(`Provider not providing when restoring ${filepath}.`);
+    }
+
+    const messages: IMessageContent[] = content.messages.map(message => {
+      let attachments: IAttachment[] = [];
+      if (content.attachments && message.attachments) {
+        attachments =
+          message.attachments.map(index => content.attachments![index]) ?? [];
+      }
+      return {
+        ...message,
+        sender: content.users[message.sender] ?? { username: 'unknown' },
+        mentions: message.mentions?.map(mention => content.users[mention]),
+        attachments
+      };
+    });
+    this.clearMessages();
+    this.messagesInserted(0, messages);
+    this._agentManager.setHistory(messages);
+    this.autosave = content.metadata?.autosave ?? false;
+    return true;
+  };
+
+  /**
+   * Serialize the model for backup
+   */
+  private _serializeModel(): AIChatModel.ExportedChat {
+    const provider = this._agentManager.activeProvider;
+    const messages: IMessageContent<string, string>[] = [];
+    const users: { [id: string]: IUser } = {};
+    const attachmentMap = new Map<string, number>(); // JSON → index
+    const attachmentsList: IAttachment[] = []; // Actual attachments
+
+    this.messages.forEach(message => {
+      let attachmentIndexes: string[] = [];
+      if (message.attachments) {
+        attachmentIndexes = message.attachments.map(attachment => {
+          const attachmentJson = JSON.stringify(attachment);
+          let index: number;
+          if (attachmentMap.has(attachmentJson)) {
+            index = attachmentMap.get(attachmentJson)!;
+          } else {
+            index = attachmentsList.length;
+            attachmentMap.set(attachmentJson, index);
+            attachmentsList.push(attachment);
+          }
+          return index.toString();
+        });
+      }
+
+      messages.push({
+        ...message.content,
+        sender: message.sender.username,
+        mentions: message.mentions?.map(user => user.username),
+        attachments: attachmentIndexes
+      });
+
+      if (!users[message.sender.username]) {
+        users[message.sender.username] = message.sender;
+      }
+    });
+
+    const attachments = Object.fromEntries(
+      attachmentsList.map((item, index) => [index, item])
+    );
+
+    return {
+      messages,
+      users,
+      attachments,
+      metadata: {
+        provider,
+        autosave: this.autosave
+      }
+    };
+  }
   /**
    * Gets the AI user information for system messages.
    */
@@ -935,6 +1144,10 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: IAgentManager;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _contentsManager?: Contents.IManager;
+  private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
+  private _autosaveDebouncer: Debouncer;
 }
 
 namespace Private {
@@ -1074,6 +1287,14 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
+    /**
+     * The contents manager.
+     */
+    contentsManager?: Contents.IManager;
+    /**
+     * Whether to restore or not the message (default to true)
+     */
+    restore?: boolean;
   }
 
   /**
@@ -1097,4 +1318,35 @@ export namespace AIChatModel {
      */
     agentManager: IAgentManager;
   }
+
+  /**
+   * The exported chat format.
+   */
+  export type ExportedChat = {
+    /**
+     * Message list (user are only string to avoid duplication).
+     */
+    messages: IMessageContent<string, string>[];
+    /**
+     * The user list.
+     */
+    users: { [id: string]: IUser };
+    /**
+     * The attachments of the chat.
+     */
+    attachments?: { [id: string]: IAttachment };
+    /**
+     * The metadata associated to the chat.
+     */
+    metadata?: {
+      /**
+       * Provider of the chat.
+       */
+      provider?: string;
+      /**
+       * Whether the chat is automatically saved.
+       */
+      autosave?: boolean;
+    };
+  };
 }
