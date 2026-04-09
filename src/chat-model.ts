@@ -923,15 +923,19 @@ namespace Private {
     attachment: IAttachment,
     documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
-    if (attachment.type !== 'notebook' || !attachment.cells || !documentManager) {
+    if (
+      attachment.type !== 'notebook' ||
+      !attachment.cells ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from live notebook if open
-      const widget = documentManager.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
       let cellData: nbformat.ICell[];
       let kernelLang = 'text';
 
@@ -1111,9 +1115,9 @@ namespace Private {
 
     try {
       // Try reading from an open widget first
-      const widget = documentManager.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
 
       if (widget && widget.context && widget.context.model) {
         const model = widget.context.model;
