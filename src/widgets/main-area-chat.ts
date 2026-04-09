@@ -5,6 +5,7 @@ import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
 import { AIChatModel } from '../chat-model';
+import { SaveComponentWidget } from '../components/save-button';
 import { TokenUsageWidget } from '../components/token-usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds, type IAISettingsModel } from '../tokens';
@@ -27,7 +28,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
 
     const { trans } = options;
 
-    // add the move to side button.
+    // Move to side button.
     this.toolbar.addItem(
       'moveToSide',
       new CommandToolbarButton({
@@ -40,6 +41,17 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
         icon: launchIcon
       })
     );
+
+    if (this.model.saveAvailable) {
+      // Save chat component
+      this.toolbar.addItem(
+        'saveChat',
+        new SaveComponentWidget({
+          model: this.model,
+          translator: trans
+        })
+      );
+    }
 
     // Add the token usage button.
     const tokenUsageWidget = new TokenUsageWidget({

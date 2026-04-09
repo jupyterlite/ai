@@ -23,6 +23,7 @@ import {
 import {
   ICommandPalette,
   IThemeManager,
+  showDialog,
   showErrorMessage,
   WidgetTracker
 } from '@jupyterlab/apputils';
@@ -30,6 +31,8 @@ import {
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
+
+import { FileDialog } from '@jupyterlab/filebrowser';
 
 import { INotebookTracker } from '@jupyterlab/notebook';
 
@@ -48,6 +51,8 @@ import {
 } from '@jupyterlab/translation';
 
 import {
+  fileUploadIcon,
+  saveIcon,
   settingsIcon,
   Toolbar,
   ToolbarButton
@@ -56,6 +61,7 @@ import {
 import { PromiseDelegate, UUID } from '@lumino/coreutils';
 
 import { DisposableSet } from '@lumino/disposable';
+
 import { CommandRegistry } from '@lumino/commands';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
@@ -65,6 +71,7 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 import { AgentManagerFactory } from './agent';
 
 import { AIChatModel } from './chat-model';
+
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
@@ -72,6 +79,8 @@ import { ClearCommandProvider } from './chat-commands/clear';
 import { SkillsCommandProvider } from './chat-commands/skills';
 
 import { ProviderRegistry } from './providers/provider-registry';
+
+import { SaveComponentWidget } from './components/save-button';
 
 import { ChatModelHandler } from './chat-model-handler';
 
@@ -325,7 +334,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
   ],
   optional: [IProviderRegistry, IToolRegistry, ITranslator],
   provides: IChatModelHandler,
-  activate: (
+  activate: async (
     app: JupyterFrontEnd,
     settingsModel: IAISettingsModel,
     agentManagerFactory: IAgentManagerFactory,
@@ -333,14 +342,17 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     rmRegistry: IRenderMimeRegistry,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
-  ): IChatModelHandler => {
+  ): Promise<IChatModelHandler> => {
+    await app.serviceManager.ready;
+
     return new ChatModelHandler({
       settingsModel,
       agentManagerFactory,
       docManager,
       rmRegistry,
       providerRegistry,
-      toolRegistry
+      toolRegistry,
+      contentsManager: app.serviceManager.contents
     });
   }
 };
@@ -366,7 +378,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     ILabShell,
     INotebookTracker,
     ITranslator,
-    IComponentsRendererFactory
+    IComponentsRendererFactory,
+    ICommandPalette,
+    IDocumentManager
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -380,7 +394,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     labShell?: ILabShell,
     notebookTracker?: INotebookTracker,
     translator?: ITranslator,
-    chatComponentsFactory?: IComponentsRendererFactory
+    chatComponentsFactory?: IComponentsRendererFactory,
+    palette?: ICommandPalette,
+    documentManager?: IDocumentManager
   ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -440,7 +456,10 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           name = `${modelName}-${i}`;
           i += 1;
         }
-        const model = modelHandler.createModel(name, provider);
+        const model = modelHandler.createModel({
+          name,
+          activeProvider: provider
+        });
         return { model };
       },
       getChatNames: async () => {
@@ -529,6 +548,19 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         tokenUsageWidget
       );
 
+      if (model.saveAvailable) {
+        const saveChatButton = new SaveComponentWidget({
+          model,
+          translator: trans
+        });
+
+        chatPanel.current?.toolbar.insertAfter(
+          'markRead',
+          'saveChat',
+          saveChatButton
+        );
+      }
+
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
         // Check if AI is currently writing (streaming)
@@ -600,7 +632,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       modelHandler,
       trans,
       themeManager,
-      labShell
+      labShell,
+      palette,
+      documentManager
     );
 
     /**
@@ -640,7 +674,9 @@ function registerCommands(
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
   themeManager?: IThemeManager,
-  labShell?: ILabShell
+  labShell?: ILabShell,
+  palette?: ICommandPalette,
+  documentManager?: IDocumentManager
 ) {
   const { commands } = app;
 
@@ -754,7 +790,10 @@ function registerCommands(
           name = providerConfig.name;
         }
 
-        const model = modelRegistry.createModel(name, provider);
+        const model = modelRegistry.createModel({
+          name,
+          activeProvider: provider
+        });
         if (!model) {
           return false;
         }
@@ -836,13 +875,12 @@ function registerCommands(
         previousModel.name = UUID.uuid4();
 
         // Create a new model by duplicating the previous model attributes.
-        const model = modelRegistry.createModel(
-          args.name as string,
-          previousModel.agentManager.activeProvider,
-          previousModel.agentManager.tokenUsage
-        );
-        previousModel?.messages.forEach(message => {
-          model?.messageAdded({ ...message.content });
+        const model = modelRegistry.createModel({
+          name: args.name as string,
+          activeProvider: previousModel.agentManager.activeProvider,
+          tokenUsage: previousModel.agentManager.tokenUsage,
+          messages: previousModel.messages,
+          autosave: previousModel.autosave
         });
 
         // Wait (with timeout) for the tracker to have updated the previous widget.
@@ -888,6 +926,135 @@ function registerCommands(
         }
       }
     });
+
+    commands.addCommand(CommandIds.saveChat, {
+      label: args => (args.isPalette ? trans.__('Save chat') : ''),
+      caption: trans.__('Save the chat as local file'),
+      icon: saveIcon,
+      execute: async (args): Promise<boolean> => {
+        let model: AIChatModel | null = null;
+        if (args.name) {
+          tracker.forEach(widget => {
+            if (widget.model.name === args.name) {
+              model = widget.model as AIChatModel;
+            }
+          });
+        } else {
+          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+        }
+        if (model === null) {
+          console.log('No chat to save');
+          return false;
+        }
+
+        model.save();
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            isPalette: {
+              type: 'boolean',
+              description: trans.__('Whether the command is in palette')
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat to save')
+            }
+          }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.restoreChat, {
+      label: args => (args.isPalette ? trans.__('Restore chat') : ''),
+      caption: trans.__('Restore the chat from a local file'),
+      icon: fileUploadIcon,
+      isVisible: () => !!documentManager,
+      execute: async (args): Promise<boolean> => {
+        if (!documentManager) {
+          console.warn('The restoration is not possible');
+          return false;
+        }
+        let model: AIChatModel | null = null;
+        if (args.name) {
+          tracker.forEach(widget => {
+            if (widget.model.name === args.name) {
+              model = widget.model as AIChatModel;
+            }
+          });
+        } else {
+          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+        }
+        if (model === null) {
+          console.warn('There is no chat to restore');
+          return false;
+        }
+
+        let backupDirExists = false;
+        await app.serviceManager.contents
+          .get(settingsModel.config.chatBackupDirectory, { content: false })
+          .then(() => (backupDirExists = true))
+          .catch(() => (backupDirExists = false));
+
+        const selection = await FileDialog.getOpenFiles({
+          title: trans.__('Select files to attach'),
+          manager: documentManager,
+          defaultPath: backupDirExists
+            ? settingsModel.config.chatBackupDirectory
+            : ''
+        });
+
+        const filepath = selection.value?.[0].path;
+
+        if (!filepath) {
+          return false;
+        }
+
+        if (model.messages.length) {
+          const result = await showDialog({
+            body: trans.__('All the message will be deleted')
+          });
+          if (!result.button.accept) {
+            return false;
+          }
+        }
+        return model.restore(filepath);
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            isPalette: {
+              type: 'boolean',
+              description: trans.__('Whether the command is in palette')
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat to save')
+            }
+          }
+        }
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        category: trans.__('AI Assistant'),
+        command: CommandIds.saveChat,
+        args: {
+          isPalette: true
+        }
+      });
+      palette.addItem({
+        category: trans.__('AI Assistant'),
+        command: CommandIds.restoreChat,
+        args: {
+          isPalette: true
+        }
+      });
+    }
   }
 }
 

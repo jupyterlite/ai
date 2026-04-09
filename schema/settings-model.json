@@ -284,6 +284,12 @@
       "type": "array",
       "items": { "type": "string" },
       "default": [".agents/skills", "_agents/skills"]
+    },
+    "chatBackupDirectory": {
+      "title": "Chat Backup Directory",
+      "description": "Directory where chat history backups are saved, relative to the server root. Default is the server root.",
+      "type": "string",
+      "default": ""
     }
   },
   "additionalProperties": false
