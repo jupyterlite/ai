@@ -239,8 +239,9 @@ export class AIChatModel extends AbstractChatModel {
       // Process attachments and add their content to the message
       let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const { textContents, binaryParts } = await this._processAttachments(
-          this.input.attachments
+        const { textContents, binaryParts } = await Private.processAttachments(
+          this.input.attachments,
+          this.input.documentManager
         );
         this.input.clearAttachments();
 
@@ -659,36 +660,164 @@ export class AIChatModel extends AbstractChatModel {
     });
   }
 
+  // Private fields
+  private _settingsModel: IAISettingsModel;
+  private _user: IUser;
+  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
+  private _agentManager: IAgentManager;
+  private _currentStreamingMessage: IMessage | null = null;
+  private _nameChanged = new Signal<AIChatModel, string>(this);
+}
+
+namespace Private {
+  type IMimeBody = Partial<IRenderMime.IMimeModel> &
+    Pick<IRenderMime.IMimeModel, 'data'>;
+  type IDisplayOutput =
+    | nbformat.IDisplayData
+    | nbformat.IDisplayUpdate
+    | nbformat.IExecuteResult;
+
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+    if (!isPlainObject(value)) {
+      return false;
+    }
+
+    const output = value as nbformat.IOutput;
+    return (
+      nbformat.isDisplayData(output) ||
+      nbformat.isDisplayUpdate(output) ||
+      nbformat.isExecuteResult(output)
+    );
+  };
+
+  const toMimeBundle = (
+    value: IDisplayOutput,
+    trustedMimeTypes: ReadonlySet<string>
+  ): IMimeBody | null => {
+    const data = value.data;
+    if (!isPlainObject(data) || Object.keys(data).length === 0) {
+      return null;
+    }
+
+    return {
+      data: data as IRenderMime.IMimeModel['data'],
+      ...(isPlainObject(value.metadata)
+        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
+        : {}),
+      // MIME auto-rendering only runs for explicitly configured command IDs.
+      // Trust handling is configurable to keep risky MIME execution opt-in.
+      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+        ? { trusted: true }
+        : {})
+    };
+  };
+
+  /**
+   * Normalize arbitrary tool payloads into canonical display outputs.
+   *
+   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
+   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
+   */
+  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+    if (isDisplayOutput(value)) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(isDisplayOutput);
+    }
+
+    if (!isPlainObject(value)) {
+      return [];
+    }
+
+    if (Array.isArray(value.outputs)) {
+      return value.outputs.filter(isDisplayOutput);
+    }
+
+    if ('result' in value) {
+      return toDisplayOutputs(value.result);
+    }
+
+    return [];
+  };
+
+  /**
+   * Extract rendermime-ready mime bundles from arbitrary tool results.
+   */
+  export function extractMimeBundlesFromUnknown(
+    content: unknown,
+    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
+  ): IMimeBody[] {
+    const bundles: IMimeBody[] = [];
+    const outputs = toDisplayOutputs(content);
+    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
+    for (const output of outputs) {
+      const bundle = toMimeBundle(output, trustedMimeTypes);
+      if (bundle) {
+        bundles.push(bundle);
+      }
+    }
+    return bundles;
+  }
+
+  export function formatToolOutput(outputData: unknown): string {
+    if (typeof outputData === 'string') {
+      return outputData;
+    }
+
+    try {
+      return JSON.stringify(outputData, null, 2);
+    } catch {
+      return '[Complex object - cannot serialize]';
+    }
+  }
+
   /**
    * Processes file attachments and returns text contents and binary parts separately.
    * @param attachments Array of file attachments to process
+   * @param documentManager Optional document manager for file operations
    * @returns Text contents and binary parts
    */
-  private async _processAttachments(attachments: IAttachment[]): Promise<{
+  export async function processAttachments(
+    attachments: IAttachment[],
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<{
     textContents: string[];
     binaryParts: Array<ImagePart | FilePart>;
   }> {
     const textContents: string[] = [];
     const binaryParts: Array<ImagePart | FilePart> = [];
+
+    if (!documentManager) {
+      return { textContents, binaryParts };
+    }
+
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
-          const cellContents = await this._readNotebookCells(attachment);
+          const cellContents = await readNotebookCells(
+            attachment,
+            documentManager
+          );
           if (cellContents) {
             textContents.push(cellContents);
           }
         } else {
-          let mimetype = (attachment as any).mimetype;
+          let mimetype = attachment.mimetype;
           const fileExtension = PathExt.extname(attachment.value).toLowerCase();
 
           // Fetch mimetype from server metadata if not provided
           if (!mimetype) {
             try {
-              const diskModel =
-                await this.input.documentManager?.services.contents.get(
-                  attachment.value,
-                  { content: false }
-                );
+              const diskModel = await documentManager.services.contents.get(
+                attachment.value,
+                { content: false }
+              );
               mimetype = diskModel?.mimetype;
             } catch (e) {
               console.warn(
@@ -699,7 +828,10 @@ export class AIChatModel extends AbstractChatModel {
           }
 
           if (mimetype?.startsWith('image/')) {
-            const data = await this._readBinaryAttachment(attachment);
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
+            );
             if (data) {
               binaryParts.push({
                 type: 'image',
@@ -708,7 +840,10 @@ export class AIChatModel extends AbstractChatModel {
               });
             }
           } else if (mimetype === 'application/pdf') {
-            const data = await this._readBinaryAttachment(attachment);
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
+            );
             if (data) {
               binaryParts.push({
                 type: 'file',
@@ -718,7 +853,10 @@ export class AIChatModel extends AbstractChatModel {
               });
             }
           } else {
-            const fileContent = await this._readFileAttachment(attachment);
+            const fileContent = await readFileAttachment(
+              attachment,
+              documentManager
+            );
             if (fileContent) {
               const language =
                 fileExtension === '.ipynb' ||
@@ -745,13 +883,19 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads a binary attachment and returns its base64-encoded content.
    * @param attachment The attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns Base64 string or null if unable to read
    */
-  private async _readBinaryAttachment(
-    attachment: IAttachment
+  export async function readBinaryAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
+    if (!documentManager) {
+      return null;
+    }
+
     try {
-      const diskModel = await this.input.documentManager?.services.contents.get(
+      const diskModel = await documentManager.services.contents.get(
         attachment.value,
         { content: true }
       );
@@ -772,18 +916,20 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads the content of a notebook cell.
    * @param attachment The notebook attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns Cell content as string or null if unable to read
    */
-  private async _readNotebookCells(
-    attachment: IAttachment
+  export async function readNotebookCells(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
-    if (attachment.type !== 'notebook' || !attachment.cells) {
+    if (attachment.type !== 'notebook' || !attachment.cells || !documentManager) {
       return null;
     }
 
     try {
       // Try reading from live notebook if open
-      const widget = this.input.documentManager?.findWidget(
+      const widget = documentManager.findWidget(
         attachment.value
       ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
       let cellData: nbformat.ICell[];
@@ -804,7 +950,7 @@ export class AIChatModel extends AbstractChatModel {
         kernelLang = String(lang);
       } else {
         // Fallback: reading from disk
-        const model = await this.input.documentManager?.services.contents.get(
+        const model = await documentManager.services.contents.get(
           attachment.value
         );
         if (!model || model.type !== 'notebook') {
@@ -948,19 +1094,24 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads the content of a file attachment.
    * @param attachment The file attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns File content as string or null if unable to read
    */
-  private async _readFileAttachment(
-    attachment: IAttachment
+  export async function readFileAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
     // Handle both 'file' and 'notebook' types since both have a 'value' path
-    if (attachment.type !== 'file' && attachment.type !== 'notebook') {
+    if (
+      (attachment.type !== 'file' && attachment.type !== 'notebook') ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from an open widget first
-      const widget = this.input.documentManager?.findWidget(
+      const widget = documentManager.findWidget(
         attachment.value
       ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
 
@@ -977,7 +1128,7 @@ export class AIChatModel extends AbstractChatModel {
       }
 
       // If not open, load from disk
-      const diskModel = await this.input.documentManager?.services.contents.get(
+      const diskModel = await documentManager.services.contents.get(
         attachment.value
       );
 
@@ -1006,123 +1157,6 @@ export class AIChatModel extends AbstractChatModel {
     } catch (error) {
       console.warn(`Failed to read file ${attachment.value}:`, error);
       return null;
-    }
-  }
-
-  // Private fields
-  private _settingsModel: IAISettingsModel;
-  private _user: IUser;
-  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
-  private _agentManager: IAgentManager;
-  private _currentStreamingMessage: IMessage | null = null;
-  private _nameChanged = new Signal<AIChatModel, string>(this);
-}
-
-namespace Private {
-  type IMimeBody = Partial<IRenderMime.IMimeModel> &
-    Pick<IRenderMime.IMimeModel, 'data'>;
-  type IDisplayOutput =
-    | nbformat.IDisplayData
-    | nbformat.IDisplayUpdate
-    | nbformat.IExecuteResult;
-
-  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
-
-  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
-    if (!isPlainObject(value)) {
-      return false;
-    }
-
-    const output = value as nbformat.IOutput;
-    return (
-      nbformat.isDisplayData(output) ||
-      nbformat.isDisplayUpdate(output) ||
-      nbformat.isExecuteResult(output)
-    );
-  };
-
-  const toMimeBundle = (
-    value: IDisplayOutput,
-    trustedMimeTypes: ReadonlySet<string>
-  ): IMimeBody | null => {
-    const data = value.data;
-    if (!isPlainObject(data) || Object.keys(data).length === 0) {
-      return null;
-    }
-
-    return {
-      data: data as IRenderMime.IMimeModel['data'],
-      ...(isPlainObject(value.metadata)
-        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
-        : {}),
-      // MIME auto-rendering only runs for explicitly configured command IDs.
-      // Trust handling is configurable to keep risky MIME execution opt-in.
-      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-        ? { trusted: true }
-        : {})
-    };
-  };
-
-  /**
-   * Normalize arbitrary tool payloads into canonical display outputs.
-   *
-   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
-   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
-   */
-  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
-    if (isDisplayOutput(value)) {
-      return [value];
-    }
-
-    if (Array.isArray(value)) {
-      return value.filter(isDisplayOutput);
-    }
-
-    if (!isPlainObject(value)) {
-      return [];
-    }
-
-    if (Array.isArray(value.outputs)) {
-      return value.outputs.filter(isDisplayOutput);
-    }
-
-    if ('result' in value) {
-      return toDisplayOutputs(value.result);
-    }
-
-    return [];
-  };
-
-  /**
-   * Extract rendermime-ready mime bundles from arbitrary tool results.
-   */
-  export function extractMimeBundlesFromUnknown(
-    content: unknown,
-    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeBody[] {
-    const bundles: IMimeBody[] = [];
-    const outputs = toDisplayOutputs(content);
-    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
-    for (const output of outputs) {
-      const bundle = toMimeBundle(output, trustedMimeTypes);
-      if (bundle) {
-        bundles.push(bundle);
-      }
-    }
-    return bundles;
-  }
-
-  export function formatToolOutput(outputData: unknown): string {
-    if (typeof outputData === 'string') {
-      return outputData;
-    }
-
-    try {
-      return JSON.stringify(outputData, null, 2);
-    } catch {
-      return '[Complex object - cannot serialize]';
     }
   }
 }
