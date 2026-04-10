@@ -612,6 +612,19 @@ export class AgentManager implements IAgentManager {
           type: 'error',
           data: { error: error as Error }
         });
+
+        // Strip attachments from last user message on error to avoid error loop
+        if (this._history.length > 0) {
+          const lastMsg = this._history[this._history.length - 1];
+          if (lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
+            const textContent = lastMsg.content
+              .filter(p => p.type === 'text')
+              .map(p => (p as { text: string }).text)
+              .join('\n');
+            lastMsg.content =
+              textContent || 'Attachment removed due to error';
+          }
+        }
       }
       // After an error (including AbortError), sanitize the history
       // to remove any trailing assistant messages without tool results
@@ -863,7 +876,10 @@ ${richOutputWorkflowInstruction}`;
           await this._handleApprovalRequest(part, processResult);
           break;
 
-        // Ignore: text-start, text-end, finish, error, and others
+        case 'error':
+          throw part.error;
+
+        // Ignore: text-start, text-end, finish, and others
         default:
           break;
       }
