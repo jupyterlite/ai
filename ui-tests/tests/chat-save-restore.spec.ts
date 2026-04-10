@@ -103,7 +103,7 @@ test.describe('#chatSaveRestore', () => {
   });
 
   test('should restore messages after page reload', async ({ page }) => {
-    test.setTimeout(30 * 1000);
+    test.setTimeout(EXPECT_TIMEOUT);
 
     const panel = await openChatPanel(page);
     const input = panel
@@ -218,7 +218,7 @@ test.describe('#chatSaveRestore', () => {
   test('should save and restore autosave state and messages', async ({
     page
   }) => {
-    test.setTimeout(30 * 1000);
+    test.setTimeout(EXPECT_TIMEOUT);
 
     const panel = await openChatPanel(page);
     const input = panel
