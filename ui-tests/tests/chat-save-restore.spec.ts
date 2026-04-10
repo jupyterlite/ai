@@ -238,6 +238,12 @@ test.describe('#chatSaveRestore', () => {
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
+    // Wait for response ended.
+    const writingIndicator = panel.locator('.jp-chat-writers > *');
+    await expect(writingIndicator).toHaveCSS('visibility', 'hidden', {
+      timeout: 60000
+    });
+
     // Wait for the debounced auto-save (3 s debounce + buffer).
     await page.waitForTimeout(4000);
 
