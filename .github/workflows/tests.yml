@@ -29,6 +29,8 @@ jobs:
         run: |
           set -eux
           pip install "jupyterlab>=4.5.0"
+          # TODO: remove when fixed upstream: https://github.com/chrisguidry/docket/issues/388
+          pip install "fakeredis<2.35.0"
           pip install -e ".[test]"
 
       - name: Setup Ollama
