@@ -29,6 +29,7 @@ jobs:
         run: |
           set -eux
           pip install "jupyterlab>=4.5.0"
+          pip install "fakeredis<2.35.0"
           pip install -e ".[test]"
 
       - name: Setup Ollama
