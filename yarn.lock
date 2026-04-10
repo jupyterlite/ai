@@ -2596,28 +2596,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/docmanager@npm:^4.2.0, @jupyterlab/docmanager@npm:^4.4.6, @jupyterlab/docmanager@npm:^4.4.7":
-  version: 4.4.7
-  resolution: "@jupyterlab/docmanager@npm:4.4.7"
+"@jupyterlab/docmanager@npm:^4.2.0, @jupyterlab/docmanager@npm:^4.4.6, @jupyterlab/docmanager@npm:^4.5.6":
+  version: 4.5.6
+  resolution: "@jupyterlab/docmanager@npm:4.5.6"
   dependencies:
-    "@jupyterlab/apputils": ^4.5.7
-    "@jupyterlab/coreutils": ^6.4.7
-    "@jupyterlab/docregistry": ^4.4.7
-    "@jupyterlab/services": ^7.4.7
-    "@jupyterlab/statedb": ^4.4.7
-    "@jupyterlab/statusbar": ^4.4.7
-    "@jupyterlab/translation": ^4.4.7
-    "@jupyterlab/ui-components": ^4.4.7
-    "@lumino/algorithm": ^2.0.3
-    "@lumino/coreutils": ^2.2.1
-    "@lumino/disposable": ^2.1.4
-    "@lumino/messaging": ^2.0.3
-    "@lumino/polling": ^2.1.4
-    "@lumino/properties": ^2.0.3
-    "@lumino/signaling": ^2.1.4
-    "@lumino/widgets": ^2.7.1
+    "@jupyterlab/apputils": ^4.6.6
+    "@jupyterlab/coreutils": ^6.5.6
+    "@jupyterlab/docregistry": ^4.5.6
+    "@jupyterlab/rendermime": ^4.5.6
+    "@jupyterlab/services": ^7.5.6
+    "@jupyterlab/statedb": ^4.5.6
+    "@jupyterlab/statusbar": ^4.5.6
+    "@jupyterlab/translation": ^4.5.6
+    "@jupyterlab/ui-components": ^4.5.6
+    "@lumino/algorithm": ^2.0.4
+    "@lumino/coreutils": ^2.2.2
+    "@lumino/disposable": ^2.1.5
+    "@lumino/messaging": ^2.0.4
+    "@lumino/polling": ^2.1.5
+    "@lumino/properties": ^2.0.4
+    "@lumino/signaling": ^2.1.5
+    "@lumino/widgets": ^2.7.5
     react: ^18.2.0
-  checksum: b3b0ae5030bdcbe86a7534384addd83a17564a8b63a04fc8663feab4516f4fc925ac81ae2019a472a3a69932d1be2a97aba8fe817ed0c17dd164fa1ba5afc7de
+  checksum: 6f0458b2bbebe3982d9d0bbea7775ac135e7e121772c8a40633303bc8ce98d5100895db044074b968f71a180ea327cad40193778057ed57f00c264c14d63b1ed
   languageName: node
   linkType: hard
 
@@ -2666,32 +2667,32 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/filebrowser@npm:^4.2.0, @jupyterlab/filebrowser@npm:^4.4.7":
-  version: 4.4.7
-  resolution: "@jupyterlab/filebrowser@npm:4.4.7"
+"@jupyterlab/filebrowser@npm:^4.2.0, @jupyterlab/filebrowser@npm:^4.4.7, @jupyterlab/filebrowser@npm:^4.5.6":
+  version: 4.5.6
+  resolution: "@jupyterlab/filebrowser@npm:4.5.6"
   dependencies:
-    "@jupyterlab/apputils": ^4.5.7
-    "@jupyterlab/coreutils": ^6.4.7
-    "@jupyterlab/docmanager": ^4.4.7
-    "@jupyterlab/docregistry": ^4.4.7
-    "@jupyterlab/services": ^7.4.7
-    "@jupyterlab/statedb": ^4.4.7
-    "@jupyterlab/statusbar": ^4.4.7
-    "@jupyterlab/translation": ^4.4.7
-    "@jupyterlab/ui-components": ^4.4.7
-    "@lumino/algorithm": ^2.0.3
-    "@lumino/coreutils": ^2.2.1
-    "@lumino/disposable": ^2.1.4
-    "@lumino/domutils": ^2.0.3
-    "@lumino/dragdrop": ^2.1.6
-    "@lumino/messaging": ^2.0.3
-    "@lumino/polling": ^2.1.4
-    "@lumino/signaling": ^2.1.4
-    "@lumino/virtualdom": ^2.0.3
-    "@lumino/widgets": ^2.7.1
+    "@jupyterlab/apputils": ^4.6.6
+    "@jupyterlab/coreutils": ^6.5.6
+    "@jupyterlab/docmanager": ^4.5.6
+    "@jupyterlab/docregistry": ^4.5.6
+    "@jupyterlab/services": ^7.5.6
+    "@jupyterlab/statedb": ^4.5.6
+    "@jupyterlab/statusbar": ^4.5.6
+    "@jupyterlab/translation": ^4.5.6
+    "@jupyterlab/ui-components": ^4.5.6
+    "@lumino/algorithm": ^2.0.4
+    "@lumino/coreutils": ^2.2.2
+    "@lumino/disposable": ^2.1.5
+    "@lumino/domutils": ^2.0.4
+    "@lumino/dragdrop": ^2.1.8
+    "@lumino/messaging": ^2.0.4
+    "@lumino/polling": ^2.1.5
+    "@lumino/signaling": ^2.1.5
+    "@lumino/virtualdom": ^2.0.4
+    "@lumino/widgets": ^2.7.5
     jest-environment-jsdom: ^29.3.0
     react: ^18.2.0
-  checksum: 1b171c139df4e22d57540d4ba9847fbde47c650e76e8dc8ce6b962720f978f29df0656967f4f9582343d38cae1b4b94e95bab730db59b7c3e0739da020a26b48
+  checksum: d8fb64ccfa2ffb19d16ce041efdca8877838f6f5738f99411c67cc235465fbfd82bdc1f156bba0a93266d4c581ceb5e1212e6ec1413799522acad19231a474e7
   languageName: node
   linkType: hard
 
@@ -3045,6 +3046,7 @@ __metadata:
     "@jupyterlab/coreutils": ^6.4.6
     "@jupyterlab/docmanager": ^4.4.6
     "@jupyterlab/docregistry": ^4.4.6
+    "@jupyterlab/filebrowser": ^4.5.6
     "@jupyterlab/fileeditor": ^4.4.6
     "@jupyterlab/notebook": ^4.4.6
     "@jupyterlab/rendermime": ^4.4.6
