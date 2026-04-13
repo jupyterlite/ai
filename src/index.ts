@@ -595,6 +595,13 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       });
     });
 
+    /**
+     * Update the available chat list when settings config changed.
+     */
+    settingsModel.stateChanged.connect(() => {
+      chatPanel.updateChatList();
+    });
+
     app.shell.add(chatPanel, 'left', { rank: 1000 });
 
     if (restorer) {
