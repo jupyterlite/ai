@@ -24,8 +24,9 @@ classifiers = [
 ]
 
 dependencies = [
+    "jupyter-chat-components >=0.2.0,<0.3",
     "jupyter-secrets-manager >=0.5,<0.6",
-    "jupyterlab-ai-commands >=0.2.1,<0.3",
+    "jupyterlab-ai-commands >=0.3.1,<0.4",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
@@ -36,7 +37,7 @@ jupyter = [
     "notebook>=7.4.0"
 ]
 test = [
-    "fastmcp>=2.12.4,<3",
+    "fastmcp>=3.2.3,<4",
     "starlette>=0.48.0,<0.49",
 ]
 docs = [

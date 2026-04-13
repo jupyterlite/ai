@@ -25,9 +25,11 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
 import { IRenderMime } from '@jupyterlab/rendermime';
 
-import { TranslationBundle } from '@jupyterlab/translation';
+import { Contents } from '@jupyterlab/services';
 
 import { UUID } from '@lumino/coreutils';
+
+import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
@@ -105,14 +107,15 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
-    this._trans = options.trans;
+    this._contentsManager = options.contentsManager;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
-    this.setReady();
+
+    this._autosaveDebouncer = new Debouncer(this.save, 3000);
   }
 
   /**
@@ -124,6 +127,50 @@ export class AIChatModel extends AbstractChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
+    if (!this.messages.length) {
+      const directory = this._settingsModel.config.chatBackupDirectory;
+      const filepath = PathExt.join(directory, `${this.name}.chat`);
+      this.restore(filepath, true);
+    }
+    this.setReady();
+  }
+
+  /**
+   * Whether to save the chat automatically.
+   */
+  get autosave(): boolean {
+    return this._autosave;
+  }
+  set autosave(value: boolean) {
+    this._autosave = value;
+    this._autosaveChanged.emit(value);
+    if (value) {
+      this.messagesUpdated.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this._autosaveDebouncer.invoke();
+    } else {
+      this.messagesUpdated.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+    }
+  }
+
+  /**
+   * A signal emitting when the autosave flag changed.
+   */
+  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+    return this._autosaveChanged;
   }
 
   /**
@@ -152,6 +199,24 @@ export class AIChatModel extends AbstractChatModel {
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
+  }
+
+  /**
+   * Whether save/restore is available.
+   */
+  get saveAvailable(): boolean {
+    return !!this._contentsManager;
+  }
+
+  /**
+   * Dispose of the model.
+   */
+  dispose(): void {
+    this.messagesUpdated.disconnect(
+      this._autosaveDebouncer.invoke,
+      this._autosaveDebouncer
+    );
+    super.dispose();
   }
 
   /**
@@ -271,7 +336,7 @@ export class AIChatModel extends AbstractChatModel {
     if (target.messages.length > 0) {
       this.messagesInserted(index, target.messages);
     }
-    this._agentManager.setHistory(target.history);
+    this._agentManager.restoreHistory(target.history);
     branchPoint.currentIndex = targetIndex;
   }
 
@@ -411,6 +476,147 @@ export class AIChatModel extends AbstractChatModel {
     }
   }
 
+  /**
+   * Save the chat as json file.
+   */
+  save = async (): Promise<void> => {
+    if (!this._contentsManager) {
+      return;
+    }
+    const directory = this._settingsModel.config.chatBackupDirectory;
+    const filepath = PathExt.join(directory, `${this.name}.chat`);
+    const content = JSON.stringify(this._serializeModel());
+    await this._contentsManager
+      .get(filepath, { content: false })
+      .catch(async () => {
+        await this._contentsManager
+          ?.get(directory, { content: false })
+          .catch(async () => {
+            const dir = await this._contentsManager!.newUntitled({
+              type: 'directory'
+            });
+            await this._contentsManager!.rename(dir.path, directory);
+          });
+        const file = await this._contentsManager!.newUntitled({ ext: '.chat' });
+        await this._contentsManager?.rename(file.path, filepath);
+      });
+    await this._contentsManager.save(filepath, {
+      content,
+      type: 'file',
+      format: 'text'
+    });
+  };
+
+  /**
+   * Restore the chat from a json file.
+   *
+   * @param silent - Whether a log should be displayed in the console if the
+   * restoration is not possible.
+   */
+  restore = async (filepath: string, silent = false): Promise<boolean> => {
+    if (!this._contentsManager) {
+      return false;
+    }
+    const contentModel = await this._contentsManager
+      .get(filepath, { content: true })
+      .catch(() => {
+        if (!silent) {
+          console.log(`There is no backup for chat '${this.name}'`);
+        }
+        return;
+      });
+    if (!contentModel) {
+      return false;
+    }
+    const content = JSON.parse(
+      contentModel.content
+    ) as AIChatModel.ExportedChat;
+
+    if (content.metadata?.provider) {
+      if (this._settingsModel.getProvider(content.metadata.provider)) {
+        this._agentManager.activeProvider = content.metadata.provider;
+      } else if (!silent) {
+        console.log(
+          `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
+        );
+      }
+    } else if (!silent) {
+      console.log(`Provider not providing when restoring ${filepath}.`);
+    }
+
+    const messages: IMessageContent[] = content.messages.map(message => {
+      let attachments: IAttachment[] = [];
+      if (content.attachments && message.attachments) {
+        attachments =
+          message.attachments.map(index => content.attachments![index]) ?? [];
+      }
+      return {
+        ...message,
+        sender: content.users[message.sender] ?? { username: 'unknown' },
+        mentions: message.mentions?.map(mention => content.users[mention]),
+        attachments
+      };
+    });
+    this.clearMessages();
+    this.messagesInserted(0, messages);
+    this._agentManager.setHistory(messages);
+    this.autosave = content.metadata?.autosave ?? false;
+    return true;
+  };
+
+  /**
+   * Serialize the model for backup
+   */
+  private _serializeModel(): AIChatModel.ExportedChat {
+    const provider = this._agentManager.activeProvider;
+    const messages: IMessageContent<string, string>[] = [];
+    const users: { [id: string]: IUser } = {};
+    const attachmentMap = new Map<string, number>(); // JSON → index
+    const attachmentsList: IAttachment[] = []; // Actual attachments
+
+    this.messages.forEach(message => {
+      let attachmentIndexes: string[] = [];
+      if (message.attachments) {
+        attachmentIndexes = message.attachments.map(attachment => {
+          const attachmentJson = JSON.stringify(attachment);
+          let index: number;
+          if (attachmentMap.has(attachmentJson)) {
+            index = attachmentMap.get(attachmentJson)!;
+          } else {
+            index = attachmentsList.length;
+            attachmentMap.set(attachmentJson, index);
+            attachmentsList.push(attachment);
+          }
+          return index.toString();
+        });
+      }
+
+      messages.push({
+        ...message.content,
+        sender: message.sender.username,
+        mentions: message.mentions?.map(user => user.username),
+        attachments: attachmentIndexes
+      });
+
+      if (!users[message.sender.username]) {
+        users[message.sender.username] = message.sender;
+      }
+    });
+
+    const attachments = Object.fromEntries(
+      attachmentsList.map((item, index) => [index, item])
+    );
+
+    return {
+      messages,
+      users,
+      attachments,
+      metadata: {
+        provider,
+        autosave: this.autosave
+      }
+    };
+  }
   /**
    * Gets the AI user information for system messages.
    */
@@ -630,13 +836,18 @@ export class AIChatModel extends AbstractChatModel {
     this._toolContexts.set(event.data.callId, context);
 
     const toolCallMessage: IMessageContent = {
-      body: Private.buildToolCallHtml({
-        toolName: context.toolName,
-        input: context.input,
-        status: context.status,
-        summary: context.summary,
-        trans: this._trans
-      }),
+      body: '',
+      mime_model: {
+        data: {
+          'application/vnd.jupyter.chat.components': 'tool-call'
+        },
+        metadata: {
+          toolName: context.toolName,
+          input: context.input,
+          status: context.status,
+          summary: context.summary
+        }
+      },
       sender: this._getAIUser(),
       id: messageId,
       time: Date.now() / 1000,
@@ -674,7 +885,8 @@ export class AIChatModel extends AbstractChatModel {
       );
       for (const bundle of mimeBundles) {
         this.messageAdded({
-          body: bundle,
+          body: '',
+          mime_model: bundle,
           sender: this._getAIUser(),
           id: UUID.uuid4(),
           time: Date.now() / 1000,
@@ -772,15 +984,20 @@ export class AIChatModel extends AbstractChatModel {
 
     context.status = status;
     existingMessage.update({
-      body: Private.buildToolCallHtml({
-        toolName: context.toolName,
-        input: context.input,
-        status: context.status,
-        summary: context.summary,
-        output,
-        approvalId: context.approvalId,
-        trans: this._trans
-      })
+      mime_model: {
+        data: {
+          'application/vnd.jupyter.chat.components': 'tool-call'
+        },
+        metadata: {
+          toolName: context.toolName,
+          input: context.input,
+          status: context.status,
+          summary: context.summary,
+          output,
+          targetId: this.name,
+          approvalId: context.approvalId
+        }
+      }
     });
   }
 
@@ -1069,11 +1286,14 @@ export class AIChatModel extends AbstractChatModel {
   private _agentManager: IAgentManager;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
-  private _trans: TranslationBundle;
   private _branchPoints: Map<
     string,
     { branches: AIChatModel.IBranchSnapshot[]; currentIndex: number }
   > = new Map();
+  private _contentsManager?: Contents.IManager;
+  private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
+  private _autosaveDebouncer: Debouncer;
 }
 
 namespace Private {
@@ -1183,158 +1403,6 @@ namespace Private {
       return '[Complex object - cannot serialize]';
     }
   }
-
-  export function escapeHtml(value: string): string {
-    // Prefer the same native escaping approach used in JupyterLab itself
-    // (e.g. `@jupyterlab/completer`).
-    if (typeof document !== 'undefined') {
-      const node = document.createElement('span');
-      node.textContent = value;
-      return node.innerHTML;
-    }
-
-    // Fallback
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  /**
-   * Configuration for rendering tool call status.
-   */
-  interface IStatusConfig {
-    cssClass: string;
-    statusClass: string;
-    open?: boolean;
-  }
-
-  const STATUS_CONFIG: Record<ToolStatus, IStatusConfig> = {
-    pending: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-pending'
-    },
-    awaiting_approval: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-approval',
-      open: true
-    },
-    approved: {
-      cssClass: 'jp-ai-tool-pending',
-      statusClass: 'jp-ai-tool-status-completed'
-    },
-    rejected: {
-      cssClass: 'jp-ai-tool-error',
-      statusClass: 'jp-ai-tool-status-error'
-    },
-    completed: {
-      cssClass: 'jp-ai-tool-completed',
-      statusClass: 'jp-ai-tool-status-completed'
-    },
-    error: {
-      cssClass: 'jp-ai-tool-error',
-      statusClass: 'jp-ai-tool-status-error'
-    }
-  };
-
-  /**
-   * Returns the translated status text for a given tool status.
-   */
-  const getStatusText = (
-    status: ToolStatus,
-    trans: TranslationBundle
-  ): string => {
-    switch (status) {
-      case 'pending':
-        return trans.__('Running...');
-      case 'awaiting_approval':
-        return trans.__('Awaiting Approval');
-      case 'approved':
-        return trans.__('Approved - Executing...');
-      case 'rejected':
-        return trans.__('Rejected');
-      case 'completed':
-        return trans.__('Completed');
-      case 'error':
-        return trans.__('Error');
-    }
-  };
-
-  /**
-   * Options for building tool call HTML.
-   */
-  interface IToolCallHtmlOptions {
-    toolName: string;
-    input: string;
-    status: ToolStatus;
-    summary?: string;
-    output?: string;
-    approvalId?: string;
-    trans: TranslationBundle;
-  }
-
-  /**
-   * Builds HTML for a tool call display.
-   */
-  export function buildToolCallHtml(
-    options: IToolCallHtmlOptions
-  ): Partial<IRenderMime.IMimeModel> & Pick<IRenderMime.IMimeModel, 'data'> {
-    const { toolName, input, status, summary, output, approvalId, trans } =
-      options;
-    const config = STATUS_CONFIG[status];
-    const statusText = getStatusText(status, trans);
-    const escapedToolName = escapeHtml(toolName);
-    const escapedInput = escapeHtml(input);
-    const openAttr = config.open ? ' open' : '';
-    const summaryHtml = summary
-      ? `<span class="jp-ai-tool-summary">${escapeHtml(summary)}</span>`
-      : '';
-
-    let bodyContent = `
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${trans.__('Input')}</div>
-<pre class="jp-ai-tool-code"><code>${escapedInput}</code></pre>
-</div>`;
-
-    // Add approval buttons if awaiting approval
-    if (status === 'awaiting_approval' && approvalId) {
-      bodyContent += `
-<div class="jp-ai-tool-approval-buttons jp-ai-approval-id--${approvalId}">
-<button class="jp-ai-approval-btn jp-ai-approval-approve">${trans.__('Approve')}</button>
-<button class="jp-ai-approval-btn jp-ai-approval-reject">${trans.__('Reject')}</button>
-</div>`;
-    }
-
-    // Add output/result section if provided
-    if (output !== undefined) {
-      const escapedOutput = escapeHtml(output);
-      const label = status === 'error' ? trans.__('Error') : trans.__('Result');
-      bodyContent += `
-<div class="jp-ai-tool-section">
-<div class="jp-ai-tool-label">${label}</div>
-<pre class="jp-ai-tool-code"><code>${escapedOutput}</code></pre>
-</div>`;
-    }
-
-    const HTMLContent = `<details class="jp-ai-tool-call ${config.cssClass}"${openAttr}>
-<summary class="jp-ai-tool-header">
-<div class="jp-ai-tool-icon">⚡</div>
-<div class="jp-ai-tool-title">${escapedToolName}${summaryHtml}</div>
-<div class="jp-ai-tool-status ${config.statusClass}">${statusText}</div>
-</summary>
-<div class="jp-ai-tool-body">${bodyContent}
-</div>
-</details>`;
-
-    return {
-      trusted: true,
-      data: {
-        'text/html': HTMLContent
-      }
-    };
-  }
 }
 
 /**
@@ -1374,9 +1442,13 @@ export namespace AIChatModel {
      */
     documentManager?: IDocumentManager;
     /**
-     * The application language translation bundle.
+     * The contents manager.
      */
-    trans: TranslationBundle;
+    contentsManager?: Contents.IManager;
+    /**
+     * Whether to restore or not the message (default to true)
+     */
+    restore?: boolean;
   }
 
   /**
@@ -1400,4 +1472,35 @@ export namespace AIChatModel {
      */
     agentManager: IAgentManager;
   }
+
+  /**
+   * The exported chat format.
+   */
+  export type ExportedChat = {
+    /**
+     * Message list (user are only string to avoid duplication).
+     */
+    messages: IMessageContent<string, string>[];
+    /**
+     * The user list.
+     */
+    users: { [id: string]: IUser };
+    /**
+     * The attachments of the chat.
+     */
+    attachments?: { [id: string]: IAttachment };
+    /**
+     * The metadata associated to the chat.
+     */
+    metadata?: {
+      /**
+       * Provider of the chat.
+       */
+      provider?: string;
+      /**
+       * Whether the chat is automatically saved.
+       */
+      autosave?: boolean;
+    };
+  };
 }

@@ -1,4 +1,4 @@
-import { ActiveCellManager } from '@jupyter/chat';
+import { ActiveCellManager, IMessage, IMessageContent } from '@jupyter/chat';
 import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
@@ -32,6 +32,8 @@ export namespace CommandIds {
   export const openChat = '@jupyterlite/ai:open-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
+  export const saveChat = '@jupyterlite/ai:save-chat';
+  export const restoreChat = '@jupyterlite/ai:restore-chat';
 }
 
 /* THE TOOL REGISTRY */
@@ -100,7 +102,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  '@jupyterlite/ai:tool-registry',
+  '@jupyterlite/ai:IToolRegistry',
   'Tool registry for AI agent functionality'
 );
 
@@ -143,7 +145,7 @@ export interface ISkillRegistry {
  * The skill registry token.
  */
 export const ISkillRegistry = new Token<ISkillRegistry>(
-  '@jupyterlite/ai:skill-registry',
+  '@jupyterlite/ai:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
 
@@ -309,7 +311,7 @@ export interface IProviderRegistry {
  * Token for the provider registry.
  */
 export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/ai:provider-registry',
+  '@jupyterlite/ai:IProviderRegistry',
   'Registry for AI providers'
 );
 
@@ -378,6 +380,8 @@ export interface IAIConfig {
   diffDisplayMode: 'split' | 'unified';
   // Paths to directories containing agent skills
   skillsPaths: string[];
+  // Directory where chat backups are saved
+  chatBackupDirectory: string;
 }
 
 export interface IAISettingsModel extends VDomRenderer.IModel {
@@ -574,12 +578,17 @@ export interface IAgentManager {
    * Restores the conversation history from a snapshot.
    * @param history The conversation history to restore
    */
-  setHistory(history: ModelMessage[]): void;
+  restoreHistory(history: ModelMessage[]): void;
   /**
    * Truncates history to keep only the first N user turns and their responses.
    * @param userTurnCount Number of user turns to keep (0 clears all).
    */
   truncateHistory(userTurnCount: number): void;
+  /**
+   * Sets the conversation history with a list of messages from the chat.
+   * @param messages The chat messages to set as history
+   */
+  setHistory(messages: IMessageContent[]): void;
   /**
    * Stops the current streaming response by aborting the request.
    */
@@ -613,7 +622,7 @@ export interface IAgentManager {
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<IAgentManager>(
-  '@jupyterlite/ai:agent-manager'
+  '@jupyterlite/ai:IAgentManager'
 );
 
 /* The AGENT MANAGER FACTORY */
@@ -645,7 +654,7 @@ export interface IAgentManagerFactory {
  * Token for the agent manager factory.
  */
 export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
-  '@jupyterlite/ai:agent-manager-factory'
+  '@jupyterlite/ai:IAgentManagerFactory'
 );
 
 /* THE CHAT MODELS HANDLER */
@@ -654,19 +663,43 @@ export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
  * The interface for the chat model handler.
  */
 export interface IChatModelHandler {
-  createModel(
-    name: string,
-    activeProvider: string,
-    tokenUsage?: ITokenUsage
-  ): AIChatModel;
+  /**
+   * The function to create a new model.
+   */
+  createModel(options: ICreateChatOptions): AIChatModel;
+  /**
+   * The active cell manager (to copy code from chat to cell).
+   */
   activeCellManager: ActiveCellManager | undefined;
 }
 
+export interface ICreateChatOptions {
+  /**
+   * The name of the chat.
+   */
+  name: string;
+  /**
+   * The id of the active provider of the chat.
+   */
+  activeProvider: string;
+  /**
+   * The current token usage in this chat.
+   */
+  tokenUsage?: ITokenUsage;
+  /**
+   * The messages to ad by default.
+   */
+  messages?: IMessage[];
+  /**
+   * Whether the chat is autosaved or not.
+   */
+  autosave?: boolean;
+}
 /**
  * Token for the chat model handler.
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
-  '@jupyterlite/ai:chat-model-handler'
+  '@jupyterlite/ai:IChatModelHandler'
 );
 
 /* THE DIFF MANAGER */
@@ -741,7 +774,7 @@ export interface IDiffManager {
  * Token for the diff manager.
  */
 export const IDiffManager = new Token<IDiffManager>(
-  '@jupyterlite/ai:diff-manager'
+  '@jupyterlite/ai:IDiffManager'
 );
 
 /**

@@ -1009,6 +1009,20 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                 />
 
+                <TextField
+                  fullWidth
+                  label={trans.__('Chat Backup Directory')}
+                  value={config.chatBackupDirectory}
+                  onChange={e =>
+                    handleConfigUpdate({
+                      chatBackupDirectory: e.target.value
+                    })
+                  }
+                  helperText={trans.__(
+                    'Directory where chat history backups are saved (relative to the server root)'
+                  )}
+                />
+
                 <Divider sx={{ my: 1 }} />
 
                 <TextField

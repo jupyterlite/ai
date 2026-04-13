@@ -1,14 +1,15 @@
 import { ActiveCellManager } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import { TranslationBundle } from '@jupyterlab/translation';
+import { Contents } from '@jupyterlab/services';
+
 import { AIChatModel } from './chat-model';
 import type {
   IAgentManagerFactory,
   IAISettingsModel,
   IChatModelHandler,
+  ICreateChatOptions,
   IProviderRegistry,
-  ITokenUsage,
   IToolRegistry
 } from './tokens';
 
@@ -24,14 +25,12 @@ export class ChatModelHandler implements IChatModelHandler {
     this._providerRegistry = options.providerRegistry;
     this._rmRegistry = options.rmRegistry;
     this._activeCellManager = options.activeCellManager;
-    this._trans = options.trans;
+    this._contentsManager = options.contentsManager;
   }
 
-  createModel(
-    name: string,
-    activeProvider: string,
-    tokenUsage?: ITokenUsage
-  ): AIChatModel {
+  createModel(options: ICreateChatOptions): AIChatModel {
+    const { name, activeProvider, tokenUsage, messages, autosave } = options;
+
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
       settingsModel: this._settingsModel,
@@ -49,8 +48,13 @@ export class ChatModelHandler implements IChatModelHandler {
       agentManager,
       activeCellManager: this._activeCellManager,
       documentManager: this._docManager,
-      trans: this._trans
+      contentsManager: this._contentsManager
     });
+
+    messages?.forEach(message => {
+      model.messageAdded({ ...message.content });
+    });
+    model.autosave = autosave ?? false;
 
     model.name = name;
 
@@ -74,7 +78,7 @@ export class ChatModelHandler implements IChatModelHandler {
   private _providerRegistry?: IProviderRegistry;
   private _rmRegistry: IRenderMimeRegistry;
   private _activeCellManager?: ActiveCellManager;
-  private _trans: TranslationBundle;
+  private _contentsManager?: Contents.IManager;
 }
 
 export namespace ChatModelHandler {
@@ -108,8 +112,8 @@ export namespace ChatModelHandler {
      */
     activeCellManager?: ActiveCellManager | undefined;
     /**
-     * The application language translation bundle.
+     * The contents manager.
      */
-    trans: TranslationBundle;
+    contentsManager?: Contents.IManager;
   }
 }
