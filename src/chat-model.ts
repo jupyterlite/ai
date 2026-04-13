@@ -267,7 +267,10 @@ export class AIChatModel extends AbstractChatModel {
 
     const snapshot = this._snapshotFrom(index);
     // Placeholder filled when the user navigates away from this branch
-    const emptyBranch: AIChatModel.IBranchSnapshot = { messages: [], history: [] };
+    const emptyBranch: AIChatModel.IBranchSnapshot = {
+      messages: [],
+      history: []
+    };
     const existing = this._branchPoints.get(messageId);
     if (!existing) {
       this._branchPoints.set(messageId, {
@@ -354,9 +357,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Returns branch navigation info for a message, or null if it has no branches.
    */
-  getBranchInfo(
-    messageId: string
-  ): { current: number; total: number } | null {
+  getBranchInfo(messageId: string): { current: number; total: number } | null {
     const branchPoint = this._branchPoints.get(messageId);
     if (!branchPoint) {
       return null;

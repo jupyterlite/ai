@@ -1,12 +1,15 @@
-import type { MessageFooterSection, MessageFooterSectionProps } from '@jupyter/chat'
+import type {
+  MessageFooterSection,
+  MessageFooterSectionProps
+} from '@jupyter/chat';
 
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import { Box, IconButton, Typography } from '@mui/material'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Box, IconButton, Typography } from '@mui/material';
 
-import React, { useRef } from 'react'
+import React, { useRef } from 'react';
 
-import type { AIChatModel } from '../chat-model'
+import type { AIChatModel } from '../chat-model';
 
 /**
  * A footer section that shows branch navigation arrows on edited user messages.
@@ -37,7 +40,7 @@ function BranchNavigation({
     setTimeout(() => {
       if (scrollEl && savedTop !== undefined) scrollEl.scrollTop = savedTop;
     }, 0);
-  }
+  };
 
   return (
     <Box
@@ -64,7 +67,7 @@ function BranchNavigation({
         <ChevronRightIcon fontSize="small" />
       </IconButton>
     </Box>
-  )
+  );
 }
 
 /**
@@ -74,5 +77,5 @@ export function createEditMessageSection(): MessageFooterSection {
   return {
     component: BranchNavigation,
     position: 'right'
-  }
+  };
 }
