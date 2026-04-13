@@ -630,11 +630,11 @@ export class AgentManager implements IAgentManager {
         // Remove attachments from history on payload rejection errors
         if (
           APICallError.isInstance(error) &&
-          (error.statusCode === 400 || 
-           error.statusCode === 404 ||
-           error.statusCode === 413 || 
-           error.statusCode === 415 || 
-           error.statusCode === 422)
+          (error.statusCode === 400 ||
+            error.statusCode === 404 ||
+            error.statusCode === 413 ||
+            error.statusCode === 415 ||
+            error.statusCode === 422)
         ) {
           for (const msg of this._history) {
             if (msg.role === 'user' && Array.isArray(msg.content)) {
