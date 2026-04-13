@@ -102,7 +102,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  '@jupyterlite/ai:tool-registry',
+  '@jupyterlite/ai:IToolRegistry',
   'Tool registry for AI agent functionality'
 );
 
@@ -145,7 +145,7 @@ export interface ISkillRegistry {
  * The skill registry token.
  */
 export const ISkillRegistry = new Token<ISkillRegistry>(
-  '@jupyterlite/ai:skill-registry',
+  '@jupyterlite/ai:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
 
@@ -323,7 +323,7 @@ export interface IProviderRegistry {
  * Token for the provider registry.
  */
 export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/ai:provider-registry',
+  '@jupyterlite/ai:IProviderRegistry',
   'Registry for AI providers'
 );
 
@@ -623,7 +623,7 @@ export interface IAgentManager {
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<IAgentManager>(
-  '@jupyterlite/ai:agent-manager'
+  '@jupyterlite/ai:IAgentManager'
 );
 
 /* The AGENT MANAGER FACTORY */
@@ -655,7 +655,7 @@ export interface IAgentManagerFactory {
  * Token for the agent manager factory.
  */
 export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
-  '@jupyterlite/ai:agent-manager-factory'
+  '@jupyterlite/ai:IAgentManagerFactory'
 );
 
 /* THE CHAT MODELS HANDLER */
@@ -700,7 +700,7 @@ export interface ICreateChatOptions {
  * Token for the chat model handler.
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
-  '@jupyterlite/ai:chat-model-handler'
+  '@jupyterlite/ai:IChatModelHandler'
 );
 
 /* THE DIFF MANAGER */
@@ -775,7 +775,7 @@ export interface IDiffManager {
  * Token for the diff manager.
  */
 export const IDiffManager = new Token<IDiffManager>(
-  '@jupyterlite/ai:diff-manager'
+  '@jupyterlite/ai:IDiffManager'
 );
 
 /**

@@ -1,6 +1,7 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
   ToolLoopAgent,
@@ -11,7 +12,8 @@ import {
   type ToolApprovalRequestOutput,
   type TypedToolError,
   type TypedToolOutputDenied,
-  type TypedToolResult
+  type TypedToolResult,
+  type AssistantModelMessage
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -329,6 +331,7 @@ export class AgentManager implements IAgentManager {
     this._skills = [];
     this._agentConfig = null;
     this._renderMimeRegistry = options.renderMimeRegistry;
+    this._streaming.resolve();
 
     this.activeProvider =
       options.activeProvider ?? this._settingsModel.config.defaultProvider;
@@ -467,19 +470,11 @@ export class AgentManager implements IAgentManager {
   /**
    * Clears conversation history and resets agent state.
    */
-  clearHistory(): void {
+  async clearHistory(): Promise<void> {
     // Stop any ongoing streaming
-    this.stopStreaming();
+    this.stopStreaming('Chat cleared');
 
-    // Reject any pending approvals
-    for (const [approvalId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat cleared');
-      this._agentEvent.emit({
-        type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
-      });
-    }
-    this._pendingApprovals.clear();
+    await this._streaming.promise;
 
     // Clear history and token usage
     this._history = [];
@@ -521,9 +516,20 @@ export class AgentManager implements IAgentManager {
 
   /**
    * Stops the current streaming response by aborting the request.
+   * Resolve any pending approval.
    */
-  stopStreaming(): void {
+  stopStreaming(reason?: string): void {
     this._controller?.abort();
+
+    // Reject any pending approvals
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, reason ?? 'Stream ended by user');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+    this._pendingApprovals.clear();
   }
 
   /**
@@ -566,8 +572,9 @@ export class AgentManager implements IAgentManager {
    * @param message The user message to respond to (may include processed attachment content)
    */
   async generateResponse(message: string): Promise<void> {
+    this._streaming = new PromiseDelegate();
     this._controller = new AbortController();
-
+    const responseHistory: ModelMessage[] = [];
     try {
       // Ensure we have an agent
       if (!this._agent) {
@@ -579,7 +586,7 @@ export class AgentManager implements IAgentManager {
       }
 
       // Add user message to history
-      this._history.push({
+      responseHistory.push({
         role: 'user',
         content: message
       });
@@ -587,7 +594,7 @@ export class AgentManager implements IAgentManager {
       let continueLoop = true;
       while (continueLoop) {
         const result = await this._agent.stream({
-          messages: this._history,
+          messages: [...this._history, ...responseHistory],
           abortSignal: this._controller.signal
         });
 
@@ -612,15 +619,13 @@ export class AgentManager implements IAgentManager {
 
         // Add response messages to history
         if (responseMessages.messages?.length) {
-          this._history.push(
-            ...Private.sanitizeModelMessages(responseMessages.messages)
-          );
+          responseHistory.push(...responseMessages.messages);
         }
 
         // Add approval response if processed
         if (streamResult.approvalResponse) {
           // Check if the last message is a tool message we can append to
-          const lastMsg = this._history[this._history.length - 1];
+          const lastMsg = responseHistory[responseHistory.length - 1];
           if (
             lastMsg &&
             lastMsg.role === 'tool' &&
@@ -631,12 +636,15 @@ export class AgentManager implements IAgentManager {
             toolContent.push(...streamResult.approvalResponse.content);
           } else {
             // Add as separate message
-            this._history.push(streamResult.approvalResponse);
+            responseHistory.push(streamResult.approvalResponse);
           }
         }
 
         continueLoop = streamResult.approvalProcessed;
       }
+
+      // Add the messages to the history only if the response ended without error.
+      this._history.push(...Private.sanitizeModelMessages(responseHistory));
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         this._agentEvent.emit({
@@ -644,11 +652,9 @@ export class AgentManager implements IAgentManager {
           data: { error: error as Error }
         });
       }
-      // After an error (including AbortError), sanitize the history
-      // to remove any trailing assistant messages without tool results
-      this._sanitizeHistory();
     } finally {
       this._controller = null;
+      this._streaming.resolve();
     }
   }
 
@@ -1221,96 +1227,6 @@ WEB RETRIEVAL POLICY:
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
   }
 
-  /**
-   * Sanitizes history to ensure it's in a valid state in case of abort or error.
-   */
-  private _sanitizeHistory(): void {
-    if (this._history.length === 0) {
-      return;
-    }
-
-    const newHistory: ModelMessage[] = [];
-    for (let i = 0; i < this._history.length; i++) {
-      const msg = this._history[i];
-
-      if (msg.role === 'assistant') {
-        const toolCallIds = this._getToolCallIds(msg);
-        if (toolCallIds.length > 0) {
-          // Find if there's a following tool message with results for these calls
-          const nextMsg = this._history[i + 1];
-          if (
-            nextMsg &&
-            nextMsg.role === 'tool' &&
-            this._matchesAllToolCalls(nextMsg, toolCallIds)
-          ) {
-            newHistory.push(msg);
-          } else {
-            // Message has unmatched tool calls drop it and everything after it
-            break;
-          }
-        } else {
-          newHistory.push(msg);
-        }
-      } else if (msg.role === 'tool') {
-        // Tool messages are valid if they were preceded by a valid assistant message
-        newHistory.push(msg);
-      } else {
-        newHistory.push(msg);
-      }
-    }
-
-    this._history = newHistory;
-  }
-
-  /**
-   * Extracts tool call IDs from a message
-   */
-  private _getToolCallIds(message: ModelMessage): string[] {
-    const ids: string[] = [];
-
-    // Check content array for tool-call parts
-    if (Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          typeof part === 'object' &&
-          part !== null &&
-          'type' in part &&
-          part.type === 'tool-call'
-        ) {
-          ids.push(part.toolCallId);
-        }
-      }
-    }
-
-    return ids;
-  }
-
-  /**
-   * Checks if a tool message contains results for all specified tool call IDs
-   */
-  private _matchesAllToolCalls(
-    message: ModelMessage,
-    callIds: string[]
-  ): boolean {
-    if (message.role !== 'tool' || !Array.isArray(message.content)) {
-      return false;
-    }
-
-    const resultIds = new Set<string>();
-    for (const part of message.content) {
-      if (
-        typeof part === 'object' &&
-        part !== null &&
-        'type' in part &&
-        part.type === 'tool-result'
-      ) {
-        resultIds.add(part.toolCallId);
-      }
-    }
-
-    return callIds.every(id => resultIds.has(id));
-  }
-
   // Private attributes
   private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
@@ -1335,25 +1251,123 @@ WEB RETRIEVAL POLICY:
     string,
     { resolve: (approved: boolean, reason?: string) => void }
   > = new Map();
+  private _streaming: PromiseDelegate<void> = new PromiseDelegate();
 }
 
 namespace Private {
   /**
-   * Keep only serializable messages by doing a JSON round-trip.
-   * Messages that cannot be serialized are dropped.
+   * Sanitize the messages before adding them to the history.
+   *
+   * 1- Make sure the message sequence is not altered:
+   *   - tool-call messages should have a corresponding tool-result (and vice-versa)
+   *   - tool-approval-request should have a tool-approval-response (and vice-versa)
+   *
+   * 2- Keep only serializable messages by doing a JSON round-trip.
+   *    Messages that cannot be serialized are dropped.
    */
   export const sanitizeModelMessages = (
     messages: ModelMessage[]
   ): ModelMessage[] => {
     const sanitized: ModelMessage[] = [];
     for (const message of messages) {
-      try {
-        sanitized.push(JSON.parse(JSON.stringify(message)));
-      } catch {
-        // Drop messages that cannot be serialized
+      if (message.role === 'assistant') {
+        let newMessage: AssistantModelMessage | undefined;
+        if (!Array.isArray(message.content)) {
+          newMessage = message;
+        } else {
+          // Remove assistant message content without a required response.
+          const newContent: typeof message.content = [];
+          for (const assistantContent of message.content) {
+            let isContentValid = true;
+            if (assistantContent.type === 'tool-call') {
+              const toolCallId = assistantContent.toolCallId;
+              isContentValid = !!messages.find(
+                msg =>
+                  msg.role === 'tool' &&
+                  Array.isArray(msg.content) &&
+                  msg.content.find(
+                    content =>
+                      content.type === 'tool-result' &&
+                      content.toolCallId === toolCallId
+                  )
+              );
+            } else if (assistantContent.type === 'tool-approval-request') {
+              const approvalId = assistantContent.approvalId;
+              isContentValid = !!messages.find(
+                msg =>
+                  msg.role === 'tool' &&
+                  Array.isArray(msg.content) &&
+                  msg.content.find(
+                    content =>
+                      content.type === 'tool-approval-response' &&
+                      content.approvalId === approvalId
+                  )
+              );
+            }
+            if (isContentValid) {
+              newContent.push(assistantContent);
+            }
+          }
+          if (newContent.length) {
+            newMessage = { ...message, content: newContent };
+          }
+        }
+        if (newMessage) {
+          try {
+            sanitized.push(JSON.parse(JSON.stringify(newMessage)));
+          } catch {
+            // Drop messages that cannot be serialized
+          }
+        }
+      } else if (message.role === 'tool') {
+        // Remove tool message content without request.
+        const newContent: typeof message.content = [];
+        for (const toolContent of message.content) {
+          let isContentValid = true;
+          if (toolContent.type === 'tool-result') {
+            const toolCallId = toolContent.toolCallId;
+            isContentValid = !!sanitized.find(
+              msg =>
+                msg.role === 'assistant' &&
+                Array.isArray(msg.content) &&
+                msg.content.find(
+                  content =>
+                    content.type === 'tool-call' &&
+                    content.toolCallId === toolCallId
+                )
+            );
+          } else if (toolContent.type === 'tool-approval-response') {
+            const approvalId = toolContent.approvalId;
+            isContentValid = !!sanitized.find(
+              msg =>
+                msg.role === 'assistant' &&
+                Array.isArray(msg.content) &&
+                msg.content.find(
+                  content =>
+                    content.type === 'tool-approval-request' &&
+                    content.approvalId === approvalId
+                )
+            );
+          }
+          if (isContentValid) {
+            newContent.push(toolContent);
+          }
+        }
+        if (newContent.length) {
+          try {
+            sanitized.push(
+              JSON.parse(JSON.stringify({ ...message, content: newContent }))
+            );
+          } catch {
+            // Drop messages that cannot be serialized
+          }
+        }
+      } else {
+        // Message is a system or user message.
+        sanitized.push(message);
       }
     }
-    return sanitized;
+    return sanitized.length === messages.length ? sanitized : [];
   };
 
   /**

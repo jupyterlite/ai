@@ -27,4 +27,8 @@ custom_middleware = [
     ),
 ]
 
-app = mcp.http_app(middleware=custom_middleware, stateless_http=True)
+app = mcp.http_app(
+    path="/mcp",
+    middleware=custom_middleware,
+    stateless_http=True,
+)
