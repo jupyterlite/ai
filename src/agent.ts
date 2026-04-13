@@ -12,7 +12,8 @@ import {
   type TypedToolError,
   type TypedToolOutputDenied,
   type TypedToolResult,
-  type UserContent
+  type UserContent,
+  APICallError
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
@@ -613,16 +614,32 @@ export class AgentManager implements IAgentManager {
           data: { error: error as Error }
         });
 
-        // Strip attachments from last user message on error to avoid error loop
-        if (this._history.length > 0) {
-          const lastMsg = this._history[this._history.length - 1];
-          if (lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
-            const textContent = lastMsg.content
-              .filter(p => p.type === 'text')
-              .map(p => (p as { text: string }).text)
-              .join('\n');
-            lastMsg.content =
-              textContent || 'Attachment removed due to error';
+        this._history.push({
+          role: 'assistant',
+          content: `I encountered an error processing your request: ${(error as Error).message}`
+        });
+
+        // Remove attachments from history on payload rejection errors
+        if (
+          APICallError.isInstance(error) &&
+          (error.statusCode === 400 || 
+           error.statusCode === 404 ||
+           error.statusCode === 413 || 
+           error.statusCode === 415 || 
+           error.statusCode === 422)
+        ) {
+          for (const msg of this._history) {
+            if (msg.role === 'user' && Array.isArray(msg.content)) {
+              const hasMedia = msg.content.some(p => p.type !== 'text');
+              if (hasMedia) {
+                const textContent = msg.content
+                  .filter(p => p.type === 'text')
+                  .map(p => (p as { text: string }).text)
+                  .join('\n');
+                msg.content =
+                  textContent || '_Attachment removed due to error_';
+              }
+            }
           }
         }
       }

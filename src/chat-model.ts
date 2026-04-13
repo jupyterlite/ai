@@ -5,6 +5,7 @@ import {
   IChatContext,
   IMessage,
   IMessageContent,
+  IMimeModelBody,
   INewMessage,
   IUser
 } from '@jupyter/chat';
@@ -883,8 +884,6 @@ export class AIChatModel extends AbstractChatModel {
 }
 
 namespace Private {
-  type IMimeBody = Partial<IRenderMime.IMimeModel> &
-    Pick<IRenderMime.IMimeModel, 'data'>;
   type IDisplayOutput =
     | nbformat.IDisplayData
     | nbformat.IDisplayUpdate
@@ -910,7 +909,7 @@ namespace Private {
   const toMimeBundle = (
     value: IDisplayOutput,
     trustedMimeTypes: ReadonlySet<string>
-  ): IMimeBody | null => {
+  ): IMimeModelBody | null => {
     const data = value.data;
     if (!isPlainObject(data) || Object.keys(data).length === 0) {
       return null;
@@ -965,8 +964,8 @@ namespace Private {
   export function extractMimeBundlesFromUnknown(
     content: unknown,
     options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeBody[] {
-    const bundles: IMimeBody[] = [];
+  ): IMimeModelBody[] {
+    const bundles: IMimeModelBody[] = [];
     const outputs = toDisplayOutputs(content);
     const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
     for (const output of outputs) {
