@@ -5,9 +5,9 @@ import { ISignal } from '@lumino/signaling';
 import type { IAISettingsModel, ITokenUsage } from '../tokens';
 
 /**
- * Props for the TokenUsageDisplay component.
+ * Props for the UsageDisplay component.
  */
-export interface ITokenUsageDisplayProps {
+export interface IUsageDisplayProps {
   /**
    * The token usage changed signal
    */
@@ -30,11 +30,11 @@ export interface ITokenUsageDisplayProps {
 }
 
 /**
- * React component that displays token usage information.
+ * React component that displays usage information.
  * Shows input/output token counts and optional estimated context usage.
  * Only renders when token or context usage display is enabled in settings.
  */
-export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
+export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
   tokenUsageChanged,
   settingsModel,
   initialTokenUsage,
@@ -75,21 +75,34 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
               }
 
               const total = tokenUsage.inputTokens + tokenUsage.outputTokens;
-              const hasTokenUsage = showTokenUsage && total > 0;
+              const hasTokenUsage = showTokenUsage;
               const hasKnownContextWindow =
                 showContextUsage && tokenUsage.contextWindow !== undefined;
+              const contextUsagePercent =
+                tokenUsage.lastRequestInputTokens !== undefined &&
+                tokenUsage.contextWindow !== undefined &&
+                tokenUsage.contextWindow > 0
+                  ? Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        (tokenUsage.lastRequestInputTokens /
+                          tokenUsage.contextWindow) *
+                          100
+                      )
+                    )
+                  : undefined;
               const hasContextEstimate =
                 hasKnownContextWindow &&
-                tokenUsage.contextUsagePercent !== undefined &&
+                contextUsagePercent !== undefined &&
                 tokenUsage.lastRequestInputTokens !== undefined;
-              const shouldShowContextBadge = showContextUsage;
 
-              if (!hasTokenUsage && !shouldShowContextBadge) {
+              if (!hasTokenUsage && !showContextUsage) {
                 return null;
               }
 
               const contextLabel = hasContextEstimate
-                ? `${formatContextPercent(tokenUsage.contextUsagePercent!)}%`
+                ? `${formatContextPercent(contextUsagePercent)}%`
                 : hasKnownContextWindow
                   ? '0%'
                   : '?';
@@ -97,7 +110,7 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
               const contextTitle = hasContextEstimate
                 ? trans.__(
                     'Context Usage (estimated): %1% (%2 / %3 tokens)',
-                    formatContextPercent(tokenUsage.contextUsagePercent!),
+                    formatContextPercent(contextUsagePercent),
                     tokenUsage.lastRequestInputTokens!.toLocaleString(),
                     tokenUsage.contextWindow!.toLocaleString()
                   )
@@ -150,7 +163,7 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
                       </span>
                     </span>
                   )}
-                  {shouldShowContextBadge && (
+                  {showContextUsage && (
                     <span style={badgeStyle} title={contextTitle}>
                       <span
                         style={{
@@ -175,26 +188,26 @@ export const TokenUsageDisplay: React.FC<ITokenUsageDisplayProps> = ({
 };
 
 /**
- * JupyterLab widget wrapper for the TokenUsageDisplay component.
+ * JupyterLab widget wrapper for the UsageDisplay component.
  * Extends ReactWidget to integrate with the JupyterLab widget system.
  */
-export class TokenUsageWidget extends ReactWidget {
+export class UsageWidget extends ReactWidget {
   /**
-   * Creates a new TokenUsageWidget instance.
+   * Creates a new UsageWidget instance.
    * @param options - Configuration options containing required models
    */
-  constructor(options: ITokenUsageDisplayProps) {
+  constructor(options: IUsageDisplayProps) {
     super();
     this._options = options;
   }
 
   /**
    * Renders the React component within the widget.
-   * @returns The TokenUsageDisplay React element
+   * @returns The UsageDisplay React element
    */
   protected render(): React.ReactElement {
-    return <TokenUsageDisplay {...this._options} />;
+    return <UsageDisplay {...this._options} />;
   }
 
-  private _options: ITokenUsageDisplayProps;
+  private _options: IUsageDisplayProps;
 }

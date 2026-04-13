@@ -658,7 +658,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   }
                   placeholder={trans.__('Leave empty for provider default')}
                   helperText={trans.__('Maximum length of AI responses')}
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput: { min: 1 } }}
                 />
 
                 <TextField
@@ -678,7 +678,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   helperText={trans.__(
                     'Maximum number of tool execution turns'
                   )}
-                  inputProps={{ min: 1, max: 100 }}
+                  slotProps={{ htmlInput: { min: 1, max: 100 } }}
                 />
 
                 <TextField
@@ -713,7 +713,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                           'Model context window size in tokens (used for context usage estimation)'
                         )
                   }
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput: { min: 1 } }}
                 />
 
                 <Typography
@@ -870,7 +870,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                         : undefined
                                     )
                                   }
-                                  inputProps={{ min: 1 }}
+                                  slotProps={{ htmlInput: { min: 1 } }}
                                 />
                                 {renderDomainList(
                                   'webSearch.blockedDomains',
@@ -928,7 +928,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                     : undefined
                                 )
                               }
-                              inputProps={{ min: 1 }}
+                              slotProps={{ htmlInput: { min: 1 } }}
                             />
                             <TextField
                               fullWidth
@@ -944,7 +944,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                     : undefined
                                 )
                               }
-                              inputProps={{ min: 1 }}
+                              slotProps={{ htmlInput: { min: 1 } }}
                             />
                             {renderDomainList(
                               'webFetch.allowedDomains',

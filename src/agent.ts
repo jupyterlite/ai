@@ -395,15 +395,9 @@ export class AgentManager implements IAgentManager {
     // Reset request-level context estimate only when switching between providers.
     if (previousProvider && previousProvider !== value) {
       this._tokenUsage.lastRequestInputTokens = undefined;
-      this._tokenUsage.contextUsagePercent = undefined;
     }
 
-    const contextWindow = this._getActiveContextWindow();
-    this._tokenUsage.contextWindow = contextWindow;
-    this._tokenUsage.contextUsagePercent = this._calculateContextUsagePercent(
-      this._tokenUsage.lastRequestInputTokens,
-      contextWindow
-    );
+    this._tokenUsage.contextWindow = this._getActiveContextWindow();
 
     this._tokenUsageChanged.emit(this._tokenUsage);
     this.initializeAgent();
@@ -676,31 +670,8 @@ export class AgentManager implements IAgentManager {
 
     this._tokenUsage.lastRequestInputTokens = estimatedRequestInputTokens;
     this._tokenUsage.contextWindow = contextWindow;
-    this._tokenUsage.contextUsagePercent = this._calculateContextUsagePercent(
-      estimatedRequestInputTokens,
-      contextWindow
-    );
 
     this._tokenUsageChanged.emit(this._tokenUsage);
-  }
-
-  /**
-   * Calculates the latest request's estimated context usage percentage.
-   */
-  private _calculateContextUsagePercent(
-    requestInputTokens: number | undefined,
-    contextWindow: number | undefined
-  ): number | undefined {
-    if (
-      contextWindow === undefined ||
-      contextWindow <= 0 ||
-      requestInputTokens === undefined
-    ) {
-      return undefined;
-    }
-
-    const rawPercent = (requestInputTokens / contextWindow) * 100;
-    return Math.max(0, Math.min(100, rawPercent));
   }
 
   /**
@@ -782,10 +753,6 @@ export class AgentManager implements IAgentManager {
     );
 
     this._tokenUsage.contextWindow = contextWindow;
-    this._tokenUsage.contextUsagePercent = this._calculateContextUsagePercent(
-      this._tokenUsage.lastRequestInputTokens,
-      contextWindow
-    );
     this._tokenUsageChanged.emit(this._tokenUsage);
 
     const temperature =

@@ -802,11 +802,6 @@ export interface ITokenUsage {
    * Configured context window size for the active provider/model.
    */
   contextWindow?: number;
-
-  /**
-   * Estimated context usage percentage for the most recent request.
-   */
-  contextUsagePercent?: number;
 }
 
 /**
