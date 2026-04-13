@@ -32,13 +32,17 @@ function BranchNavigation({
     let scrollEl: HTMLElement | null = containerRef.current;
     while (scrollEl) {
       const oy = getComputedStyle(scrollEl).overflowY;
-      if (oy === 'auto' || oy === 'scroll') break;
+      if (oy === 'auto' || oy === 'scroll') {
+        break;
+      }
       scrollEl = scrollEl.parentElement;
     }
     const savedTop = scrollEl?.scrollTop;
     aiModel.switchBranch(message.id, direction);
     setTimeout(() => {
-      if (scrollEl && savedTop !== undefined) scrollEl.scrollTop = savedTop;
+      if (scrollEl && savedTop !== undefined) {
+        scrollEl.scrollTop = savedTop;
+      }
     }, 0);
   };
 
