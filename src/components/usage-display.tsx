@@ -75,7 +75,6 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
               }
 
               const total = tokenUsage.inputTokens + tokenUsage.outputTokens;
-              const hasTokenUsage = showTokenUsage;
               const hasKnownContextWindow =
                 showContextUsage && tokenUsage.contextWindow !== undefined;
               const contextUsagePercent =
@@ -96,10 +95,6 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
                 hasKnownContextWindow &&
                 contextUsagePercent !== undefined &&
                 tokenUsage.lastRequestInputTokens !== undefined;
-
-              if (!hasTokenUsage && !showContextUsage) {
-                return null;
-              }
 
               const contextLabel = hasContextEstimate
                 ? `${formatContextPercent(contextUsagePercent)}%`
@@ -131,7 +126,7 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
                     gap: '6px'
                   }}
                 >
-                  {hasTokenUsage && (
+                  {showTokenUsage && (
                     <span
                       style={badgeStyle}
                       title={trans.__(
