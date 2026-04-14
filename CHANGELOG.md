@@ -2,6 +2,34 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.16.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.15.0...40e4fb9fc8866ea3011341c9b1ef30ed70de408b))
+
+### Enhancements made
+
+- Show context window usage [#262](https://github.com/jupyterlite/ai/pull/262) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Bugs fixed
+
+- Specify chat file format (backup) when fetching content [#320](https://github.com/jupyterlite/ai/pull/320) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Align plugin token naming [#319](https://github.com/jupyterlite/ai/pull/319) ([@MUFFANUJ](https://github.com/MUFFANUJ), [@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Update to the latest `fastmcp` [#318](https://github.com/jupyterlite/ai/pull/318) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-04-10&to=2026-04-14&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-04-10..2026-04-14&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-04-10..2026-04-14&type=Issues)) | @MUFFANUJ ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AMUFFANUJ+updated%3A2026-04-10..2026-04-14&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.15.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.14.0...5f196b5529b489025f836069fcffba39b1ece905))
@@ -34,8 +62,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-03-13&to=2026-04-10&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-03-13..2026-04-10&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-03-13..2026-04-10&type=Issues)) | @Yahiewi ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AYahiewi+updated%3A2026-03-13..2026-04-10&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.14.0
 

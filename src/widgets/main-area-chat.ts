@@ -6,7 +6,7 @@ import { CommandRegistry } from '@lumino/commands';
 
 import { AIChatModel } from '../chat-model';
 import { SaveComponentWidget } from '../components/save-button';
-import { TokenUsageWidget } from '../components/token-usage-display';
+import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds, type IAISettingsModel } from '../tokens';
 
@@ -54,13 +54,13 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     }
 
     // Add the token usage button.
-    const tokenUsageWidget = new TokenUsageWidget({
+    const usageWidget = new UsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,
       settingsModel: options.settingsModel,
       initialTokenUsage: this.model.agentManager.tokenUsage,
       translator: trans
     });
-    this.toolbar.addItem('token-usage', tokenUsageWidget);
+    this.toolbar.addItem('usage', usageWidget);
 
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.
