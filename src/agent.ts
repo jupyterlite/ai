@@ -558,6 +558,13 @@ export class AgentManager implements IAgentManager {
     this._streaming = new PromiseDelegate();
     this._controller = new AbortController();
     const responseHistory: ModelMessage[] = [];
+
+    // Add user message to history
+    responseHistory.push({
+      role: 'user',
+      content: message
+    });
+
     try {
       // Ensure we have an agent
       if (!this._agent) {
@@ -567,12 +574,6 @@ export class AgentManager implements IAgentManager {
       if (!this._agent) {
         throw new Error('Failed to initialize agent');
       }
-
-      // Add user message to history
-      responseHistory.push({
-        role: 'user',
-        content: message
-      });
 
       let continueLoop = true;
       while (continueLoop) {
@@ -622,11 +623,6 @@ export class AgentManager implements IAgentManager {
           data: { error: error as Error }
         });
 
-        this._history.push({
-          role: 'assistant',
-          content: `I encountered an error processing your request: ${(error as Error).message}`
-        });
-
         // Remove attachments from history on payload rejection errors
         if (
           APICallError.isInstance(error) &&
@@ -636,7 +632,7 @@ export class AgentManager implements IAgentManager {
             error.statusCode === 415 ||
             error.statusCode === 422)
         ) {
-          for (const msg of this._history) {
+          for (const msg of [...this._history, ...responseHistory]) {
             if (msg.role === 'user' && Array.isArray(msg.content)) {
               const hasMedia = msg.content.some(p => p.type !== 'text');
               if (hasMedia) {
@@ -650,6 +646,11 @@ export class AgentManager implements IAgentManager {
             }
           }
         }
+        this._history.push(...Private.sanitizeModelMessages(responseHistory));
+        this._history.push({
+          role: 'assistant',
+          content: `I encountered an error processing your request: ${(error as Error).message}`
+        });
       }
     } finally {
       this._controller = null;
