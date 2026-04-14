@@ -204,6 +204,13 @@ export interface IProviderToolCapabilities {
 /**
  * Provider information
  */
+export interface IProviderModelInfo {
+  /**
+   * Default context window for the model in tokens.
+   */
+  contextWindow?: number;
+}
+
 export interface IProviderInfo {
   /**
    * Unique identifier for the provider
@@ -227,6 +234,11 @@ export interface IProviderInfo {
    * Default model names for this provider
    */
   defaultModels: string[];
+
+  /**
+   * Optional per-model metadata keyed by model ID.
+   */
+  modelInfo?: Record<string, IProviderModelInfo>;
 
   /**
    * Whether this provider supports custom base URLs
@@ -321,6 +333,7 @@ export interface IProviderParameters {
   temperature?: number;
   maxOutputTokens?: number;
   maxTurns?: number;
+  contextWindow?: number;
   supportsFillInMiddle?: boolean;
   useFilterText?: boolean;
 }
@@ -368,6 +381,8 @@ export interface IAIConfig {
   sendWithShiftEnter: boolean;
   // Token usage display setting
   showTokenUsage: boolean;
+  // Context usage display setting
+  showContextUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Commands whose execute_command outputs may auto-render MIME bundles in chat
@@ -776,6 +791,17 @@ export interface ITokenUsage {
    * Number of output tokens generated (completion tokens)
    */
   outputTokens: number;
+
+  /**
+   * Estimated prompt tokens used by the most recent model request.
+   * This is based on the final step of the latest request.
+   */
+  lastRequestInputTokens?: number;
+
+  /**
+   * Configured context window size for the active provider/model.
+   */
+  contextWindow?: number;
 }
 
 /**

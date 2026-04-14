@@ -114,7 +114,7 @@ import {
   createToolSelectItem,
   stopItem,
   CompletionStatusWidget,
-  TokenUsageWidget
+  UsageWidget
 } from './components';
 
 import { AISettingsModel } from './models/settings-model';
@@ -516,7 +516,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       chatPanel.disposed.connect(disconnectSettingsButtonListener);
     }
 
-    let tokenUsageWidget: TokenUsageWidget | null = null;
+    let usageWidget: UsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
       const model = widget.model as AIChatModel;
 
@@ -534,19 +534,15 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       model.agentManager.activeProviderChanged.connect(saveTracker);
 
       // Update the token usage widget.
-      tokenUsageWidget?.dispose();
+      usageWidget?.dispose();
 
-      tokenUsageWidget = new TokenUsageWidget({
+      usageWidget = new UsageWidget({
         tokenUsageChanged: model.tokenUsageChanged,
         settingsModel,
         initialTokenUsage: model.agentManager.tokenUsage,
         translator: trans
       });
-      chatPanel.current?.toolbar.insertBefore(
-        'markRead',
-        'token-usage',
-        tokenUsageWidget
-      );
+      chatPanel.current?.toolbar.insertBefore('markRead', 'usage', usageWidget);
 
       if (model.saveAvailable) {
         const saveChatButton = new SaveComponentWidget({

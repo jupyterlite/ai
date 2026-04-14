@@ -387,7 +387,7 @@ export class AIChatModel extends AbstractChatModel {
       return false;
     }
     const contentModel = await this._contentsManager
-      .get(filepath, { content: true })
+      .get(filepath, { content: true, type: 'file', format: 'text' })
       .catch(() => {
         if (!silent) {
           console.log(`There is no backup for chat '${this.name}'`);
@@ -397,9 +397,12 @@ export class AIChatModel extends AbstractChatModel {
     if (!contentModel) {
       return false;
     }
-    const content = JSON.parse(
-      contentModel.content
-    ) as AIChatModel.ExportedChat;
+    let content: AIChatModel.ExportedChat;
+    try {
+      content = JSON.parse(contentModel.content);
+    } catch (e) {
+      throw `Error when parsing the chat ${filepath}\n${e}`;
+    }
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {

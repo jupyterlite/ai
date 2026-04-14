@@ -227,5 +227,22 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await expect(chatWidgetToolbar).toBeVisible();
       await expect(mainAreaTab).toHaveCount(0);
     });
+
+    test('should show a context badge placeholder when enabled', async ({
+      page
+    }) => {
+      const panel = await openChatPanel(page);
+
+      await panel.getByTitle('Open AI Settings').click();
+
+      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      await expect(aiSettingsWidget).toBeVisible();
+      await aiSettingsWidget.getByRole('tab', { name: 'Behavior' }).click();
+      await aiSettingsWidget.getByLabel('Show Context Usage').click();
+
+      await expect(
+        panel.getByTitle(/Context Usage unavailable\./)
+      ).toBeVisible();
+    });
   })
 );

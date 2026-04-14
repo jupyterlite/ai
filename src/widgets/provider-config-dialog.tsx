@@ -37,6 +37,7 @@ import type {
   IProviderRegistry,
   IProviderToolCapabilities
 } from '../tokens';
+import { getProviderModelInfo } from '../providers/model-info';
 
 /**
  * Default parameter values for provider configuration
@@ -168,6 +169,10 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   );
   const providerToolCapabilities =
     selectedProviderInfo?.providerToolCapabilities;
+  const selectedModelInfo = React.useMemo(
+    () => getProviderModelInfo(selectedProviderInfo, model),
+    [selectedProviderInfo, model]
+  );
   const webSearchImplementation =
     providerToolCapabilities?.webSearch?.implementation;
   const supportsWebSearch = !!providerToolCapabilities?.webSearch;
@@ -653,7 +658,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   }
                   placeholder={trans.__('Leave empty for provider default')}
                   helperText={trans.__('Maximum length of AI responses')}
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput: { min: 1 } }}
                 />
 
                 <TextField
@@ -673,7 +678,42 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   helperText={trans.__(
                     'Maximum number of tool execution turns'
                   )}
-                  inputProps={{ min: 1, max: 100 }}
+                  slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                />
+
+                <TextField
+                  fullWidth
+                  label={trans.__('Context Window (Optional)')}
+                  type="number"
+                  value={parameters.contextWindow ?? ''}
+                  onChange={e =>
+                    setParameters({
+                      ...parameters,
+                      contextWindow: e.target.value
+                        ? Number(e.target.value)
+                        : undefined
+                    })
+                  }
+                  placeholder={
+                    selectedModelInfo?.contextWindow !== undefined
+                      ? trans.__(
+                          'Default: %1',
+                          selectedModelInfo.contextWindow.toLocaleString()
+                        )
+                      : trans.__('e.g., 128000')
+                  }
+                  helperText={
+                    selectedModelInfo?.contextWindow !== undefined &&
+                    parameters.contextWindow === undefined
+                      ? trans.__(
+                          'Using provider metadata default of %1 tokens for this model unless you override it here.',
+                          selectedModelInfo.contextWindow.toLocaleString()
+                        )
+                      : trans.__(
+                          'Model context window size in tokens (used for context usage estimation)'
+                        )
+                  }
+                  slotProps={{ htmlInput: { min: 1 } }}
                 />
 
                 <Typography
@@ -830,7 +870,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                         : undefined
                                     )
                                   }
-                                  inputProps={{ min: 1 }}
+                                  slotProps={{ htmlInput: { min: 1 } }}
                                 />
                                 {renderDomainList(
                                   'webSearch.blockedDomains',
@@ -888,7 +928,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                     : undefined
                                 )
                               }
-                              inputProps={{ min: 1 }}
+                              slotProps={{ htmlInput: { min: 1 } }}
                             />
                             <TextField
                               fullWidth
@@ -904,7 +944,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                                     : undefined
                                 )
                               }
-                              inputProps={{ min: 1 }}
+                              slotProps={{ htmlInput: { min: 1 } }}
                             />
                             {renderDomainList(
                               'webFetch.allowedDomains',

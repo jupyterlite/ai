@@ -23,6 +23,7 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     toolsEnabled: true,
     sendWithShiftEnter: false,
     showTokenUsage: false,
+    showContextUsage: false,
     showCellDiff: true,
     showFileDiff: true,
     diffDisplayMode: 'split',
