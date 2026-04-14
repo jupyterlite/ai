@@ -650,10 +650,7 @@ export class AgentManager implements IAgentManager {
       this._history.push(...Private.sanitizeModelMessages(responseHistory));
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        this._agentEvent.emit({
-          type: 'error',
-          data: { error: error as Error }
-        });
+        let helpMessage = `${(error as Error).message}`;
 
         // Remove attachments from history on payload rejection errors
         if (
@@ -677,11 +674,17 @@ export class AgentManager implements IAgentManager {
               }
             }
           }
+          helpMessage +=
+            '\n\nAttachments have been removed from history. Please send your prompt again.';
         }
+        this._agentEvent.emit({
+          type: 'error',
+          data: { error: new Error(helpMessage) }
+        });
         this._history.push(...Private.sanitizeModelMessages(responseHistory));
         this._history.push({
           role: 'assistant',
-          content: `I encountered an error processing your request: ${(error as Error).message}`
+          content: helpMessage
         });
       }
     } finally {
