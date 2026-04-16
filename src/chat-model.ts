@@ -5,6 +5,7 @@ import {
   IChatContext,
   IMessage,
   IMessageContent,
+  IMimeModelBody,
   INewMessage,
   IUser
 } from '@jupyter/chat';
@@ -23,11 +24,17 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 
 import { IRenderMime } from '@jupyterlab/rendermime';
 
+import { Contents } from '@jupyterlab/services';
+
 import { UUID } from '@lumino/coreutils';
+
+import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
+
+import type { UserContent, ImagePart, FilePart } from 'ai';
 
 import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
 
@@ -101,13 +108,15 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel = options.settingsModel;
     this._user = options.user;
     this._agentManager = options.agentManager;
+    this._contentsManager = options.contentsManager;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
-    this.setReady();
+
+    this._autosaveDebouncer = new Debouncer(this.save, 3000);
   }
 
   /**
@@ -119,6 +128,50 @@ export class AIChatModel extends AbstractChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
+    if (!this.messages.length) {
+      const directory = this._settingsModel.config.chatBackupDirectory;
+      const filepath = PathExt.join(directory, `${this.name}.chat`);
+      this.restore(filepath, true);
+    }
+    this.setReady();
+  }
+
+  /**
+   * Whether to save the chat automatically.
+   */
+  get autosave(): boolean {
+    return this._autosave;
+  }
+  set autosave(value: boolean) {
+    this._autosave = value;
+    this._autosaveChanged.emit(value);
+    if (value) {
+      this.messagesUpdated.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.connect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this._autosaveDebouncer.invoke();
+    } else {
+      this.messagesUpdated.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+      this.messageChanged.disconnect(
+        this._autosaveDebouncer.invoke,
+        this._autosaveDebouncer
+      );
+    }
+  }
+
+  /**
+   * A signal emitting when the autosave flag changed.
+   */
+  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+    return this._autosaveChanged;
   }
 
   /**
@@ -147,6 +200,24 @@ export class AIChatModel extends AbstractChatModel {
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
+  }
+
+  /**
+   * Whether save/restore is available.
+   */
+  get saveAvailable(): boolean {
+    return !!this._contentsManager;
+  }
+
+  /**
+   * Dispose of the model.
+   */
+  dispose(): void {
+    this.messagesUpdated.disconnect(
+      this._autosaveDebouncer.invoke,
+      this._autosaveDebouncer
+    );
+    super.dispose();
   }
 
   /**
@@ -262,16 +333,24 @@ export class AIChatModel extends AbstractChatModel {
       this.updateWriters([{ user: this._getAIUser() }]);
 
       // Process attachments and add their content to the message
-      let enhancedMessage = message.body;
+      let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const attachmentContents = await this._processAttachments(
-          this.input.attachments
+        const { textContents, binaryParts } = await Private.processAttachments(
+          this.input.attachments,
+          this.input.documentManager
         );
         this.input.clearAttachments();
 
-        if (attachmentContents.length > 0) {
-          enhancedMessage +=
-            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
+        let textPart = message.body;
+        if (textContents.length > 0) {
+          textPart +=
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+
+        if (binaryParts.length > 0) {
+          enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
+        } else {
+          enhancedMessage = textPart;
         }
       }
 
@@ -300,6 +379,150 @@ export class AIChatModel extends AbstractChatModel {
     this._updateQueueUI();
   }
 
+  /**
+   * Save the chat as json file.
+   */
+  save = async (): Promise<void> => {
+    if (!this._contentsManager) {
+      return;
+    }
+    const directory = this._settingsModel.config.chatBackupDirectory;
+    const filepath = PathExt.join(directory, `${this.name}.chat`);
+    const content = JSON.stringify(this._serializeModel());
+    await this._contentsManager
+      .get(filepath, { content: false })
+      .catch(async () => {
+        await this._contentsManager
+          ?.get(directory, { content: false })
+          .catch(async () => {
+            const dir = await this._contentsManager!.newUntitled({
+              type: 'directory'
+            });
+            await this._contentsManager!.rename(dir.path, directory);
+          });
+        const file = await this._contentsManager!.newUntitled({ ext: '.chat' });
+        await this._contentsManager?.rename(file.path, filepath);
+      });
+    await this._contentsManager.save(filepath, {
+      content,
+      type: 'file',
+      format: 'text'
+    });
+  };
+
+  /**
+   * Restore the chat from a json file.
+   *
+   * @param silent - Whether a log should be displayed in the console if the
+   * restoration is not possible.
+   */
+  restore = async (filepath: string, silent = false): Promise<boolean> => {
+    if (!this._contentsManager) {
+      return false;
+    }
+    const contentModel = await this._contentsManager
+      .get(filepath, { content: true, type: 'file', format: 'text' })
+      .catch(() => {
+        if (!silent) {
+          console.log(`There is no backup for chat '${this.name}'`);
+        }
+        return;
+      });
+    if (!contentModel) {
+      return false;
+    }
+    let content: AIChatModel.ExportedChat;
+    try {
+      content = JSON.parse(contentModel.content);
+    } catch (e) {
+      throw `Error when parsing the chat ${filepath}\n${e}`;
+    }
+
+    if (content.metadata?.provider) {
+      if (this._settingsModel.getProvider(content.metadata.provider)) {
+        this._agentManager.activeProvider = content.metadata.provider;
+      } else if (!silent) {
+        console.log(
+          `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
+        );
+      }
+    } else if (!silent) {
+      console.log(`Provider not providing when restoring ${filepath}.`);
+    }
+
+    const messages: IMessageContent[] = content.messages.map(message => {
+      let attachments: IAttachment[] = [];
+      if (content.attachments && message.attachments) {
+        attachments =
+          message.attachments.map(index => content.attachments![index]) ?? [];
+      }
+      return {
+        ...message,
+        sender: content.users[message.sender] ?? { username: 'unknown' },
+        mentions: message.mentions?.map(mention => content.users[mention]),
+        attachments
+      };
+    });
+    this.clearMessages();
+    this.messagesInserted(0, messages);
+    this._agentManager.setHistory(messages);
+    this.autosave = content.metadata?.autosave ?? false;
+    return true;
+  };
+
+  /**
+   * Serialize the model for backup
+   */
+  private _serializeModel(): AIChatModel.ExportedChat {
+    const provider = this._agentManager.activeProvider;
+    const messages: IMessageContent<string, string>[] = [];
+    const users: { [id: string]: IUser } = {};
+    const attachmentMap = new Map<string, number>(); // JSON → index
+    const attachmentsList: IAttachment[] = []; // Actual attachments
+
+    this.messages.forEach(message => {
+      let attachmentIndexes: string[] = [];
+      if (message.attachments) {
+        attachmentIndexes = message.attachments.map(attachment => {
+          const attachmentJson = JSON.stringify(attachment);
+          let index: number;
+          if (attachmentMap.has(attachmentJson)) {
+            index = attachmentMap.get(attachmentJson)!;
+          } else {
+            index = attachmentsList.length;
+            attachmentMap.set(attachmentJson, index);
+            attachmentsList.push(attachment);
+          }
+          return index.toString();
+        });
+      }
+
+      messages.push({
+        ...message.content,
+        sender: message.sender.username,
+        mentions: message.mentions?.map(user => user.username),
+        attachments: attachmentIndexes
+      });
+
+      if (!users[message.sender.username]) {
+        users[message.sender.username] = message.sender;
+      }
+    });
+
+    const attachments = Object.fromEntries(
+      attachmentsList.map((item, index) => [index, item])
+    );
+
+    return {
+      messages,
+      users,
+      attachments,
+      metadata: {
+        provider,
+        autosave: this.autosave
+      }
+    };
+  }
   /**
    * Gets the AI user information for system messages.
    */
@@ -717,12 +940,13 @@ export class AIChatModel extends AbstractChatModel {
       // Process attachments now.
       let body = next.body;
       if (next._originalMsg?.attachments?.length) {
-        const attachmentContents = await this._processAttachments(
-          next._originalMsg.attachments
+        const { textContents } = await Private.processAttachments(
+          next._originalMsg.attachments,
+          this.input.documentManager
         );
-        if (attachmentContents.length > 0) {
+        if (textContents.length > 0) {
           body +=
-            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
         }
       }
 
@@ -788,61 +1012,295 @@ export class AIChatModel extends AbstractChatModel {
     this.messageAdded(queueMessage);
   }
 
+  // Private fields
+  private _settingsModel: IAISettingsModel;
+  private _user: IUser;
+  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
+  private _agentManager: IAgentManager;
+  private _currentStreamingMessage: IMessage | null = null;
+  private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _contentsManager?: Contents.IManager;
+  private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
+  private _autosaveDebouncer: Debouncer;
+  private _messageQueue: Private.IQueuedItem[] = [];
+  private _isBusy = false;
+  private _queueMessageId: string | null = null;
+}
+
+namespace Private {
+  export interface IQueuedItem {
+    id: string;
+    body: string;
+    _originalMsg: IMessageContent;
+  }
+
+  export type IDisplayOutput =
+    | nbformat.IDisplayData
+    | nbformat.IDisplayUpdate
+    | nbformat.IExecuteResult;
+
+  export const isPlainObject = (
+    value: unknown
+  ): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  export const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+    if (!isPlainObject(value)) {
+      return false;
+    }
+
+    const output = value as nbformat.IOutput;
+    return (
+      nbformat.isDisplayData(output) ||
+      nbformat.isDisplayUpdate(output) ||
+      nbformat.isExecuteResult(output)
+    );
+  };
+
+  export const toMimeBundle = (
+    value: IDisplayOutput,
+    trustedMimeTypes: ReadonlySet<string>
+  ): IMimeModelBody | null => {
+    const data = value.data;
+    if (!isPlainObject(data) || Object.keys(data).length === 0) {
+      return null;
+    }
+
+    return {
+      data: data as IRenderMime.IMimeModel['data'],
+      ...(isPlainObject(value.metadata)
+        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
+        : {}),
+      // MIME auto-rendering only runs for explicitly configured command IDs.
+      // Trust handling is configurable to keep risky MIME execution opt-in.
+      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+        ? { trusted: true }
+        : {})
+    };
+  };
+
   /**
-   * Processes file attachments and returns their content as formatted strings.
-   * @param attachments Array of file attachments to process
-   * @returns Array of formatted attachment contents
+   * Normalize arbitrary tool payloads into canonical display outputs.
+   *
+   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
+   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
    */
-  private async _processAttachments(
-    attachments: IAttachment[]
-  ): Promise<string[]> {
-    const contents: string[] = [];
+  export const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+    if (isDisplayOutput(value)) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(isDisplayOutput);
+    }
+
+    if (!isPlainObject(value)) {
+      return [];
+    }
+
+    if (Array.isArray(value.outputs)) {
+      return value.outputs.filter(isDisplayOutput);
+    }
+
+    if ('result' in value) {
+      return toDisplayOutputs(value.result);
+    }
+
+    return [];
+  };
+
+  /**
+   * Extract rendermime-ready mime bundles from arbitrary tool results.
+   */
+  export function extractMimeBundlesFromUnknown(
+    content: unknown,
+    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
+  ): IMimeModelBody[] {
+    const bundles: IMimeModelBody[] = [];
+    const outputs = toDisplayOutputs(content);
+    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
+    for (const output of outputs) {
+      const bundle = toMimeBundle(output, trustedMimeTypes);
+      if (bundle) {
+        bundles.push(bundle);
+      }
+    }
+    return bundles;
+  }
+
+  export function formatToolOutput(outputData: unknown): string {
+    if (typeof outputData === 'string') {
+      return outputData;
+    }
+
+    try {
+      return JSON.stringify(outputData, null, 2);
+    } catch {
+      return '[Complex object - cannot serialize]';
+    }
+  }
+
+  /**
+   * Processes file attachments and returns text contents and binary parts separately.
+   * @param attachments Array of file attachments to process
+   * @param documentManager Optional document manager for file operations
+   * @returns Text contents and binary parts
+   */
+  export async function processAttachments(
+    attachments: IAttachment[],
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<{
+    textContents: string[];
+    binaryParts: Array<ImagePart | FilePart>;
+  }> {
+    const textContents: string[] = [];
+    const binaryParts: Array<ImagePart | FilePart> = [];
+
+    if (!documentManager) {
+      return { textContents, binaryParts };
+    }
 
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
-          const cellContents = await this._readNotebookCells(attachment);
+          const cellContents = await readNotebookCells(
+            attachment,
+            documentManager
+          );
           if (cellContents) {
-            contents.push(cellContents);
+            textContents.push(cellContents);
           }
         } else {
-          const fileContent = await this._readFileAttachment(attachment);
-          if (fileContent) {
-            const fileExtension = PathExt.extname(
-              attachment.value
-            ).toLowerCase();
-            const language = fileExtension === '.ipynb' ? 'json' : '';
-            contents.push(
-              `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+          let mimetype = attachment.mimetype;
+          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+
+          // Fetch mimetype from server metadata if not provided
+          if (!mimetype) {
+            try {
+              const diskModel = await documentManager.services.contents.get(
+                attachment.value,
+                { content: false }
+              );
+              mimetype = diskModel?.mimetype;
+            } catch (e) {
+              console.warn(
+                `Failed to fetch metadata for ${attachment.value}:`,
+                e
+              );
+            }
+          }
+
+          if (mimetype?.startsWith('image/')) {
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
             );
+            if (data) {
+              binaryParts.push({
+                type: 'image',
+                image: data,
+                mediaType: mimetype
+              });
+            }
+          } else if (mimetype === 'application/pdf') {
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
+            );
+            if (data) {
+              binaryParts.push({
+                type: 'file',
+                data,
+                mediaType: mimetype,
+                filename: PathExt.basename(attachment.value)
+              });
+            }
+          } else {
+            const fileContent = await readFileAttachment(
+              attachment,
+              documentManager
+            );
+            if (fileContent) {
+              const language =
+                fileExtension === '.ipynb' ||
+                mimetype === 'application/x-ipynb+json'
+                  ? 'json'
+                  : '';
+              textContents.push(
+                `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+              );
+            }
           }
         }
       } catch (error) {
         console.warn(`Failed to read attachment ${attachment.value}:`, error);
-        contents.push(`**File: ${attachment.value}** (Could not read file)`);
+        textContents.push(
+          `**File: ${attachment.value}** (Could not read file)`
+        );
       }
     }
 
-    return contents;
+    return { textContents, binaryParts };
+  }
+
+  /**
+   * Reads a binary attachment and returns its base64-encoded content.
+   * @param attachment The attachment to read
+   * @param documentManager Optional document manager for file operations
+   * @returns Base64 string or null if unable to read
+   */
+  export async function readBinaryAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<string | null> {
+    if (!documentManager) {
+      return null;
+    }
+
+    try {
+      const diskModel = await documentManager.services.contents.get(
+        attachment.value,
+        { content: true }
+      );
+      if (diskModel?.content && diskModel.format === 'base64') {
+        // Strip whitespace/newlines
+        return (diskModel.content as string).replace(/\s/g, '');
+      }
+      return null;
+    } catch (error) {
+      console.warn(
+        `Failed to read binary attachment ${attachment.value}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
    * Reads the content of a notebook cell.
    * @param attachment The notebook attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns Cell content as string or null if unable to read
    */
-  private async _readNotebookCells(
-    attachment: IAttachment
+  export async function readNotebookCells(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
-    if (attachment.type !== 'notebook' || !attachment.cells) {
+    if (
+      attachment.type !== 'notebook' ||
+      !attachment.cells ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from live notebook if open
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
       let cellData: nbformat.ICell[];
       let kernelLang = 'text';
 
@@ -861,7 +1319,7 @@ export class AIChatModel extends AbstractChatModel {
         kernelLang = String(lang);
       } else {
         // Fallback: reading from disk
-        const model = await this.input.documentManager?.services.contents.get(
+        const model = await documentManager.services.contents.get(
           attachment.value
         );
         if (!model || model.type !== 'notebook') {
@@ -1005,21 +1463,26 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads the content of a file attachment.
    * @param attachment The file attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns File content as string or null if unable to read
    */
-  private async _readFileAttachment(
-    attachment: IAttachment
+  export async function readFileAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
     // Handle both 'file' and 'notebook' types since both have a 'value' path
-    if (attachment.type !== 'file' && attachment.type !== 'notebook') {
+    if (
+      (attachment.type !== 'file' && attachment.type !== 'notebook') ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from an open widget first
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
 
       if (widget && widget.context && widget.context.model) {
         const model = widget.context.model;
@@ -1034,7 +1497,7 @@ export class AIChatModel extends AbstractChatModel {
       }
 
       // If not open, load from disk
-      const diskModel = await this.input.documentManager?.services.contents.get(
+      const diskModel = await documentManager.services.contents.get(
         attachment.value
       );
 
@@ -1063,135 +1526,6 @@ export class AIChatModel extends AbstractChatModel {
     } catch (error) {
       console.warn(`Failed to read file ${attachment.value}:`, error);
       return null;
-    }
-  }
-
-  // Private fields
-  private _settingsModel: IAISettingsModel;
-  private _user: IUser;
-  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
-  private _agentManager: IAgentManager;
-  private _currentStreamingMessage: IMessage | null = null;
-  private _nameChanged = new Signal<AIChatModel, string>(this);
-  private _messageQueue: Private.IQueuedItem[] = [];
-  private _isBusy = false;
-  private _queueMessageId: string | null = null;
-}
-
-namespace Private {
-  type IMimeBody = Partial<IRenderMime.IMimeModel> &
-    Pick<IRenderMime.IMimeModel, 'data'>;
-  type IDisplayOutput =
-    | nbformat.IDisplayData
-    | nbformat.IDisplayUpdate
-    | nbformat.IExecuteResult;
-
-  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
-
-  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
-    if (!isPlainObject(value)) {
-      return false;
-    }
-
-    const output = value as nbformat.IOutput;
-    return (
-      nbformat.isDisplayData(output) ||
-      nbformat.isDisplayUpdate(output) ||
-      nbformat.isExecuteResult(output)
-    );
-  };
-
-  const toMimeBundle = (
-    value: IDisplayOutput,
-    trustedMimeTypes: ReadonlySet<string>
-  ): IMimeBody | null => {
-    const data = value.data;
-    if (!isPlainObject(data) || Object.keys(data).length === 0) {
-      return null;
-    }
-
-    return {
-      data: data as IRenderMime.IMimeModel['data'],
-      ...(isPlainObject(value.metadata)
-        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
-        : {}),
-      // MIME auto-rendering only runs for explicitly configured command IDs.
-      // Trust handling is configurable to keep risky MIME execution opt-in.
-      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-        ? { trusted: true }
-        : {})
-    };
-  };
-
-  /**
-   * Normalize arbitrary tool payloads into canonical display outputs.
-   *
-   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
-   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
-   */
-  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
-    if (isDisplayOutput(value)) {
-      return [value];
-    }
-
-    if (Array.isArray(value)) {
-      return value.filter(isDisplayOutput);
-    }
-
-    if (!isPlainObject(value)) {
-      return [];
-    }
-
-    if (Array.isArray(value.outputs)) {
-      return value.outputs.filter(isDisplayOutput);
-    }
-
-    if ('result' in value) {
-      return toDisplayOutputs(value.result);
-    }
-
-    return [];
-  };
-
-  /**
-   * Internal wrapper for queued messages.
-   */
-  export interface IQueuedItem {
-    id: string;
-    body: string;
-    _originalMsg: IMessageContent;
-  }
-
-  /**
-   * Extract rendermime-ready mime bundles from arbitrary tool results.
-   */
-  export function extractMimeBundlesFromUnknown(
-    content: unknown,
-    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeBody[] {
-    const bundles: IMimeBody[] = [];
-    const outputs = toDisplayOutputs(content);
-    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
-    for (const output of outputs) {
-      const bundle = toMimeBundle(output, trustedMimeTypes);
-      if (bundle) {
-        bundles.push(bundle);
-      }
-    }
-    return bundles;
-  }
-
-  export function formatToolOutput(outputData: unknown): string {
-    if (typeof outputData === 'string') {
-      return outputData;
-    }
-
-    try {
-      return JSON.stringify(outputData, null, 2);
-    } catch {
-      return '[Complex object - cannot serialize]';
     }
   }
 }
@@ -1224,6 +1558,14 @@ export namespace AIChatModel {
      * Optional document manager for file operations
      */
     documentManager?: IDocumentManager;
+    /**
+     * The contents manager.
+     */
+    contentsManager?: Contents.IManager;
+    /**
+     * Whether to restore or not the message (default to true)
+     */
+    restore?: boolean;
   }
 
   /**
@@ -1251,4 +1593,35 @@ export namespace AIChatModel {
      */
     removeQueuedMessage: (id: string) => void;
   }
+
+  /**
+   * The exported chat format.
+   */
+  export type ExportedChat = {
+    /**
+     * Message list (user are only string to avoid duplication).
+     */
+    messages: IMessageContent<string, string>[];
+    /**
+     * The user list.
+     */
+    users: { [id: string]: IUser };
+    /**
+     * The attachments of the chat.
+     */
+    attachments?: { [id: string]: IAttachment };
+    /**
+     * The metadata associated to the chat.
+     */
+    metadata?: {
+      /**
+       * Provider of the chat.
+       */
+      provider?: string;
+      /**
+       * Whether the chat is automatically saved.
+       */
+      autosave?: boolean;
+    };
+  };
 }

@@ -109,6 +109,35 @@
   padding: 0 0.4em;
 }
 
+/* Save button */
+.jp-ai-SaveButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--jp-layout-color1);
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.jp-ai-SaveButton.lm-mod-toggled {
+  box-shadow: inset 0 0 2px 2px var(--neutral-fill-strong-active);
+}
+
+.jp-ai-SaveButton .jp-ToolbarButtonComponent {
+  margin: unset;
+  height: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton {
+  min-width: unset;
+  width: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton svg {
+  width: 12px;
+  height: 12px;
+}
+
 .jp-MainAreaWidget
   .jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:move-chat']
   svg {

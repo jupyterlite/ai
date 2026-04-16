@@ -5,7 +5,8 @@ import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
 import { AIChatModel } from '../chat-model';
-import { TokenUsageWidget } from '../components/token-usage-display';
+import { SaveComponentWidget } from '../components/save-button';
+import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds, type IAISettingsModel } from '../tokens';
 
@@ -27,7 +28,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
 
     const { trans } = options;
 
-    // add the move to side button.
+    // Move to side button.
     this.toolbar.addItem(
       'moveToSide',
       new CommandToolbarButton({
@@ -41,14 +42,25 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       })
     );
 
+    if (this.model.saveAvailable) {
+      // Save chat component
+      this.toolbar.addItem(
+        'saveChat',
+        new SaveComponentWidget({
+          model: this.model,
+          translator: trans
+        })
+      );
+    }
+
     // Add the token usage button.
-    const tokenUsageWidget = new TokenUsageWidget({
+    const usageWidget = new UsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,
       settingsModel: options.settingsModel,
       initialTokenUsage: this.model.agentManager.tokenUsage,
       translator: trans
     });
-    this.toolbar.addItem('token-usage', tokenUsageWidget);
+    this.toolbar.addItem('usage', usageWidget);
 
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.

@@ -1,10 +1,10 @@
-import { ActiveCellManager } from '@jupyter/chat';
+import { ActiveCellManager, IMessage, IMessageContent } from '@jupyter/chat';
 import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
-import type { Tool, LanguageModel } from 'ai';
+import type { Tool, LanguageModel, UserContent } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
@@ -32,6 +32,8 @@ export namespace CommandIds {
   export const openChat = '@jupyterlite/ai:open-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
+  export const saveChat = '@jupyterlite/ai:save-chat';
+  export const restoreChat = '@jupyterlite/ai:restore-chat';
 }
 
 /* THE TOOL REGISTRY */
@@ -100,7 +102,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  '@jupyterlite/ai:tool-registry',
+  '@jupyterlite/ai:IToolRegistry',
   'Tool registry for AI agent functionality'
 );
 
@@ -143,7 +145,7 @@ export interface ISkillRegistry {
  * The skill registry token.
  */
 export const ISkillRegistry = new Token<ISkillRegistry>(
-  '@jupyterlite/ai:skill-registry',
+  '@jupyterlite/ai:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
 
@@ -202,6 +204,13 @@ export interface IProviderToolCapabilities {
 /**
  * Provider information
  */
+export interface IProviderModelInfo {
+  /**
+   * Default context window for the model in tokens.
+   */
+  contextWindow?: number;
+}
+
 export interface IProviderInfo {
   /**
    * Unique identifier for the provider
@@ -225,6 +234,11 @@ export interface IProviderInfo {
    * Default model names for this provider
    */
   defaultModels: string[];
+
+  /**
+   * Optional per-model metadata keyed by model ID.
+   */
+  modelInfo?: Record<string, IProviderModelInfo>;
 
   /**
    * Whether this provider supports custom base URLs
@@ -309,7 +323,7 @@ export interface IProviderRegistry {
  * Token for the provider registry.
  */
 export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/ai:provider-registry',
+  '@jupyterlite/ai:IProviderRegistry',
   'Registry for AI providers'
 );
 
@@ -319,6 +333,7 @@ export interface IProviderParameters {
   temperature?: number;
   maxOutputTokens?: number;
   maxTurns?: number;
+  contextWindow?: number;
   supportsFillInMiddle?: boolean;
   useFilterText?: boolean;
 }
@@ -366,6 +381,8 @@ export interface IAIConfig {
   sendWithShiftEnter: boolean;
   // Token usage display setting
   showTokenUsage: boolean;
+  // Context usage display setting
+  showContextUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Commands whose execute_command outputs may auto-render MIME bundles in chat
@@ -378,6 +395,8 @@ export interface IAIConfig {
   diffDisplayMode: 'split' | 'unified';
   // Paths to directories containing agent skills
   skillsPaths: string[];
+  // Directory where chat backups are saved
+  chatBackupDirectory: string;
 }
 
 export interface IAISettingsModel extends VDomRenderer.IModel {
@@ -567,6 +586,11 @@ export interface IAgentManager {
    */
   clearHistory(): void;
   /**
+   * Sets the conversation history with a list of messages from the chat.
+   * @param messages The chat messages to set as history
+   */
+  setHistory(messages: IMessageContent[]): void;
+  /**
    * Stops the current streaming response by aborting the request.
    */
   stopStreaming(): void;
@@ -587,7 +611,7 @@ export interface IAgentManager {
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
-  generateResponse(message: string): Promise<void>;
+  generateResponse(message: UserContent): Promise<void>;
   /**
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP tools.
@@ -599,7 +623,7 @@ export interface IAgentManager {
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<IAgentManager>(
-  '@jupyterlite/ai:agent-manager'
+  '@jupyterlite/ai:IAgentManager'
 );
 
 /* The AGENT MANAGER FACTORY */
@@ -631,7 +655,7 @@ export interface IAgentManagerFactory {
  * Token for the agent manager factory.
  */
 export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
-  '@jupyterlite/ai:agent-manager-factory'
+  '@jupyterlite/ai:IAgentManagerFactory'
 );
 
 /* THE CHAT MODELS HANDLER */
@@ -640,19 +664,43 @@ export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
  * The interface for the chat model handler.
  */
 export interface IChatModelHandler {
-  createModel(
-    name: string,
-    activeProvider: string,
-    tokenUsage?: ITokenUsage
-  ): AIChatModel;
+  /**
+   * The function to create a new model.
+   */
+  createModel(options: ICreateChatOptions): AIChatModel;
+  /**
+   * The active cell manager (to copy code from chat to cell).
+   */
   activeCellManager: ActiveCellManager | undefined;
 }
 
+export interface ICreateChatOptions {
+  /**
+   * The name of the chat.
+   */
+  name: string;
+  /**
+   * The id of the active provider of the chat.
+   */
+  activeProvider: string;
+  /**
+   * The current token usage in this chat.
+   */
+  tokenUsage?: ITokenUsage;
+  /**
+   * The messages to ad by default.
+   */
+  messages?: IMessage[];
+  /**
+   * Whether the chat is autosaved or not.
+   */
+  autosave?: boolean;
+}
 /**
  * Token for the chat model handler.
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
-  '@jupyterlite/ai:chat-model-handler'
+  '@jupyterlite/ai:IChatModelHandler'
 );
 
 /* THE DIFF MANAGER */
@@ -727,7 +775,7 @@ export interface IDiffManager {
  * Token for the diff manager.
  */
 export const IDiffManager = new Token<IDiffManager>(
-  '@jupyterlite/ai:diff-manager'
+  '@jupyterlite/ai:IDiffManager'
 );
 
 /**
@@ -743,6 +791,17 @@ export interface ITokenUsage {
    * Number of output tokens generated (completion tokens)
    */
   outputTokens: number;
+
+  /**
+   * Estimated prompt tokens used by the most recent model request.
+   * This is based on the final step of the latest request.
+   */
+  lastRequestInputTokens?: number;
+
+  /**
+   * Configured context window size for the active provider/model.
+   */
+  contextWindow?: number;
 }
 
 /**

@@ -1,5 +1,7 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
   ToolLoopAgent,
@@ -10,11 +12,15 @@ import {
   type ToolApprovalRequestOutput,
   type TypedToolError,
   type TypedToolOutputDenied,
-  type TypedToolResult
+  type TypedToolResult,
+  type UserContent,
+  type AssistantModelMessage,
+  APICallError
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
+import { getEffectiveContextWindow } from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
@@ -50,6 +56,10 @@ interface IStreamProcessResult {
    * Whether an approval request was encountered and processed.
    */
   approvalProcessed: boolean;
+  /**
+   * Whether the stream was aborted before completion.
+   */
+  aborted: boolean;
   /**
    * The approval response message to add to history (if approval was processed).
    */
@@ -323,6 +333,7 @@ export class AgentManager implements IAgentManager {
     this._skills = [];
     this._agentConfig = null;
     this._renderMimeRegistry = options.renderMimeRegistry;
+    this._streaming.resolve();
 
     this.activeProvider =
       options.activeProvider ?? this._settingsModel.config.defaultProvider;
@@ -383,7 +394,17 @@ export class AgentManager implements IAgentManager {
     return this._activeProvider;
   }
   set activeProvider(value: string) {
+    const previousProvider = this._activeProvider;
     this._activeProvider = value;
+
+    // Reset request-level context estimate only when switching between providers.
+    if (previousProvider && previousProvider !== value) {
+      this._tokenUsage.lastRequestInputTokens = undefined;
+    }
+
+    this._tokenUsage.contextWindow = this._getActiveContextWindow();
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
     this.initializeAgent();
     this._activeProviderChanged.emit(this._activeProvider);
   }
@@ -451,13 +472,32 @@ export class AgentManager implements IAgentManager {
   /**
    * Clears conversation history and resets agent state.
    */
-  clearHistory(): void {
+  async clearHistory(): Promise<void> {
     // Stop any ongoing streaming
+    this.stopStreaming('Chat cleared');
+
+    await this._streaming.promise;
+
+    // Clear history and token usage
+    this._history = [];
+    this._tokenUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      contextWindow: this._getActiveContextWindow()
+    };
+    this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Sets the history with a list of messages from the chat.
+   * @param messages The chat messages to set as history
+   */
+  setHistory(messages: IMessageContent[]): void {
+    // Stop any ongoing streaming and reject awaiting approvals
     this.stopStreaming();
 
-    // Reject any pending approvals
     for (const [approvalId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat cleared');
+      pending.resolve(false, 'Chat history changed');
       this._agentEvent.emit({
         type: 'tool_approval_resolved',
         data: { approvalId, approved: false }
@@ -465,17 +505,33 @@ export class AgentManager implements IAgentManager {
     }
     this._pendingApprovals.clear();
 
-    // Clear history and token usage
-    this._history = [];
-    this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
-    this._tokenUsageChanged.emit(this._tokenUsage);
+    // Convert chat messages to model messages
+    const modelMessages = messages.map(msg => {
+      const isAIMessage = msg.sender.username === 'ai-assistant';
+      return {
+        role: isAIMessage ? 'assistant' : 'user',
+        content: msg.body
+      } as ModelMessage;
+    });
+    this._history = Private.sanitizeModelMessages(modelMessages);
   }
 
   /**
    * Stops the current streaming response by aborting the request.
+   * Resolve any pending approval.
    */
-  stopStreaming(): void {
+  stopStreaming(reason?: string): void {
     this._controller?.abort();
+
+    // Reject any pending approvals
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, reason ?? 'Stream ended by user');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+    this._pendingApprovals.clear();
   }
 
   /**
@@ -517,8 +573,16 @@ export class AgentManager implements IAgentManager {
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
-  async generateResponse(message: string): Promise<void> {
+  async generateResponse(message: UserContent): Promise<void> {
+    this._streaming = new PromiseDelegate();
     this._controller = new AbortController();
+    const responseHistory: ModelMessage[] = [];
+
+    // Add user message to history
+    responseHistory.push({
+      role: 'user',
+      content: message
+    });
 
     try {
       // Ensure we have an agent
@@ -530,36 +594,41 @@ export class AgentManager implements IAgentManager {
         throw new Error('Failed to initialize agent');
       }
 
-      // Add user message to history
-      this._history.push({
-        role: 'user',
-        content: message
-      });
-
       let continueLoop = true;
       while (continueLoop) {
         const result = await this._agent.stream({
-          messages: this._history,
+          messages: [...this._history, ...responseHistory],
           abortSignal: this._controller.signal
         });
 
         const streamResult = await this._processStreamResult(result);
 
-        // Get response messages and update token usage
+        if (streamResult.aborted) {
+          try {
+            const responseMessages = await result.response;
+            if (responseMessages.messages?.length) {
+              this._history.push(
+                ...Private.sanitizeModelMessages(responseMessages.messages)
+              );
+            }
+          } catch {
+            // Aborting before a step finishes leaves no completed response to persist.
+          }
+          break;
+        }
+
+        // Get response messages for completed steps.
         const responseMessages = await result.response;
-        this._updateTokenUsage(await result.usage);
 
         // Add response messages to history
         if (responseMessages.messages?.length) {
-          this._history.push(
-            ...Private.sanitizeModelMessages(responseMessages.messages)
-          );
+          responseHistory.push(...responseMessages.messages);
         }
 
         // Add approval response if processed
         if (streamResult.approvalResponse) {
           // Check if the last message is a tool message we can append to
-          const lastMsg = this._history[this._history.length - 1];
+          const lastMsg = responseHistory[responseHistory.length - 1];
           if (
             lastMsg &&
             lastMsg.role === 'tool' &&
@@ -570,38 +639,93 @@ export class AgentManager implements IAgentManager {
             toolContent.push(...streamResult.approvalResponse.content);
           } else {
             // Add as separate message
-            this._history.push(streamResult.approvalResponse);
+            responseHistory.push(streamResult.approvalResponse);
           }
         }
 
         continueLoop = streamResult.approvalProcessed;
       }
+
+      // Add the messages to the history only if the response ended without error.
+      this._history.push(...Private.sanitizeModelMessages(responseHistory));
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
+        let helpMessage = `${(error as Error).message}`;
+
+        // Remove attachments from history on payload rejection errors
+        if (
+          APICallError.isInstance(error) &&
+          (error.statusCode === 400 ||
+            error.statusCode === 404 ||
+            error.statusCode === 413 ||
+            error.statusCode === 415 ||
+            error.statusCode === 422)
+        ) {
+          for (const msg of [...this._history, ...responseHistory]) {
+            if (msg.role === 'user' && Array.isArray(msg.content)) {
+              const hasMedia = msg.content.some(p => p.type !== 'text');
+              if (hasMedia) {
+                const textContent = msg.content
+                  .filter(p => p.type === 'text')
+                  .map(p => (p as { text: string }).text)
+                  .join('\n');
+                msg.content =
+                  textContent || '_Attachment removed due to error_';
+              }
+            }
+          }
+          helpMessage +=
+            '\n\nAttachments have been removed from history. Please send your prompt again.';
+        }
         this._agentEvent.emit({
           type: 'error',
-          data: { error: error as Error }
+          data: { error: new Error(helpMessage) }
+        });
+        this._history.push(...Private.sanitizeModelMessages(responseHistory));
+        this._history.push({
+          role: 'assistant',
+          content: helpMessage
         });
       }
-      // After an error (including AbortError), sanitize the history
-      // to remove any trailing assistant messages without tool results
-      this._sanitizeHistory();
     } finally {
       this._controller = null;
+      this._streaming.resolve();
     }
   }
 
   /**
-   * Updates token usage statistics.
+   * Updates cumulative token usage statistics from a completed model step.
    */
   private _updateTokenUsage(
-    usage: { inputTokens?: number; outputTokens?: number } | undefined
+    usage: { inputTokens?: number; outputTokens?: number } | undefined,
+    lastRequestInputTokens?: number
   ): void {
+    const contextWindow = this._getActiveContextWindow();
+    const estimatedRequestInputTokens =
+      lastRequestInputTokens ?? usage?.inputTokens;
+
     if (usage) {
       this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
       this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
-      this._tokenUsageChanged.emit(this._tokenUsage);
     }
+
+    this._tokenUsage.lastRequestInputTokens = estimatedRequestInputTokens;
+    this._tokenUsage.contextWindow = contextWindow;
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Gets the configured context window for the active provider.
+   */
+  private _getActiveContextWindow(): number | undefined {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    return getEffectiveContextWindow(
+      activeProviderConfig,
+      this._providerRegistry
+    );
   }
 
   /**
@@ -664,6 +788,13 @@ export class AgentManager implements IAgentManager {
       activeProviderConfig && this._providerRegistry
         ? this._providerRegistry.getProviderInfo(activeProviderConfig.provider)
         : null;
+    const contextWindow = getEffectiveContextWindow(
+      activeProviderConfig,
+      this._providerRegistry
+    );
+
+    this._tokenUsage.contextWindow = contextWindow;
+    this._tokenUsageChanged.emit(this._tokenUsage);
 
     const temperature =
       activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
@@ -771,7 +902,10 @@ ${richOutputWorkflowInstruction}`;
   ): Promise<IStreamProcessResult> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
-    const processResult: IStreamProcessResult = { approvalProcessed: false };
+    const processResult: IStreamProcessResult = {
+      approvalProcessed: false,
+      aborted: false
+    };
 
     for await (const part of result.fullStream) {
       switch (part.type) {
@@ -833,7 +967,18 @@ ${richOutputWorkflowInstruction}`;
           await this._handleApprovalRequest(part, processResult);
           break;
 
-        // Ignore: text-start, text-end, finish, error, and others
+        case 'error':
+          throw part.error;
+
+        case 'finish-step':
+          this._updateTokenUsage(part.usage, part.usage.inputTokens);
+          break;
+
+        case 'abort':
+          processResult.aborted = true;
+          break;
+
+        // Ignore: text-start, text-end, finish, and others
         default:
           break;
       }
@@ -1120,96 +1265,6 @@ WEB RETRIEVAL POLICY:
     return `Supported MIME types in this session: ${safeMimeTypes.join(', ')}`;
   }
 
-  /**
-   * Sanitizes history to ensure it's in a valid state in case of abort or error.
-   */
-  private _sanitizeHistory(): void {
-    if (this._history.length === 0) {
-      return;
-    }
-
-    const newHistory: ModelMessage[] = [];
-    for (let i = 0; i < this._history.length; i++) {
-      const msg = this._history[i];
-
-      if (msg.role === 'assistant') {
-        const toolCallIds = this._getToolCallIds(msg);
-        if (toolCallIds.length > 0) {
-          // Find if there's a following tool message with results for these calls
-          const nextMsg = this._history[i + 1];
-          if (
-            nextMsg &&
-            nextMsg.role === 'tool' &&
-            this._matchesAllToolCalls(nextMsg, toolCallIds)
-          ) {
-            newHistory.push(msg);
-          } else {
-            // Message has unmatched tool calls drop it and everything after it
-            break;
-          }
-        } else {
-          newHistory.push(msg);
-        }
-      } else if (msg.role === 'tool') {
-        // Tool messages are valid if they were preceded by a valid assistant message
-        newHistory.push(msg);
-      } else {
-        newHistory.push(msg);
-      }
-    }
-
-    this._history = newHistory;
-  }
-
-  /**
-   * Extracts tool call IDs from a message
-   */
-  private _getToolCallIds(message: ModelMessage): string[] {
-    const ids: string[] = [];
-
-    // Check content array for tool-call parts
-    if (Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          typeof part === 'object' &&
-          part !== null &&
-          'type' in part &&
-          part.type === 'tool-call'
-        ) {
-          ids.push(part.toolCallId);
-        }
-      }
-    }
-
-    return ids;
-  }
-
-  /**
-   * Checks if a tool message contains results for all specified tool call IDs
-   */
-  private _matchesAllToolCalls(
-    message: ModelMessage,
-    callIds: string[]
-  ): boolean {
-    if (message.role !== 'tool' || !Array.isArray(message.content)) {
-      return false;
-    }
-
-    const resultIds = new Set<string>();
-    for (const part of message.content) {
-      if (
-        typeof part === 'object' &&
-        part !== null &&
-        'type' in part &&
-        part.type === 'tool-result'
-      ) {
-        resultIds.add(part.toolCallId);
-      }
-    }
-
-    return callIds.every(id => resultIds.has(id));
-  }
-
   // Private attributes
   private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
@@ -1234,25 +1289,123 @@ WEB RETRIEVAL POLICY:
     string,
     { resolve: (approved: boolean, reason?: string) => void }
   > = new Map();
+  private _streaming: PromiseDelegate<void> = new PromiseDelegate();
 }
 
 namespace Private {
   /**
-   * Keep only serializable messages by doing a JSON round-trip.
-   * Messages that cannot be serialized are dropped.
+   * Sanitize the messages before adding them to the history.
+   *
+   * 1- Make sure the message sequence is not altered:
+   *   - tool-call messages should have a corresponding tool-result (and vice-versa)
+   *   - tool-approval-request should have a tool-approval-response (and vice-versa)
+   *
+   * 2- Keep only serializable messages by doing a JSON round-trip.
+   *    Messages that cannot be serialized are dropped.
    */
   export const sanitizeModelMessages = (
     messages: ModelMessage[]
   ): ModelMessage[] => {
     const sanitized: ModelMessage[] = [];
     for (const message of messages) {
-      try {
-        sanitized.push(JSON.parse(JSON.stringify(message)));
-      } catch {
-        // Drop messages that cannot be serialized
+      if (message.role === 'assistant') {
+        let newMessage: AssistantModelMessage | undefined;
+        if (!Array.isArray(message.content)) {
+          newMessage = message;
+        } else {
+          // Remove assistant message content without a required response.
+          const newContent: typeof message.content = [];
+          for (const assistantContent of message.content) {
+            let isContentValid = true;
+            if (assistantContent.type === 'tool-call') {
+              const toolCallId = assistantContent.toolCallId;
+              isContentValid = !!messages.find(
+                msg =>
+                  msg.role === 'tool' &&
+                  Array.isArray(msg.content) &&
+                  msg.content.find(
+                    content =>
+                      content.type === 'tool-result' &&
+                      content.toolCallId === toolCallId
+                  )
+              );
+            } else if (assistantContent.type === 'tool-approval-request') {
+              const approvalId = assistantContent.approvalId;
+              isContentValid = !!messages.find(
+                msg =>
+                  msg.role === 'tool' &&
+                  Array.isArray(msg.content) &&
+                  msg.content.find(
+                    content =>
+                      content.type === 'tool-approval-response' &&
+                      content.approvalId === approvalId
+                  )
+              );
+            }
+            if (isContentValid) {
+              newContent.push(assistantContent);
+            }
+          }
+          if (newContent.length) {
+            newMessage = { ...message, content: newContent };
+          }
+        }
+        if (newMessage) {
+          try {
+            sanitized.push(JSON.parse(JSON.stringify(newMessage)));
+          } catch {
+            // Drop messages that cannot be serialized
+          }
+        }
+      } else if (message.role === 'tool') {
+        // Remove tool message content without request.
+        const newContent: typeof message.content = [];
+        for (const toolContent of message.content) {
+          let isContentValid = true;
+          if (toolContent.type === 'tool-result') {
+            const toolCallId = toolContent.toolCallId;
+            isContentValid = !!sanitized.find(
+              msg =>
+                msg.role === 'assistant' &&
+                Array.isArray(msg.content) &&
+                msg.content.find(
+                  content =>
+                    content.type === 'tool-call' &&
+                    content.toolCallId === toolCallId
+                )
+            );
+          } else if (toolContent.type === 'tool-approval-response') {
+            const approvalId = toolContent.approvalId;
+            isContentValid = !!sanitized.find(
+              msg =>
+                msg.role === 'assistant' &&
+                Array.isArray(msg.content) &&
+                msg.content.find(
+                  content =>
+                    content.type === 'tool-approval-request' &&
+                    content.approvalId === approvalId
+                )
+            );
+          }
+          if (isContentValid) {
+            newContent.push(toolContent);
+          }
+        }
+        if (newContent.length) {
+          try {
+            sanitized.push(
+              JSON.parse(JSON.stringify({ ...message, content: newContent }))
+            );
+          } catch {
+            // Drop messages that cannot be serialized
+          }
+        }
+      } else {
+        // Message is a system or user message.
+        sanitized.push(message);
       }
     }
-    return sanitized;
+    return sanitized.length === messages.length ? sanitized : [];
   };
 
   /**
