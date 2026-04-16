@@ -68,6 +68,23 @@ export function getProviderModelInfo(
   })?.[1];
 }
 
+export function modelSupportsImages(
+  providerConfig: IProviderConfig | undefined,
+  providerRegistry?: IProviderRegistry
+): boolean {
+  if (!providerConfig) {
+    return true;
+  }
+
+  const providerInfo = providerRegistry?.getProviderInfo(providerConfig.provider);
+  const modelInfo = getProviderModelInfo(providerInfo, providerConfig.model);
+  if (!modelInfo) {
+    return true;
+  }
+
+  return modelInfo.supportsImages ?? true;
+}
+
 export function getEffectiveContextWindow(
   providerConfig: IProviderConfig | undefined,
   providerRegistry?: IProviderRegistry

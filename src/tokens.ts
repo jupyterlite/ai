@@ -209,6 +209,10 @@ export interface IProviderModelInfo {
    * Default context window for the model in tokens.
    */
   contextWindow?: number;
+  /**
+   * Whether the model supports image inputs.
+   */
+  supportsImages?: boolean;
 }
 
 export interface IProviderInfo {

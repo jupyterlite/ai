@@ -20,7 +20,7 @@ import {
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
-import { getEffectiveContextWindow } from './providers/model-info';
+import { getEffectiveContextWindow, modelSupportsImages } from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
@@ -716,6 +716,25 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
+   * Removes image and file parts from all user messages in history.
+   * Called when switching to a model that doesn't support image inputs.
+   */
+  private _stripImagesFromHistory(): void {
+    for (const msg of this._history) {
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        const hasMedia = msg.content.some(p => p.type !== 'text');
+        if (hasMedia) {
+          const textContent = msg.content
+            .filter(p => p.type === 'text')
+            .map(p => (p as { text: string }).text)
+            .join('\n');
+          msg.content = textContent || '_Attachment removed due to model switch_';
+        }
+      }
+    }
+  }
+
+  /**
    * Gets the configured context window for the active provider.
    */
   private _getActiveContextWindow(): number | undefined {
@@ -792,6 +811,17 @@ export class AgentManager implements IAgentManager {
       activeProviderConfig,
       this._providerRegistry
     );
+
+    // Strip image attachments from history if the new model doesn't support them.
+    const currentModelKey = activeProviderConfig
+      ? `${activeProviderConfig.provider}:${activeProviderConfig.model}`
+      : undefined;
+    if (currentModelKey && currentModelKey !== this._lastModelKey) {
+      this._lastModelKey = currentModelKey;
+      if (!modelSupportsImages(activeProviderConfig, this._providerRegistry)) {
+        this._stripImagesFromHistory();
+      }
+    }
 
     this._tokenUsage.contextWindow = contextWindow;
     this._tokenUsageChanged.emit(this._tokenUsage);
@@ -1281,6 +1311,7 @@ WEB RETRIEVAL POLICY:
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
+  private _lastModelKey: string | undefined;
   private _skills: ISkillSummary[];
   private _renderMimeRegistry?: IRenderMimeRegistry;
   private _initQueue: Promise<void> = Promise.resolve();
