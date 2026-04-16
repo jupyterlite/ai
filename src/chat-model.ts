@@ -945,8 +945,7 @@ export class AIChatModel extends AbstractChatModel {
           this.input.documentManager
         );
         if (textContents.length > 0) {
-          body +=
-            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+          body += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
         }
       }
 
