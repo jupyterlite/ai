@@ -120,6 +120,11 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * The title of the chat.
+   */
+  title: string | null = null;
+
+  /**
    * Override the getter/setter of the name to add a signal when renaming a chat.
    */
   get name(): string {
@@ -433,6 +438,7 @@ export class AIChatModel extends AbstractChatModel {
     this.messagesInserted(0, messages);
     this._agentManager.setHistory(messages);
     this.autosave = content.metadata?.autosave ?? false;
+    this.title = content.metadata?.title ?? null;
     return true;
   };
 
@@ -485,7 +491,8 @@ export class AIChatModel extends AbstractChatModel {
       attachments,
       metadata: {
         provider,
-        autosave: this.autosave
+        autosave: this.autosave,
+        ...(this.title ? { title: this.title } : {})
       }
     };
   }
@@ -1468,6 +1475,10 @@ export namespace AIChatModel {
        * Whether the chat is automatically saved.
        */
       autosave?: boolean;
+      /**
+       * An optional title of the chat.
+       */
+      title?: string;
     };
   };
 }
