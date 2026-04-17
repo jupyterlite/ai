@@ -32,7 +32,7 @@ import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
-import type { UserContent, ImagePart, FilePart } from 'ai';
+import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
 
 import { AI_AVATAR } from './icons';
 
@@ -441,6 +441,31 @@ export class AIChatModel extends AbstractChatModel {
     this.title = content.metadata?.title ?? null;
     return true;
   };
+
+  /**
+   * Request a title to this chat, regarding the message history.
+   */
+  async requestTitle(): Promise<string> {
+    const history = this.messages
+      .filter(msg => msg.body !== '')
+      .map(
+        msg =>
+          `${msg.sender.username === 'ai-assistant' ? 'assistant' : 'user'}: ${msg.body}`
+      )
+      .join('\n');
+    const messages: ModelMessage[] = [
+      {
+        role: 'system',
+        content:
+          'Generate a short title (max 10 words without formatting) for the following conversation. The title should reflect the first or the most representative expectation from the user.'
+      },
+      {
+        role: 'user',
+        content: history
+      }
+    ];
+    return this.agentManager.textResponse(messages);
+  }
 
   /**
    * Serialize the model for backup
