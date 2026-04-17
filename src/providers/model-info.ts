@@ -76,7 +76,9 @@ export function modelSupportsImages(
     return true;
   }
 
-  const providerInfo = providerRegistry?.getProviderInfo(providerConfig.provider);
+  const providerInfo = providerRegistry?.getProviderInfo(
+    providerConfig.provider
+  );
   const modelInfo = getProviderModelInfo(providerInfo, providerConfig.model);
   if (!modelInfo) {
     return true;

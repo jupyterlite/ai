@@ -20,7 +20,10 @@ import {
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
-import { getEffectiveContextWindow, modelSupportsImages } from './providers/model-info';
+import {
+  getEffectiveContextWindow,
+  modelSupportsImages
+} from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
@@ -728,7 +731,8 @@ export class AgentManager implements IAgentManager {
             .filter(p => p.type === 'text')
             .map(p => (p as { text: string }).text)
             .join('\n');
-          msg.content = textContent || '_Attachment removed due to model switch_';
+          msg.content =
+            textContent || '_Attachment removed due to model switch_';
         }
       }
     }
