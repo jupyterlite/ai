@@ -120,11 +120,6 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * The title of the chat.
-   */
-  title: string | null = null;
-
-  /**
    * Override the getter/setter of the name to add a signal when renaming a chat.
    */
   get name(): string {
@@ -139,6 +134,31 @@ export class AIChatModel extends AbstractChatModel {
       this.restore(filepath, true);
     }
     this.setReady();
+  }
+
+  /**
+   * A signal emitting when the chat name has changed.
+   */
+  get nameChanged(): ISignal<AIChatModel, string> {
+    return this._nameChanged;
+  }
+
+  /**
+   * The title of the chat.
+   */
+  get title(): string | null {
+    return this._title;
+  }
+  set title(value: string | null) {
+    this._title = value;
+    this._titleChanged.emit(this._title);
+  }
+
+  /**
+   * A signal emitting when the chat title has changed.
+   */
+  get titleChanged(): ISignal<AIChatModel, string | null> {
+    return this._titleChanged;
   }
 
   /**
@@ -177,13 +197,6 @@ export class AIChatModel extends AbstractChatModel {
    */
   get autosaveChanged(): ISignal<AIChatModel, boolean> {
     return this._autosaveChanged;
-  }
-
-  /**
-   * A signal emitting when the chat name has changed.
-   */
-  get nameChanged(): ISignal<AIChatModel, string> {
-    return this._nameChanged;
   }
 
   /**
@@ -916,6 +929,8 @@ export class AIChatModel extends AbstractChatModel {
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
+  private _title: string | null = null;
+  private _titleChanged = new Signal<AIChatModel, string | null>(this);
 }
 
 namespace Private {

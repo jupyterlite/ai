@@ -535,6 +535,18 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         tracker.save(widget);
       }
 
+      function updateToolbarTitleOverlay() {
+        const titleNode = chatPanel.current?.toolbar.node
+          .getElementsByClassName('jp-chat-sidepanel-widget-title')
+          .item(0);
+        if (titleNode) {
+          titleNode.setAttribute('title', model.title ?? model.name);
+        }
+      }
+
+      model.titleChanged.connect(updateToolbarTitleOverlay);
+      updateToolbarTitleOverlay();
+
       // Update the tracker if the model name changed.
       model.nameChanged.connect(saveTracker);
 
@@ -590,6 +602,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       });
 
       widget.disposed.connect(() => {
+        model.titleChanged.disconnect(updateToolbarTitleOverlay);
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
         model.writersChanged?.disconnect(writersChanged);
@@ -891,7 +904,8 @@ function registerCommands(
           activeProvider: previousModel.agentManager.activeProvider,
           tokenUsage: previousModel.agentManager.tokenUsage,
           messages: previousModel.messages,
-          autosave: previousModel.autosave
+          autosave: previousModel.autosave,
+          title: previousModel.title
         });
 
         // Wait (with timeout) for the tracker to have updated the previous widget.

@@ -700,6 +700,10 @@ export interface ICreateChatOptions {
    * Whether the chat is autosaved or not.
    */
   autosave?: boolean;
+  /**
+   * An optional title to the chat.
+   */
+  title?: string | null;
 }
 /**
  * Token for the chat model handler.

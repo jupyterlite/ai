@@ -29,7 +29,8 @@ export class ChatModelHandler implements IChatModelHandler {
   }
 
   createModel(options: ICreateChatOptions): AIChatModel {
-    const { name, activeProvider, tokenUsage, messages, autosave } = options;
+    const { name, activeProvider, tokenUsage, messages, autosave, title } =
+      options;
 
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
@@ -57,6 +58,10 @@ export class ChatModelHandler implements IChatModelHandler {
     model.autosave = autosave ?? false;
 
     model.name = name;
+
+    if (title) {
+      model.title = title;
+    }
 
     return model;
   }
