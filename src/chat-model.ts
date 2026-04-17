@@ -470,7 +470,7 @@ export class AIChatModel extends AbstractChatModel {
       {
         role: 'system',
         content:
-          'Generate a short title (max 10 words without formatting) for the following conversation. The title should reflect the first or the most representative expectation from the user.'
+          "Generate a concise title (no more than 10 words) for the following conversation. Do not use formatting. Focus on the user's main intent."
       },
       {
         role: 'user',
