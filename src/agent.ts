@@ -664,19 +664,10 @@ export class AgentManager implements IAgentManager {
             error.statusCode === 415 ||
             error.statusCode === 422)
         ) {
-          for (const msg of [...this._history, ...responseHistory]) {
-            if (msg.role === 'user' && Array.isArray(msg.content)) {
-              const hasMedia = msg.content.some(p => p.type !== 'text');
-              if (hasMedia) {
-                const textContent = msg.content
-                  .filter(p => p.type === 'text')
-                  .map(p => (p as { text: string }).text)
-                  .join('\n');
-                msg.content =
-                  textContent || '_Attachment removed due to error_';
-              }
-            }
-          }
+          this._stripAttachments(
+            [...this._history, ...responseHistory],
+            '_Attachment removed due to error_'
+          );
           helpMessage +=
             '\n\nAttachments have been removed from history. Please send your prompt again.';
         }
@@ -719,11 +710,13 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Removes image and file parts from all user messages in history.
-   * Called when switching to a model that doesn't support image inputs.
+   * Removes image and file parts from all user messages in the given list.
    */
-  private _stripImagesFromHistory(): void {
-    for (const msg of this._history) {
+  private _stripAttachments(
+    messages: ModelMessage[],
+    placeholder: string
+  ): void {
+    for (const msg of messages) {
       if (msg.role === 'user' && Array.isArray(msg.content)) {
         const hasMedia = msg.content.some(p => p.type !== 'text');
         if (hasMedia) {
@@ -731,8 +724,7 @@ export class AgentManager implements IAgentManager {
             .filter(p => p.type === 'text')
             .map(p => (p as { text: string }).text)
             .join('\n');
-          msg.content =
-            textContent || '_Attachment removed due to model switch_';
+          msg.content = textContent || placeholder;
         }
       }
     }
@@ -816,14 +808,17 @@ export class AgentManager implements IAgentManager {
       this._providerRegistry
     );
 
-    // Strip image attachments from history if the new model doesn't support them.
+    // Strip attachments from history if the new model doesn't support them.
     const currentModelKey = activeProviderConfig
       ? `${activeProviderConfig.provider}:${activeProviderConfig.model}`
       : undefined;
     if (currentModelKey && currentModelKey !== this._lastModelKey) {
       this._lastModelKey = currentModelKey;
       if (!modelSupportsImages(activeProviderConfig, this._providerRegistry)) {
-        this._stripImagesFromHistory();
+        this._stripAttachments(
+          this._history,
+          '_Attachment removed due to model switch_'
+        );
       }
     }
 
