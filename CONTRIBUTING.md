@@ -36,6 +36,20 @@ By default, the `jlpm build` command generates the source maps for this extensio
 jupyter lab build --minimize=False
 ```
 
+## Refreshing built-in model context windows
+
+When updating the built-in model lists, refresh the generated context window
+metadata from [`models.dev`](https://github.com/anomalyco/models.dev) with:
+
+```bash
+jlpm sync:model-context-windows
+```
+
+This script fetches the latest metadata, rewrites
+`src/providers/generated-context-windows.ts`, then runs `prettier` and `eslint`
+on the generated file. The command will warn if `models.dev` does not expose a
+matching context window for one of our built-in model IDs.
+
 ## Running UI tests
 
 The UI tests use Playwright and can be configured with environment variables:

@@ -13,11 +13,14 @@ import {
   type TypedToolError,
   type TypedToolOutputDenied,
   type TypedToolResult,
-  type AssistantModelMessage
+  type UserContent,
+  type AssistantModelMessage,
+  APICallError
 } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
+import { getEffectiveContextWindow } from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
@@ -53,6 +56,10 @@ interface IStreamProcessResult {
    * Whether an approval request was encountered and processed.
    */
   approvalProcessed: boolean;
+  /**
+   * Whether the stream was aborted before completion.
+   */
+  aborted: boolean;
   /**
    * The approval response message to add to history (if approval was processed).
    */
@@ -387,7 +394,17 @@ export class AgentManager implements IAgentManager {
     return this._activeProvider;
   }
   set activeProvider(value: string) {
+    const previousProvider = this._activeProvider;
     this._activeProvider = value;
+
+    // Reset request-level context estimate only when switching between providers.
+    if (previousProvider && previousProvider !== value) {
+      this._tokenUsage.lastRequestInputTokens = undefined;
+    }
+
+    this._tokenUsage.contextWindow = this._getActiveContextWindow();
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
     this.initializeAgent();
     this._activeProviderChanged.emit(this._activeProvider);
   }
@@ -463,7 +480,11 @@ export class AgentManager implements IAgentManager {
 
     // Clear history and token usage
     this._history = [];
-    this._tokenUsage = { inputTokens: 0, outputTokens: 0 };
+    this._tokenUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      contextWindow: this._getActiveContextWindow()
+    };
     this._tokenUsageChanged.emit(this._tokenUsage);
   }
 
@@ -552,10 +573,17 @@ export class AgentManager implements IAgentManager {
    * Handles the complete execution cycle including tool calls.
    * @param message The user message to respond to (may include processed attachment content)
    */
-  async generateResponse(message: string): Promise<void> {
+  async generateResponse(message: UserContent): Promise<void> {
     this._streaming = new PromiseDelegate();
     this._controller = new AbortController();
     const responseHistory: ModelMessage[] = [];
+
+    // Add user message to history
+    responseHistory.push({
+      role: 'user',
+      content: message
+    });
+
     try {
       // Ensure we have an agent
       if (!this._agent) {
@@ -566,12 +594,6 @@ export class AgentManager implements IAgentManager {
         throw new Error('Failed to initialize agent');
       }
 
-      // Add user message to history
-      responseHistory.push({
-        role: 'user',
-        content: message
-      });
-
       let continueLoop = true;
       while (continueLoop) {
         const result = await this._agent.stream({
@@ -581,9 +603,22 @@ export class AgentManager implements IAgentManager {
 
         const streamResult = await this._processStreamResult(result);
 
-        // Get response messages and update token usage
+        if (streamResult.aborted) {
+          try {
+            const responseMessages = await result.response;
+            if (responseMessages.messages?.length) {
+              this._history.push(
+                ...Private.sanitizeModelMessages(responseMessages.messages)
+              );
+            }
+          } catch {
+            // Aborting before a step finishes leaves no completed response to persist.
+          }
+          break;
+        }
+
+        // Get response messages for completed steps.
         const responseMessages = await result.response;
-        this._updateTokenUsage(await result.usage);
 
         // Add response messages to history
         if (responseMessages.messages?.length) {
@@ -615,9 +650,41 @@ export class AgentManager implements IAgentManager {
       this._history.push(...Private.sanitizeModelMessages(responseHistory));
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
+        let helpMessage = `${(error as Error).message}`;
+
+        // Remove attachments from history on payload rejection errors
+        if (
+          APICallError.isInstance(error) &&
+          (error.statusCode === 400 ||
+            error.statusCode === 404 ||
+            error.statusCode === 413 ||
+            error.statusCode === 415 ||
+            error.statusCode === 422)
+        ) {
+          for (const msg of [...this._history, ...responseHistory]) {
+            if (msg.role === 'user' && Array.isArray(msg.content)) {
+              const hasMedia = msg.content.some(p => p.type !== 'text');
+              if (hasMedia) {
+                const textContent = msg.content
+                  .filter(p => p.type === 'text')
+                  .map(p => (p as { text: string }).text)
+                  .join('\n');
+                msg.content =
+                  textContent || '_Attachment removed due to error_';
+              }
+            }
+          }
+          helpMessage +=
+            '\n\nAttachments have been removed from history. Please send your prompt again.';
+        }
         this._agentEvent.emit({
           type: 'error',
-          data: { error: error as Error }
+          data: { error: new Error(helpMessage) }
+        });
+        this._history.push(...Private.sanitizeModelMessages(responseHistory));
+        this._history.push({
+          role: 'assistant',
+          content: helpMessage
         });
       }
     } finally {
@@ -627,16 +694,38 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Updates token usage statistics.
+   * Updates cumulative token usage statistics from a completed model step.
    */
   private _updateTokenUsage(
-    usage: { inputTokens?: number; outputTokens?: number } | undefined
+    usage: { inputTokens?: number; outputTokens?: number } | undefined,
+    lastRequestInputTokens?: number
   ): void {
+    const contextWindow = this._getActiveContextWindow();
+    const estimatedRequestInputTokens =
+      lastRequestInputTokens ?? usage?.inputTokens;
+
     if (usage) {
       this._tokenUsage.inputTokens += usage.inputTokens ?? 0;
       this._tokenUsage.outputTokens += usage.outputTokens ?? 0;
-      this._tokenUsageChanged.emit(this._tokenUsage);
     }
+
+    this._tokenUsage.lastRequestInputTokens = estimatedRequestInputTokens;
+    this._tokenUsage.contextWindow = contextWindow;
+
+    this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Gets the configured context window for the active provider.
+   */
+  private _getActiveContextWindow(): number | undefined {
+    const activeProviderConfig = this._settingsModel.getProvider(
+      this._activeProvider
+    );
+    return getEffectiveContextWindow(
+      activeProviderConfig,
+      this._providerRegistry
+    );
   }
 
   /**
@@ -699,6 +788,13 @@ export class AgentManager implements IAgentManager {
       activeProviderConfig && this._providerRegistry
         ? this._providerRegistry.getProviderInfo(activeProviderConfig.provider)
         : null;
+    const contextWindow = getEffectiveContextWindow(
+      activeProviderConfig,
+      this._providerRegistry
+    );
+
+    this._tokenUsage.contextWindow = contextWindow;
+    this._tokenUsageChanged.emit(this._tokenUsage);
 
     const temperature =
       activeProviderConfig?.parameters?.temperature ?? DEFAULT_TEMPERATURE;
@@ -806,7 +902,10 @@ ${richOutputWorkflowInstruction}`;
   ): Promise<IStreamProcessResult> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
-    const processResult: IStreamProcessResult = { approvalProcessed: false };
+    const processResult: IStreamProcessResult = {
+      approvalProcessed: false,
+      aborted: false
+    };
 
     for await (const part of result.fullStream) {
       switch (part.type) {
@@ -868,7 +967,18 @@ ${richOutputWorkflowInstruction}`;
           await this._handleApprovalRequest(part, processResult);
           break;
 
-        // Ignore: text-start, text-end, finish, error, and others
+        case 'error':
+          throw part.error;
+
+        case 'finish-step':
+          this._updateTokenUsage(part.usage, part.usage.inputTokens);
+          break;
+
+        case 'abort':
+          processResult.aborted = true;
+          break;
+
+        // Ignore: text-start, text-end, finish, and others
         default:
           break;
       }

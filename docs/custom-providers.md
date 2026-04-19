@@ -26,6 +26,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       name: 'My Custom Provider',
       apiKeyRequirement: 'required' as const,
       defaultModels: ['my-model'],
+      modelInfo: {
+        'my-model': {
+          contextWindow: 128000
+        }
+      },
       supportsBaseURL: true,
       factory: (options: {
         apiKey: string;
@@ -51,6 +56,7 @@ The provider configuration object requires the following properties:
 - `name`: Display name shown in the settings UI
 - `apiKeyRequirement`: Whether an API key is `'required'`, `'optional'`, or `'none'`
 - `defaultModels`: Array of model names to show in the settings
+- `modelInfo` (optional): Per-model metadata such as `contextWindow`
 - `supportsBaseURL`: Whether the provider supports a custom base URL
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 

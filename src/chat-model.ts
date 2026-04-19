@@ -5,6 +5,7 @@ import {
   IChatContext,
   IMessage,
   IMessageContent,
+  IMimeModelBody,
   INewMessage,
   IUser
 } from '@jupyter/chat';
@@ -32,6 +33,8 @@ import { Debouncer } from '@lumino/polling';
 import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
+
+import type { UserContent, ImagePart, FilePart } from 'ai';
 
 import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
 
@@ -303,16 +306,24 @@ export class AIChatModel extends AbstractChatModel {
 
     try {
       // Process attachments and add their content to the message
-      let enhancedMessage = message.body;
+      let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const attachmentContents = await this._processAttachments(
-          this.input.attachments
+        const { textContents, binaryParts } = await Private.processAttachments(
+          this.input.attachments,
+          this.input.documentManager
         );
         this.input.clearAttachments();
 
-        if (attachmentContents.length > 0) {
-          enhancedMessage +=
-            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
+        let textPart = message.body;
+        if (textContents.length > 0) {
+          textPart +=
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+
+        if (binaryParts.length > 0) {
+          enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
+        } else {
+          enhancedMessage = textPart;
         }
       }
 
@@ -376,7 +387,7 @@ export class AIChatModel extends AbstractChatModel {
       return false;
     }
     const contentModel = await this._contentsManager
-      .get(filepath, { content: true })
+      .get(filepath, { content: true, type: 'file', format: 'text' })
       .catch(() => {
         if (!silent) {
           console.log(`There is no backup for chat '${this.name}'`);
@@ -386,9 +397,12 @@ export class AIChatModel extends AbstractChatModel {
     if (!contentModel) {
       return false;
     }
-    const content = JSON.parse(
-      contentModel.content
-    ) as AIChatModel.ExportedChat;
+    let content: AIChatModel.ExportedChat;
+    try {
+      content = JSON.parse(contentModel.content);
+    } catch (e) {
+      throw `Error when parsing the chat ${filepath}\n${e}`;
+    }
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {
@@ -859,61 +873,284 @@ export class AIChatModel extends AbstractChatModel {
     });
   }
 
+  // Private fields
+  private _settingsModel: IAISettingsModel;
+  private _user: IUser;
+  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
+  private _agentManager: IAgentManager;
+  private _currentStreamingMessage: IMessage | null = null;
+  private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _contentsManager?: Contents.IManager;
+  private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
+  private _autosaveDebouncer: Debouncer;
+}
+
+namespace Private {
+  type IDisplayOutput =
+    | nbformat.IDisplayData
+    | nbformat.IDisplayUpdate
+    | nbformat.IExecuteResult;
+
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+    if (!isPlainObject(value)) {
+      return false;
+    }
+
+    const output = value as nbformat.IOutput;
+    return (
+      nbformat.isDisplayData(output) ||
+      nbformat.isDisplayUpdate(output) ||
+      nbformat.isExecuteResult(output)
+    );
+  };
+
+  const toMimeBundle = (
+    value: IDisplayOutput,
+    trustedMimeTypes: ReadonlySet<string>
+  ): IMimeModelBody | null => {
+    const data = value.data;
+    if (!isPlainObject(data) || Object.keys(data).length === 0) {
+      return null;
+    }
+
+    return {
+      data: data as IRenderMime.IMimeModel['data'],
+      ...(isPlainObject(value.metadata)
+        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
+        : {}),
+      // MIME auto-rendering only runs for explicitly configured command IDs.
+      // Trust handling is configurable to keep risky MIME execution opt-in.
+      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+        ? { trusted: true }
+        : {})
+    };
+  };
+
   /**
-   * Processes file attachments and returns their content as formatted strings.
-   * @param attachments Array of file attachments to process
-   * @returns Array of formatted attachment contents
+   * Normalize arbitrary tool payloads into canonical display outputs.
+   *
+   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
+   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
    */
-  private async _processAttachments(
-    attachments: IAttachment[]
-  ): Promise<string[]> {
-    const contents: string[] = [];
+  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+    if (isDisplayOutput(value)) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(isDisplayOutput);
+    }
+
+    if (!isPlainObject(value)) {
+      return [];
+    }
+
+    if (Array.isArray(value.outputs)) {
+      return value.outputs.filter(isDisplayOutput);
+    }
+
+    if ('result' in value) {
+      return toDisplayOutputs(value.result);
+    }
+
+    return [];
+  };
+
+  /**
+   * Extract rendermime-ready mime bundles from arbitrary tool results.
+   */
+  export function extractMimeBundlesFromUnknown(
+    content: unknown,
+    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
+  ): IMimeModelBody[] {
+    const bundles: IMimeModelBody[] = [];
+    const outputs = toDisplayOutputs(content);
+    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
+    for (const output of outputs) {
+      const bundle = toMimeBundle(output, trustedMimeTypes);
+      if (bundle) {
+        bundles.push(bundle);
+      }
+    }
+    return bundles;
+  }
+
+  export function formatToolOutput(outputData: unknown): string {
+    if (typeof outputData === 'string') {
+      return outputData;
+    }
+
+    try {
+      return JSON.stringify(outputData, null, 2);
+    } catch {
+      return '[Complex object - cannot serialize]';
+    }
+  }
+
+  /**
+   * Processes file attachments and returns text contents and binary parts separately.
+   * @param attachments Array of file attachments to process
+   * @param documentManager Optional document manager for file operations
+   * @returns Text contents and binary parts
+   */
+  export async function processAttachments(
+    attachments: IAttachment[],
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<{
+    textContents: string[];
+    binaryParts: Array<ImagePart | FilePart>;
+  }> {
+    const textContents: string[] = [];
+    const binaryParts: Array<ImagePart | FilePart> = [];
+
+    if (!documentManager) {
+      return { textContents, binaryParts };
+    }
 
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
-          const cellContents = await this._readNotebookCells(attachment);
+          const cellContents = await readNotebookCells(
+            attachment,
+            documentManager
+          );
           if (cellContents) {
-            contents.push(cellContents);
+            textContents.push(cellContents);
           }
         } else {
-          const fileContent = await this._readFileAttachment(attachment);
-          if (fileContent) {
-            const fileExtension = PathExt.extname(
-              attachment.value
-            ).toLowerCase();
-            const language = fileExtension === '.ipynb' ? 'json' : '';
-            contents.push(
-              `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+          let mimetype = attachment.mimetype;
+          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+
+          // Fetch mimetype from server metadata if not provided
+          if (!mimetype) {
+            try {
+              const diskModel = await documentManager.services.contents.get(
+                attachment.value,
+                { content: false }
+              );
+              mimetype = diskModel?.mimetype;
+            } catch (e) {
+              console.warn(
+                `Failed to fetch metadata for ${attachment.value}:`,
+                e
+              );
+            }
+          }
+
+          if (mimetype?.startsWith('image/')) {
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
             );
+            if (data) {
+              binaryParts.push({
+                type: 'image',
+                image: data,
+                mediaType: mimetype
+              });
+            }
+          } else if (mimetype === 'application/pdf') {
+            const data = await readBinaryAttachment(
+              attachment,
+              documentManager
+            );
+            if (data) {
+              binaryParts.push({
+                type: 'file',
+                data,
+                mediaType: mimetype,
+                filename: PathExt.basename(attachment.value)
+              });
+            }
+          } else {
+            const fileContent = await readFileAttachment(
+              attachment,
+              documentManager
+            );
+            if (fileContent) {
+              const language =
+                fileExtension === '.ipynb' ||
+                mimetype === 'application/x-ipynb+json'
+                  ? 'json'
+                  : '';
+              textContents.push(
+                `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+              );
+            }
           }
         }
       } catch (error) {
         console.warn(`Failed to read attachment ${attachment.value}:`, error);
-        contents.push(`**File: ${attachment.value}** (Could not read file)`);
+        textContents.push(
+          `**File: ${attachment.value}** (Could not read file)`
+        );
       }
     }
 
-    return contents;
+    return { textContents, binaryParts };
+  }
+
+  /**
+   * Reads a binary attachment and returns its base64-encoded content.
+   * @param attachment The attachment to read
+   * @param documentManager Optional document manager for file operations
+   * @returns Base64 string or null if unable to read
+   */
+  export async function readBinaryAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<string | null> {
+    if (!documentManager) {
+      return null;
+    }
+
+    try {
+      const diskModel = await documentManager.services.contents.get(
+        attachment.value,
+        { content: true }
+      );
+      if (diskModel?.content && diskModel.format === 'base64') {
+        // Strip whitespace/newlines
+        return (diskModel.content as string).replace(/\s/g, '');
+      }
+      return null;
+    } catch (error) {
+      console.warn(
+        `Failed to read binary attachment ${attachment.value}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
    * Reads the content of a notebook cell.
    * @param attachment The notebook attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns Cell content as string or null if unable to read
    */
-  private async _readNotebookCells(
-    attachment: IAttachment
+  export async function readNotebookCells(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
-    if (attachment.type !== 'notebook' || !attachment.cells) {
+    if (
+      attachment.type !== 'notebook' ||
+      !attachment.cells ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from live notebook if open
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
       let cellData: nbformat.ICell[];
       let kernelLang = 'text';
 
@@ -932,7 +1169,7 @@ export class AIChatModel extends AbstractChatModel {
         kernelLang = String(lang);
       } else {
         // Fallback: reading from disk
-        const model = await this.input.documentManager?.services.contents.get(
+        const model = await documentManager.services.contents.get(
           attachment.value
         );
         if (!model || model.type !== 'notebook') {
@@ -1076,21 +1313,26 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads the content of a file attachment.
    * @param attachment The file attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns File content as string or null if unable to read
    */
-  private async _readFileAttachment(
-    attachment: IAttachment
+  export async function readFileAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
     // Handle both 'file' and 'notebook' types since both have a 'value' path
-    if (attachment.type !== 'file' && attachment.type !== 'notebook') {
+    if (
+      (attachment.type !== 'file' && attachment.type !== 'notebook') ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from an open widget first
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
 
       if (widget && widget.context && widget.context.model) {
         const model = widget.context.model;
@@ -1105,7 +1347,7 @@ export class AIChatModel extends AbstractChatModel {
       }
 
       // If not open, load from disk
-      const diskModel = await this.input.documentManager?.services.contents.get(
+      const diskModel = await documentManager.services.contents.get(
         attachment.value
       );
 
@@ -1134,127 +1376,6 @@ export class AIChatModel extends AbstractChatModel {
     } catch (error) {
       console.warn(`Failed to read file ${attachment.value}:`, error);
       return null;
-    }
-  }
-
-  // Private fields
-  private _settingsModel: IAISettingsModel;
-  private _user: IUser;
-  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
-  private _agentManager: IAgentManager;
-  private _currentStreamingMessage: IMessage | null = null;
-  private _nameChanged = new Signal<AIChatModel, string>(this);
-  private _contentsManager?: Contents.IManager;
-  private _autosave: boolean = false;
-  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
-  private _autosaveDebouncer: Debouncer;
-}
-
-namespace Private {
-  type IMimeBody = Partial<IRenderMime.IMimeModel> &
-    Pick<IRenderMime.IMimeModel, 'data'>;
-  type IDisplayOutput =
-    | nbformat.IDisplayData
-    | nbformat.IDisplayUpdate
-    | nbformat.IExecuteResult;
-
-  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
-
-  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
-    if (!isPlainObject(value)) {
-      return false;
-    }
-
-    const output = value as nbformat.IOutput;
-    return (
-      nbformat.isDisplayData(output) ||
-      nbformat.isDisplayUpdate(output) ||
-      nbformat.isExecuteResult(output)
-    );
-  };
-
-  const toMimeBundle = (
-    value: IDisplayOutput,
-    trustedMimeTypes: ReadonlySet<string>
-  ): IMimeBody | null => {
-    const data = value.data;
-    if (!isPlainObject(data) || Object.keys(data).length === 0) {
-      return null;
-    }
-
-    return {
-      data: data as IRenderMime.IMimeModel['data'],
-      ...(isPlainObject(value.metadata)
-        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
-        : {}),
-      // MIME auto-rendering only runs for explicitly configured command IDs.
-      // Trust handling is configurable to keep risky MIME execution opt-in.
-      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-        ? { trusted: true }
-        : {})
-    };
-  };
-
-  /**
-   * Normalize arbitrary tool payloads into canonical display outputs.
-   *
-   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
-   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
-   */
-  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
-    if (isDisplayOutput(value)) {
-      return [value];
-    }
-
-    if (Array.isArray(value)) {
-      return value.filter(isDisplayOutput);
-    }
-
-    if (!isPlainObject(value)) {
-      return [];
-    }
-
-    if (Array.isArray(value.outputs)) {
-      return value.outputs.filter(isDisplayOutput);
-    }
-
-    if ('result' in value) {
-      return toDisplayOutputs(value.result);
-    }
-
-    return [];
-  };
-
-  /**
-   * Extract rendermime-ready mime bundles from arbitrary tool results.
-   */
-  export function extractMimeBundlesFromUnknown(
-    content: unknown,
-    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeBody[] {
-    const bundles: IMimeBody[] = [];
-    const outputs = toDisplayOutputs(content);
-    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
-    for (const output of outputs) {
-      const bundle = toMimeBundle(output, trustedMimeTypes);
-      if (bundle) {
-        bundles.push(bundle);
-      }
-    }
-    return bundles;
-  }
-
-  export function formatToolOutput(outputData: unknown): string {
-    if (typeof outputData === 'string') {
-      return outputData;
-    }
-
-    try {
-      return JSON.stringify(outputData, null, 2);
-    } catch {
-      return '[Complex object - cannot serialize]';
     }
   }
 }
