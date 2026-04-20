@@ -1429,7 +1429,7 @@ export namespace AIChatModel {
     /**
      * The clear messages callback.
      */
-    clearMessages: () => void;
+    clearMessages: () => Promise<void>;
     /**
      * Adds an assistant/system message to the chat.
      */
