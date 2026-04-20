@@ -358,6 +358,27 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
 };
 
 /**
+ * The active cell manager plugin, to allow copying code from chat to notebook.
+ */
+const activeCellManager: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:activeCellManager',
+  description: 'Add the active cell manager to the model handler',
+  autoStart: true,
+  requires: [IChatModelHandler, INotebookTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    modelHandler: IChatModelHandler,
+    notebookTracker: INotebookTracker
+  ) => {
+    const activeCellManager = new ActiveCellManager({
+      tracker: notebookTracker,
+      shell: app.shell
+    });
+    modelHandler.activeCellManager = activeCellManager;
+  }
+};
+
+/**
  * Initialization data for the extension.
  */
 const plugin: JupyterFrontEndPlugin<IChatTracker> = {
@@ -376,7 +397,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     IThemeManager,
     ILayoutRestorer,
     ILabShell,
-    INotebookTracker,
     ITranslator,
     IComponentsRendererFactory,
     ICommandPalette,
@@ -392,7 +412,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
-    notebookTracker?: INotebookTracker,
     translator?: ITranslator,
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
@@ -415,17 +434,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         void app.commands.execute(CommandIds.openSettings);
       }
     };
-
-    // Create ActiveCellManager if notebook tracker is available, and add it to the
-    // model registry.
-    let activeCellManager: ActiveCellManager | undefined;
-    if (notebookTracker) {
-      activeCellManager = new ActiveCellManager({
-        tracker: notebookTracker,
-        shell: app.shell
-      });
-    }
-    modelHandler.activeCellManager = activeCellManager;
 
     // Creating the tracker for the chat widgets
     const namespace = 'ai-chat';
@@ -1512,6 +1520,7 @@ export default [
   skillRegistryPlugin,
   skillsCommandPlugin,
   chatModelHandler,
+  activeCellManager,
   plugin,
   toolRegistry,
   agentManagerFactory,
