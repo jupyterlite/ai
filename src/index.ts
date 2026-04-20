@@ -370,13 +370,10 @@ const activeCellManager: JupyterFrontEndPlugin<void> = {
     modelHandler: IChatModelHandler,
     notebookTracker: INotebookTracker
   ) => {
-    let activeCellManager: ActiveCellManager | undefined;
-    if (notebookTracker) {
-      activeCellManager = new ActiveCellManager({
-        tracker: notebookTracker,
-        shell: app.shell
-      });
-    }
+    const activeCellManager = new ActiveCellManager({
+      tracker: notebookTracker,
+      shell: app.shell
+    });
     modelHandler.activeCellManager = activeCellManager;
   }
 };
