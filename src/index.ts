@@ -867,7 +867,7 @@ function registerCommands(
           return false;
         }
 
-        const shouldFocus = args.focus !== false;
+        const shouldFocus = args.focus === true;
         let widget: ChatWidget | MainAreaChat | undefined;
         if (area === 'main') {
           widget = openInMain(model);
@@ -877,7 +877,7 @@ function registerCommands(
         if (shouldFocus) {
           focusOnChat(area, widget);
         }
-        applyInputArgs(model, args);
+        applyInputArgs(model, { ...args, focus: shouldFocus });
 
         return true;
       },
@@ -938,8 +938,7 @@ function registerCommands(
         if (!existingWidget && name) {
           const loadedModel = chatPanel.getLoadedModel(name);
           if (loadedModel) {
-            chatPanel.open({ model: loadedModel });
-            existingWidget = findChatWidget(name, provider);
+            existingWidget = chatPanel.open({ model: loadedModel });
           }
         }
 
@@ -1103,6 +1102,8 @@ function registerCommands(
           openInMain(model);
 
           if (previousWidget instanceof ChatWidget) {
+            // Clean up the side-panel model entry before disposing the previous
+            // widget/model state.
             if (!disposeSideChatModel(previousModel)) {
               previousWidget.dispose();
               previousModel.dispose();
