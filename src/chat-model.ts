@@ -533,9 +533,7 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Rebuilds the agent history when the active model changes.
-   * For vision-capable models, re-reads binary attachments from disk.
-   * For text-only models, uses message text only.
+   * Rebuild history when the active model changes.
    */
   private _onModelChanged(): void {
     const providerConfig = this._settingsModel.getProvider(
