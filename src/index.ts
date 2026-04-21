@@ -107,7 +107,6 @@ import {
 } from './providers/built-in-providers';
 
 import { AICompletionProvider } from './completion';
-import { modelSupportsImages } from './providers/model-info';
 
 import {
   clearItem,
@@ -381,8 +380,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     ITranslator,
     IComponentsRendererFactory,
     ICommandPalette,
-    IDocumentManager,
-    IProviderRegistry
+    IDocumentManager
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -398,8 +396,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     translator?: ITranslator,
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
-    documentManager?: IDocumentManager,
-    providerRegistry?: IProviderRegistry
+    documentManager?: IDocumentManager
   ): IChatTracker => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -560,22 +557,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         );
       }
 
-      // Show/hide attach button based on whether the active model supports images.
-      function updateAttachButton() {
-        const providerConfig = settingsModel.getProvider(
-          model.agentManager.activeProvider
-        );
-        if (modelSupportsImages(providerConfig, providerRegistry)) {
-          widget.inputToolbarRegistry?.show('attach');
-        } else {
-          widget.inputToolbarRegistry?.hide('attach');
-        }
-      }
-
-      updateAttachButton();
-      model.agentManager.activeProviderChanged.connect(updateAttachButton);
-      settingsModel.stateChanged.connect(updateAttachButton);
-
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
         // Check if AI is currently writing (streaming)
@@ -603,8 +584,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       widget.disposed.connect(() => {
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
-        model.agentManager.activeProviderChanged.disconnect(updateAttachButton);
-        settingsModel.stateChanged.disconnect(updateAttachButton);
         model.writersChanged?.disconnect(writersChanged);
 
         // Dispose of the approval buttons widget when the chat is disposed.
@@ -658,8 +637,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       themeManager,
       labShell,
       palette,
-      documentManager,
-      providerRegistry
+      documentManager
     );
 
     /**
@@ -701,8 +679,7 @@ function registerCommands(
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
-  documentManager?: IDocumentManager,
-  providerRegistry?: IProviderRegistry
+  documentManager?: IDocumentManager
 ) {
   const { commands } = app;
 
@@ -782,30 +759,14 @@ function registerCommands(
         tracker.save(widget);
       }
 
-      function updateAttachButton() {
-        const providerConfig = settingsModel.getProvider(
-          model.agentManager.activeProvider
-        );
-        if (modelSupportsImages(providerConfig, providerRegistry)) {
-          inputToolbarRegistry.show('attach');
-        } else {
-          inputToolbarRegistry.hide('attach');
-        }
-      }
-
       // Update the tracker if the model name changed.
       model.nameChanged.connect(saveTracker);
       // Update the tracker if the active provider changed.
       model.agentManager.activeProviderChanged.connect(saveTracker);
-      model.agentManager.activeProviderChanged.connect(updateAttachButton);
-      settingsModel.stateChanged.connect(updateAttachButton);
-      updateAttachButton();
 
       widget.disposed.connect(() => {
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
-        model.agentManager.activeProviderChanged.disconnect(updateAttachButton);
-        settingsModel.stateChanged.disconnect(updateAttachButton);
       });
     };
 

@@ -34,9 +34,15 @@ import { ISignal, Signal } from '@lumino/signaling';
 
 import { AI_AVATAR } from './icons';
 
-import type { UserContent, ImagePart, FilePart } from 'ai';
+import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
 
-import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
+import { modelSupportsImages } from './providers/model-info';
+import type {
+  IAgentManager,
+  IAISettingsModel,
+  IProviderRegistry,
+  ITokenUsage
+} from './tokens';
 
 /**
  * Tool call status types.
@@ -109,12 +115,17 @@ export class AIChatModel extends AbstractChatModel {
     this._user = options.user;
     this._agentManager = options.agentManager;
     this._contentsManager = options.contentsManager;
+    this._providerRegistry = options.providerRegistry;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    // Rebuild history when the model changes
+    this._agentManager.activeProviderChanged.connect(this._onModelChanged, this);
+    this._settingsModel.stateChanged.connect(this._onModelChanged, this);
 
     this._autosaveDebouncer = new Debouncer(this.save, 3000);
   }
@@ -320,9 +331,19 @@ export class AIChatModel extends AbstractChatModel {
             '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
         }
 
-        if (binaryParts.length > 0) {
+        const providerConfig = this._settingsModel.getProvider(
+          this._agentManager.activeProvider
+        );
+        if (
+          binaryParts.length > 0 &&
+          modelSupportsImages(providerConfig, this._providerRegistry)
+        ) {
           enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
         } else {
+          if (binaryParts.length > 0) {
+            textPart +=
+              '\n[Binary attachments omitted: this model does not support image inputs.]';
+          }
           enhancedMessage = textPart;
         }
       }
@@ -509,6 +530,70 @@ export class AIChatModel extends AbstractChatModel {
     const config = this._settingsModel.config;
     this.config = { ...config, enableCodeToolbar: true };
     // Agent manager handles agent recreation automatically via its own settings listener
+  }
+
+  /**
+   * Rebuilds the agent history when the active model changes.
+   * For vision-capable models, re-reads binary attachments from disk.
+   * For text-only models, uses message text only.
+   */
+  private _onModelChanged(): void {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agentManager.activeProvider
+    );
+    const modelKey = providerConfig
+      ? `${providerConfig.provider}:${providerConfig.model}`
+      : undefined;
+    if (modelKey && modelKey !== this._currentModelKey) {
+      this._currentModelKey = modelKey;
+      this._rebuildHistory().catch(e =>
+        console.warn('Failed to rebuild history on model change:', e)
+      );
+    }
+  }
+
+  /**
+   * Rebuilds the agent history from the current messages.
+   * For vision-capable models, re-reads binary attachments from disk.
+   * For text-only models, uses message text only.
+   */
+  private async _rebuildHistory(): Promise<void> {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agentManager.activeProvider
+    );
+    const supportsImages = modelSupportsImages(
+      providerConfig,
+      this._providerRegistry
+    );
+
+    const modelMessages: ModelMessage[] = [];
+    for (const msg of this.messages) {
+      const isAI = msg.sender.username === 'ai-assistant';
+      if (!isAI && msg.attachments?.length && supportsImages) {
+        const { textContents, binaryParts } = await Private.processAttachments(
+          msg.attachments,
+          this.input.documentManager
+        );
+        let textPart = msg.body;
+        if (textContents.length > 0) {
+          textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+        modelMessages.push({
+          role: 'user',
+          content:
+            binaryParts.length > 0
+              ? [{ type: 'text', text: textPart }, ...binaryParts]
+              : textPart
+        } as ModelMessage);
+      } else {
+        modelMessages.push({
+          role: isAI ? 'assistant' : 'user',
+          content: msg.body
+        } as ModelMessage);
+      }
+    }
+
+    this._agentManager.setPreprocessedHistory(modelMessages);
   }
 
   /**
@@ -878,6 +963,8 @@ export class AIChatModel extends AbstractChatModel {
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: IAgentManager;
+  private _providerRegistry?: IProviderRegistry;
+  private _currentModelKey: string | undefined;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<AIChatModel, string>(this);
   private _contentsManager?: Contents.IManager;
@@ -1412,6 +1499,10 @@ export namespace AIChatModel {
      * The contents manager.
      */
     contentsManager?: Contents.IManager;
+    /**
+     * Optional provider registry for model capability lookups.
+     */
+    providerRegistry?: IProviderRegistry;
     /**
      * Whether to restore or not the message (default to true)
      */

@@ -4,7 +4,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
-import type { Tool, LanguageModel, UserContent } from 'ai';
+import type { Tool, LanguageModel, UserContent, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
@@ -594,6 +594,11 @@ export interface IAgentManager {
    * @param messages The chat messages to set as history
    */
   setHistory(messages: IMessageContent[]): void;
+  /**
+   * Sets the history from already-processed model messages.
+   * @param messages Pre-built model messages (may include binary content)
+   */
+  setPreprocessedHistory(messages: ModelMessage[]): void;
   /**
    * Stops the current streaming response by aborting the request.
    */

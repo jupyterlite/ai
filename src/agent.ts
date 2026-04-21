@@ -20,10 +20,7 @@ import {
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
-import {
-  getEffectiveContextWindow,
-  modelSupportsImages
-} from './providers/model-info';
+import { getEffectiveContextWindow } from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
@@ -520,6 +517,26 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
+   * Sets the history from already-processed model messages.
+   * Allows including binary content for vision-capable models.
+   * @param messages Pre-built model messages
+   */
+  setPreprocessedHistory(messages: ModelMessage[]): void {
+    this.stopStreaming();
+
+    for (const [approvalId, pending] of this._pendingApprovals) {
+      pending.resolve(false, 'Chat history changed');
+      this._agentEvent.emit({
+        type: 'tool_approval_resolved',
+        data: { approvalId, approved: false }
+      });
+    }
+    this._pendingApprovals.clear();
+
+    this._history = Private.sanitizeModelMessages(messages);
+  }
+
+  /**
    * Stops the current streaming response by aborting the request.
    * Resolve any pending approval.
    */
@@ -807,20 +824,6 @@ export class AgentManager implements IAgentManager {
       activeProviderConfig,
       this._providerRegistry
     );
-
-    // Strip attachments from history if the new model doesn't support them.
-    const currentModelKey = activeProviderConfig
-      ? `${activeProviderConfig.provider}:${activeProviderConfig.model}`
-      : undefined;
-    if (currentModelKey && currentModelKey !== this._lastModelKey) {
-      this._lastModelKey = currentModelKey;
-      if (!modelSupportsImages(activeProviderConfig, this._providerRegistry)) {
-        this._stripAttachments(
-          this._history,
-          '_Attachment removed due to model switch_'
-        );
-      }
-    }
 
     this._tokenUsage.contextWindow = contextWindow;
     this._tokenUsageChanged.emit(this._tokenUsage);
@@ -1310,7 +1313,6 @@ WEB RETRIEVAL POLICY:
   private _tokenUsageChanged: Signal<this, ITokenUsage>;
   private _activeProvider: string = '';
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
-  private _lastModelKey: string | undefined;
   private _skills: ISkillSummary[];
   private _renderMimeRegistry?: IRenderMimeRegistry;
   private _initQueue: Promise<void> = Promise.resolve();
