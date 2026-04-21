@@ -16,7 +16,7 @@ export interface IClearButtonProps
   /**
    * The function to clear messages.
    */
-  clearMessages: () => void;
+  clearMessages: () => Promise<void>;
   /**
    * The application language translator.
    */
@@ -53,8 +53,8 @@ export function clearItem(
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
       const { model } = props;
-      const clearMessages = () =>
-        (model.chatContext as AIChatModel.IAIChatContext).clearMessages();
+      const clearMessages = async () =>
+        await (model.chatContext as AIChatModel.IAIChatContext).clearMessages();
       const clearProps: IClearButtonProps = {
         ...props,
         clearMessages,

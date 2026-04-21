@@ -32,17 +32,18 @@ import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
-import { AI_AVATAR } from './icons';
-
 import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
 
-import { modelSupportsImages } from './providers/model-info';
+import { AI_AVATAR } from './icons';
+
 import type {
   IAgentManager,
   IAISettingsModel,
   IProviderRegistry,
   ITokenUsage
 } from './tokens';
+
+import { modelSupportsImages } from './providers/model-info';
 
 /**
  * Tool call status types.
@@ -257,10 +258,10 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Clears all messages from the chat and resets conversation state.
    */
-  clearMessages = (): void => {
+  clearMessages = async (): Promise<void> => {
     this.messagesDeleted(0, this.messages.length);
     this._toolContexts.clear();
-    this._agentManager.clearHistory();
+    await this._agentManager.clearHistory();
   };
 
   /**
@@ -450,7 +451,7 @@ export class AIChatModel extends AbstractChatModel {
         attachments
       };
     });
-    this.clearMessages();
+    await this.clearMessages();
     this.messagesInserted(0, messages);
     this._agentManager.setHistory(messages);
     this.autosave = content.metadata?.autosave ?? false;
@@ -1518,7 +1519,7 @@ export namespace AIChatModel {
     /**
      * The clear messages callback.
      */
-    clearMessages: () => void;
+    clearMessages: () => Promise<void>;
     /**
      * Adds an assistant/system message to the chat.
      */

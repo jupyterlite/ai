@@ -29,7 +29,7 @@ export class ClearCommandProvider implements IChatCommandProvider {
     const context = inputModel.chatContext as
       | AIChatModel.IAIChatContext
       | undefined;
-    context?.clearMessages?.();
+    await context?.clearMessages?.();
 
     inputModel.value = '';
     inputModel.clearAttachments();
