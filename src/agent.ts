@@ -506,12 +506,13 @@ export class AgentManager implements IAgentManager {
     this._pendingApprovals.clear();
 
     // Convert chat messages to model messages
-    const modelMessages = messages.map(msg => {
-      const isAIMessage = msg.sender.username === 'ai-assistant';
+    const modelMessages: ModelMessage[] = messages.map(msg => {
+      const role =
+        msg.sender.username === 'ai-assistant' ? 'assistant' : 'user';
       return {
-        role: isAIMessage ? 'assistant' : 'user',
+        role,
         content: msg.body
-      } as ModelMessage;
+      };
     });
     this._history = Private.sanitizeModelMessages(modelMessages);
   }
