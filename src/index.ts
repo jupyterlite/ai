@@ -925,6 +925,7 @@ function registerCommands(
         const area = (args.area as string) === 'main' ? 'main' : 'side';
         const provider = (args.provider as string) ?? undefined;
         const name = (args.name as string) ?? undefined;
+        const shouldFocus = args.focus === true;
 
         let existingWidget = findChatWidget(name, provider);
         if (!existingWidget && !name) {
@@ -943,10 +944,10 @@ function registerCommands(
         }
 
         if (!existingWidget) {
-          return commands.execute(
-            CommandIds.openChat,
-            args
-          ) as Promise<boolean>;
+          return commands.execute(CommandIds.openChat, {
+            ...args,
+            focus: shouldFocus
+          }) as Promise<boolean>;
         }
 
         const currentArea =
@@ -969,10 +970,13 @@ function registerCommands(
           if (area === 'side') {
             chatPanel.open({ model: movedWidget.model });
           }
-          if (args.focus !== false) {
+          if (shouldFocus) {
             focusOnChat(area, movedWidget);
           }
-          applyInputArgs(movedWidget.model, args);
+          applyInputArgs(movedWidget.model, {
+            ...args,
+            focus: shouldFocus
+          });
 
           return true;
         }
@@ -980,10 +984,13 @@ function registerCommands(
         if (area === 'side') {
           chatPanel.open({ model: existingWidget.model });
         }
-        if (args.focus !== false) {
+        if (shouldFocus) {
           focusOnChat(area, existingWidget);
         }
-        applyInputArgs(existingWidget.model, args);
+        applyInputArgs(existingWidget.model, {
+          ...args,
+          focus: shouldFocus
+        });
 
         return true;
       },
