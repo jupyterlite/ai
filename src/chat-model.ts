@@ -970,26 +970,22 @@ export class AIChatModel extends AbstractChatModel {
    * Creates or updates the message-queue chat component.
    */
   private _updateQueueUI(): void {
-    // Delete existing queue message if it exists to
-    // ensure the new one goes to the bottom.
-    if (this._queueMessageId) {
-      const existingMsg = this.messages.find(
-        msg => msg.id === this._queueMessageId
-      );
-      if (existingMsg) {
-        const idx = this.messages.indexOf(existingMsg);
-        if (idx !== -1) {
-          this.messagesDeleted(idx, 1);
-        }
-      }
-      this._queueMessageId = null;
-    }
-
     if (this._messageQueue.length === 0) {
+      if (this._queueMessageId) {
+        const existingMsg = this.messages.find(
+          msg => msg.id === this._queueMessageId
+        );
+        if (existingMsg) {
+          const idx = this.messages.indexOf(existingMsg);
+          if (idx !== -1) {
+            this.messagesDeleted(idx, 1);
+          }
+        }
+        this._queueMessageId = null;
+      }
       return;
     }
 
-    this._queueMessageId = UUID.uuid4();
     const queueBody = {
       data: {
         'application/vnd.jupyter.chat.components': 'message-queue'
@@ -1000,10 +996,21 @@ export class AIChatModel extends AbstractChatModel {
       }
     };
 
+    if (this._queueMessageId) {
+      const existingMsg = this.messages.find(
+        msg => msg.id === this._queueMessageId
+      );
+      if (existingMsg) {
+        existingMsg.update({ mime_model: queueBody });
+        return;
+      }
+    }
+
+    this._queueMessageId = UUID.uuid4();
     const queueMessage: IMessageContent = {
       body: '',
       mime_model: queueBody,
-      sender: { username: 'system', display_name: 'System' },
+      sender: { username: 'system', display_name: 'Message Queue' },
       id: this._queueMessageId,
       time: Date.now() / 1000,
       type: 'msg',
