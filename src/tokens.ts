@@ -584,7 +584,7 @@ export interface IAgentManager {
   /**
    * Clears conversation history and resets agent state.
    */
-  clearHistory(): void;
+  clearHistory(): Promise<void>;
   /**
    * Sets the conversation history with a list of messages from the chat.
    * @param messages The chat messages to set as history
