@@ -290,8 +290,20 @@ export class AIChatModel extends AbstractChatModel {
       return;
     }
 
+    // Create user message content
+    const userMessage: IMessageContent = {
+      body: message.body,
+      sender: this.user || { username: 'user', display_name: 'User' },
+      id: UUID.uuid4(),
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false,
+      attachments: [...this.input.attachments]
+    };
+
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
+      this.messageAdded(userMessage);
       const errorMessage: IMessageContent = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
         sender: this._getAIUser(),
@@ -303,17 +315,6 @@ export class AIChatModel extends AbstractChatModel {
       this.messageAdded(errorMessage);
       return;
     }
-
-    // Create user message content
-    const userMessage: IMessageContent = {
-      body: message.body,
-      sender: this.user || { username: 'user', display_name: 'User' },
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false,
-      attachments: [...this.input.attachments]
-    };
 
     if (this._isBusy) {
       this._messageQueue.push({
@@ -1002,7 +1003,7 @@ export class AIChatModel extends AbstractChatModel {
     const queueMessage: IMessageContent = {
       body: '',
       mime_model: queueBody,
-      sender: this._getAIUser(),
+      sender: { username: 'system', display_name: 'System' },
       id: this._queueMessageId,
       time: Date.now() / 1000,
       type: 'msg',
