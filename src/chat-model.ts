@@ -125,7 +125,10 @@ export class AIChatModel extends AbstractChatModel {
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
 
     // Rebuild history when the model changes
-    this._agentManager.activeProviderChanged.connect(this._onModelChanged, this);
+    this._agentManager.activeProviderChanged.connect(
+      this._onModelChanged,
+      this
+    );
     this._settingsModel.stateChanged.connect(this._onModelChanged, this);
 
     this._autosaveDebouncer = new Debouncer(this.save, 3000);
@@ -575,7 +578,8 @@ export class AIChatModel extends AbstractChatModel {
         );
         let textPart = msg.body;
         if (textContents.length > 0) {
-          textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+          textPart +=
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
         }
         modelMessages.push({
           role: 'user',
