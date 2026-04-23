@@ -756,7 +756,7 @@ function registerCommands(
       }
     });
 
-    const openInMain = (model: AIChatModel) => {
+    const openInMain = (model: AIChatModel): MainAreaChat => {
       const content = new ChatWidget({
         model,
         rmRegistry,
@@ -789,6 +789,64 @@ function registerCommands(
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
       });
+
+      return widget;
+    };
+
+    const focusOnChat = (
+      area: 'main' | 'side',
+      widget?: ChatWidget | MainAreaChat
+    ) => {
+      if (area === 'main' && widget) {
+        app.shell.activateById(widget.id);
+      } else {
+        app.shell.activateById(chatPanel.id);
+      }
+    };
+
+    const applyInputArgs = (model: IChatModel, args: any) => {
+      const input = typeof args.input === 'string' ? args.input : undefined;
+      const autoSend = args.autoSend === true;
+      const shouldFocus = args.focus !== false;
+
+      if (input !== undefined) {
+        model.input.value = input;
+      }
+      if (autoSend && input !== undefined) {
+        model.input.send(model.input.value);
+      }
+      if (shouldFocus) {
+        model.input.focus();
+      }
+    };
+
+    const findChatWidget = (
+      name?: string,
+      provider?: string
+    ): ChatWidget | MainAreaChat | undefined => {
+      if (!name && !provider) {
+        return;
+      }
+      return tracker.find(widget => {
+        const model = widget.model as AIChatModel;
+        return (
+          (!name || widget.model.name === name) &&
+          (!provider || model.agentManager.activeProvider === provider)
+        );
+      });
+    };
+
+    const disposeSideChatModel = (model: IChatModel): boolean => {
+      const loadedName = chatPanel
+        .getLoadedModelNames()
+        .find(name => chatPanel.getLoadedModel(name) === model);
+
+      if (!loadedName) {
+        return false;
+      }
+
+      chatPanel.disposeLoadedModel(loadedName);
+      return true;
     };
 
     commands.addCommand(CommandIds.openChat, {
@@ -823,11 +881,18 @@ function registerCommands(
           return false;
         }
 
+        const shouldFocus = args.focus === true;
+        let widget: ChatWidget | MainAreaChat | undefined;
         if (area === 'main') {
-          openInMain(model);
+          widget = openInMain(model);
         } else {
-          chatPanel.open({ model });
+          widget = chatPanel.open({ model });
         }
+        if (shouldFocus) {
+          focusOnChat(area, widget);
+        }
+        applyInputArgs(model, { ...args, focus: shouldFocus });
+
         return true;
       },
       describedBy: {
@@ -846,6 +911,137 @@ function registerCommands(
             provider: {
               type: 'string',
               description: trans.__('The provider/model to use with this chat')
+            },
+            input: {
+              type: 'string',
+              description: trans.__('The input text to prefill in the chat')
+            },
+            focus: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to focus the chat input after opening it'
+              )
+            },
+            autoSend: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to auto-send the provided input after opening the chat'
+              )
+            }
+          }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.openOrRevealChat, {
+      label: trans.__('Open or reveal the chat panel'),
+      execute: async (args): Promise<boolean> => {
+        const area = (args.area as string) === 'main' ? 'main' : 'side';
+        const provider = (args.provider as string) ?? undefined;
+        const name = (args.name as string) ?? undefined;
+        const shouldFocus = args.focus === true;
+
+        let existingWidget = findChatWidget(name, provider);
+        if (!existingWidget && !name) {
+          const providerConfig = provider
+            ? settingsModel.getProvider(provider)
+            : settingsModel.getDefaultProvider();
+          existingWidget = findChatWidget(undefined, providerConfig?.id);
+        }
+
+        // If the side chat model is loaded but not currently displayed, reveal it first.
+        if (!existingWidget && name) {
+          const loadedModel = chatPanel.getLoadedModel(name);
+          if (loadedModel) {
+            existingWidget = chatPanel.open({ model: loadedModel });
+          }
+        }
+
+        if (!existingWidget) {
+          return commands.execute(CommandIds.openChat, {
+            ...args,
+            focus: shouldFocus
+          }) as Promise<boolean>;
+        }
+
+        const currentArea =
+          existingWidget instanceof MainAreaChat ? 'main' : 'side';
+        if (currentArea !== area) {
+          const targetName = existingWidget.model.name;
+          const moved = (await commands.execute(CommandIds.moveChat, {
+            name: targetName,
+            area
+          })) as boolean;
+          if (!moved) {
+            return false;
+          }
+
+          const movedWidget = findChatWidget(targetName);
+          if (!movedWidget) {
+            return false;
+          }
+
+          if (area === 'side') {
+            chatPanel.open({ model: movedWidget.model });
+          }
+          if (shouldFocus) {
+            focusOnChat(area, movedWidget);
+          }
+          applyInputArgs(movedWidget.model, {
+            ...args,
+            focus: shouldFocus
+          });
+
+          return true;
+        }
+
+        if (area === 'side') {
+          chatPanel.open({ model: existingWidget.model });
+        }
+        if (shouldFocus) {
+          focusOnChat(area, existingWidget);
+        }
+        applyInputArgs(existingWidget.model, {
+          ...args,
+          focus: shouldFocus
+        });
+
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description: trans.__(
+                'The name of the area to open or reveal the chat in'
+              )
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat')
+            },
+            provider: {
+              type: 'string',
+              description: trans.__('The provider/model to use with this chat')
+            },
+            input: {
+              type: 'string',
+              description: trans.__('The input text to prefill in the chat')
+            },
+            focus: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to focus the chat input after opening it'
+              )
+            },
+            autoSend: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to auto-send the provided input after opening the chat'
+              )
             }
           }
         }
@@ -925,6 +1121,15 @@ function registerCommands(
 
         if (area === 'main') {
           openInMain(model);
+
+          if (previousWidget instanceof ChatWidget) {
+            // Clean up the side-panel model entry before disposing the previous
+            // widget/model state.
+            if (!disposeSideChatModel(previousModel)) {
+              previousWidget.dispose();
+              previousModel.dispose();
+            }
+          }
         } else {
           previousWidget?.dispose();
           previousModel.dispose();

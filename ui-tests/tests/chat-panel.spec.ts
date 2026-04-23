@@ -244,5 +244,84 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
         panel.getByTitle(/Context Usage unavailable\./)
       ).toBeVisible();
     });
+
+    test('should prefill and reveal chats through public commands', async ({
+      page
+    }) => {
+      const panel = await openChatPanel(page);
+      const chatName = 'Prefilled Chat';
+      const sideInputText = 'Draft prompt from command API';
+      const mainInputText = 'Prompt moved to main area';
+      const updatedMainInputText = 'Updated prompt in the same main chat';
+
+      // Open a chat with a prefilled input.
+      await page.evaluate(
+        ({ name, input }) => {
+          return window.jupyterapp.commands.execute(
+            '@jupyterlite/ai:open-chat',
+            {
+              name,
+              input
+            }
+          );
+        },
+        { name: chatName, input: sideInputText }
+      );
+
+      const sideToolbar = page.locator(
+        `[id="${CHAT_PANEL_ID}"] .jp-chat-sidepanel-widget-toolbar`
+      );
+      await expect(
+        sideToolbar.locator('.jp-chat-sidepanel-widget-title')
+      ).toContainText(chatName, { ignoreCase: true });
+      const sideInput = panel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+      await expect(sideInput).toHaveValue(sideInputText);
+
+      // Reveal the same chat in main area with a new prefilled input.
+      await page.evaluate(
+        ({ name, area, input }) => {
+          return window.jupyterapp.commands.execute(
+            '@jupyterlite/ai:open-or-reveal-chat',
+            {
+              name,
+              area,
+              input
+            }
+          );
+        },
+        { name: chatName, area: 'main', input: mainInputText }
+      );
+
+      const mainAreaTab = page.activity.getTabLocator(chatName);
+      await expect(mainAreaTab).toHaveCount(1);
+      await expect(sideToolbar).not.toBeAttached();
+      const mainAreaPanel = await page.activity.getPanelLocator(chatName);
+      if (!mainAreaPanel) {
+        throw new Error('Expected the moved chat to be visible in main area');
+      }
+      const mainInput = mainAreaPanel
+        .locator('.jp-chat-input-container')
+        .getByRole('combobox');
+      await expect(mainInput).toHaveValue(mainInputText);
+
+      // Re-run open-or-reveal in main area; it should reveal/update the same chat.
+      await page.evaluate(
+        ({ name, area, input }) => {
+          return window.jupyterapp.commands.execute(
+            '@jupyterlite/ai:open-or-reveal-chat',
+            {
+              name,
+              area,
+              input
+            }
+          );
+        },
+        { name: chatName, area: 'main', input: updatedMainInputText }
+      );
+      await expect(mainAreaTab).toHaveCount(1);
+      await expect(mainInput).toHaveValue(updatedMainInputText);
+    });
   })
 );
