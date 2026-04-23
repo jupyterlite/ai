@@ -385,9 +385,13 @@ export class AIChatModel extends AbstractChatModel {
         'application/vnd.jupyter.chat.components': 'message-queue'
       },
       metadata: {
-        messages: this._messageQueue.map(m => ({ id: m.id, body: m.body })),
+        messages: this._messageQueue.map(m => ({
+          id: m.id,
+          body: m.body,
+          attachments: m._originalMsg.attachments
+        })),
         targetId: this.name
-      }
+      } as any
     };
 
     if (this._queueMessageId) {
@@ -446,18 +450,26 @@ export class AIChatModel extends AbstractChatModel {
 
     try {
       // Process attachments now.
-      let body = next.body;
+      let enhancedMessage: UserContent = next.body;
       if (next._originalMsg?.attachments?.length) {
-        const { textContents } = await Private.processAttachments(
+        const { textContents, binaryParts } = await Private.processAttachments(
           next._originalMsg.attachments,
           this.input.documentManager
         );
+
+        let textPart = next.body;
         if (textContents.length > 0) {
-          body += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+          textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+
+        if (binaryParts.length > 0) {
+          enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
+        } else {
+          enhancedMessage = textPart;
         }
       }
 
-      await this._agentManager.generateResponse(body);
+      await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
       const errorMessage: IMessageContent = {
         body: `Error generating AI response: ${(error as Error).message}`,
