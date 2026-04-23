@@ -459,7 +459,8 @@ export class AIChatModel extends AbstractChatModel {
 
         let textPart = next.body;
         if (textContents.length > 0) {
-          textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+          textPart +=
+            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
         }
 
         if (binaryParts.length > 0) {
