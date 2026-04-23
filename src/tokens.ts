@@ -30,6 +30,7 @@ export namespace CommandIds {
   export const openSettings = '@jupyterlite/ai:open-settings';
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
+  export const openOrRevealChat = '@jupyterlite/ai:open-or-reveal-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
   export const saveChat = '@jupyterlite/ai:save-chat';
