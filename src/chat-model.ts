@@ -232,7 +232,8 @@ export class AIChatModel extends AbstractChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
-      addSystemMessage: (body: string) => this.addSystemMessage(body)
+      addSystemMessage: (body: string) => this.addSystemMessage(body),
+      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id)
     };
   }
 
@@ -288,10 +289,10 @@ export class AIChatModel extends AbstractChatModel {
       raw_time: false,
       attachments: [...this.input.attachments]
     };
-    this.messageAdded(userMessage);
 
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
+      this.messageAdded(userMessage);
       const errorMessage: IMessageContent = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
         sender: this._getAIUser(),
@@ -304,7 +305,23 @@ export class AIChatModel extends AbstractChatModel {
       return;
     }
 
+    if (this._isBusy) {
+      this._messageQueue.push({
+        id: UUID.uuid4(),
+        body: message.body,
+        _originalMsg: userMessage
+      });
+      this.input.clearAttachments();
+      this._updateQueueUI();
+      return;
+    }
+
+    this._isBusy = true;
+    this.messageAdded(userMessage);
+
     try {
+      this.updateWriters([{ user: this._getAIUser() }]);
+
       // Process attachments and add their content to the message
       let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
@@ -327,8 +344,6 @@ export class AIChatModel extends AbstractChatModel {
         }
       }
 
-      this.updateWriters([{ user: this._getAIUser() }]);
-
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
       const errorMessage: IMessageContent = {
@@ -341,8 +356,130 @@ export class AIChatModel extends AbstractChatModel {
       };
       this.messageAdded(errorMessage);
     } finally {
-      this.updateWriters([]);
+      this._drainQueue();
     }
+  }
+
+  /**
+   * Creates or updates the message-queue chat component.
+   */
+  private _updateQueueUI(): void {
+    if (this._messageQueue.length === 0) {
+      if (this._queueMessageId) {
+        const existingMsg = this.messages.find(
+          msg => msg.id === this._queueMessageId
+        );
+        if (existingMsg) {
+          const idx = this.messages.indexOf(existingMsg);
+          if (idx !== -1) {
+            this.messagesDeleted(idx, 1);
+          }
+        }
+        this._queueMessageId = null;
+      }
+      return;
+    }
+
+    const queueBody = {
+      data: {
+        'application/vnd.jupyter.chat.components': 'message-queue'
+      },
+      metadata: {
+        messages: this._messageQueue.map(m => ({ id: m.id, body: m.body })),
+        targetId: this.name
+      }
+    };
+
+    if (this._queueMessageId) {
+      const existingMsg = this.messages.find(
+        msg => msg.id === this._queueMessageId
+      );
+      if (existingMsg) {
+        const idx = this.messages.indexOf(existingMsg);
+        if (idx !== -1) {
+          this.messagesDeleted(idx, 1);
+        }
+      }
+    }
+
+    this._queueMessageId = UUID.uuid4();
+    const queueMessage: IMessageContent = {
+      body: '',
+      mime_model: queueBody,
+      sender: { username: 'system', display_name: '' },
+      id: this._queueMessageId,
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+    this.messageAdded(queueMessage);
+  }
+
+  /**
+   * Processes the next message in the queue, or marks the agent as idle.
+   */
+  private async _drainQueue(): Promise<void> {
+    if (this._messageQueue.length === 0) {
+      this._isBusy = false;
+      this.updateWriters([]);
+      // Remove the queue display message
+      if (this._queueMessageId) {
+        const queueMsg = this.messages.find(
+          msg => msg.id === this._queueMessageId
+        );
+        if (queueMsg) {
+          const idx = this.messages.indexOf(queueMsg);
+          if (idx !== -1) {
+            this.messagesDeleted(idx, 1);
+          }
+        }
+        this._queueMessageId = null;
+      }
+      return;
+    }
+
+    // Dequeue and push to chat
+    const next = this._messageQueue.shift()!;
+    next._originalMsg.time = Date.now() / 1000;
+    this.messageAdded(next._originalMsg!);
+    this._updateQueueUI();
+
+    try {
+      // Process attachments now.
+      let body = next.body;
+      if (next._originalMsg?.attachments?.length) {
+        const { textContents } = await Private.processAttachments(
+          next._originalMsg.attachments,
+          this.input.documentManager
+        );
+        if (textContents.length > 0) {
+          body += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+        }
+      }
+
+      await this._agentManager.generateResponse(body);
+    } catch (error) {
+      const errorMessage: IMessageContent = {
+        body: `Error generating AI response: ${(error as Error).message}`,
+        sender: this._getAIUser(),
+        id: UUID.uuid4(),
+        time: Date.now() / 1000,
+        type: 'msg',
+        raw_time: false
+      };
+      this.messageAdded(errorMessage);
+    } finally {
+      this._drainQueue();
+    }
+  }
+
+  /**
+   * Removes a queued message by its ID.
+   * @param messageId The ID of the queued message to remove
+   */
+  removeQueuedMessage(messageId: string): void {
+    this._messageQueue = this._messageQueue.filter(msg => msg.id !== messageId);
+    this._updateQueueUI();
   }
 
   /**
@@ -565,6 +702,7 @@ export class AIChatModel extends AbstractChatModel {
     this.messageAdded(aiMessage);
     this._currentStreamingMessage =
       this.messages.find(message => message.id === aiMessage.id) ?? null;
+    this._updateQueueUI();
   }
 
   /**
@@ -728,6 +866,7 @@ export class AIChatModel extends AbstractChatModel {
     };
 
     this.messageAdded(toolCallMessage);
+    this._updateQueueUI();
   }
 
   /**
@@ -796,6 +935,7 @@ export class AIChatModel extends AbstractChatModel {
       type: 'msg',
       raw_time: false
     });
+    this._updateQueueUI();
   }
 
   /**
@@ -884,19 +1024,30 @@ export class AIChatModel extends AbstractChatModel {
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
+  private _messageQueue: Private.IQueuedItem[] = [];
+  private _isBusy = false;
+  private _queueMessageId: string | null = null;
 }
 
 namespace Private {
-  type IDisplayOutput =
+  export interface IQueuedItem {
+    id: string;
+    body: string;
+    _originalMsg: IMessageContent;
+  }
+
+  export type IDisplayOutput =
     | nbformat.IDisplayData
     | nbformat.IDisplayUpdate
     | nbformat.IExecuteResult;
 
-  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  export const isPlainObject = (
+    value: unknown
+  ): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
-  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+  export const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
     if (!isPlainObject(value)) {
       return false;
     }
@@ -909,7 +1060,7 @@ namespace Private {
     );
   };
 
-  const toMimeBundle = (
+  export const toMimeBundle = (
     value: IDisplayOutput,
     trustedMimeTypes: ReadonlySet<string>
   ): IMimeModelBody | null => {
@@ -937,7 +1088,7 @@ namespace Private {
    * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
    * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
    */
-  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+  export const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
     if (isDisplayOutput(value)) {
       return [value];
     }
@@ -1438,6 +1589,10 @@ export namespace AIChatModel {
      * The agent manager of the chat.
      */
     agentManager: IAgentManager;
+    /**
+     * Removes a queued message by its ID.
+     */
+    removeQueuedMessage: (id: string) => void;
   }
 
   /**

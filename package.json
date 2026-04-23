@@ -89,7 +89,7 @@
         "@mui/icons-material": "^7",
         "@mui/material": "^7",
         "ai": "^6.0.116",
-        "jupyter-chat-components": "^0.2.0",
+        "jupyter-chat-components": "^0.4.0",
         "jupyter-secrets-manager": "^0.5.0",
         "yaml": "^2.8.1",
         "zod": "^4.3.6"
