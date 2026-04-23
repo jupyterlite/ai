@@ -1025,7 +1025,7 @@ export class AIChatModel extends AbstractChatModel {
   private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
   private _messageQueue: Private.IQueuedItem[] = [];
-  private _isBusy = false;
+  private _isBusy: boolean = false;
   private _queueMessageId: string | null = null;
 }
 
