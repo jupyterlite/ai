@@ -30,6 +30,7 @@ export namespace CommandIds {
   export const openSettings = '@jupyterlite/ai:open-settings';
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
+  export const openOrRevealChat = '@jupyterlite/ai:open-or-reveal-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
   export const saveChat = '@jupyterlite/ai:save-chat';
@@ -617,6 +618,11 @@ export interface IAgentManager {
    */
   generateResponse(message: UserContent): Promise<void>;
   /**
+   * Create a transient language model to request a text response, which won't be added to history.
+   * @param messages - the messages sequence to send to the model.
+   */
+  textResponse(messages: ModelMessage[]): Promise<string>;
+  /**
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP tools.
    */
@@ -699,6 +705,10 @@ export interface ICreateChatOptions {
    * Whether the chat is autosaved or not.
    */
   autosave?: boolean;
+  /**
+   * An optional title to the chat.
+   */
+  title?: string | null;
 }
 /**
  * Token for the chat model handler.

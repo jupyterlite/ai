@@ -152,6 +152,34 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * A signal emitting when the chat name has changed.
+   */
+  get nameChanged(): ISignal<AIChatModel, string> {
+    return this._nameChanged;
+  }
+
+  /**
+   * The title of the chat.
+   */
+  get title(): string | null {
+    return this._title;
+  }
+  set title(value: string | null) {
+    this._title = value;
+    if (this.autosave) {
+      this._autosaveDebouncer.invoke();
+    }
+    this._titleChanged.emit(this._title);
+  }
+
+  /**
+   * A signal emitting when the chat title has changed.
+   */
+  get titleChanged(): ISignal<AIChatModel, string | null> {
+    return this._titleChanged;
+  }
+
+  /**
    * Whether to save the chat automatically.
    */
   get autosave(): boolean {
@@ -187,13 +215,6 @@ export class AIChatModel extends AbstractChatModel {
    */
   get autosaveChanged(): ISignal<AIChatModel, boolean> {
     return this._autosaveChanged;
-  }
-
-  /**
-   * A signal emitting when the chat name has changed.
-   */
-  get nameChanged(): ISignal<AIChatModel, string> {
-    return this._nameChanged;
   }
 
   /**
@@ -458,8 +479,34 @@ export class AIChatModel extends AbstractChatModel {
     this.messagesInserted(0, messages);
     await this._rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
+    this.title = content.metadata?.title ?? null;
     return true;
   };
+
+  /**
+   * Request a title to this chat, regarding the message history.
+   */
+  async requestTitle(): Promise<string> {
+    const history = this.messages
+      .filter(msg => msg.body !== '')
+      .map(
+        msg =>
+          `${msg.sender.username === 'ai-assistant' ? 'assistant' : 'user'}: ${msg.body}`
+      )
+      .join('\n');
+    const messages: ModelMessage[] = [
+      {
+        role: 'system',
+        content:
+          "Generate a concise title (no more than 10 words) for the following conversation. Do not use formatting. Focus on the user's main intent."
+      },
+      {
+        role: 'user',
+        content: history
+      }
+    ];
+    return this.agentManager.textResponse(messages);
+  }
 
   /**
    * Serialize the model for backup
@@ -510,7 +557,8 @@ export class AIChatModel extends AbstractChatModel {
       attachments,
       metadata: {
         provider,
-        autosave: this.autosave
+        autosave: this.autosave,
+        ...(this.title ? { title: this.title } : {})
       }
     };
   }
@@ -975,6 +1023,8 @@ export class AIChatModel extends AbstractChatModel {
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
+  private _title: string | null = null;
+  private _titleChanged = new Signal<AIChatModel, string | null>(this);
 }
 
 namespace Private {
@@ -1563,6 +1613,10 @@ export namespace AIChatModel {
        * Whether the chat is automatically saved.
        */
       autosave?: boolean;
+      /**
+       * An optional title of the chat.
+       */
+      title?: string;
     };
   };
 }
