@@ -151,6 +151,9 @@ export class AIChatModel extends AbstractChatModel {
   }
   set title(value: string | null) {
     this._title = value;
+    if (this.autosave) {
+      this._autosaveDebouncer.invoke();
+    }
     this._titleChanged.emit(this._title);
   }
 

@@ -706,6 +706,7 @@ export class AgentManager implements IAgentManager {
         model,
         messages
       });
+      this._updateTokenUsage(result.totalUsage, result.totalUsage.inputTokens);
       return result.text;
     } catch (e) {
       throw `Error while getting the topic of the chat\n${e}`;
