@@ -1,5 +1,4 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
-import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -489,40 +488,10 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Sets the history with a list of messages from the chat.
-   * @param messages The chat messages to set as history
-   */
-  setHistory(messages: IMessageContent[]): void {
-    // Stop any ongoing streaming and reject awaiting approvals
-    this.stopStreaming();
-
-    for (const [approvalId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat history changed');
-      this._agentEvent.emit({
-        type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
-      });
-    }
-    this._pendingApprovals.clear();
-
-    // Convert chat messages to model messages
-    const modelMessages: ModelMessage[] = messages.map(msg => {
-      const role =
-        msg.sender.username === 'ai-assistant' ? 'assistant' : 'user';
-      return {
-        role,
-        content: msg.body
-      };
-    });
-    this._history = Private.sanitizeModelMessages(modelMessages);
-  }
-
-  /**
    * Sets the history from already-processed model messages.
-   * Allows including binary content for vision-capable models.
-   * @param messages Pre-built model messages
+   * @param messages Pre-built model messages (may include binary content)
    */
-  setPreprocessedHistory(messages: ModelMessage[]): void {
+  setHistory(messages: ModelMessage[]): void {
     this.stopStreaming();
 
     for (const [approvalId, pending] of this._pendingApprovals) {

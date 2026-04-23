@@ -456,7 +456,7 @@ export class AIChatModel extends AbstractChatModel {
     });
     await this.clearMessages();
     this.messagesInserted(0, messages);
-    this._agentManager.setHistory(messages);
+    await this._rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
     return true;
   };
@@ -588,15 +588,16 @@ export class AIChatModel extends AbstractChatModel {
               ? [{ type: 'text', text: textPart }, ...binaryParts]
               : textPart
         } as ModelMessage);
-      } else {
+      } else if (msg.body) {
         modelMessages.push({
           role: isAI ? 'assistant' : 'user',
           content: msg.body
         } as ModelMessage);
       }
+      // Skip messages with empty body like tool calls
     }
 
-    this._agentManager.setPreprocessedHistory(modelMessages);
+    this._agentManager.setHistory(modelMessages);
   }
 
   /**

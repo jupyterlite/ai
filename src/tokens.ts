@@ -1,4 +1,4 @@
-import { ActiveCellManager, IMessage, IMessageContent } from '@jupyter/chat';
+import { ActiveCellManager, IMessage } from '@jupyter/chat';
 import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
@@ -590,15 +590,10 @@ export interface IAgentManager {
    */
   clearHistory(): Promise<void>;
   /**
-   * Sets the conversation history with a list of messages from the chat.
-   * @param messages The chat messages to set as history
-   */
-  setHistory(messages: IMessageContent[]): void;
-  /**
    * Sets the history from already-processed model messages.
    * @param messages Pre-built model messages (may include binary content)
    */
-  setPreprocessedHistory(messages: ModelMessage[]): void;
+  setHistory(messages: ModelMessage[]): void;
   /**
    * Stops the current streaming response by aborting the request.
    */
