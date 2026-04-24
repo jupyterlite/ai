@@ -24,7 +24,8 @@ export namespace MainAreaChat {
 export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   constructor(options: MainAreaChat.IOptions) {
     super(options);
-    this.title.label = this.content.model.name;
+    this.title.label = this.model.name;
+    this.title.caption = this.model.title ?? this.model.name;
 
     const { trans } = options;
 
@@ -69,6 +70,8 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     });
 
     this.model.writersChanged.connect(this._writersChanged);
+
+    this.model.titleChanged.connect(this._titleChanged);
   }
 
   dispose(): void {
@@ -76,6 +79,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     // Dispose of the approval buttons widget when the chat is disposed.
     this._outputAreaCompat.dispose();
     this.model.writersChanged.disconnect(this._writersChanged);
+    this.model.titleChanged.disconnect(this._titleChanged);
   }
 
   /**
@@ -105,6 +109,10 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       this.content.inputToolbarRegistry?.hide('stop');
       this.content.inputToolbarRegistry?.show('send');
     }
+  };
+
+  private _titleChanged = () => {
+    this.title.caption = this.model.title ?? this.model.name;
   };
 
   private _outputAreaCompat: RenderedMessageOutputAreaCompat;

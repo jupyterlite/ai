@@ -4,7 +4,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { ISignal } from '@lumino/signaling';
-import type { Tool, LanguageModel, UserContent } from 'ai';
+import type { Tool, LanguageModel, UserContent, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
@@ -614,6 +614,11 @@ export interface IAgentManager {
    */
   generateResponse(message: UserContent): Promise<void>;
   /**
+   * Create a transient language model to request a text response, which won't be added to history.
+   * @param messages - the messages sequence to send to the model.
+   */
+  textResponse(messages: ModelMessage[]): Promise<string>;
+  /**
    * Initializes the AI agent with current settings and tools.
    * Sets up the agent with model configuration, tools, and MCP tools.
    */
@@ -696,6 +701,10 @@ export interface ICreateChatOptions {
    * Whether the chat is autosaved or not.
    */
   autosave?: boolean;
+  /**
+   * An optional title to the chat.
+   */
+  title?: string | null;
 }
 /**
  * Token for the chat model handler.
