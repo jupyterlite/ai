@@ -4,6 +4,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
 import {
+  generateText,
   ToolLoopAgent,
   type ModelMessage,
   type LanguageModel,
@@ -691,6 +692,24 @@ export class AgentManager implements IAgentManager {
     } finally {
       this._controller = null;
       this._streaming.resolve();
+    }
+  }
+
+  /**
+   * Create a transient language model to request a text response which won't be added to history.
+   * @param messages - the messages sequence to send to the model.
+   */
+  async textResponse(messages: ModelMessage[]): Promise<string> {
+    try {
+      const model = await this._createModel();
+      const result = await generateText({
+        model,
+        messages
+      });
+      this._updateTokenUsage(result.totalUsage, result.totalUsage.inputTokens);
+      return result.text;
+    } catch (e) {
+      throw `Error while getting the topic of the chat\n${e}`;
     }
   }
 
