@@ -2996,7 +2996,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/ui-components@npm:^4.2.0, @jupyterlab/ui-components@npm:^4.4.6, @jupyterlab/ui-components@npm:^4.4.7, @jupyterlab/ui-components@npm:^4.5.6":
+"@jupyterlab/ui-components@npm:^4.2.0, @jupyterlab/ui-components@npm:^4.4.6, @jupyterlab/ui-components@npm:^4.4.7, @jupyterlab/ui-components@npm:^4.5.0, @jupyterlab/ui-components@npm:^4.5.6":
   version: 4.5.6
   resolution: "@jupyterlab/ui-components@npm:4.5.6"
   dependencies:
@@ -3075,7 +3075,7 @@ __metadata:
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
-    jupyter-chat-components: ^0.4.0
+    jupyter-chat-components: "file:../jupyter-chat-components"
     jupyter-secrets-manager: ^0.5.0
     npm-run-all2: ^7.0.1
     prettier: ^3.0.0
@@ -7498,19 +7498,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyter-chat-components@npm:^0.4.0":
+"jupyter-chat-components@file:../jupyter-chat-components::locator=%40jupyterlite%2Fai%40workspace%3A.":
   version: 0.4.0
-  resolution: "jupyter-chat-components@npm:0.4.0"
+  resolution: "jupyter-chat-components@file:../jupyter-chat-components#../jupyter-chat-components::hash=70de71&locator=%40jupyterlite%2Fai%40workspace%3A."
   dependencies:
     "@jupyterlab/application": ^4.5.0
     "@jupyterlab/coreutils": ^6.5.4
     "@jupyterlab/rendermime": ^4.5.0
     "@jupyterlab/rendermime-interfaces": ^3.8.0
     "@jupyterlab/translation": ^4.5.0
+    "@jupyterlab/ui-components": ^4.5.0
     "@lumino/coreutils": ^2.2.2
     "@lumino/widgets": ^2.1.0
     diff: ^8.0.0
-  checksum: 67fb8539bff96a918f43ab58fb6ca01d3b51f4a423acc8bf0012e754737b522c63f595dfff888fe911ebcb10a06f844d7c6e86703deaea5c40d3b95f5704c551
+  checksum: afc654b2bc12a9e050fd34d1c12b1b8fbe78e105482afa58e2b713bf7a3d1b5be5a2a9dcd320ab8e1b0d5b363fdc01f41009757d03ab9994a8ec40cf2d73ecc2
   languageName: node
   linkType: hard
 

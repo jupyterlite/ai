@@ -516,6 +516,14 @@ export class AIChatModel extends AbstractChatModel {
     this._updateQueueUI();
   }
 
+  reorderQueuedMessages(messageIds: string[]): void {
+    const byId = new Map(this._messageQueue.map(m => [m.id, m]));
+    this._messageQueue = messageIds
+      .map(id => byId.get(id))
+      .filter((m): m is Private.IQueuedItem => m !== undefined);
+    this._updateQueueUI();
+  }
+
   /**
    * Save the chat as json file.
    */
