@@ -70,8 +70,6 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManagerFactory } from './agent';
 
-import { AIChatModel } from './chat-model';
-
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
@@ -95,7 +93,8 @@ import {
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
-  SECRETS_NAMESPACE
+  SECRETS_NAMESPACE,
+  IAIChatModel
 } from './tokens';
 
 import {
@@ -526,7 +525,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
     let usageWidget: UsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
-      const model = widget.model as AIChatModel;
+      const model = widget.model as IAIChatModel;
 
       // Add the widget to the tracker.
       tracker.add(widget);
@@ -628,7 +627,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         args: widget => ({
           name: widget.model.name,
           area: widget instanceof MainAreaChat ? 'main' : 'side',
-          provider: (widget.model as AIChatModel).agentManager.activeProvider
+          provider: (widget.model as IAIChatModel).agentManager.activeProvider
         }),
         name: widget => {
           const area = widget instanceof MainAreaChat ? 'main' : 'side';
@@ -670,7 +669,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       optionId: string
     ) {
       const model = tracker.find(chat => chat.model.name === sessionId)
-        ?.model as AIChatModel;
+        ?.model as IAIChatModel;
       if (!model) {
         return;
       }
@@ -759,7 +758,7 @@ function registerCommands(
       }
     });
 
-    const openInMain = (model: AIChatModel): MainAreaChat => {
+    const openInMain = (model: IAIChatModel): MainAreaChat => {
       const inputToolbarRegistry = inputToolbarFactory.create();
       const content = new ChatWidget({
         model,
@@ -832,7 +831,7 @@ function registerCommands(
         return;
       }
       return tracker.find(widget => {
-        const model = widget.model as AIChatModel;
+        const model = widget.model as IAIChatModel;
         return (
           (!name || widget.model.name === name) &&
           (!provider || model.agentManager.activeProvider === provider)
@@ -1069,11 +1068,11 @@ function registerCommands(
           return false;
         }
         let previousWidget: ChatWidget | MainAreaChat | undefined;
-        let previousModel: AIChatModel | undefined;
+        let previousModel: IAIChatModel | undefined;
         tracker.forEach(widget => {
           if (widget.model.name === args.name) {
             previousWidget = widget;
-            previousModel = widget.model as AIChatModel;
+            previousModel = widget.model as IAIChatModel;
           }
         });
 
@@ -1167,15 +1166,15 @@ function registerCommands(
       caption: trans.__('Save the chat as local file'),
       icon: saveIcon,
       execute: async (args): Promise<boolean> => {
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.log('No chat to save');
@@ -1212,15 +1211,15 @@ function registerCommands(
           console.warn('The restoration is not possible');
           return false;
         }
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.warn('There is no chat to restore');

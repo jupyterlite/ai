@@ -8,7 +8,7 @@ import { AIChatModel } from '../chat-model';
 import { SaveComponentWidget } from '../components/save-button';
 import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
-import { CommandIds, type IAISettingsModel } from '../tokens';
+import { CommandIds, IAIChatModel, type IAISettingsModel } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
@@ -69,7 +69,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       chatPanel: this.content
     });
 
-    this.model.writersChanged.connect(this._writersChanged);
+    this.model.writersChanged?.connect(this._writersChanged);
 
     this.model.titleChanged.connect(this._titleChanged);
   }
@@ -78,14 +78,14 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     super.dispose();
     // Dispose of the approval buttons widget when the chat is disposed.
     this._outputAreaCompat.dispose();
-    this.model.writersChanged.disconnect(this._writersChanged);
+    this.model.writersChanged?.disconnect(this._writersChanged);
     this.model.titleChanged.disconnect(this._titleChanged);
   }
 
   /**
    * Get the model of the chat.
    */
-  get model(): AIChatModel {
+  get model(): IAIChatModel {
     return this.content.model as AIChatModel;
   }
 

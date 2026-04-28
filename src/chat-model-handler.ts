@@ -6,6 +6,7 @@ import { Contents } from '@jupyterlab/services';
 import { AIChatModel } from './chat-model';
 import type {
   IAgentManagerFactory,
+  IAIChatModel,
   IAISettingsModel,
   IChatModelHandler,
   ICreateChatOptions,
@@ -28,7 +29,7 @@ export class ChatModelHandler implements IChatModelHandler {
     this._contentsManager = options.contentsManager;
   }
 
-  createModel(options: ICreateChatOptions): AIChatModel {
+  createModel(options: ICreateChatOptions): IAIChatModel {
     const { name, activeProvider, tokenUsage, messages, autosave, title } =
       options;
 

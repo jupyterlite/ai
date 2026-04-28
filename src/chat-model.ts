@@ -38,6 +38,7 @@ import { AI_AVATAR } from './icons';
 
 import type {
   IAgentManager,
+  IAIChatModel,
   IAISettingsModel,
   IProviderRegistry,
   ITokenUsage
@@ -98,7 +99,7 @@ interface IToolExecutionContext {
  * AI Chat Model implementation that provides chat functionality tool integration,
  * and MCP server support.
  */
-export class AIChatModel extends AbstractChatModel {
+export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   /**
    * Constructs a new AIChatModel instance.
    * @param options Configuration options for the chat model
@@ -154,7 +155,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * A signal emitting when the chat name has changed.
    */
-  get nameChanged(): ISignal<AIChatModel, string> {
+  get nameChanged(): ISignal<IAIChatModel, string> {
     return this._nameChanged;
   }
 
@@ -175,7 +176,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * A signal emitting when the chat title has changed.
    */
-  get titleChanged(): ISignal<AIChatModel, string | null> {
+  get titleChanged(): ISignal<IAIChatModel, string | null> {
     return this._titleChanged;
   }
 
@@ -216,7 +217,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * A signal emitting when the autosave flag changed.
    */
-  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+  get autosaveChanged(): ISignal<IAIChatModel, boolean> {
     return this._autosaveChanged;
   }
 
@@ -235,7 +236,7 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Get the agent manager associated to the model.
+   * The agent manager used in the model.
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
@@ -271,7 +272,7 @@ export class AIChatModel extends AbstractChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
-      addSystemMessage: (body: string) => this.addSystemMessage(body)
+      addSystemMessage: (body: string) => this._addSystemMessage(body)
     };
   }
 
@@ -295,7 +296,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Adds a non-user message to the chat (used by chat commands).
    */
-  addSystemMessage(body: string): void {
+  private _addSystemMessage(body: string): void {
     const message: IMessageContent = {
       body,
       sender: this._getAIUser(),
@@ -1050,13 +1051,13 @@ export class AIChatModel extends AbstractChatModel {
   private _providerRegistry?: IProviderRegistry;
   private _currentModelKey: string | undefined;
   private _currentStreamingMessage: IMessage | null = null;
-  private _nameChanged = new Signal<AIChatModel, string>(this);
+  private _nameChanged = new Signal<IAIChatModel, string>(this);
   private _contentsManager?: Contents.IManager;
   private _autosave: boolean = false;
-  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
+  private _autosaveChanged = new Signal<IAIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
   private _title: string | null = null;
-  private _titleChanged = new Signal<AIChatModel, string | null>(this);
+  private _titleChanged = new Signal<IAIChatModel, string | null>(this);
 }
 
 namespace Private {
