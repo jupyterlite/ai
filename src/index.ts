@@ -662,24 +662,28 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     );
 
     /**
-     * The callback to approve or reject a tool.
+     * The callback for grouped tool calls permission decisions.
      */
-    function toolCallApproval(
-      targetId: string,
-      approvalId: string,
-      isApproved: boolean
+    function toolCallPermissionDecision(
+      sessionId: string,
+      toolCallId: string,
+      optionId: string
     ) {
-      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      const model = tracker.find(chat => chat.model.name === sessionId)
+        ?.model as AIChatModel;
       if (!model) {
         return;
       }
+
+      const isApproved = optionId === 'approve';
       isApproved
-        ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
-        : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+        ? model.agentManager.approveToolCall(toolCallId)
+        : model.agentManager.rejectToolCall(toolCallId);
     }
 
     if (chatComponentsFactory) {
-      chatComponentsFactory.toolCallApproval = toolCallApproval;
+      chatComponentsFactory.toolCallPermissionDecision =
+        toolCallPermissionDecision;
     }
 
     return tracker;
