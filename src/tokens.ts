@@ -682,7 +682,7 @@ export interface IAIChatModel extends IChatModel {
   /**
    * A signal emitting when the chat name has changed.
    */
-  nameChanged: ISignal<IAIChatModel, string>;
+  readonly nameChanged: ISignal<IAIChatModel, string>;
   /**
    * The title of the chat.
    */
@@ -706,7 +706,7 @@ export interface IAIChatModel extends IChatModel {
   /**
    * A signal emitting when the token usage changed.
    */
-  tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
+  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
   /**
    * The agent manager used in the model.
    */
