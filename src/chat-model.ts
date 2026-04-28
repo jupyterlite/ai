@@ -349,6 +349,8 @@ export class AIChatModel extends AbstractChatModel {
 
       await this._agentManager.generateResponse(enhancedMessage);
 
+      this.updateWriters([]);
+
       if (
         this._settingsModel.config.autoTitle &&
         (this.messages.length <= 5 || this.title === null)
