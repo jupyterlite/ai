@@ -86,7 +86,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
    * Get the model of the chat.
    */
   get model(): IAIChatModel {
-    return this.content.model as AIChatModel;
+    return this.content.model as IAIChatModel;
   }
 
   /**
