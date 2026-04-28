@@ -481,7 +481,7 @@ export class AIChatModel extends AbstractChatModel {
       {
         role: 'system',
         content:
-          "Generate a concise title (no more than 10 words) for the following conversation. Do not use formatting. Focus on the user's main intent."
+          "Generate a concise title (no more than 10 words) for the following conversation. Do not use formatting, quotes, or punctuation. Focus on the subject matter and specific content the user is working on, not on the actions taken (e.g. prefer 'Pandas DataFrame filtering' over 'Opening a notebook'). The title should be a noun phrase describing the topic."
       },
       {
         role: 'user',
