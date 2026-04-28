@@ -743,11 +743,11 @@ wheels = [
 
 [[package]]
 name = "jupyter-chat-components"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/37/4db09a22ce6378e4c70a73a8ff42c6eec3ece0fb822791fde24c0437ab6d/jupyter_chat_components-0.4.0.tar.gz", hash = "sha256:faeade7b51ba4cddf73d7dadce6567171102a1e6f4c43d066f124a657363c395", size = 325776, upload-time = "2026-04-09T11:50:24.359Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/76/ae36d78570a0a8d9eed6e09c81af9ef022c9d1bf4ae43eaaeb6b4b9f7328/jupyter_chat_components-0.4.1.tar.gz", hash = "sha256:c7e8726a96f2610358c59b140189e15559e199dbd1d69dc769883a79a5649f08", size = 327493, upload-time = "2026-04-26T20:25:10.739Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/b4/b32866340edcf6edfa5ddcb6aac8c22b62d3eccebb68d406918657cf6c47/jupyter_chat_components-0.4.0-py3-none-any.whl", hash = "sha256:1b99a04aaf305c0999ed863d9a24a786f6b4743748c2c274f39b45c5ec5b0887", size = 31906, upload-time = "2026-04-09T11:50:22.597Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/00/7e4103bae103495456db1029028bfaeb3ac6e506e34010342b15584b1760/jupyter_chat_components-0.4.1-py3-none-any.whl", hash = "sha256:eea79dda0c0a65b10e493f6d1ada36ddd6da5481afecc804202ea17d8e5358b2", size = 32084, upload-time = "2026-04-26T20:25:09.044Z" },
 ]
 
 [[package]]

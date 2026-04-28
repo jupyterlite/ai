@@ -56,7 +56,7 @@ test.describe('#mcpIntegration', () => {
     ).toHaveCount(1, { timeout: 60000 });
 
     // Wait for tool call to appear
-    const toolCall = panel.locator('.jp-ai-tool-call');
+    const toolCall = panel.locator('.jp-ai-tool-call-item');
     await expect(toolCall).toHaveCount(1, { timeout: 30000 });
 
     await expect(

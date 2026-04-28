@@ -65,7 +65,7 @@ test.describe('#skills', () => {
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     const messages = panel.locator('.jp-chat-message');
-    const toolCalls = panel.locator('.jp-ai-tool-call');
+    const toolCalls = panel.locator('.jp-ai-tool-call-item > summary');
     const loadCall = toolCalls.filter({ hasText: 'load_skill' });
     const skillCall = toolCalls.filter({ hasText: /agent-helper/ });
 

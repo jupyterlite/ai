@@ -514,13 +514,12 @@ export namespace IAgentManager {
       isError: boolean;
     };
     tool_approval_request: {
-      approvalId: string;
       toolCallId: string;
       toolName: string;
       args: unknown;
     };
     tool_approval_resolved: {
-      approvalId: string;
+      toolCallId: string;
       approved: boolean;
     };
     error: {
@@ -597,16 +596,16 @@ export interface IAgentManager {
   stopStreaming(): void;
   /**
    * Approves a pending tool call.
-   * @param approvalId The approval ID to approve
+   * @param toolCallId The tool call ID to approve
    * @param reason Optional reason for approval
    */
-  approveToolCall(approvalId: string, reason?: string): void;
+  approveToolCall(toolCallId: string, reason?: string): void;
   /**
    * Rejects a pending tool call.
-   * @param approvalId The approval ID to reject
+   * @param toolCallId The tool call ID to reject
    * @param reason Optional reason for rejection
    */
-  rejectToolCall(approvalId: string, reason?: string): void;
+  rejectToolCall(toolCallId: string, reason?: string): void;
   /**
    * Generates AI response to user message using the agent.
    * Handles the complete execution cycle including tool calls.

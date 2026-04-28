@@ -70,10 +70,6 @@ interface IToolExecutionContext {
    */
   input: string;
   /**
-   * Optional approval ID if awaiting approval.
-   */
-  approvalId?: string;
-  /**
    * Current status.
    */
   status: ToolStatus;
@@ -171,6 +167,9 @@ export class AIChatModel extends AbstractChatModel {
     return this._autosave;
   }
   set autosave(value: boolean) {
+    if (value === this._autosave) {
+      return;
+    }
     this._autosave = value;
     this._autosaveChanged.emit(value);
     if (value) {
@@ -182,7 +181,6 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
-      this._autosaveDebouncer.invoke();
     } else {
       this.messagesUpdated.disconnect(
         this._autosaveDebouncer.invoke,
@@ -193,6 +191,7 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer
       );
     }
+    this._autosaveDebouncer.invoke();
   }
 
   /**
@@ -910,13 +909,18 @@ export class AIChatModel extends AbstractChatModel {
       body: '',
       mime_model: {
         data: {
-          'application/vnd.jupyter.chat.components': 'tool-call'
+          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
         },
         metadata: {
-          toolName: context.toolName,
-          input: context.input,
-          status: context.status,
-          summary: context.summary
+          toolCalls: [
+            {
+              toolCallId: context.toolCallId,
+              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
+              kind: context.toolName,
+              status: 'in_progress',
+              rawInput: context.input
+            }
+          ]
         }
       },
       sender: this._getAIUser(),
@@ -1009,7 +1013,6 @@ export class AIChatModel extends AbstractChatModel {
     if (!context) {
       return;
     }
-    context.approvalId = event.data.approvalId;
     context.input = JSON.stringify(event.data.args, null, 2);
     this._updateToolCallUI(event.data.toolCallId, 'awaiting_approval');
   }
@@ -1020,15 +1023,13 @@ export class AIChatModel extends AbstractChatModel {
   private _handleToolApprovalResolved(
     event: IAgentManager.IAgentEvent<'tool_approval_resolved'>
   ): void {
-    const context = Array.from(this._toolContexts.values()).find(
-      ctx => ctx.approvalId === event.data.approvalId
-    );
+    const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
     }
 
     const status = event.data.approved ? 'approved' : 'rejected';
-    this._updateToolCallUI(context.toolCallId, status);
+    this._updateToolCallUI(event.data.toolCallId, status);
 
     if (!event.data.approved) {
       this._toolContexts.delete(context.toolCallId);
@@ -1059,16 +1060,28 @@ export class AIChatModel extends AbstractChatModel {
     existingMessage.update({
       mime_model: {
         data: {
-          'application/vnd.jupyter.chat.components': 'tool-call'
+          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
         },
         metadata: {
-          toolName: context.toolName,
-          input: context.input,
-          status: context.status,
-          summary: context.summary,
-          output,
-          targetId: this.name,
-          approvalId: context.approvalId
+          toolCalls: [
+            {
+              toolCallId: context.toolCallId,
+              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
+              kind: context.toolName,
+              status: context.status,
+              rawInput: context.input,
+              rawOutput: output,
+              sessionId: this.name,
+              permissionStatus:
+                status === 'awaiting_approval' ? 'pending' : 'resolved',
+              ...(status === 'awaiting_approval' && {
+                permissionOptions: [
+                  { optionId: 'approve', name: 'Approve', kind: 'allow_once' },
+                  { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
+                ]
+              })
+            }
+          ]
         }
       }
     });
