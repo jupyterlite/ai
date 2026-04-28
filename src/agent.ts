@@ -493,17 +493,7 @@ export class AgentManager implements IAgentManager {
    * @param messages Pre-built model messages (may include binary content)
    */
   setHistory(messages: ModelMessage[]): void {
-    this.stopStreaming();
-
-    for (const [approvalId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat history changed');
-      this._agentEvent.emit({
-        type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
-      });
-    }
-    this._pendingApprovals.clear();
-
+    this.stopStreaming('Chat history changed');
     this._history = Private.sanitizeModelMessages(messages);
   }
 

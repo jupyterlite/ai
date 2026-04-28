@@ -214,6 +214,14 @@ export interface IProviderModelInfo {
    * Whether the model supports image inputs.
    */
   supportsImages?: boolean;
+  /**
+   * Whether the model supports PDF inputs.
+   */
+  supportsPdf?: boolean;
+  /**
+   * Whether the model supports audio inputs.
+   */
+  supportsAudio?: boolean;
 }
 
 export interface IProviderInfo {

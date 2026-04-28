@@ -116,6 +116,12 @@ function renderGeneratedFile(modelInfo) {
         if (modelInfo.supportsImages !== undefined) {
           fields.push(`supportsImages: ${modelInfo.supportsImages}`);
         }
+        if (modelInfo.supportsPdf !== undefined) {
+          fields.push(`supportsPdf: ${modelInfo.supportsPdf}`);
+        }
+        if (modelInfo.supportsAudio !== undefined) {
+          fields.push(`supportsAudio: ${modelInfo.supportsAudio}`);
+        }
         return `    '${modelId}': { ${fields.join(', ')} }`;
       })
       .join(',\n');
@@ -186,13 +192,22 @@ async function main() {
       }
 
       const contextWindow = providerModels[resolvedId].limit.context;
-      const supportsImages = Array.isArray(
+      const inputModalities = Array.isArray(
         providerModels[resolvedId].modalities?.input
       )
-        ? providerModels[resolvedId].modalities.input.includes('image')
+        ? providerModels[resolvedId].modalities.input
         : undefined;
 
-      const entry = { contextWindow, ...(supportsImages !== undefined && { supportsImages }) };
+      const supportsImages = inputModalities?.includes('image');
+      const supportsPdf = inputModalities?.includes('pdf');
+      const supportsAudio = inputModalities?.includes('audio');
+
+      const entry = {
+        contextWindow,
+        ...(supportsImages !== undefined && { supportsImages }),
+        ...(supportsPdf !== undefined && { supportsPdf }),
+        ...(supportsAudio !== undefined && { supportsAudio })
+      };
       resolvedModels[modelId] = entry;
       resolvedModels[resolvedId] = entry;
 

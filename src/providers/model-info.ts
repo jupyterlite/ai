@@ -87,6 +87,44 @@ export function modelSupportsImages(
   return modelInfo.supportsImages ?? true;
 }
 
+export function modelSupportsPdf(
+  providerConfig: IProviderConfig | undefined,
+  providerRegistry?: IProviderRegistry
+): boolean {
+  if (!providerConfig) {
+    return true;
+  }
+
+  const providerInfo = providerRegistry?.getProviderInfo(
+    providerConfig.provider
+  );
+  const modelInfo = getProviderModelInfo(providerInfo, providerConfig.model);
+  if (!modelInfo) {
+    return true;
+  }
+
+  return modelInfo.supportsPdf ?? true;
+}
+
+export function modelSupportsAudio(
+  providerConfig: IProviderConfig | undefined,
+  providerRegistry?: IProviderRegistry
+): boolean {
+  if (!providerConfig) {
+    return true;
+  }
+
+  const providerInfo = providerRegistry?.getProviderInfo(
+    providerConfig.provider
+  );
+  const modelInfo = getProviderModelInfo(providerInfo, providerConfig.model);
+  if (!modelInfo) {
+    return true;
+  }
+
+  return modelInfo.supportsAudio ?? true;
+}
+
 export function getEffectiveContextWindow(
   providerConfig: IProviderConfig | undefined,
   providerRegistry?: IProviderRegistry
