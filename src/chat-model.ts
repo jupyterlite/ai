@@ -265,6 +265,7 @@ export class AIChatModel extends AbstractChatModel {
    */
   clearMessages = async (): Promise<void> => {
     this.messagesDeleted(0, this.messages.length);
+    this.title = null;
     this._toolContexts.clear();
     await this._agentManager.clearHistory();
   };
