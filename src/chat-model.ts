@@ -348,6 +348,17 @@ export class AIChatModel extends AbstractChatModel {
       this.updateWriters([{ user: this._getAIUser() }]);
 
       await this._agentManager.generateResponse(enhancedMessage);
+
+      if (
+        this._settingsModel.config.autoTitle &&
+        (this.messages.length <= 5 || this.title === null)
+      ) {
+        try {
+          this.title = await this.requestTitle();
+        } catch {
+          // ignore title generation failures
+        }
+      }
     } catch (error) {
       const errorMessage: IMessageContent = {
         body: `Error generating AI response: ${(error as Error).message}`,

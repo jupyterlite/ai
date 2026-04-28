@@ -398,6 +398,8 @@ export interface IAIConfig {
   skillsPaths: string[];
   // Directory where chat backups are saved
   chatBackupDirectory: string;
+  // Automatically request a title from the model for every message until there are 5 messages
+  autoTitle: boolean;
 }
 
 export interface IAISettingsModel extends VDomRenderer.IModel {
