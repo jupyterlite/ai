@@ -4,7 +4,6 @@ import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
-import { AIChatModel } from '../chat-model';
 import { SaveComponentWidget } from '../components/save-button';
 import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
