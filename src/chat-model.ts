@@ -167,6 +167,9 @@ export class AIChatModel extends AbstractChatModel {
     return this._autosave;
   }
   set autosave(value: boolean) {
+    if (value === this._autosave) {
+      return;
+    }
     this._autosave = value;
     this._autosaveChanged.emit(value);
     if (value) {
@@ -178,7 +181,6 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
-      this._autosaveDebouncer.invoke();
     } else {
       this.messagesUpdated.disconnect(
         this._autosaveDebouncer.invoke,
@@ -189,6 +191,7 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer
       );
     }
+    this._autosaveDebouncer.invoke();
   }
 
   /**
