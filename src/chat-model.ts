@@ -367,8 +367,8 @@ export class AIChatModel extends AbstractChatModel {
       ) {
         try {
           this.title = await this.requestTitle();
-        } catch {
-          // ignore title generation failures
+        } catch (e) {
+          console.warn('Error while generating a title\n', e);
         }
       }
     }
