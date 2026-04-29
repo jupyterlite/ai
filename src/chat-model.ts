@@ -411,8 +411,8 @@ export class AIChatModel extends AbstractChatModel {
           attachments: m._originalMsg.attachments
         })),
         targetId: this.name
-      } as any
-    };
+      } 
+    } as IMimeModelBody;
 
     if (this._queueMessageId) {
       const existingMsg = this.messages.find(
