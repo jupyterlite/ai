@@ -344,29 +344,6 @@ export class AIChatModel extends AbstractChatModel {
       // Process attachments and add their content to the message
       let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const imageAttachmentNames = this.input.attachments
-          .filter(a => a.mimetype?.startsWith('image/'))
-          .map(a => PathExt.basename(a.value));
-        const pdfAttachmentNames = this.input.attachments
-          .filter(a => a.mimetype === 'application/pdf')
-          .map(a => PathExt.basename(a.value));
-        const audioAttachmentNames = this.input.attachments
-          .filter(a => a.mimetype?.startsWith('audio/'))
-          .map(a => PathExt.basename(a.value));
-
-        const { textContents, imageParts, pdfParts, audioParts } =
-          await Private.processAttachments(
-            this.input.attachments,
-            this.input.documentManager
-          );
-        this.input.clearAttachments();
-
-        let textPart = message.body;
-        if (textContents.length > 0) {
-          textPart +=
-            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
-        }
-
         const providerConfig = this._settingsModel.getProvider(
           this._agentManager.activeProvider
         );
@@ -383,25 +360,15 @@ export class AIChatModel extends AbstractChatModel {
           this._providerRegistry
         );
 
-        const includedParts: Array<ImagePart | FilePart> = [
-          ...(supportsImages ? imageParts : []),
-          ...(supportsPdf ? pdfParts : []),
-          ...(supportsAudio ? audioParts : [])
-        ];
-        const omittedNames: string[] = [
-          ...(!supportsImages ? imageAttachmentNames : []),
-          ...(!supportsPdf ? pdfAttachmentNames : []),
-          ...(!supportsAudio ? audioAttachmentNames : [])
-        ];
-
-        if (omittedNames.length > 0) {
-          textPart += `\n[Attachments omitted (not supported by this model): ${omittedNames.join(', ')}.]`;
-        }
-
-        enhancedMessage =
-          includedParts.length > 0
-            ? [{ type: 'text', text: textPart }, ...includedParts]
-            : textPart;
+        enhancedMessage = await Private.processAttachments(
+          this.input.attachments,
+          this.input.documentManager,
+          message.body,
+          supportsImages,
+          supportsPdf,
+          supportsAudio
+        );
+        this.input.clearAttachments();
       }
 
       this.updateWriters([{ user: this._getAIUser() }]);
@@ -659,50 +626,18 @@ export class AIChatModel extends AbstractChatModel {
     for (const msg of this.messages) {
       const isAI = msg.sender.username === 'ai-assistant';
       if (!isAI && msg.attachments?.length) {
-        const { textContents, imageParts, pdfParts, audioParts } =
-          await Private.processAttachments(
-            msg.attachments,
-            this.input.documentManager
-          );
-        let textPart = msg.body;
-        if (textContents.length > 0) {
-          textPart +=
-            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
-        }
-
-        const includedParts: Array<ImagePart | FilePart> = [
-          ...(supportsImages ? imageParts : []),
-          ...(supportsPdf ? pdfParts : []),
-          ...(supportsAudio ? audioParts : [])
-        ];
-        const omittedNames: string[] = [
-          ...(!supportsImages
-            ? msg.attachments
-                .filter(a => a.mimetype?.startsWith('image/'))
-                .map(a => PathExt.basename(a.value))
-            : []),
-          ...(!supportsPdf
-            ? msg.attachments
-                .filter(a => a.mimetype === 'application/pdf')
-                .map(a => PathExt.basename(a.value))
-            : []),
-          ...(!supportsAudio
-            ? msg.attachments
-                .filter(a => a.mimetype?.startsWith('audio/'))
-                .map(a => PathExt.basename(a.value))
-            : [])
-        ];
-
-        if (omittedNames.length > 0) {
-          textPart += `\n[Attachments omitted (not supported by this model): ${omittedNames.join(', ')}.]`;
-        }
+        const enhancedContent = await Private.processAttachments(
+          msg.attachments,
+          this.input.documentManager,
+          msg.body,
+          supportsImages,
+          supportsPdf,
+          supportsAudio
+        );
 
         modelMessages.push({
           role: 'user',
-          content:
-            includedParts.length > 0
-              ? [{ type: 'text', text: textPart }, ...includedParts]
-              : textPart
+          content: enhancedContent
         } as ModelMessage);
       } else if (msg.body) {
         modelMessages.push({
@@ -1216,27 +1151,29 @@ namespace Private {
   }
 
   /**
-   * Processes file attachments and returns text contents and binary parts separately.
+   * Processes file attachments and returns the message content with the attachments.
    * @param attachments Array of file attachments to process
    * @param documentManager Optional document manager for file operations
-   * @returns Text contents and binary parts
+   * @param body The message body
+   * @param supportsImages Whether the model supports images
+   * @param supportsPdf Whether the model supports pdfs
+   * @param supportsAudio Whether the model supports audio
+   * @returns Enhanced message content
    */
   export async function processAttachments(
     attachments: IAttachment[],
-    documentManager: IDocumentManager | null | undefined
-  ): Promise<{
-    textContents: string[];
-    imageParts: ImagePart[];
-    pdfParts: FilePart[];
-    audioParts: FilePart[];
-  }> {
+    documentManager: IDocumentManager | null | undefined,
+    body: string,
+    supportsImages: boolean,
+    supportsPdf: boolean,
+    supportsAudio: boolean
+  ): Promise<UserContent> {
     const textContents: string[] = [];
-    const imageParts: ImagePart[] = [];
-    const pdfParts: FilePart[] = [];
-    const audioParts: FilePart[] = [];
+    const includedParts: Array<ImagePart | FilePart> = [];
+    const omittedNames: string[] = [];
 
     if (!documentManager) {
-      return { textContents, imageParts: [], pdfParts: [], audioParts: [] };
+      return body;
     }
 
     for (const attachment of attachments) {
@@ -1270,42 +1207,54 @@ namespace Private {
           }
 
           if (mimetype?.startsWith('image/')) {
-            const data = await readBinaryAttachment(
-              attachment,
-              documentManager
-            );
-            if (data) {
-              imageParts.push({
-                type: 'image',
-                image: data,
-                mediaType: mimetype
-              });
+            if (supportsImages) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'image',
+                  image: data,
+                  mediaType: mimetype
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
             }
           } else if (mimetype === 'application/pdf') {
-            const data = await readBinaryAttachment(
-              attachment,
-              documentManager
-            );
-            if (data) {
-              pdfParts.push({
-                type: 'file',
-                data,
-                mediaType: mimetype,
-                filename: PathExt.basename(attachment.value)
-              });
+            if (supportsPdf) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'file',
+                  data,
+                  mediaType: mimetype,
+                  filename: PathExt.basename(attachment.value)
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
             }
           } else if (mimetype?.startsWith('audio/')) {
-            const data = await readBinaryAttachment(
-              attachment,
-              documentManager
-            );
-            if (data) {
-              audioParts.push({
-                type: 'file',
-                data,
-                mediaType: mimetype,
-                filename: PathExt.basename(attachment.value)
-              });
+            if (supportsAudio) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'file',
+                  data,
+                  mediaType: mimetype,
+                  filename: PathExt.basename(attachment.value)
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
             }
           } else {
             const fileContent = await readFileAttachment(
@@ -1332,7 +1281,18 @@ namespace Private {
       }
     }
 
-    return { textContents, imageParts, pdfParts, audioParts };
+    let textPart = body;
+    if (textContents.length > 0) {
+      textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+    }
+
+    if (omittedNames.length > 0) {
+      textPart += `\n[Attachments omitted (not supported by this model): ${omittedNames.join(', ')}.]`;
+    }
+
+    return includedParts.length > 0
+      ? [{ type: 'text', text: textPart }, ...includedParts]
+      : textPart;
   }
 
   /**
