@@ -253,7 +253,6 @@ export class AIChatModel extends AbstractChatModel {
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
       addSystemMessage: (body: string) => this.addSystemMessage(body),
-      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id)
     };
   }
 
@@ -381,10 +380,9 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Creates or updates the message-queue chat component.
+   * Removes the message-queue chat component.
    */
-  private _updateQueueUI(): void {
-    if (this._messageQueue.length === 0) {
+  private _removeQueueUI(): void {
       if (this._queueMessageId) {
         const existingMsg = this.messages.find(
           msg => msg.id === this._queueMessageId
@@ -397,6 +395,15 @@ export class AIChatModel extends AbstractChatModel {
         }
         this._queueMessageId = null;
       }
+  }
+
+  /**
+   * Creates or updates the message-queue chat component.
+   */
+  private _updateQueueUI(): void {
+    this._removeQueueUI();
+
+    if (this._messageQueue.length === 0) {
       return;
     }
 
@@ -413,18 +420,6 @@ export class AIChatModel extends AbstractChatModel {
         targetId: this.name
       } 
     } as IMimeModelBody;
-
-    if (this._queueMessageId) {
-      const existingMsg = this.messages.find(
-        msg => msg.id === this._queueMessageId
-      );
-      if (existingMsg) {
-        const idx = this.messages.indexOf(existingMsg);
-        if (idx !== -1) {
-          this.messagesDeleted(idx, 1);
-        }
-      }
-    }
 
     this._queueMessageId = UUID.uuid4();
     const queueMessage: IMessageContent = {
@@ -446,19 +441,7 @@ export class AIChatModel extends AbstractChatModel {
     if (this._messageQueue.length === 0) {
       this._isBusy = false;
       this.updateWriters([]);
-      // Remove the queue display message
-      if (this._queueMessageId) {
-        const queueMsg = this.messages.find(
-          msg => msg.id === this._queueMessageId
-        );
-        if (queueMsg) {
-          const idx = this.messages.indexOf(queueMsg);
-          if (idx !== -1) {
-            this.messagesDeleted(idx, 1);
-          }
-        }
-        this._queueMessageId = null;
-      }
+      this._removeQueueUI();
       return;
     }
 
@@ -762,7 +745,6 @@ export class AIChatModel extends AbstractChatModel {
     this.messageAdded(aiMessage);
     this._currentStreamingMessage =
       this.messages.find(message => message.id === aiMessage.id) ?? null;
-    this._updateQueueUI();
   }
 
   /**
@@ -931,7 +913,6 @@ export class AIChatModel extends AbstractChatModel {
     };
 
     this.messageAdded(toolCallMessage);
-    this._updateQueueUI();
   }
 
   /**
@@ -1000,7 +981,6 @@ export class AIChatModel extends AbstractChatModel {
       type: 'msg',
       raw_time: false
     });
-    this._updateQueueUI();
   }
 
   /**
@@ -1112,18 +1092,18 @@ namespace Private {
     _originalMsg: IMessageContent;
   }
 
-  export type IDisplayOutput =
+  type IDisplayOutput =
     | nbformat.IDisplayData
     | nbformat.IDisplayUpdate
     | nbformat.IExecuteResult;
 
-  export const isPlainObject = (
+  const isPlainObject = (
     value: unknown
   ): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
-  export const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
     if (!isPlainObject(value)) {
       return false;
     }
@@ -1136,7 +1116,7 @@ namespace Private {
     );
   };
 
-  export const toMimeBundle = (
+  const toMimeBundle = (
     value: IDisplayOutput,
     trustedMimeTypes: ReadonlySet<string>
   ): IMimeModelBody | null => {
@@ -1164,7 +1144,7 @@ namespace Private {
    * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
    * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
    */
-  export const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
     if (isDisplayOutput(value)) {
       return [value];
     }
@@ -1665,10 +1645,6 @@ export namespace AIChatModel {
      * The agent manager of the chat.
      */
     agentManager: IAgentManager;
-    /**
-     * Removes a queued message by its ID.
-     */
-    removeQueuedMessage: (id: string) => void;
   }
 
   /**
