@@ -524,6 +524,15 @@ export class AIChatModel extends AbstractChatModel {
     this._updateQueueUI();
   }
 
+  editQueuedMessage(messageId: string, newBody: string): void {
+    const item = this._messageQueue.find(m => m.id === messageId);
+    if (!item) {
+      return;
+    }
+    item.body = newBody;
+    this._updateQueueUI();
+  }
+
   /**
    * Save the chat as json file.
    */

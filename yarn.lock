@@ -7500,7 +7500,7 @@ __metadata:
 
 "jupyter-chat-components@file:../jupyter-chat-components::locator=%40jupyterlite%2Fai%40workspace%3A.":
   version: 0.4.0
-  resolution: "jupyter-chat-components@file:../jupyter-chat-components#../jupyter-chat-components::hash=70de71&locator=%40jupyterlite%2Fai%40workspace%3A."
+  resolution: "jupyter-chat-components@file:../jupyter-chat-components#../jupyter-chat-components::hash=4a1380&locator=%40jupyterlite%2Fai%40workspace%3A."
   dependencies:
     "@jupyterlab/application": ^4.5.0
     "@jupyterlab/coreutils": ^6.5.4
@@ -7511,7 +7511,7 @@ __metadata:
     "@lumino/coreutils": ^2.2.2
     "@lumino/widgets": ^2.1.0
     diff: ^8.0.0
-  checksum: afc654b2bc12a9e050fd34d1c12b1b8fbe78e105482afa58e2b713bf7a3d1b5be5a2a9dcd320ab8e1b0d5b363fdc01f41009757d03ab9994a8ec40cf2d73ecc2
+  checksum: 62aed6806ad6bc17223b7f0a4db8fd9b7eadeb49a0cf4db1a4144b2a06260be8f39ac7265408c30cc3859da95a3ed50ccefbd12d8968a1df944ee19875eec786
   languageName: node
   linkType: hard
 

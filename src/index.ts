@@ -705,6 +705,18 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         }
         (model as AIChatModel).reorderQueuedMessages(messageIds);
       };
+
+      chatComponentsFactory.editQueuedMessage = (
+        targetId: string,
+        messageId: string,
+        newBody: string
+      ) => {
+        const model = tracker.find(chat => chat.model.name === targetId)?.model;
+        if (!model) {
+          return;
+        }
+        (model as AIChatModel).editQueuedMessage(messageId, newBody);
+      };
     }
 
     return tracker;
