@@ -253,6 +253,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Dispose of the model.
    */
   dispose(): void {
+    this.stopStreaming();
     this.messagesUpdated.disconnect(
       this._autosaveDebouncer.invoke,
       this._autosaveDebouncer
@@ -785,7 +786,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     }
 
     this._agentManager.setHistory(modelMessages);
-  }
+  };
 
   /**
    * Handles events emitted by the agent manager.
@@ -1177,6 +1178,9 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   set messageQueue(value: Private.IQueuedItem[]) {
     this._messageQueue = value;
     this._updateQueueUI();
+    if (this._messageQueue.length > 0 && !this._isBusy) {
+      this._drainQueue();
+    }
   }
 
   /**
