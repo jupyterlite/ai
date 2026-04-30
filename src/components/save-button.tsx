@@ -7,7 +7,7 @@ import {
 import type { TranslationBundle } from '@jupyterlab/translation';
 import React, { useEffect, useState } from 'react';
 
-import { AIChatModel } from '../chat-model';
+import { IAIChatModel } from '../tokens';
 
 const COMPONENT_CLASS = 'jp-ai-SaveButton';
 const AUTOSAVE_BUTTON_CLASS = 'jp-ai-AutoSaveButton';
@@ -19,7 +19,7 @@ export interface ISaveButtonProps {
   /**
    * The chat model, used to listen for message changes for auto-save.
    */
-  model: AIChatModel;
+  model: IAIChatModel;
   /**
    * The application language translator.
    */
@@ -40,7 +40,7 @@ export function SaveComponent(props: ISaveButtonProps): JSX.Element {
    * Effect that update the autosave state when it is updated on the model.
    */
   useEffect(() => {
-    const updateAutosave = (_: AIChatModel, value: boolean) => {
+    const updateAutosave = (_: IAIChatModel, value: boolean) => {
       setAutosave(value);
     };
 

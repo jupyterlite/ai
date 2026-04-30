@@ -4,7 +4,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-context-windows';
+import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-model-info';
 import type { IProviderInfo } from '../tokens';
 import type { IModelOptions } from './models';
 

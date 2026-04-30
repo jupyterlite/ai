@@ -928,6 +928,32 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 <FormControlLabel
                   control={
                     <Switch
+                      checked={config.autoTitle}
+                      onChange={e =>
+                        handleConfigUpdate({
+                          autoTitle: e.target.checked
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">
+                        {trans.__('Auto Title')}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {trans.__(
+                          'Automatically generate a chat title from the model for every message until there are 5 messages'
+                        )}
+                      </Typography>
+                    </Box>
+                  }
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
                       checked={config.showTokenUsage}
                       onChange={e =>
                         handleConfigUpdate({

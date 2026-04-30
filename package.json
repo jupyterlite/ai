@@ -54,7 +54,7 @@
         "watch:labextension": "jupyter labextension watch .",
         "docs": "jupyter book start",
         "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
-        "sync:model-context-windows": "node scripts/sync-model-context-windows.mjs && prettier --write src/providers/generated-context-windows.ts && eslint --fix src/providers/generated-context-windows.ts"
+        "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^3.0.58",
