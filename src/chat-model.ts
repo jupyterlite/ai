@@ -288,6 +288,11 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Clears all messages from the chat and resets conversation state.
    */
   clearMessages = async (): Promise<void> => {
+    this.stopStreaming();
+    this._messageQueue = [];
+    this._isBusy = false;
+    this._queueMessageId = null;
+    this._currentStreamingMessage = null;
     this.messagesDeleted(0, this.messages.length);
     this.title = null;
     this._toolContexts.clear();
