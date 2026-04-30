@@ -659,7 +659,11 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const attachmentsList: IAttachment[] = []; // Actual attachments
 
     this.messages.forEach(message => {
-      if (message.content?.mime_model?.data?.['application/vnd.jupyter.chat.components'] === 'message-queue') {
+      if (
+        message.content?.mime_model?.data?.[
+          'application/vnd.jupyter.chat.components'
+        ] === 'message-queue'
+      ) {
         return;
       }
       let attachmentIndexes: string[] = [];

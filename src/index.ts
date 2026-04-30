@@ -1099,7 +1099,7 @@ function registerCommands(
           // to keep the conversation when switching views
           const originalDispose = previousModel.dispose.bind(previousModel);
           previousModel.dispose = () => {};
-          
+
           if (previousWidget instanceof ChatWidget) {
             if (!disposeSideChatModel(previousModel)) {
               previousWidget.dispose();
