@@ -58,7 +58,7 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
-import { PromiseDelegate, UUID } from '@lumino/coreutils';
+import { UUID } from '@lumino/coreutils';
 
 import { DisposableSet } from '@lumino/disposable';
 
@@ -1094,67 +1094,25 @@ function registerCommands(
           return false;
         }
 
-        // Listen for the widget updated in tracker, to ensure the previous model name
-        // has been updated. This is required to remove the widget from the restorer
-        // when the previous widget is disposed.
-        const trackerUpdated = new PromiseDelegate<boolean>();
-        const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
-          if (widget.model === previousModel) {
-            trackerUpdated.resolve(true);
-          }
-        };
-        tracker.widgetUpdated.connect(widgetUpdated);
-
-        // Rename temporary the previous model to be able to reuse this name for the new
-        // model. The previous is intended to be disposed anyway.
-        previousModel.name = UUID.uuid4();
-
-        // Create a new model by duplicating the previous model attributes.
-        const model = modelRegistry.createModel({
-          name: args.name as string,
-          activeProvider: previousModel.agentManager.activeProvider,
-          tokenUsage: previousModel.agentManager.tokenUsage,
-          messages: previousModel.messages,
-          autosave: previousModel.autosave,
-          title: previousModel.title
-        });
-
-        // Copy queue to the new model (this will automatically start draining it)
-        model.messageQueue = previousModel.messageQueue;
-
-        // Rebuild history for the new agent manager to restore conversation context
-        model.rebuildHistory().catch(console.error);
-
-        // Wait (with timeout) for the tracker to have updated the previous widget.
-        const status = await Promise.any([
-          trackerUpdated.promise,
-          new Promise<boolean>(r =>
-            setTimeout(() => {
-              r(false);
-            }, 2000)
-          )
-        ]);
-        tracker.widgetUpdated.disconnect(widgetUpdated);
-
-        if (!status) {
-          return false;
-        }
-
         if (area === 'main') {
-          openInMain(model);
-
+          // Temporarily bypass model disposal to transport model to main view
+          // to keep the conversation when switching views
+          const originalDispose = previousModel.dispose.bind(previousModel);
+          previousModel.dispose = () => {};
+          
           if (previousWidget instanceof ChatWidget) {
-            // Clean up the side-panel model entry before disposing the previous
-            // widget/model state.
             if (!disposeSideChatModel(previousModel)) {
               previousWidget.dispose();
-              previousModel.dispose();
             }
           }
+
+          // Restore model disposal and transport to main view
+          previousModel.dispose = originalDispose;
+          openInMain(previousModel);
         } else {
+          // MainAreaChat disposal does not dispose the model internally, so this is safe.
           previousWidget?.dispose();
-          previousModel.dispose();
-          chatPanel.open({ model });
+          chatPanel.open({ model: previousModel });
         }
 
         return true;
