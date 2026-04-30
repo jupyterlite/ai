@@ -252,8 +252,7 @@ export class AIChatModel extends AbstractChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
-      addSystemMessage: (body: string) => this.addSystemMessage(body),
-      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id)
+      addSystemMessage: (body: string) => this.addSystemMessage(body)
     };
   }
 
@@ -338,20 +337,26 @@ export class AIChatModel extends AbstractChatModel {
 
     this._isBusy = true;
     this.messageAdded(userMessage);
+    this.input.clearAttachments();
 
+    await this._processMessage(userMessage);
+  }
+
+  /**
+   * Internal method to process attachments and send the message to the agent.
+   */
+  private async _processMessage(userMessage: IMessageContent): Promise<void> {
     try {
       this.updateWriters([{ user: this._getAIUser() }]);
 
-      // Process attachments and add their content to the message
-      let enhancedMessage: UserContent = message.body;
-      if (this.input.attachments.length > 0) {
+      let enhancedMessage: UserContent = userMessage.body;
+      if (userMessage.attachments && userMessage.attachments.length > 0) {
         const { textContents, binaryParts } = await Private.processAttachments(
-          this.input.attachments,
+          userMessage.attachments,
           this.input.documentManager
         );
-        this.input.clearAttachments();
 
-        let textPart = message.body;
+        let textPart = userMessage.body;
         if (textContents.length > 0) {
           textPart +=
             '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
@@ -468,42 +473,7 @@ export class AIChatModel extends AbstractChatModel {
     this.messageAdded(next._originalMsg!);
     this._updateQueueUI();
 
-    try {
-      // Process attachments now.
-      let enhancedMessage: UserContent = next.body;
-      if (next._originalMsg?.attachments?.length) {
-        const { textContents, binaryParts } = await Private.processAttachments(
-          next._originalMsg.attachments,
-          this.input.documentManager
-        );
-
-        let textPart = next.body;
-        if (textContents.length > 0) {
-          textPart +=
-            '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
-        }
-
-        if (binaryParts.length > 0) {
-          enhancedMessage = [{ type: 'text', text: textPart }, ...binaryParts];
-        } else {
-          enhancedMessage = textPart;
-        }
-      }
-
-      await this._agentManager.generateResponse(enhancedMessage);
-    } catch (error) {
-      const errorMessage: IMessageContent = {
-        body: `Error generating AI response: ${(error as Error).message}`,
-        sender: this._getAIUser(),
-        id: UUID.uuid4(),
-        time: Date.now() / 1000,
-        type: 'msg',
-        raw_time: false
-      };
-      this.messageAdded(errorMessage);
-    } finally {
-      this._drainQueue();
-    }
+    await this._processMessage(next._originalMsg);
   }
 
   /**
@@ -1665,10 +1635,6 @@ export namespace AIChatModel {
      * The agent manager of the chat.
      */
     agentManager: IAgentManager;
-    /**
-     * Removes a queued message by its ID.
-     */
-    removeQueuedMessage: (id: string) => void;
   }
 
   /**
