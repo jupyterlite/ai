@@ -726,6 +726,11 @@ export interface IAIChatModel extends IChatModel {
    * Request a title to this chat, regarding the message history.
    */
   requestTitle(): Promise<string>;
+  /**
+   * Removes a queued message by its ID.
+   * @param messageId The ID of the queued message to remove
+   */
+  removeQueuedMessage(messageId: string): void;
 }
 
 /**
