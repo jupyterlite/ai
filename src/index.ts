@@ -1119,6 +1119,13 @@ function registerCommands(
           title: previousModel.title
         });
 
+        // Copy queue and busy state
+        model.isBusy = previousModel.isBusy;
+        model.messageQueue = previousModel.messageQueue;
+
+        // Rebuild history for new agent manager to restore conversation context
+        model.rebuildHistory().catch(console.error);
+
         // Wait (with timeout) for the tracker to have updated the previous widget.
         const status = await Promise.any([
           trackerUpdated.promise,

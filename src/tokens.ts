@@ -731,6 +731,18 @@ export interface IAIChatModel extends IChatModel {
    * @param messageId The ID of the queued message to remove
    */
   removeQueuedMessage(messageId: string): void;
+  /**
+   * The current message queue
+   */
+  messageQueue: any[];
+  /**
+   * Whether the chat is currently busy processing a message
+   */
+  isBusy: boolean;
+  /**
+   * Rebuilds the agent history from the current messages
+   */
+  rebuildHistory(): Promise<void>;
 }
 
 /**
