@@ -5,6 +5,7 @@ import {
   IChatContext,
   IMessage,
   IMessageContent,
+  IMimeModelBody,
   INewMessage,
   IUser
 } from '@jupyter/chat';
@@ -33,9 +34,23 @@ import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
+import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
+
 import { AI_AVATAR } from './icons';
 
-import type { IAgentManager, IAISettingsModel, ITokenUsage } from './tokens';
+import type {
+  IAgentManager,
+  IAIChatModel,
+  IAISettingsModel,
+  IProviderRegistry,
+  ITokenUsage
+} from './tokens';
+
+import {
+  modelSupportsAudio,
+  modelSupportsImages,
+  modelSupportsPdf
+} from './providers/model-info';
 
 /**
  * Tool call status types.
@@ -69,10 +84,6 @@ interface IToolExecutionContext {
    */
   input: string;
   /**
-   * Optional approval ID if awaiting approval.
-   */
-  approvalId?: string;
-  /**
    * Current status.
    */
   status: ToolStatus;
@@ -90,7 +101,7 @@ interface IToolExecutionContext {
  * AI Chat Model implementation that provides chat functionality tool integration,
  * and MCP server support.
  */
-export class AIChatModel extends AbstractChatModel {
+export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   /**
    * Constructs a new AIChatModel instance.
    * @param options Configuration options for the chat model
@@ -108,12 +119,20 @@ export class AIChatModel extends AbstractChatModel {
     this._user = options.user;
     this._agentManager = options.agentManager;
     this._contentsManager = options.contentsManager;
+    this._providerRegistry = options.providerRegistry;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    // Rebuild history when the model changes
+    this._agentManager.activeProviderChanged.connect(
+      this._onModelChanged,
+      this
+    );
+    this._settingsModel.stateChanged.connect(this._onModelChanged, this);
 
     this._autosaveDebouncer = new Debouncer(this.save, 3000);
   }
@@ -136,12 +155,43 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
+   * A signal emitting when the chat name has changed.
+   */
+  get nameChanged(): ISignal<IAIChatModel, string> {
+    return this._nameChanged;
+  }
+
+  /**
+   * The title of the chat.
+   */
+  get title(): string | null {
+    return this._title;
+  }
+  set title(value: string | null) {
+    this._title = value;
+    if (this.autosave) {
+      this._autosaveDebouncer.invoke();
+    }
+    this._titleChanged.emit(this._title);
+  }
+
+  /**
+   * A signal emitting when the chat title has changed.
+   */
+  get titleChanged(): ISignal<IAIChatModel, string | null> {
+    return this._titleChanged;
+  }
+
+  /**
    * Whether to save the chat automatically.
    */
   get autosave(): boolean {
     return this._autosave;
   }
   set autosave(value: boolean) {
+    if (value === this._autosave) {
+      return;
+    }
     this._autosave = value;
     this._autosaveChanged.emit(value);
     if (value) {
@@ -153,7 +203,6 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer.invoke,
         this._autosaveDebouncer
       );
-      this._autosaveDebouncer.invoke();
     } else {
       this.messagesUpdated.disconnect(
         this._autosaveDebouncer.invoke,
@@ -164,20 +213,14 @@ export class AIChatModel extends AbstractChatModel {
         this._autosaveDebouncer
       );
     }
+    this._autosaveDebouncer.invoke();
   }
 
   /**
    * A signal emitting when the autosave flag changed.
    */
-  get autosaveChanged(): ISignal<AIChatModel, boolean> {
+  get autosaveChanged(): ISignal<IAIChatModel, boolean> {
     return this._autosaveChanged;
-  }
-
-  /**
-   * A signal emitting when the chat name has changed.
-   */
-  get nameChanged(): ISignal<AIChatModel, string> {
-    return this._nameChanged;
   }
 
   /**
@@ -195,7 +238,7 @@ export class AIChatModel extends AbstractChatModel {
   }
 
   /**
-   * Get the agent manager associated to the model.
+   * The agent manager used in the model.
    */
   get agentManager(): IAgentManager {
     return this._agentManager;
@@ -231,7 +274,7 @@ export class AIChatModel extends AbstractChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
-      addSystemMessage: (body: string) => this.addSystemMessage(body)
+      addSystemMessage: (body: string) => this._addSystemMessage(body)
     };
   }
 
@@ -245,11 +288,12 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Clears all messages from the chat and resets conversation state.
    */
-  clearMessages = (): void => {
+  clearMessages = async (): Promise<void> => {
     this.messagesDeleted(0, this.messages.length);
+    this.title = null;
     this._toolContexts.clear();
     this._branchPoints.clear();
-    this._agentManager.clearHistory();
+    await this._agentManager.clearHistory();
   };
 
   /**
@@ -403,7 +447,7 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Adds a non-user message to the chat (used by chat commands).
    */
-  addSystemMessage(body: string): void {
+  private _addSystemMessage(body: string): void {
     const message: IMessageContent = {
       body,
       sender: this._getAIUser(),
@@ -454,17 +498,33 @@ export class AIChatModel extends AbstractChatModel {
 
     try {
       // Process attachments and add their content to the message
-      let enhancedMessage = message.body;
+      let enhancedMessage: UserContent = message.body;
       if (this.input.attachments.length > 0) {
-        const attachmentContents = await this._processAttachments(
-          this.input.attachments
+        const providerConfig = this._settingsModel.getProvider(
+          this._agentManager.activeProvider
+        );
+        const supportsImages = modelSupportsImages(
+          providerConfig,
+          this._providerRegistry
+        );
+        const supportsPdf = modelSupportsPdf(
+          providerConfig,
+          this._providerRegistry
+        );
+        const supportsAudio = modelSupportsAudio(
+          providerConfig,
+          this._providerRegistry
+        );
+
+        enhancedMessage = await Private.processAttachments(
+          this.input.attachments,
+          this.input.documentManager,
+          message.body,
+          supportsImages,
+          supportsPdf,
+          supportsAudio
         );
         this.input.clearAttachments();
-
-        if (attachmentContents.length > 0) {
-          enhancedMessage +=
-            '\n\n--- Attached Files ---\n' + attachmentContents.join('\n\n');
-        }
       }
 
       this.updateWriters([{ user: this._getAIUser() }]);
@@ -474,6 +534,17 @@ export class AIChatModel extends AbstractChatModel {
       this.messageAdded(this._createErrorMessage(error as Error));
     } finally {
       this.updateWriters([]);
+
+      if (
+        this._settingsModel.config.autoTitle &&
+        (this.messages.length <= 5 || this.title === null)
+      ) {
+        try {
+          this.title = await this.requestTitle();
+        } catch (e) {
+          console.warn('Error while generating a title\n', e);
+        }
+      }
     }
   }
 
@@ -561,12 +632,38 @@ export class AIChatModel extends AbstractChatModel {
         attachments
       };
     });
-    this.clearMessages();
+    await this.clearMessages();
     this.messagesInserted(0, messages);
-    this._agentManager.setHistory(messages);
+    await this._rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
+    this.title = content.metadata?.title ?? null;
     return true;
   };
+
+  /**
+   * Request a title to this chat, regarding the message history.
+   */
+  async requestTitle(): Promise<string> {
+    const history = this.messages
+      .filter(msg => msg.body !== '')
+      .map(
+        msg =>
+          `${msg.sender.username === 'ai-assistant' ? 'assistant' : 'user'}: ${msg.body}`
+      )
+      .join('\n');
+    const messages: ModelMessage[] = [
+      {
+        role: 'system',
+        content:
+          "Generate a concise title (no more than 10 words) for the following conversation. Do not use formatting, quotes, or punctuation. Focus on the subject matter and specific content the user is working on, not on the actions taken (e.g. prefer 'Pandas DataFrame filtering' over 'Opening a notebook'). The title should be a noun phrase describing the topic."
+      },
+      {
+        role: 'user',
+        content: history
+      }
+    ];
+    return this.agentManager.textResponse(messages);
+  }
 
   /**
    * Serialize the model for backup
@@ -617,7 +714,8 @@ export class AIChatModel extends AbstractChatModel {
       attachments,
       metadata: {
         provider,
-        autosave: this.autosave
+        autosave: this.autosave,
+        ...(this.title ? { title: this.title } : {})
       }
     };
   }
@@ -641,6 +739,75 @@ export class AIChatModel extends AbstractChatModel {
     const config = this._settingsModel.config;
     this.config = { ...config, enableCodeToolbar: true };
     // Agent manager handles agent recreation automatically via its own settings listener
+  }
+
+  /**
+   * Rebuild history when the active model changes.
+   */
+  private _onModelChanged(): void {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agentManager.activeProvider
+    );
+    const modelKey = providerConfig
+      ? `${providerConfig.provider}:${providerConfig.model}`
+      : undefined;
+    if (modelKey && modelKey !== this._currentModelKey) {
+      this._currentModelKey = modelKey;
+      this._rebuildHistory().catch(e =>
+        console.warn('Failed to rebuild history on model change:', e)
+      );
+    }
+  }
+
+  /**
+   * Rebuilds the agent history from the current messages.
+   * For vision-capable models, re-reads binary attachments from disk.
+   * For text-only models, uses message text only.
+   */
+  private async _rebuildHistory(): Promise<void> {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agentManager.activeProvider
+    );
+    const supportsImages = modelSupportsImages(
+      providerConfig,
+      this._providerRegistry
+    );
+    const supportsPdf = modelSupportsPdf(
+      providerConfig,
+      this._providerRegistry
+    );
+    const supportsAudio = modelSupportsAudio(
+      providerConfig,
+      this._providerRegistry
+    );
+
+    const modelMessages: ModelMessage[] = [];
+    for (const msg of this.messages) {
+      const isAI = msg.sender.username === 'ai-assistant';
+      if (!isAI && msg.attachments?.length) {
+        const enhancedContent = await Private.processAttachments(
+          msg.attachments,
+          this.input.documentManager,
+          msg.body,
+          supportsImages,
+          supportsPdf,
+          supportsAudio
+        );
+
+        modelMessages.push({
+          role: 'user',
+          content: enhancedContent
+        } as ModelMessage);
+      } else if (msg.body) {
+        modelMessages.push({
+          role: isAI ? 'assistant' : 'user',
+          content: msg.body
+        } as ModelMessage);
+      }
+      // Skip messages with empty body like tool calls
+    }
+
+    this._agentManager.setHistory(modelMessages);
   }
 
   /**
@@ -843,13 +1010,18 @@ export class AIChatModel extends AbstractChatModel {
       body: '',
       mime_model: {
         data: {
-          'application/vnd.jupyter.chat.components': 'tool-call'
+          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
         },
         metadata: {
-          toolName: context.toolName,
-          input: context.input,
-          status: context.status,
-          summary: context.summary
+          toolCalls: [
+            {
+              toolCallId: context.toolCallId,
+              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
+              kind: context.toolName,
+              status: 'in_progress',
+              rawInput: context.input
+            }
+          ]
         }
       },
       sender: this._getAIUser(),
@@ -940,7 +1112,6 @@ export class AIChatModel extends AbstractChatModel {
     if (!context) {
       return;
     }
-    context.approvalId = event.data.approvalId;
     context.input = JSON.stringify(event.data.args, null, 2);
     this._updateToolCallUI(event.data.toolCallId, 'awaiting_approval');
   }
@@ -951,15 +1122,13 @@ export class AIChatModel extends AbstractChatModel {
   private _handleToolApprovalResolved(
     event: IAgentManager.IAgentEvent<'tool_approval_resolved'>
   ): void {
-    const context = Array.from(this._toolContexts.values()).find(
-      ctx => ctx.approvalId === event.data.approvalId
-    );
+    const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
     }
 
     const status = event.data.approved ? 'approved' : 'rejected';
-    this._updateToolCallUI(context.toolCallId, status);
+    this._updateToolCallUI(event.data.toolCallId, status);
 
     if (!event.data.approved) {
       this._toolContexts.delete(context.toolCallId);
@@ -990,76 +1159,357 @@ export class AIChatModel extends AbstractChatModel {
     existingMessage.update({
       mime_model: {
         data: {
-          'application/vnd.jupyter.chat.components': 'tool-call'
+          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
         },
         metadata: {
-          toolName: context.toolName,
-          input: context.input,
-          status: context.status,
-          summary: context.summary,
-          output,
-          targetId: this.name,
-          approvalId: context.approvalId
+          toolCalls: [
+            {
+              toolCallId: context.toolCallId,
+              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
+              kind: context.toolName,
+              status: context.status,
+              rawInput: context.input,
+              rawOutput: output,
+              sessionId: this.name,
+              permissionStatus:
+                status === 'awaiting_approval' ? 'pending' : 'resolved',
+              ...(status === 'awaiting_approval' && {
+                permissionOptions: [
+                  { optionId: 'approve', name: 'Approve', kind: 'allow_once' },
+                  { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
+                ]
+              })
+            }
+          ]
         }
       }
     });
   }
 
+  // Private fields
+  private _settingsModel: IAISettingsModel;
+  private _user: IUser;
+  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
+  private _agentManager: IAgentManager;
+  private _providerRegistry?: IProviderRegistry;
+  private _currentModelKey: string | undefined;
+  private _currentStreamingMessage: IMessage | null = null;
+  private _nameChanged = new Signal<IAIChatModel, string>(this);
+  private _contentsManager?: Contents.IManager;
+  private _autosave: boolean = false;
+  private _autosaveChanged = new Signal<IAIChatModel, boolean>(this);
+  private _autosaveDebouncer: Debouncer;
+  private _title: string | null = null;
+  private _titleChanged = new Signal<IAIChatModel, string | null>(this);
+}
+
+namespace Private {
+  type IDisplayOutput =
+    | nbformat.IDisplayData
+    | nbformat.IDisplayUpdate
+    | nbformat.IExecuteResult;
+
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
+    if (!isPlainObject(value)) {
+      return false;
+    }
+
+    const output = value as nbformat.IOutput;
+    return (
+      nbformat.isDisplayData(output) ||
+      nbformat.isDisplayUpdate(output) ||
+      nbformat.isExecuteResult(output)
+    );
+  };
+
+  const toMimeBundle = (
+    value: IDisplayOutput,
+    trustedMimeTypes: ReadonlySet<string>
+  ): IMimeModelBody | null => {
+    const data = value.data;
+    if (!isPlainObject(data) || Object.keys(data).length === 0) {
+      return null;
+    }
+
+    return {
+      data: data as IRenderMime.IMimeModel['data'],
+      ...(isPlainObject(value.metadata)
+        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
+        : {}),
+      // MIME auto-rendering only runs for explicitly configured command IDs.
+      // Trust handling is configurable to keep risky MIME execution opt-in.
+      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+        ? { trusted: true }
+        : {})
+    };
+  };
+
   /**
-   * Processes file attachments and returns their content as formatted strings.
-   * @param attachments Array of file attachments to process
-   * @returns Array of formatted attachment contents
+   * Normalize arbitrary tool payloads into canonical display outputs.
+   *
+   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
+   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
    */
-  private async _processAttachments(
-    attachments: IAttachment[]
-  ): Promise<string[]> {
-    const contents: string[] = [];
+  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
+    if (isDisplayOutput(value)) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(isDisplayOutput);
+    }
+
+    if (!isPlainObject(value)) {
+      return [];
+    }
+
+    if (Array.isArray(value.outputs)) {
+      return value.outputs.filter(isDisplayOutput);
+    }
+
+    if ('result' in value) {
+      return toDisplayOutputs(value.result);
+    }
+
+    return [];
+  };
+
+  /**
+   * Extract rendermime-ready mime bundles from arbitrary tool results.
+   */
+  export function extractMimeBundlesFromUnknown(
+    content: unknown,
+    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
+  ): IMimeModelBody[] {
+    const bundles: IMimeModelBody[] = [];
+    const outputs = toDisplayOutputs(content);
+    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
+    for (const output of outputs) {
+      const bundle = toMimeBundle(output, trustedMimeTypes);
+      if (bundle) {
+        bundles.push(bundle);
+      }
+    }
+    return bundles;
+  }
+
+  export function formatToolOutput(outputData: unknown): string {
+    if (typeof outputData === 'string') {
+      return outputData;
+    }
+
+    try {
+      return JSON.stringify(outputData, null, 2);
+    } catch {
+      return '[Complex object - cannot serialize]';
+    }
+  }
+
+  /**
+   * Processes file attachments and returns the message content with the attachments.
+   * @param attachments Array of file attachments to process
+   * @param documentManager Optional document manager for file operations
+   * @param body The message body
+   * @param supportsImages Whether the model supports images
+   * @param supportsPdf Whether the model supports pdfs
+   * @param supportsAudio Whether the model supports audio
+   * @returns Enhanced message content
+   */
+  export async function processAttachments(
+    attachments: IAttachment[],
+    documentManager: IDocumentManager | null | undefined,
+    body: string,
+    supportsImages: boolean,
+    supportsPdf: boolean,
+    supportsAudio: boolean
+  ): Promise<UserContent> {
+    const textContents: string[] = [];
+    const includedParts: Array<ImagePart | FilePart> = [];
+    const omittedNames: string[] = [];
+
+    if (!documentManager) {
+      return body;
+    }
 
     for (const attachment of attachments) {
       try {
         if (attachment.type === 'notebook' && attachment.cells?.length) {
-          const cellContents = await this._readNotebookCells(attachment);
+          const cellContents = await readNotebookCells(
+            attachment,
+            documentManager
+          );
           if (cellContents) {
-            contents.push(cellContents);
+            textContents.push(cellContents);
           }
         } else {
-          const fileContent = await this._readFileAttachment(attachment);
-          if (fileContent) {
-            const fileExtension = PathExt.extname(
-              attachment.value
-            ).toLowerCase();
-            const language = fileExtension === '.ipynb' ? 'json' : '';
-            contents.push(
-              `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+          let mimetype = attachment.mimetype;
+          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+
+          // Fetch mimetype from server metadata if not provided
+          if (!mimetype) {
+            try {
+              const diskModel = await documentManager.services.contents.get(
+                attachment.value,
+                { content: false }
+              );
+              mimetype = diskModel?.mimetype;
+            } catch (e) {
+              console.warn(
+                `Failed to fetch metadata for ${attachment.value}:`,
+                e
+              );
+            }
+          }
+
+          if (mimetype?.startsWith('image/')) {
+            if (supportsImages) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'image',
+                  image: data,
+                  mediaType: mimetype
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
+            }
+          } else if (mimetype === 'application/pdf') {
+            if (supportsPdf) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'file',
+                  data,
+                  mediaType: mimetype,
+                  filename: PathExt.basename(attachment.value)
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
+            }
+          } else if (mimetype?.startsWith('audio/')) {
+            if (supportsAudio) {
+              const data = await readBinaryAttachment(
+                attachment,
+                documentManager
+              );
+              if (data) {
+                includedParts.push({
+                  type: 'file',
+                  data,
+                  mediaType: mimetype,
+                  filename: PathExt.basename(attachment.value)
+                });
+              }
+            } else {
+              omittedNames.push(PathExt.basename(attachment.value));
+            }
+          } else {
+            const fileContent = await readFileAttachment(
+              attachment,
+              documentManager
             );
+            if (fileContent) {
+              const language =
+                fileExtension === '.ipynb' ||
+                mimetype === 'application/x-ipynb+json'
+                  ? 'json'
+                  : '';
+              textContents.push(
+                `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
+              );
+            }
           }
         }
       } catch (error) {
         console.warn(`Failed to read attachment ${attachment.value}:`, error);
-        contents.push(`**File: ${attachment.value}** (Could not read file)`);
+        textContents.push(
+          `**File: ${attachment.value}** (Could not read file)`
+        );
       }
     }
 
-    return contents;
+    let textPart = body;
+    if (textContents.length > 0) {
+      textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
+    }
+
+    if (omittedNames.length > 0) {
+      textPart += `\n[Attachments omitted (not supported by this model): ${omittedNames.join(', ')}.]`;
+    }
+
+    return includedParts.length > 0
+      ? [{ type: 'text', text: textPart }, ...includedParts]
+      : textPart;
+  }
+
+  /**
+   * Reads a binary attachment and returns its base64-encoded content.
+   * @param attachment The attachment to read
+   * @param documentManager Optional document manager for file operations
+   * @returns Base64 string or null if unable to read
+   */
+  export async function readBinaryAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
+  ): Promise<string | null> {
+    if (!documentManager) {
+      return null;
+    }
+
+    try {
+      const diskModel = await documentManager.services.contents.get(
+        attachment.value,
+        { content: true }
+      );
+      if (diskModel?.content && diskModel.format === 'base64') {
+        // Strip whitespace/newlines
+        return (diskModel.content as string).replace(/\s/g, '');
+      }
+      return null;
+    } catch (error) {
+      console.warn(
+        `Failed to read binary attachment ${attachment.value}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
    * Reads the content of a notebook cell.
    * @param attachment The notebook attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns Cell content as string or null if unable to read
    */
-  private async _readNotebookCells(
-    attachment: IAttachment
+  export async function readNotebookCells(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
-    if (attachment.type !== 'notebook' || !attachment.cells) {
+    if (
+      attachment.type !== 'notebook' ||
+      !attachment.cells ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from live notebook if open
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
       let cellData: nbformat.ICell[];
       let kernelLang = 'text';
 
@@ -1078,7 +1528,7 @@ export class AIChatModel extends AbstractChatModel {
         kernelLang = String(lang);
       } else {
         // Fallback: reading from disk
-        const model = await this.input.documentManager?.services.contents.get(
+        const model = await documentManager.services.contents.get(
           attachment.value
         );
         if (!model || model.type !== 'notebook') {
@@ -1222,21 +1672,26 @@ export class AIChatModel extends AbstractChatModel {
   /**
    * Reads the content of a file attachment.
    * @param attachment The file attachment to read
+   * @param documentManager Optional document manager for file operations
    * @returns File content as string or null if unable to read
    */
-  private async _readFileAttachment(
-    attachment: IAttachment
+  export async function readFileAttachment(
+    attachment: IAttachment,
+    documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
     // Handle both 'file' and 'notebook' types since both have a 'value' path
-    if (attachment.type !== 'file' && attachment.type !== 'notebook') {
+    if (
+      (attachment.type !== 'file' && attachment.type !== 'notebook') ||
+      !documentManager
+    ) {
       return null;
     }
 
     try {
       // Try reading from an open widget first
-      const widget = this.input.documentManager?.findWidget(
-        attachment.value
-      ) as IDocumentWidget<Notebook, INotebookModel> | undefined;
+      const widget = documentManager.findWidget(attachment.value) as
+        | IDocumentWidget<Notebook, INotebookModel>
+        | undefined;
 
       if (widget && widget.context && widget.context.model) {
         const model = widget.context.model;
@@ -1251,7 +1706,7 @@ export class AIChatModel extends AbstractChatModel {
       }
 
       // If not open, load from disk
-      const diskModel = await this.input.documentManager?.services.contents.get(
+      const diskModel = await documentManager.services.contents.get(
         attachment.value
       );
 
@@ -1282,6 +1737,7 @@ export class AIChatModel extends AbstractChatModel {
       return null;
     }
   }
+<<<<<<< HEAD
 
   // Private fields
   private _settingsModel: IAISettingsModel;
@@ -1407,6 +1863,8 @@ namespace Private {
       return '[Complex object - cannot serialize]';
     }
   }
+=======
+>>>>>>> upstream/main
 }
 
 /**
@@ -1450,6 +1908,10 @@ export namespace AIChatModel {
      */
     contentsManager?: Contents.IManager;
     /**
+     * Optional provider registry for model capability lookups.
+     */
+    providerRegistry?: IProviderRegistry;
+    /**
      * Whether to restore or not the message (default to true)
      */
     restore?: boolean;
@@ -1466,7 +1928,7 @@ export namespace AIChatModel {
     /**
      * The clear messages callback.
      */
-    clearMessages: () => void;
+    clearMessages: () => Promise<void>;
     /**
      * Adds an assistant/system message to the chat.
      */
@@ -1505,6 +1967,10 @@ export namespace AIChatModel {
        * Whether the chat is automatically saved.
        */
       autosave?: boolean;
+      /**
+       * An optional title of the chat.
+       */
+      title?: string;
     };
   };
 }

@@ -71,8 +71,6 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManagerFactory } from './agent';
 
-import { AIChatModel } from './chat-model';
-
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
 import { ClearCommandProvider } from './chat-commands/clear';
@@ -96,7 +94,8 @@ import {
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
-  SECRETS_NAMESPACE
+  SECRETS_NAMESPACE,
+  IAIChatModel
 } from './tokens';
 
 import {
@@ -360,6 +359,27 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
 };
 
 /**
+ * The active cell manager plugin, to allow copying code from chat to notebook.
+ */
+const activeCellManager: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/ai:activeCellManager',
+  description: 'Add the active cell manager to the model handler',
+  autoStart: true,
+  requires: [IChatModelHandler, INotebookTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    modelHandler: IChatModelHandler,
+    notebookTracker: INotebookTracker
+  ) => {
+    const activeCellManager = new ActiveCellManager({
+      tracker: notebookTracker,
+      shell: app.shell
+    });
+    modelHandler.activeCellManager = activeCellManager;
+  }
+};
+
+/**
  * Initialization data for the extension.
  */
 const plugin: JupyterFrontEndPlugin<IChatTracker> = {
@@ -378,7 +398,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     IThemeManager,
     ILayoutRestorer,
     ILabShell,
-    INotebookTracker,
     ITranslator,
     IComponentsRendererFactory,
     ICommandPalette,
@@ -394,7 +413,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
-    notebookTracker?: INotebookTracker,
     translator?: ITranslator,
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
@@ -417,17 +435,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         void app.commands.execute(CommandIds.openSettings);
       }
     };
-
-    // Create ActiveCellManager if notebook tracker is available, and add it to the
-    // model registry.
-    let activeCellManager: ActiveCellManager | undefined;
-    if (notebookTracker) {
-      activeCellManager = new ActiveCellManager({
-        tracker: notebookTracker,
-        shell: app.shell
-      });
-    }
-    modelHandler.activeCellManager = activeCellManager;
 
     // Creating the tracker for the chat widgets
     const namespace = 'ai-chat';
@@ -525,7 +532,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
     let usageWidget: UsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
-      const model = widget.model as AIChatModel;
+      const model = widget.model as IAIChatModel;
 
       // Add the widget to the tracker.
       tracker.add(widget);
@@ -533,6 +540,18 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       function saveTracker() {
         tracker.save(widget);
       }
+
+      function updateToolbarTitleOverlay() {
+        const titleNode = chatPanel.current?.toolbar.node
+          .getElementsByClassName('jp-chat-sidepanel-widget-title')
+          .item(0);
+        if (titleNode) {
+          titleNode.setAttribute('title', model.title ?? model.name);
+        }
+      }
+
+      model.titleChanged.connect(updateToolbarTitleOverlay);
+      updateToolbarTitleOverlay();
 
       // Update the tracker if the model name changed.
       model.nameChanged.connect(saveTracker);
@@ -589,6 +608,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       });
 
       widget.disposed.connect(() => {
+        model.titleChanged.disconnect(updateToolbarTitleOverlay);
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
         model.writersChanged?.disconnect(writersChanged);
@@ -614,7 +634,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         args: widget => ({
           name: widget.model.name,
           area: widget instanceof MainAreaChat ? 'main' : 'side',
-          provider: (widget.model as AIChatModel).agentManager.activeProvider
+          provider: (widget.model as IAIChatModel).agentManager.activeProvider
         }),
         name: widget => {
           const area = widget instanceof MainAreaChat ? 'main' : 'side';
@@ -649,24 +669,28 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     );
 
     /**
-     * The callback to approve or reject a tool.
+     * The callback for grouped tool calls permission decisions.
      */
-    function toolCallApproval(
-      targetId: string,
-      approvalId: string,
-      isApproved: boolean
+    function toolCallPermissionDecision(
+      sessionId: string,
+      toolCallId: string,
+      optionId: string
     ) {
-      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      const model = tracker.find(chat => chat.model.name === sessionId)
+        ?.model as IAIChatModel;
       if (!model) {
         return;
       }
+
+      const isApproved = optionId === 'approve';
       isApproved
-        ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
-        : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+        ? model.agentManager.approveToolCall(toolCallId)
+        : model.agentManager.rejectToolCall(toolCallId);
     }
 
     if (chatComponentsFactory) {
-      chatComponentsFactory.toolCallApproval = toolCallApproval;
+      chatComponentsFactory.toolCallPermissionDecision =
+        toolCallPermissionDecision;
     }
 
     return tracker;
@@ -743,12 +767,13 @@ function registerCommands(
       }
     });
 
-    const openInMain = (model: AIChatModel) => {
+    const openInMain = (model: IAIChatModel): MainAreaChat => {
+      const inputToolbarRegistry = inputToolbarFactory.create();
       const content = new ChatWidget({
         model,
         rmRegistry,
         themeManager: themeManager ?? null,
-        inputToolbarRegistry: inputToolbarFactory.create(),
+        inputToolbarRegistry,
         attachmentOpenerRegistry,
         chatCommandRegistry,
         messageFooterRegistry
@@ -777,6 +802,64 @@ function registerCommands(
         model.nameChanged.disconnect(saveTracker);
         model.agentManager.activeProviderChanged.disconnect(saveTracker);
       });
+
+      return widget;
+    };
+
+    const focusOnChat = (
+      area: 'main' | 'side',
+      widget?: ChatWidget | MainAreaChat
+    ) => {
+      if (area === 'main' && widget) {
+        app.shell.activateById(widget.id);
+      } else {
+        app.shell.activateById(chatPanel.id);
+      }
+    };
+
+    const applyInputArgs = (model: IChatModel, args: any) => {
+      const input = typeof args.input === 'string' ? args.input : undefined;
+      const autoSend = args.autoSend === true;
+      const shouldFocus = args.focus !== false;
+
+      if (input !== undefined) {
+        model.input.value = input;
+      }
+      if (autoSend && input !== undefined) {
+        model.input.send(model.input.value);
+      }
+      if (shouldFocus) {
+        model.input.focus();
+      }
+    };
+
+    const findChatWidget = (
+      name?: string,
+      provider?: string
+    ): ChatWidget | MainAreaChat | undefined => {
+      if (!name && !provider) {
+        return;
+      }
+      return tracker.find(widget => {
+        const model = widget.model as IAIChatModel;
+        return (
+          (!name || widget.model.name === name) &&
+          (!provider || model.agentManager.activeProvider === provider)
+        );
+      });
+    };
+
+    const disposeSideChatModel = (model: IChatModel): boolean => {
+      const loadedName = chatPanel
+        .getLoadedModelNames()
+        .find(name => chatPanel.getLoadedModel(name) === model);
+
+      if (!loadedName) {
+        return false;
+      }
+
+      chatPanel.disposeLoadedModel(loadedName);
+      return true;
     };
 
     commands.addCommand(CommandIds.openChat, {
@@ -811,11 +894,18 @@ function registerCommands(
           return false;
         }
 
+        const shouldFocus = args.focus === true;
+        let widget: ChatWidget | MainAreaChat | undefined;
         if (area === 'main') {
-          openInMain(model);
+          widget = openInMain(model);
         } else {
-          chatPanel.open({ model });
+          widget = chatPanel.open({ model });
         }
+        if (shouldFocus) {
+          focusOnChat(area, widget);
+        }
+        applyInputArgs(model, { ...args, focus: shouldFocus });
+
         return true;
       },
       describedBy: {
@@ -834,6 +924,137 @@ function registerCommands(
             provider: {
               type: 'string',
               description: trans.__('The provider/model to use with this chat')
+            },
+            input: {
+              type: 'string',
+              description: trans.__('The input text to prefill in the chat')
+            },
+            focus: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to focus the chat input after opening it'
+              )
+            },
+            autoSend: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to auto-send the provided input after opening the chat'
+              )
+            }
+          }
+        }
+      }
+    });
+
+    commands.addCommand(CommandIds.openOrRevealChat, {
+      label: trans.__('Open or reveal the chat panel'),
+      execute: async (args): Promise<boolean> => {
+        const area = (args.area as string) === 'main' ? 'main' : 'side';
+        const provider = (args.provider as string) ?? undefined;
+        const name = (args.name as string) ?? undefined;
+        const shouldFocus = args.focus === true;
+
+        let existingWidget = findChatWidget(name, provider);
+        if (!existingWidget && !name) {
+          const providerConfig = provider
+            ? settingsModel.getProvider(provider)
+            : settingsModel.getDefaultProvider();
+          existingWidget = findChatWidget(undefined, providerConfig?.id);
+        }
+
+        // If the side chat model is loaded but not currently displayed, reveal it first.
+        if (!existingWidget && name) {
+          const loadedModel = chatPanel.getLoadedModel(name);
+          if (loadedModel) {
+            existingWidget = chatPanel.open({ model: loadedModel });
+          }
+        }
+
+        if (!existingWidget) {
+          return commands.execute(CommandIds.openChat, {
+            ...args,
+            focus: shouldFocus
+          }) as Promise<boolean>;
+        }
+
+        const currentArea =
+          existingWidget instanceof MainAreaChat ? 'main' : 'side';
+        if (currentArea !== area) {
+          const targetName = existingWidget.model.name;
+          const moved = (await commands.execute(CommandIds.moveChat, {
+            name: targetName,
+            area
+          })) as boolean;
+          if (!moved) {
+            return false;
+          }
+
+          const movedWidget = findChatWidget(targetName);
+          if (!movedWidget) {
+            return false;
+          }
+
+          if (area === 'side') {
+            chatPanel.open({ model: movedWidget.model });
+          }
+          if (shouldFocus) {
+            focusOnChat(area, movedWidget);
+          }
+          applyInputArgs(movedWidget.model, {
+            ...args,
+            focus: shouldFocus
+          });
+
+          return true;
+        }
+
+        if (area === 'side') {
+          chatPanel.open({ model: existingWidget.model });
+        }
+        if (shouldFocus) {
+          focusOnChat(area, existingWidget);
+        }
+        applyInputArgs(existingWidget.model, {
+          ...args,
+          focus: shouldFocus
+        });
+
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            area: {
+              type: 'string',
+              enum: ['main', 'side'],
+              description: trans.__(
+                'The name of the area to open or reveal the chat in'
+              )
+            },
+            name: {
+              type: 'string',
+              description: trans.__('The name of the chat')
+            },
+            provider: {
+              type: 'string',
+              description: trans.__('The provider/model to use with this chat')
+            },
+            input: {
+              type: 'string',
+              description: trans.__('The input text to prefill in the chat')
+            },
+            focus: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to focus the chat input after opening it'
+              )
+            },
+            autoSend: {
+              type: 'boolean',
+              description: trans.__(
+                'Whether to auto-send the provided input after opening the chat'
+              )
             }
           }
         }
@@ -857,11 +1078,11 @@ function registerCommands(
           return false;
         }
         let previousWidget: ChatWidget | MainAreaChat | undefined;
-        let previousModel: AIChatModel | undefined;
+        let previousModel: IAIChatModel | undefined;
         tracker.forEach(widget => {
           if (widget.model.name === args.name) {
             previousWidget = widget;
-            previousModel = widget.model as AIChatModel;
+            previousModel = widget.model as IAIChatModel;
           }
         });
 
@@ -893,7 +1114,8 @@ function registerCommands(
           activeProvider: previousModel.agentManager.activeProvider,
           tokenUsage: previousModel.agentManager.tokenUsage,
           messages: previousModel.messages,
-          autosave: previousModel.autosave
+          autosave: previousModel.autosave,
+          title: previousModel.title
         });
 
         // Wait (with timeout) for the tracker to have updated the previous widget.
@@ -913,6 +1135,15 @@ function registerCommands(
 
         if (area === 'main') {
           openInMain(model);
+
+          if (previousWidget instanceof ChatWidget) {
+            // Clean up the side-panel model entry before disposing the previous
+            // widget/model state.
+            if (!disposeSideChatModel(previousModel)) {
+              previousWidget.dispose();
+              previousModel.dispose();
+            }
+          }
         } else {
           previousWidget?.dispose();
           previousModel.dispose();
@@ -945,15 +1176,15 @@ function registerCommands(
       caption: trans.__('Save the chat as local file'),
       icon: saveIcon,
       execute: async (args): Promise<boolean> => {
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.log('No chat to save');
@@ -990,15 +1221,15 @@ function registerCommands(
           console.warn('The restoration is not possible');
           return false;
         }
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.warn('There is no chat to restore');
@@ -1522,6 +1753,7 @@ export default [
   skillRegistryPlugin,
   skillsCommandPlugin,
   chatModelHandler,
+  activeCellManager,
   plugin,
   toolRegistry,
   agentManagerFactory,

@@ -210,6 +210,12 @@
       "type": "boolean",
       "default": false
     },
+    "autoTitle": {
+      "title": "Auto Title",
+      "description": "Automatically request a title from the model for every message until there are 5 messages",
+      "type": "boolean",
+      "default": false
+    },
     "showTokenUsage": {
       "title": "Show Token Usage",
       "description": "Display token usage information in the chat toolbar",

@@ -106,19 +106,25 @@ test.describe('#mimeBundles', () => {
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     const executeToolCall = panel
-      .locator('.jp-ai-tool-call')
+      .locator('.jp-ai-tool-call-item')
       .filter({ hasText: TEST_MIME_BUNDLE_COMMAND_ID });
     await expect(executeToolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
     await expect(executeToolCall).toContainText('execute_command', {
       timeout: EXPECT_TIMEOUT
     });
-    await expect(executeToolCall).toContainText(
+
+    // Click to expand the tool call
+    await executeToolCall.click();
+    const toolCallDetails = executeToolCall.locator(
+      '> .jp-ai-tool-call-item-detail'
+    );
+    await expect(toolCallDetails).toContainText(
       `"commandId": "${TEST_MIME_BUNDLE_COMMAND_ID}"`,
       {
         timeout: EXPECT_TIMEOUT
       }
     );
-    await expect(executeToolCall).not.toContainText('"args": "', {
+    await expect(toolCallDetails).not.toContainText('"args": "', {
       timeout: EXPECT_TIMEOUT
     });
 
@@ -161,7 +167,7 @@ test.describe('#mimeBundles', () => {
     await sendButton.click();
 
     const executeToolCalls = panel
-      .locator('.jp-ai-tool-call')
+      .locator('.jp-ai-tool-call-item')
       .filter({ hasText: TEST_MIME_BUNDLE_COMMAND_ID });
     await expect(executeToolCalls).toHaveCount(2, { timeout: EXPECT_TIMEOUT });
     await expect(renderedJson).toHaveCount(2, { timeout: EXPECT_TIMEOUT });

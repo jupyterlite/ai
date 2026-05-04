@@ -6,6 +6,7 @@ import { Contents } from '@jupyterlab/services';
 import { AIChatModel } from './chat-model';
 import type {
   IAgentManagerFactory,
+  IAIChatModel,
   IAISettingsModel,
   IChatModelHandler,
   ICreateChatOptions,
@@ -28,8 +29,9 @@ export class ChatModelHandler implements IChatModelHandler {
     this._contentsManager = options.contentsManager;
   }
 
-  createModel(options: ICreateChatOptions): AIChatModel {
-    const { name, activeProvider, tokenUsage, messages, autosave } = options;
+  createModel(options: ICreateChatOptions): IAIChatModel {
+    const { name, activeProvider, tokenUsage, messages, autosave, title } =
+      options;
 
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
@@ -48,7 +50,8 @@ export class ChatModelHandler implements IChatModelHandler {
       agentManager,
       activeCellManager: this._activeCellManager,
       documentManager: this._docManager,
-      contentsManager: this._contentsManager
+      contentsManager: this._contentsManager,
+      providerRegistry: this._providerRegistry
     });
 
     messages?.forEach(message => {
@@ -57,6 +60,10 @@ export class ChatModelHandler implements IChatModelHandler {
     model.autosave = autosave ?? false;
 
     model.name = name;
+
+    if (title) {
+      model.title = title;
+    }
 
     return model;
   }
