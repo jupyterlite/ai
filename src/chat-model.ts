@@ -500,7 +500,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     // Dequeue and push to chat
     const next = this._messageQueue.shift()!;
     next._originalMsg.time = Date.now() / 1000;
-    this.messageAdded(next._originalMsg!);
+    this.messageAdded(next._originalMsg);
     this._updateQueueUI();
 
     await this._processMessage(next._originalMsg);
