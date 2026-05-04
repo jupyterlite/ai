@@ -300,6 +300,16 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   };
 
   /**
+   * Overrides messageAdded to ensure queued messages stay at the bottom.
+   */
+  override messageAdded(message: IMessageContent): void {
+    super.messageAdded(message);
+    if (this._queueMessageId && message.id !== this._queueMessageId) {
+      this._updateQueueUI();
+    }
+  }
+
+  /**
    * Adds a non-user message to the chat (used by chat commands).
    */
   private _addSystemMessage(body: string): void {
@@ -782,7 +792,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     }
 
     this._agentManager.setHistory(modelMessages);
-  };
+  }
 
   /**
    * Handles events emitted by the agent manager.
