@@ -10,8 +10,6 @@ import {
   IUser
 } from '@jupyter/chat';
 
-
-
 import { YNotebook } from '@jupyter/ydoc';
 
 import { PathExt } from '@jupyterlab/coreutils';
