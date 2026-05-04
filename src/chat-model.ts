@@ -10,7 +10,7 @@ import {
   IUser
 } from '@jupyter/chat';
 
-import type { ModelMessage } from 'ai';
+
 
 import { YNotebook } from '@jupyter/ydoc';
 
@@ -1195,6 +1195,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   private _currentModelKey: string | undefined;
   private _currentStreamingMessage: IMessage | null = null;
   private _nameChanged = new Signal<IAIChatModel, string>(this);
+  private _branchPoints: Map<
+    string,
+    { branches: AIChatModel.IBranchSnapshot[]; currentIndex: number }
+  > = new Map();
   private _contentsManager?: Contents.IManager;
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<IAIChatModel, boolean>(this);
@@ -1737,134 +1741,6 @@ namespace Private {
       return null;
     }
   }
-<<<<<<< HEAD
-
-  // Private fields
-  private _settingsModel: IAISettingsModel;
-  private _user: IUser;
-  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
-  private _agentManager: IAgentManager;
-  private _currentStreamingMessage: IMessage | null = null;
-  private _nameChanged = new Signal<AIChatModel, string>(this);
-  private _branchPoints: Map<
-    string,
-    { branches: AIChatModel.IBranchSnapshot[]; currentIndex: number }
-  > = new Map();
-  private _contentsManager?: Contents.IManager;
-  private _autosave: boolean = false;
-  private _autosaveChanged = new Signal<AIChatModel, boolean>(this);
-  private _autosaveDebouncer: Debouncer;
-}
-
-namespace Private {
-  type IMimeBody = Partial<IRenderMime.IMimeModel> &
-    Pick<IRenderMime.IMimeModel, 'data'>;
-  type IDisplayOutput =
-    | nbformat.IDisplayData
-    | nbformat.IDisplayUpdate
-    | nbformat.IExecuteResult;
-
-  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
-
-  const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
-    if (!isPlainObject(value)) {
-      return false;
-    }
-
-    const output = value as nbformat.IOutput;
-    return (
-      nbformat.isDisplayData(output) ||
-      nbformat.isDisplayUpdate(output) ||
-      nbformat.isExecuteResult(output)
-    );
-  };
-
-  const toMimeBundle = (
-    value: IDisplayOutput,
-    trustedMimeTypes: ReadonlySet<string>
-  ): IMimeBody | null => {
-    const data = value.data;
-    if (!isPlainObject(data) || Object.keys(data).length === 0) {
-      return null;
-    }
-
-    return {
-      data: data as IRenderMime.IMimeModel['data'],
-      ...(isPlainObject(value.metadata)
-        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
-        : {}),
-      // MIME auto-rendering only runs for explicitly configured command IDs.
-      // Trust handling is configurable to keep risky MIME execution opt-in.
-      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-        ? { trusted: true }
-        : {})
-    };
-  };
-
-  /**
-   * Normalize arbitrary tool payloads into canonical display outputs.
-   *
-   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
-   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
-   */
-  const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
-    if (isDisplayOutput(value)) {
-      return [value];
-    }
-
-    if (Array.isArray(value)) {
-      return value.filter(isDisplayOutput);
-    }
-
-    if (!isPlainObject(value)) {
-      return [];
-    }
-
-    if (Array.isArray(value.outputs)) {
-      return value.outputs.filter(isDisplayOutput);
-    }
-
-    if ('result' in value) {
-      return toDisplayOutputs(value.result);
-    }
-
-    return [];
-  };
-
-  /**
-   * Extract rendermime-ready mime bundles from arbitrary tool results.
-   */
-  export function extractMimeBundlesFromUnknown(
-    content: unknown,
-    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeBody[] {
-    const bundles: IMimeBody[] = [];
-    const outputs = toDisplayOutputs(content);
-    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
-    for (const output of outputs) {
-      const bundle = toMimeBundle(output, trustedMimeTypes);
-      if (bundle) {
-        bundles.push(bundle);
-      }
-    }
-    return bundles;
-  }
-
-  export function formatToolOutput(outputData: unknown): string {
-    if (typeof outputData === 'string') {
-      return outputData;
-    }
-
-    try {
-      return JSON.stringify(outputData, null, 2);
-    } catch {
-      return '[Complex object - cannot serialize]';
-    }
-  }
-=======
->>>>>>> upstream/main
 }
 
 /**
