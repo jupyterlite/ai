@@ -599,6 +599,20 @@ export interface IAgentManager {
    */
   clearHistory(): Promise<void>;
   /**
+   * Returns a snapshot of the current conversation history.
+   */
+  getHistory(): ModelMessage[];
+  /**
+   * Restores the conversation history from a snapshot.
+   * @param history The conversation history to restore
+   */
+  restoreHistory(history: ModelMessage[]): void;
+  /**
+   * Truncates history to keep only the first N user turns and their responses.
+   * @param userTurnCount Number of user turns to keep (0 clears all).
+   */
+  truncateHistory(userTurnCount: number): void;
+  /**
    * Sets the history from already-processed model messages.
    * @param messages Pre-built model messages (may include binary content)
    */

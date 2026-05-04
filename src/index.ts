@@ -16,6 +16,7 @@ import {
   IChatTracker,
   IInputToolbarRegistryFactory,
   InputToolbarRegistry,
+  MessageFooterRegistry,
   MultiChatPanel,
   IChatModel
 } from '@jupyter/chat';
@@ -109,6 +110,7 @@ import { AICompletionProvider } from './completion';
 
 import {
   clearItem,
+  createEditMessageSection,
   createModelSelectItem,
   createToolSelectItem,
   stopItem,
@@ -438,6 +440,10 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     const namespace = 'ai-chat';
     const tracker = new WidgetTracker<MainAreaChat | ChatWidget>({ namespace });
 
+    // Create the message footer registry and register the edit button
+    const messageFooterRegistry = new MessageFooterRegistry();
+    messageFooterRegistry.addSection(createEditMessageSection());
+
     // Create chat panel with drag/drop functionality
     const chatPanel = new MultiChatPanel({
       rmRegistry,
@@ -445,6 +451,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       inputToolbarFactory,
       attachmentOpenerRegistry,
       chatCommandRegistry,
+      messageFooterRegistry,
       createModel: async (provider?: string) => {
         if (!provider) {
           provider = settingsModel.getDefaultProvider()?.id;
@@ -654,6 +661,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       tracker,
       modelHandler,
       trans,
+      messageFooterRegistry,
       themeManager,
       labShell,
       palette,
@@ -700,6 +708,7 @@ function registerCommands(
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
+  messageFooterRegistry: MessageFooterRegistry,
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
@@ -766,7 +775,8 @@ function registerCommands(
         themeManager: themeManager ?? null,
         inputToolbarRegistry,
         attachmentOpenerRegistry,
-        chatCommandRegistry
+        chatCommandRegistry,
+        messageFooterRegistry
       });
       const widget = new MainAreaChat({
         content,

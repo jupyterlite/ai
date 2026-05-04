@@ -489,6 +489,40 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
+   * Returns a shallow copy of the current conversation history.
+   */
+  getHistory(): ModelMessage[] {
+    return [...this._history];
+  }
+
+  /**
+   * Restores the conversation history from a snapshot.
+   */
+  restoreHistory(history: ModelMessage[]): void {
+    this._history = [...history];
+  }
+
+  /**
+   * Truncates history to keep only the first N user turns and their responses.
+   */
+  truncateHistory(userTurnCount: number): void {
+    if (userTurnCount === 0) {
+      this._history = [];
+      return;
+    }
+    let usersSeen = 0;
+    for (let i = 0; i < this._history.length; i++) {
+      if (this._history[i].role === 'user') {
+        usersSeen++;
+        if (usersSeen > userTurnCount) {
+          this._history = this._history.slice(0, i);
+          return;
+        }
+      }
+    }
+  }
+
+  /**
    * Sets the history from already-processed model messages.
    * @param messages Pre-built model messages (may include binary content)
    */
