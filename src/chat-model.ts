@@ -435,18 +435,18 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Removes the message-queue chat component.
    */
   private _removeQueueUI(): void {
-      if (this._queueMessageId) {
-        const existingMsg = this.messages.find(
-          msg => msg.id === this._queueMessageId
-        );
-        if (existingMsg) {
-          const idx = this.messages.indexOf(existingMsg);
-          if (idx !== -1) {
-            this.messagesDeleted(idx, 1);
-          }
+    if (this._queueMessageId) {
+      const existingMsg = this.messages.find(
+        msg => msg.id === this._queueMessageId
+      );
+      if (existingMsg) {
+        const idx = this.messages.indexOf(existingMsg);
+        if (idx !== -1) {
+          this.messagesDeleted(idx, 1);
         }
-        this._queueMessageId = null;
       }
+      this._queueMessageId = null;
+    }
   }
 
   /**
@@ -470,7 +470,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           attachments: m._originalMsg.attachments
         })),
         targetId: this.name
-      } 
+      }
     } as IMimeModelBody;
 
     this._queueMessageId = UUID.uuid4();
@@ -1216,9 +1216,7 @@ namespace Private {
     | nbformat.IDisplayUpdate
     | nbformat.IExecuteResult;
 
-  const isPlainObject = (
-    value: unknown
-  ): value is Record<string, unknown> => {
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
