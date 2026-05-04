@@ -1,5 +1,4 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
-import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -490,32 +489,12 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Sets the history with a list of messages from the chat.
-   * @param messages The chat messages to set as history
+   * Sets the history from already-processed model messages.
+   * @param messages Pre-built model messages (may include binary content)
    */
-  setHistory(messages: IMessageContent[]): void {
-    // Stop any ongoing streaming and reject awaiting approvals
-    this.stopStreaming();
-
-    for (const [approvalId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat history changed');
-      this._agentEvent.emit({
-        type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
-      });
-    }
-    this._pendingApprovals.clear();
-
-    // Convert chat messages to model messages
-    const modelMessages: ModelMessage[] = messages.map(msg => {
-      const role =
-        msg.sender.username === 'ai-assistant' ? 'assistant' : 'user';
-      return {
-        role,
-        content: msg.body
-      };
-    });
-    this._history = Private.sanitizeModelMessages(modelMessages);
+  setHistory(messages: ModelMessage[]): void {
+    this.stopStreaming('Chat history changed');
+    this._history = Private.sanitizeModelMessages(messages);
   }
 
   /**
@@ -526,11 +505,11 @@ export class AgentManager implements IAgentManager {
     this._controller?.abort();
 
     // Reject any pending approvals
-    for (const [approvalId, pending] of this._pendingApprovals) {
+    for (const [toolCallId, pending] of this._pendingApprovals) {
       pending.resolve(false, reason ?? 'Stream ended by user');
       this._agentEvent.emit({
         type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
+        data: { toolCallId, approved: false }
       });
     }
     this._pendingApprovals.clear();
@@ -538,34 +517,34 @@ export class AgentManager implements IAgentManager {
 
   /**
    * Approves a pending tool call.
-   * @param approvalId The approval ID to approve
+   * @param toolCallId The tool call ID to approve
    * @param reason Optional reason for approval
    */
-  approveToolCall(approvalId: string, reason?: string): void {
-    const pending = this._pendingApprovals.get(approvalId);
+  approveToolCall(toolCallId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(toolCallId);
     if (pending) {
       pending.resolve(true, reason);
-      this._pendingApprovals.delete(approvalId);
+      this._pendingApprovals.delete(toolCallId);
       this._agentEvent.emit({
         type: 'tool_approval_resolved',
-        data: { approvalId, approved: true }
+        data: { toolCallId, approved: true }
       });
     }
   }
 
   /**
    * Rejects a pending tool call.
-   * @param approvalId The approval ID to reject
+   * @param toolCallId The tool call ID to reject
    * @param reason Optional reason for rejection
    */
-  rejectToolCall(approvalId: string, reason?: string): void {
-    const pending = this._pendingApprovals.get(approvalId);
+  rejectToolCall(toolCallId: string, reason?: string): void {
+    const pending = this._pendingApprovals.get(toolCallId);
     if (pending) {
       pending.resolve(false, reason);
-      this._pendingApprovals.delete(approvalId);
+      this._pendingApprovals.delete(toolCallId);
       this._agentEvent.emit({
         type: 'tool_approval_resolved',
-        data: { approvalId, approved: false }
+        data: { toolCallId, approved: false }
       });
     }
   }
@@ -663,19 +642,10 @@ export class AgentManager implements IAgentManager {
             error.statusCode === 415 ||
             error.statusCode === 422)
         ) {
-          for (const msg of [...this._history, ...responseHistory]) {
-            if (msg.role === 'user' && Array.isArray(msg.content)) {
-              const hasMedia = msg.content.some(p => p.type !== 'text');
-              if (hasMedia) {
-                const textContent = msg.content
-                  .filter(p => p.type === 'text')
-                  .map(p => (p as { text: string }).text)
-                  .join('\n');
-                msg.content =
-                  textContent || '_Attachment removed due to error_';
-              }
-            }
-          }
+          this._stripAttachments(
+            [...this._history, ...responseHistory],
+            '_Attachment removed due to error_'
+          );
           helpMessage +=
             '\n\nAttachments have been removed from history. Please send your prompt again.';
         }
@@ -733,6 +703,27 @@ export class AgentManager implements IAgentManager {
     this._tokenUsage.contextWindow = contextWindow;
 
     this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Removes image and file parts from all user messages in the given list.
+   */
+  private _stripAttachments(
+    messages: ModelMessage[],
+    placeholder: string
+  ): void {
+    for (const msg of messages) {
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        const hasMedia = msg.content.some(p => p.type !== 'text');
+        if (hasMedia) {
+          const textContent = msg.content
+            .filter(p => p.type === 'text')
+            .map(p => (p as { text: string }).text)
+            .join('\n');
+          msg.content = textContent || placeholder;
+        }
+      }
+    }
   }
 
   /**
@@ -1092,14 +1083,13 @@ ${richOutputWorkflowInstruction}`;
     this._agentEvent.emit({
       type: 'tool_approval_request',
       data: {
-        approvalId,
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
         args: toolCall.input
       }
     });
 
-    const approved = await this._waitForApproval(approvalId);
+    const approved = await this._waitForApproval(toolCall.toolCallId);
 
     result.approvalProcessed = true;
     result.approvalResponse = {
@@ -1116,12 +1106,12 @@ ${richOutputWorkflowInstruction}`;
 
   /**
    * Waits for user approval of a tool call.
-   * @param approvalId The approval ID to wait for
+   * @param toolCallId The tool call ID to wait for approval
    * @returns Promise that resolves to true if approved, false if rejected
    */
-  private _waitForApproval(approvalId: string): Promise<boolean> {
+  private _waitForApproval(toolCallId: string): Promise<boolean> {
     return new Promise(resolve => {
-      this._pendingApprovals.set(approvalId, {
+      this._pendingApprovals.set(toolCallId, {
         resolve: (approved: boolean) => {
           resolve(approved);
         }

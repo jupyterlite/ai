@@ -29,6 +29,7 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     diffDisplayMode: 'split',
     skillsPaths: ['.agents/skills', '_agents/skills'],
     chatBackupDirectory: '',
+    autoTitle: false,
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',

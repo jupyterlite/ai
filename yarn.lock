@@ -3075,7 +3075,7 @@ __metadata:
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
-    jupyter-chat-components: 0.4.0
+    jupyter-chat-components: ^0.5.0
     jupyter-secrets-manager: ^0.5.0
     npm-run-all2: ^7.0.1
     prettier: ^3.0.0
@@ -7498,7 +7498,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyter-chat-components@npm:0.4.0":
+"jupyter-chat-components@npm:^0.5.0":
   version: 0.4.0
   resolution: "jupyter-chat-components@npm:0.4.0"
   dependencies:
