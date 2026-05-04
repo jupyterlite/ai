@@ -1097,6 +1097,7 @@ function registerCommands(
         if (area === 'main') {
           // Temporarily bypass model disposal to transport model to main view
           // to keep the conversation when switching views
+          // TODO: Remove this code when jupyter-chat PR #423 is merged and released
           const originalDispose = previousModel.dispose.bind(previousModel);
           previousModel.dispose = () => {};
 

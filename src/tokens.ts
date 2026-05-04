@@ -739,10 +739,6 @@ export interface IAIChatModel extends IChatModel {
    * Whether the chat is currently busy processing a message
    */
   isBusy: boolean;
-  /**
-   * Rebuilds the agent history from the current messages
-   */
-  rebuildHistory(): Promise<void>;
 }
 
 /**

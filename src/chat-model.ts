@@ -601,7 +601,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     });
     await this.clearMessages();
     this.messagesInserted(0, messages);
-    await this.rebuildHistory();
+    await this._rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
     this.title = content.metadata?.title ?? null;
     return true;
@@ -727,7 +727,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       : undefined;
     if (modelKey && modelKey !== this._currentModelKey) {
       this._currentModelKey = modelKey;
-      this.rebuildHistory().catch(e =>
+      this._rebuildHistory().catch(e =>
         console.warn('Failed to rebuild history on model change:', e)
       );
     }
@@ -738,7 +738,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * For vision-capable models, re-reads binary attachments from disk.
    * For text-only models, uses message text only.
    */
-  rebuildHistory = async (): Promise<void> => {
+  private async _rebuildHistory(): Promise<void> {
     const providerConfig = this._settingsModel.getProvider(
       this._agentManager.activeProvider
     );
@@ -1160,8 +1160,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     });
   }
 
-  // Private fields
-  private _settingsModel: IAISettingsModel;
   /**
    * The current message queue
    */
@@ -1186,6 +1184,8 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     this._isBusy = value;
   }
 
+  // Private fields
+  private _settingsModel: IAISettingsModel;
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: IAgentManager;
