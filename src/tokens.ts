@@ -1,4 +1,4 @@
-import { ActiveCellManager, IMessage, IMessageContent } from '@jupyter/chat';
+import { ActiveCellManager, IChatModel, IMessage } from '@jupyter/chat';
 import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
@@ -8,7 +8,6 @@ import type { Tool, LanguageModel, UserContent, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import type { IModelOptions } from './providers/models';
-import { AIChatModel } from './chat-model';
 import type {
   ISkillDefinition,
   ISkillRegistration,
@@ -210,6 +209,18 @@ export interface IProviderModelInfo {
    * Default context window for the model in tokens.
    */
   contextWindow?: number;
+  /**
+   * Whether the model supports image inputs.
+   */
+  supportsImages?: boolean;
+  /**
+   * Whether the model supports PDF inputs.
+   */
+  supportsPdf?: boolean;
+  /**
+   * Whether the model supports audio inputs.
+   */
+  supportsAudio?: boolean;
 }
 
 export interface IProviderInfo {
@@ -398,6 +409,8 @@ export interface IAIConfig {
   skillsPaths: string[];
   // Directory where chat backups are saved
   chatBackupDirectory: string;
+  // Automatically request a title from the model for every message until there are 5 messages
+  autoTitle: boolean;
 }
 
 export interface IAISettingsModel extends VDomRenderer.IModel {
@@ -586,10 +599,10 @@ export interface IAgentManager {
    */
   clearHistory(): Promise<void>;
   /**
-   * Sets the conversation history with a list of messages from the chat.
-   * @param messages The chat messages to set as history
+   * Sets the history from already-processed model messages.
+   * @param messages Pre-built model messages (may include binary content)
    */
-  setHistory(messages: IMessageContent[]): void;
+  setHistory(messages: ModelMessage[]): void;
   /**
    * Stops the current streaming response by aborting the request.
    */
@@ -665,6 +678,73 @@ export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
 
 /* THE CHAT MODELS HANDLER */
 
+export interface IAIChatModel extends IChatModel {
+  /**
+   * A signal emitting when the chat name has changed.
+   */
+  readonly nameChanged: ISignal<IAIChatModel, string>;
+  /**
+   * The title of the chat.
+   */
+  title: string | null;
+  /**
+   * A signal emitting when the chat title has changed.
+   */
+  readonly titleChanged: ISignal<IAIChatModel, string | null>;
+  /**
+   * Whether to save the chat automatically.
+   */
+  autosave: boolean;
+  /**
+   * A signal emitting when the autosave flag changed.
+   */
+  readonly autosaveChanged: ISignal<IAIChatModel, boolean>;
+  /**
+   * Whether save/restore is available.
+   */
+  readonly saveAvailable: boolean;
+  /**
+   * A signal emitting when the token usage changed.
+   */
+  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
+  /**
+   * The agent manager used in the model.
+   */
+  readonly agentManager: IAgentManager;
+  /**
+   * Save the chat as json file.
+   */
+  save(): Promise<void>;
+  /**
+   * Restore the chat from a json file.
+   *
+   * @param silent - Whether a log should be displayed in the console if the
+   * restoration is not possible.
+   */
+  restore(filepath: string, silent?: boolean): Promise<boolean>;
+  /**
+   * Request a title to this chat, regarding the message history.
+   */
+  requestTitle(): Promise<string>;
+  /**
+   * Removes a queued message by its ID.
+   * @param messageId The ID of the queued message to remove
+   */
+  removeQueuedMessage(messageId: string): void;
+  /**
+   * The current message queue
+   */
+  messageQueue: any[];
+  /**
+   * Whether the chat is currently busy processing a message
+   */
+  isBusy: boolean;
+  /**
+   * Rebuilds the agent history from the current messages
+   */
+  rebuildHistory(): Promise<void>;
+}
+
 /**
  * The interface for the chat model handler.
  */
@@ -672,7 +752,7 @@ export interface IChatModelHandler {
   /**
    * The function to create a new model.
    */
-  createModel(options: ICreateChatOptions): AIChatModel;
+  createModel(options: ICreateChatOptions): IAIChatModel;
   /**
    * The active cell manager (to copy code from chat to cell).
    */

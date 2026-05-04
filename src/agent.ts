@@ -1,5 +1,4 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
-import type { IMessageContent } from '@jupyter/chat';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { PromiseDelegate } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -490,32 +489,12 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Sets the history with a list of messages from the chat.
-   * @param messages The chat messages to set as history
+   * Sets the history from already-processed model messages.
+   * @param messages Pre-built model messages (may include binary content)
    */
-  setHistory(messages: IMessageContent[]): void {
-    // Stop any ongoing streaming and reject awaiting approvals
-    this.stopStreaming();
-
-    for (const [toolCallId, pending] of this._pendingApprovals) {
-      pending.resolve(false, 'Chat history changed');
-      this._agentEvent.emit({
-        type: 'tool_approval_resolved',
-        data: { toolCallId, approved: false }
-      });
-    }
-    this._pendingApprovals.clear();
-
-    // Convert chat messages to model messages
-    const modelMessages: ModelMessage[] = messages.map(msg => {
-      const role =
-        msg.sender.username === 'ai-assistant' ? 'assistant' : 'user';
-      return {
-        role,
-        content: msg.body
-      };
-    });
-    this._history = Private.sanitizeModelMessages(modelMessages);
+  setHistory(messages: ModelMessage[]): void {
+    this.stopStreaming('Chat history changed');
+    this._history = Private.sanitizeModelMessages(messages);
   }
 
   /**
@@ -663,19 +642,10 @@ export class AgentManager implements IAgentManager {
             error.statusCode === 415 ||
             error.statusCode === 422)
         ) {
-          for (const msg of [...this._history, ...responseHistory]) {
-            if (msg.role === 'user' && Array.isArray(msg.content)) {
-              const hasMedia = msg.content.some(p => p.type !== 'text');
-              if (hasMedia) {
-                const textContent = msg.content
-                  .filter(p => p.type === 'text')
-                  .map(p => (p as { text: string }).text)
-                  .join('\n');
-                msg.content =
-                  textContent || '_Attachment removed due to error_';
-              }
-            }
-          }
+          this._stripAttachments(
+            [...this._history, ...responseHistory],
+            '_Attachment removed due to error_'
+          );
           helpMessage +=
             '\n\nAttachments have been removed from history. Please send your prompt again.';
         }
@@ -733,6 +703,27 @@ export class AgentManager implements IAgentManager {
     this._tokenUsage.contextWindow = contextWindow;
 
     this._tokenUsageChanged.emit(this._tokenUsage);
+  }
+
+  /**
+   * Removes image and file parts from all user messages in the given list.
+   */
+  private _stripAttachments(
+    messages: ModelMessage[],
+    placeholder: string
+  ): void {
+    for (const msg of messages) {
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        const hasMedia = msg.content.some(p => p.type !== 'text');
+        if (hasMedia) {
+          const textContent = msg.content
+            .filter(p => p.type === 'text')
+            .map(p => (p as { text: string }).text)
+            .join('\n');
+          msg.content = textContent || placeholder;
+        }
+      }
+    }
   }
 
   /**
