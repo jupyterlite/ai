@@ -417,7 +417,15 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
       const errorMessage: IMessageContent = {
-        body: `Error generating AI response: ${(error as Error).message}`,
+        body: '',
+        mime_model: {
+          data: {
+            'application/vnd.jupyter.chat.components': 'error'
+          },
+          metadata: {
+            errorMessage: `Error generating AI response: ${(error as Error).message}`
+          }
+        },
         sender: this._getAIUser(),
         id: UUID.uuid4(),
         time: Date.now() / 1000,
@@ -1077,7 +1085,15 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    */
   private _handleErrorEvent(event: IAgentManager.IAgentEvent<'error'>): void {
     this.messageAdded({
-      body: `Error generating response: ${event.data.error.message}`,
+      body: '',
+      mime_model: {
+        data: {
+          'application/vnd.jupyter.chat.components': 'error'
+        },
+        metadata: {
+          errorMessage: `Error generating response: ${event.data.error.message}`
+        }
+      },
       sender: this._getAIUser(),
       id: UUID.uuid4(),
       time: Date.now() / 1000,
