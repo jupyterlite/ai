@@ -584,11 +584,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         );
 
         if (aiWriting) {
-          widget.inputToolbarRegistry?.show('send');
           widget.inputToolbarRegistry?.show('stop');
         } else {
           widget.inputToolbarRegistry?.hide('stop');
-          widget.inputToolbarRegistry?.show('send');
         }
       }
 
