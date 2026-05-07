@@ -519,7 +519,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const next = this._messageQueue.shift()!;
     next._originalMsg.time = Date.now() / 1000;
     this.messageAdded(next._originalMsg);
-    this._updateQueueUI();
 
     await this._processMessage(next._originalMsg);
   }
