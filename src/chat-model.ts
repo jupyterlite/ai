@@ -253,6 +253,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Dispose of the model.
    */
   dispose(): void {
+    this.stopStreaming();
     this.messagesUpdated.disconnect(
       this._autosaveDebouncer.invoke,
       this._autosaveDebouncer
@@ -287,11 +288,26 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Clears all messages from the chat and resets conversation state.
    */
   clearMessages = async (): Promise<void> => {
+    this.stopStreaming();
+    this._messageQueue = [];
+    this._isBusy = false;
+    this._queueMessageId = null;
+    this._currentStreamingMessage = null;
     this.messagesDeleted(0, this.messages.length);
     this.title = null;
     this._toolContexts.clear();
     await this._agentManager.clearHistory();
   };
+
+  /**
+   * Overrides messageAdded to ensure queued messages stay at the bottom.
+   */
+  override messageAdded(message: IMessageContent): void {
+    super.messageAdded(message);
+    if (this._queueMessageId && message.id !== this._queueMessageId) {
+      this._updateQueueUI();
+    }
+  }
 
   /**
    * Adds a non-user message to the chat (used by chat commands).
@@ -329,10 +345,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       raw_time: false,
       attachments: [...this.input.attachments]
     };
-    this.messageAdded(userMessage);
 
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
+      this.messageAdded(userMessage);
       const errorMessage: IMessageContent = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
         sender: this._getAIUser(),
@@ -345,10 +361,33 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       return;
     }
 
+    if (this._isBusy) {
+      this._messageQueue.push({
+        id: UUID.uuid4(),
+        body: message.body,
+        _originalMsg: userMessage
+      });
+      this.input.clearAttachments();
+      this._updateQueueUI();
+      return;
+    }
+
+    this._isBusy = true;
+    this.messageAdded(userMessage);
+    this.input.clearAttachments();
+
+    await this._processMessage(userMessage);
+  }
+
+  /**
+   * Internal method to process attachments and send the message to the agent.
+   */
+  private async _processMessage(userMessage: IMessageContent): Promise<void> {
     try {
-      // Process attachments and add their content to the message
-      let enhancedMessage: UserContent = message.body;
-      if (this.input.attachments.length > 0) {
+      this.updateWriters([{ user: this._getAIUser() }]);
+
+      let enhancedMessage: UserContent = userMessage.body;
+      if (userMessage.attachments && userMessage.attachments.length > 0) {
         const providerConfig = this._settingsModel.getProvider(
           this._agentManager.activeProvider
         );
@@ -366,17 +405,14 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         );
 
         enhancedMessage = await Private.processAttachments(
-          this.input.attachments,
+          userMessage.attachments,
           this.input.documentManager,
-          message.body,
+          userMessage.body,
           supportsImages,
           supportsPdf,
           supportsAudio
         );
-        this.input.clearAttachments();
       }
-
-      this.updateWriters([{ user: this._getAIUser() }]);
 
       await this._agentManager.generateResponse(enhancedMessage);
     } catch (error) {
@@ -398,7 +434,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       };
       this.messageAdded(errorMessage);
     } finally {
-      this.updateWriters([]);
+      this._drainQueue();
 
       if (
         this._settingsModel.config.autoTitle &&
@@ -411,6 +447,89 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         }
       }
     }
+  }
+
+  /**
+   * Removes the message-queue chat component.
+   */
+  private _removeQueueUI(): void {
+    if (this._queueMessageId) {
+      const existingMsg = this.messages.find(
+        msg => msg.id === this._queueMessageId
+      );
+      if (existingMsg) {
+        const idx = this.messages.indexOf(existingMsg);
+        if (idx !== -1) {
+          this.messagesDeleted(idx, 1);
+        }
+      }
+      this._queueMessageId = null;
+    }
+  }
+
+  /**
+   * Creates or updates the message-queue chat component.
+   */
+  private _updateQueueUI(): void {
+    this._removeQueueUI();
+
+    if (this._messageQueue.length === 0) {
+      return;
+    }
+
+    const queueBody = {
+      data: {
+        'application/vnd.jupyter.chat.components': 'message-queue'
+      },
+      metadata: {
+        messages: this._messageQueue.map(m => ({
+          id: m.id,
+          body: m.body,
+          attachments: m._originalMsg.attachments
+        })),
+        targetId: this.name
+      }
+    } as IMimeModelBody;
+
+    this._queueMessageId = UUID.uuid4();
+    const queueMessage: IMessageContent = {
+      body: '',
+      mime_model: queueBody,
+      sender: { username: 'system', display_name: '' },
+      id: this._queueMessageId,
+      time: Date.now() / 1000,
+      type: 'msg',
+      raw_time: false
+    };
+    this.messageAdded(queueMessage);
+  }
+
+  /**
+   * Processes the next message in the queue, or marks the agent as idle.
+   */
+  private async _drainQueue(): Promise<void> {
+    if (this._messageQueue.length === 0) {
+      this._isBusy = false;
+      this.updateWriters([]);
+      this._removeQueueUI();
+      return;
+    }
+
+    // Dequeue and push to chat
+    const next = this._messageQueue.shift()!;
+    next._originalMsg.time = Date.now() / 1000;
+    this.messageAdded(next._originalMsg);
+
+    await this._processMessage(next._originalMsg);
+  }
+
+  /**
+   * Removes a queued message by its ID.
+   * @param messageId The ID of the queued message to remove
+   */
+  removeQueuedMessage(messageId: string): void {
+    this._messageQueue = this._messageQueue.filter(msg => msg.id !== messageId);
+    this._updateQueueUI();
   }
 
   /**
@@ -541,6 +660,13 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const attachmentsList: IAttachment[] = []; // Actual attachments
 
     this.messages.forEach(message => {
+      if (
+        message.content?.mime_model?.data?.[
+          'application/vnd.jupyter.chat.components'
+        ] === 'message-queue'
+      ) {
+        return;
+      }
       let attachmentIndexes: string[] = [];
       if (message.attachments) {
         attachmentIndexes = message.attachments.map(attachment => {
@@ -1059,6 +1185,30 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     });
   }
 
+  /**
+   * The current message queue
+   */
+  get messageQueue(): Private.IQueuedItem[] {
+    return this._messageQueue;
+  }
+  set messageQueue(value: Private.IQueuedItem[]) {
+    this._messageQueue = value;
+    this._updateQueueUI();
+    if (this._messageQueue.length > 0 && !this._isBusy) {
+      this._drainQueue();
+    }
+  }
+
+  /**
+   * Whether the chat is busy
+   */
+  get isBusy(): boolean {
+    return this._isBusy;
+  }
+  set isBusy(value: boolean) {
+    this._isBusy = value;
+  }
+
   // Private fields
   private _settingsModel: IAISettingsModel;
   private _user: IUser;
@@ -1072,11 +1222,20 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<IAIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
+  private _messageQueue: Private.IQueuedItem[] = [];
+  private _isBusy: boolean = false;
+  private _queueMessageId: string | null = null;
   private _title: string | null = null;
   private _titleChanged = new Signal<IAIChatModel, string | null>(this);
 }
 
 namespace Private {
+  export interface IQueuedItem {
+    id: string;
+    body: string;
+    _originalMsg: IMessageContent;
+  }
+
   type IDisplayOutput =
     | nbformat.IDisplayData
     | nbformat.IDisplayUpdate
