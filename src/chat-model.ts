@@ -274,7 +274,9 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       clearMessages: () => this.clearMessages(),
       agentManager: this._agentManager,
       addSystemMessage: (body: string) => this._addSystemMessage(body),
-      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id)
+      removeQueuedMessage: (id: string) => this.removeQueuedMessage(id),
+      reorderQueuedMessages: (ids: string[]) => this.reorderQueuedMessages(ids),
+      editQueuedMessage: (id: string, body: string) => this.editQueuedMessage(id, body)
     };
   }
 
@@ -529,8 +531,32 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * @param messageId The ID of the queued message to remove
    */
   removeQueuedMessage(messageId: string): void {
-    this._messageQueue = this._messageQueue.filter(msg => msg.id !== messageId);
-    this._updateQueueUI();
+    this.messageQueue = this._messageQueue.filter(msg => msg.id !== messageId);
+  }
+
+  /**
+   * Reorders queued messages by their IDs.
+   * @param messageIds Array of message IDs in the desired order
+   */
+  reorderQueuedMessages(messageIds: string[]): void {
+    const byId = new Map(this._messageQueue.map(m => [m.id, m]));
+    this.messageQueue = messageIds
+      .map(id => byId.get(id))
+      .filter((m): m is Private.IQueuedItem => m !== undefined);
+  }
+
+  /**
+   * Edits a queued message by its ID.
+   * @param messageId The ID of the queued message to edit
+   * @param newBody The new body of the message
+   */
+  editQueuedMessage(messageId: string, newBody: string): void {
+    const queue = [...this._messageQueue];
+    const index = queue.findIndex(m => m.id === messageId);
+    if (index !== -1) {
+      queue[index] = { ...queue[index], body: newBody };
+      this.messageQueue = queue;
+    }
   }
 
   /**
@@ -1843,6 +1869,14 @@ export namespace AIChatModel {
      * Removes a queued message by its ID.
      */
     removeQueuedMessage: (id: string) => void;
+    /**
+     * Reorders queued messages by their IDs.
+     */
+    reorderQueuedMessages: (ids: string[]) => void;
+    /**
+     * Edits a queued message by its ID.
+     */
+    editQueuedMessage: (id: string, body: string) => void;
   }
 
   /**
