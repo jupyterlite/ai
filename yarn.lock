@@ -3075,7 +3075,7 @@ __metadata:
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
-    jupyter-chat-components: "file:../jupyter-chat-components"
+    jupyter-chat-components: ^0.5.0
     jupyter-secrets-manager: ^0.5.0
     npm-run-all2: ^7.0.1
     prettier: ^3.0.0
@@ -7498,9 +7498,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+<<<<<<< HEAD
 "jupyter-chat-components@file:../jupyter-chat-components::locator=%40jupyterlite%2Fai%40workspace%3A.":
   version: 0.4.0
   resolution: "jupyter-chat-components@file:../jupyter-chat-components#../jupyter-chat-components::hash=4a1380&locator=%40jupyterlite%2Fai%40workspace%3A."
+=======
+"jupyter-chat-components@npm:^0.5.0":
+  version: 0.4.0
+  resolution: "jupyter-chat-components@npm:0.4.0"
+>>>>>>> upstream/main
   dependencies:
     "@jupyterlab/application": ^4.5.0
     "@jupyterlab/coreutils": ^6.5.4
@@ -7511,7 +7517,11 @@ __metadata:
     "@lumino/coreutils": ^2.2.2
     "@lumino/widgets": ^2.1.0
     diff: ^8.0.0
+<<<<<<< HEAD
   checksum: 62aed6806ad6bc17223b7f0a4db8fd9b7eadeb49a0cf4db1a4144b2a06260be8f39ac7265408c30cc3859da95a3ed50ccefbd12d8968a1df944ee19875eec786
+=======
+  checksum: 67fb8539bff96a918f43ab58fb6ca01d3b51f4a423acc8bf0012e754737b522c63f595dfff888fe911ebcb10a06f844d7c6e86703deaea5c40d3b95f5704c551
+>>>>>>> upstream/main
   languageName: node
   linkType: hard
 

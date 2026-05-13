@@ -52,7 +52,7 @@ test.describe('#browserFetchTool', () => {
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     const browserFetchCall = panel
-      .locator('.jp-ai-tool-call')
+      .locator('.jp-ai-tool-call-item')
       .filter({ hasText: 'browser_fetch' })
       .first();
 
@@ -61,15 +61,19 @@ test.describe('#browserFetchTool', () => {
       timeout: EXPECT_TIMEOUT
     });
 
+    // Open tool call details
     await browserFetchCall.click();
 
-    await expect(browserFetchCall).toContainText('"success": true', {
+    const toolCallDetails = browserFetchCall.locator(
+      '> .jp-ai-tool-call-item-detail'
+    );
+    await expect(toolCallDetails).toContainText('"success": true', {
       timeout: EXPECT_TIMEOUT
     });
-    await expect(browserFetchCall).toContainText('"status": 200', {
+    await expect(toolCallDetails).toContainText('"status": 200', {
       timeout: EXPECT_TIMEOUT
     });
-    await expect(browserFetchCall).toContainText('mcp-server', {
+    await expect(toolCallDetails).toContainText('mcp-server', {
       timeout: EXPECT_TIMEOUT
     });
   });

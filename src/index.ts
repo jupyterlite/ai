@@ -58,7 +58,7 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
-import { PromiseDelegate, UUID } from '@lumino/coreutils';
+import { UUID } from '@lumino/coreutils';
 
 import { DisposableSet } from '@lumino/disposable';
 
@@ -69,8 +69,6 @@ import { IComponentsRendererFactory } from 'jupyter-chat-components';
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { AgentManagerFactory } from './agent';
-
-import { AIChatModel } from './chat-model';
 
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
 
@@ -95,7 +93,8 @@ import {
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
-  SECRETS_NAMESPACE
+  SECRETS_NAMESPACE,
+  IAIChatModel
 } from './tokens';
 
 import {
@@ -526,7 +525,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
     let usageWidget: UsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
-      const model = widget.model as AIChatModel;
+      const model = widget.model as IAIChatModel;
 
       // Add the widget to the tracker.
       tracker.add(widget);
@@ -585,11 +584,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         );
 
         if (aiWriting) {
-          widget.inputToolbarRegistry?.show('send');
           widget.inputToolbarRegistry?.show('stop');
         } else {
           widget.inputToolbarRegistry?.hide('stop');
-          widget.inputToolbarRegistry?.show('send');
         }
       }
 
@@ -628,7 +625,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         args: widget => ({
           name: widget.model.name,
           area: widget instanceof MainAreaChat ? 'main' : 'side',
-          provider: (widget.model as AIChatModel).agentManager.activeProvider
+          provider: (widget.model as IAIChatModel).agentManager.activeProvider
         }),
         name: widget => {
           const area = widget instanceof MainAreaChat ? 'main' : 'side';
@@ -662,28 +659,29 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     );
 
     /**
-     * The callback to approve or reject a tool.
+     * The callback for grouped tool calls permission decisions.
      */
-    function toolCallApproval(
-      targetId: string,
-      approvalId: string,
-      isApproved: boolean
+    function toolCallPermissionDecision(
+      sessionId: string,
+      toolCallId: string,
+      optionId: string
     ) {
-      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      const model = tracker.find(chat => chat.model.name === sessionId)
+        ?.model as IAIChatModel;
       if (!model) {
         return;
       }
+
+      const isApproved = optionId === 'approve';
       isApproved
-        ? (model as AIChatModel).agentManager.approveToolCall(approvalId)
-        : (model as AIChatModel).agentManager.rejectToolCall(approvalId);
+        ? model.agentManager.approveToolCall(toolCallId)
+        : model.agentManager.rejectToolCall(toolCallId);
     }
 
     if (chatComponentsFactory) {
-      chatComponentsFactory.toolCallApproval = toolCallApproval;
+      chatComponentsFactory.toolCallPermissionDecision =
+        toolCallPermissionDecision;
 
-      /**
-       * The callback to remove a queued message.
-       */
       chatComponentsFactory.removeQueuedMessage = (
         targetId: string,
         messageId: string
@@ -692,7 +690,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         if (!model) {
           return;
         }
-        (model as AIChatModel).removeQueuedMessage(messageId);
+        (model as IAIChatModel).removeQueuedMessage(messageId);
       };
 
       chatComponentsFactory.reorderQueuedMessages = (
@@ -703,7 +701,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         if (!model) {
           return;
         }
-        (model as AIChatModel).reorderQueuedMessages(messageIds);
+        (model as IAIChatModel).reorderQueuedMessages(messageIds);
       };
 
       chatComponentsFactory.editQueuedMessage = (
@@ -715,7 +713,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         if (!model) {
           return;
         }
-        (model as AIChatModel).editQueuedMessage(messageId, newBody);
+        (model as IAIChatModel).editQueuedMessage(messageId, newBody);
       };
     }
 
@@ -792,12 +790,13 @@ function registerCommands(
       }
     });
 
-    const openInMain = (model: AIChatModel): MainAreaChat => {
+    const openInMain = (model: IAIChatModel): MainAreaChat => {
+      const inputToolbarRegistry = inputToolbarFactory.create();
       const content = new ChatWidget({
         model,
         rmRegistry,
         themeManager: themeManager ?? null,
-        inputToolbarRegistry: inputToolbarFactory.create(),
+        inputToolbarRegistry,
         attachmentOpenerRegistry,
         chatCommandRegistry
       });
@@ -864,7 +863,7 @@ function registerCommands(
         return;
       }
       return tracker.find(widget => {
-        const model = widget.model as AIChatModel;
+        const model = widget.model as IAIChatModel;
         return (
           (!name || widget.model.name === name) &&
           (!provider || model.agentManager.activeProvider === provider)
@@ -1082,7 +1081,7 @@ function registerCommands(
           }
         }
       }
-    });
+    }); 
 
     commands.addCommand(CommandIds.moveChat, {
       caption: trans.__('Move chat between area'),
@@ -1101,11 +1100,11 @@ function registerCommands(
           return false;
         }
         let previousWidget: ChatWidget | MainAreaChat | undefined;
-        let previousModel: AIChatModel | undefined;
+        let previousModel: IAIChatModel | undefined;
         tracker.forEach(widget => {
           if (widget.model.name === args.name) {
             previousWidget = widget;
-            previousModel = widget.model as AIChatModel;
+            previousModel = widget.model as IAIChatModel;
           }
         });
 
@@ -1116,61 +1115,26 @@ function registerCommands(
           return false;
         }
 
-        // Listen for the widget updated in tracker, to ensure the previous model name
-        // has been updated. This is required to remove the widget from the restorer
-        // when the previous widget is disposed.
-        const trackerUpdated = new PromiseDelegate<boolean>();
-        const widgetUpdated = (_: any, widget: ChatWidget | MainAreaChat) => {
-          if (widget.model === previousModel) {
-            trackerUpdated.resolve(true);
-          }
-        };
-        tracker.widgetUpdated.connect(widgetUpdated);
-
-        // Rename temporary the previous model to be able to reuse this name for the new
-        // model. The previous is intended to be disposed anyway.
-        previousModel.name = UUID.uuid4();
-
-        // Create a new model by duplicating the previous model attributes.
-        const model = modelRegistry.createModel({
-          name: args.name as string,
-          activeProvider: previousModel.agentManager.activeProvider,
-          tokenUsage: previousModel.agentManager.tokenUsage,
-          messages: previousModel.messages,
-          autosave: previousModel.autosave,
-          title: previousModel.title
-        });
-
-        // Wait (with timeout) for the tracker to have updated the previous widget.
-        const status = await Promise.any([
-          trackerUpdated.promise,
-          new Promise<boolean>(r =>
-            setTimeout(() => {
-              r(false);
-            }, 2000)
-          )
-        ]);
-        tracker.widgetUpdated.disconnect(widgetUpdated);
-
-        if (!status) {
-          return false;
-        }
-
         if (area === 'main') {
-          openInMain(model);
+          // Temporarily bypass model disposal to transport model to main view
+          // to keep the conversation when switching views
+          // TODO: Remove this code when jupyter-chat PR #423 is merged and released
+          const originalDispose = previousModel.dispose.bind(previousModel);
+          previousModel.dispose = () => {};
 
           if (previousWidget instanceof ChatWidget) {
-            // Clean up the side-panel model entry before disposing the previous
-            // widget/model state.
             if (!disposeSideChatModel(previousModel)) {
               previousWidget.dispose();
-              previousModel.dispose();
             }
           }
+
+          // Restore model disposal and transport to main view
+          previousModel.dispose = originalDispose;
+          openInMain(previousModel);
         } else {
+          // MainAreaChat disposal does not dispose the model internally, so this is safe.
           previousWidget?.dispose();
-          previousModel.dispose();
-          chatPanel.open({ model });
+          chatPanel.open({ model: previousModel });
         }
 
         return true;
@@ -1199,15 +1163,15 @@ function registerCommands(
       caption: trans.__('Save the chat as local file'),
       icon: saveIcon,
       execute: async (args): Promise<boolean> => {
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.log('No chat to save');
@@ -1244,15 +1208,15 @@ function registerCommands(
           console.warn('The restoration is not possible');
           return false;
         }
-        let model: AIChatModel | null = null;
+        let model: IAIChatModel | null = null;
         if (args.name) {
           tracker.forEach(widget => {
             if (widget.model.name === args.name) {
-              model = widget.model as AIChatModel;
+              model = widget.model as IAIChatModel;
             }
           });
         } else {
-          model = (tracker.currentWidget?.model as AIChatModel) ?? null;
+          model = (tracker.currentWidget?.model as IAIChatModel) ?? null;
         }
         if (model === null) {
           console.warn('There is no chat to restore');

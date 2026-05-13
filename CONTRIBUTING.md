@@ -38,17 +38,17 @@ jupyter lab build --minimize=False
 
 ## Refreshing built-in model context windows
 
-When updating the built-in model lists, refresh the generated context window
+When updating the built-in model lists, refresh the generated model capability
 metadata from [`models.dev`](https://github.com/anomalyco/models.dev) with:
 
 ```bash
-jlpm sync:model-context-windows
+jlpm sync:model-info
 ```
 
 This script fetches the latest metadata, rewrites
-`src/providers/generated-context-windows.ts`, then runs `prettier` and `eslint`
+`src/providers/generated-model-info.ts`, then runs `prettier` and `eslint`
 on the generated file. The command will warn if `models.dev` does not expose a
-matching context window for one of our built-in model IDs.
+matching entry for one of our built-in model IDs.
 
 ## Running UI tests
 
