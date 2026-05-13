@@ -1000,11 +1000,7 @@ dependencies = [
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-<<<<<<< HEAD
-    { name = "jupyter-chat-components", specifier = ">=0.4.0,<0.5" },
-=======
     { name = "jupyter-chat-components", specifier = ">=0.5.0,<0.6" },
->>>>>>> upstream/main
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
