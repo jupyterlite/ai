@@ -438,7 +438,9 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
       if (
         this._settingsModel.config.autoTitle &&
-        (this.messages.length <= 5 || this.title === null)
+        (this.messages.filter(msg => msg.sender.username !== 'ai-assistant')
+          .length <= 5 ||
+          this.title === null)
       ) {
         try {
           this.title = await this.requestTitle();
@@ -600,7 +602,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         );
       }
     } else if (!silent) {
-      console.log(`Provider not providing when restoring ${filepath}.`);
+      console.log(`Provider not provided when restoring ${filepath}.`);
     }
 
     const messages: IMessageContent[] = content.messages.map(message => {
