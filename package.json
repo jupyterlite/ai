@@ -1,5 +1,5 @@
 {
-    "name": "@jupyterlite/ai",
+    "name": "@jovia/extension",
     "version": "0.18.0",
     "description": "AI code completions and chat for JupyterLite",
     "keywords": [
@@ -37,7 +37,7 @@
         "clean": "jlpm clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-        "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
+        "clean:labextension": "rimraf jovia/labextension jovia/_version.py",
         "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache --ext .ts,.tsx",
@@ -130,7 +130,7 @@
     },
     "jupyterlab": {
         "extension": true,
-        "outputDir": "jupyterlite_ai/labextension",
+        "outputDir": "jovia/labextension",
         "schemaDir": "schema",
         "sharedPackages": {
             "@jupyter/chat": {

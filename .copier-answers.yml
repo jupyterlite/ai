@@ -6,9 +6,9 @@ author_name: JupyterLite Contributors
 has_binder: false
 has_settings: true
 kind: frontend
-labextension_name: @jupyterlite/ai
+labextension_name: '@jovia/extension'
 project_short_description: AI code completions and chat for JupyterLite
-python_name: jupyterlite_ai
+python_name: jovia
 repository: https://github.com/jupyterlite/ai
 test: false
 

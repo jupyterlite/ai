@@ -172,7 +172,7 @@ import type {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ISkillRegistry } from '@jupyterlite/ai';
+import { ISkillRegistry } from '@jovia/extension';
 
 // Bundled resource files (scripts, references, templates)
 const resources: Record<string, string> = {

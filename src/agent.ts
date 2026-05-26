@@ -1177,7 +1177,7 @@ ${richOutputWorkflowInstruction}`;
       if (!token) {
         // This should never happen, the secrets manager should be disabled.
         console.error(
-          '@jupyterlite/ai::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
+          '@jovia/extension::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
         );
         apiKey = '';
       } else {

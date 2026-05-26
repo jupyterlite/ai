@@ -14,7 +14,7 @@ import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 const EXPECT_TIMEOUT = 120000;
 const TEST_MIME_BUNDLE_COMMAND_ID = 'jupyterlite-ai-tests:emit-mime-bundle';
 const BASE_SETTINGS =
-  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'];
+  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model'];
 const PROVIDERS = BASE_SETTINGS.providers.map(provider => {
   if (provider.id !== 'generic-functiongemma') {
     return provider;
@@ -36,7 +36,7 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
+    '@jovia/extension:settings-model': {
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,

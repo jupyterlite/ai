@@ -3,7 +3,7 @@ import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
 import { AIChatModel } from '../chat-model';
 
 export class ClearCommandProvider implements IChatCommandProvider {
-  public id: string = '@jupyterlite/ai:clear-command';
+  public id: string = '@jovia/extension:clear-command';
 
   async listCommandCompletions(
     inputModel: IInputModel

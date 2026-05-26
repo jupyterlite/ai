@@ -222,7 +222,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const mainAreaPanel =
         await page.activity.getPanelLocator(QWEN_MODEL_NAME);
       await mainAreaPanel
-        ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
+        ?.locator('[data-command="@jovia/extension:move-chat"]')
         .click();
       await expect(chatWidgetToolbar).toBeVisible();
       await expect(mainAreaTab).toHaveCount(0);
@@ -258,7 +258,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-chat',
+            '@jovia/extension:open-chat',
             {
               name,
               input
@@ -283,7 +283,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, area, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+            '@jovia/extension:open-or-reveal-chat',
             {
               name,
               area,
@@ -310,7 +310,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, area, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+            '@jovia/extension:open-or-reveal-chat',
             {
               name,
               area,

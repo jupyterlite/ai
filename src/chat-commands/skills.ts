@@ -11,7 +11,7 @@ export class SkillsCommandProvider implements IChatCommandProvider {
     this._commands = options.commands;
   }
 
-  public id: string = '@jupyterlite/ai:skills-command';
+  public id: string = '@jovia/extension:skills-command';
 
   async listCommandCompletions(
     inputModel: IInputModel

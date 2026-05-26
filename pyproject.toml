@@ -3,7 +3,7 @@ requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyterlite_ai"
+name = "jovia"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -51,24 +51,24 @@ source = "nodejs"
 fields = ["description", "authors", "urls"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["jupyterlite_ai/labextension"]
+artifacts = ["jovia/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlite_ai/labextension" = "share/jupyter/labextensions/@jupyterlite/ai"
-"install.json" = "share/jupyter/labextensions/@jupyterlite/ai/install.json"
+"jovia/labextension" = "share/jupyter/labextensions/@jovia/extension"
+"install.json" = "share/jupyter/labextensions/@jovia/extension/install.json"
 
 [tool.hatch.build.hooks.version]
-path = "jupyterlite_ai/_version.py"
+path = "jovia/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "jupyterlite_ai/labextension/static/style.js",
-    "jupyterlite_ai/labextension/package.json",
+    "jovia/labextension/static/style.js",
+    "jovia/labextension/package.json",
 ]
-skip-if-exists = ["jupyterlite_ai/labextension/static/style.js"]
+skip-if-exists = ["jovia/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
@@ -78,7 +78,7 @@ npm = ["jlpm"]
 build_cmd = "install:extension"
 npm = ["jlpm"]
 source_dir = "src"
-build_dir = "jupyterlite_ai/labextension"
+build_dir = "jovia/labextension"
 
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"

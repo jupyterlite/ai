@@ -17,8 +17,8 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
+    '@jovia/extension:settings-model': {
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model'],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       // Keep the test deterministic with small local models.

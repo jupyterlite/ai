@@ -162,7 +162,7 @@ test.describe('#chatSaveRestore', () => {
     await page.evaluate(async (dir: string) => {
       const app = (window as any).jupyterapp;
       await app.serviceManager.settings.save(
-        '@jupyterlite/ai:settings-model',
+        '@jovia/extension:settings-model',
         JSON.stringify({ chatBackupDirectory: dir })
       );
     }, customDir);
