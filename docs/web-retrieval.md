@@ -1,6 +1,6 @@
 # Web Retrieval
 
-`jupyterlite-ai` supports two kinds of web retrieval:
+`jovia` supports two kinds of web retrieval:
 
 1. **Local browser fetch** with the built-in `browser_fetch` tool.
 2. **Provider-hosted web tools** such as `web_search` or `web_fetch`.

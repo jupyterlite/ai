@@ -74,7 +74,7 @@ test.describe('#mcpIntegration', () => {
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
 
-    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    const settingsPanel = page.locator('#jovia-settings');
     await expect(settingsPanel).toBeVisible();
 
     const mcpServersTab = settingsPanel.getByRole('tab', {

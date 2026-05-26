@@ -98,7 +98,7 @@ jlpm docs:build
 ## Development uninstall
 
 ```bash
-pip uninstall jupyterlite-ai
+pip uninstall jovia
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`

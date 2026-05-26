@@ -172,7 +172,7 @@ test.describe('#chatSaveRestore', () => {
     // Update the backup directory in settings
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
-    const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+    const aiSettingsWidget = page.locator('#jovia-settings');
     await expect(aiSettingsWidget).toBeVisible();
     await aiSettingsWidget.getByText('BEHAVIOR').click();
 

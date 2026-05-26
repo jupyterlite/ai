@@ -1359,7 +1359,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
 
     const open = () => {
       let widget = Array.from(app.shell.widgets('main')).find(
-        w => w.id === 'jupyterlite-ai-settings'
+        w => w.id === 'jovia-settings'
       ) as AISettingsWidget | undefined;
 
       if (!widget) {

@@ -126,7 +126,7 @@ test.describe('#CompletionStatus', () => {
     );
 
     // Open the settings panel
-    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    const settingsPanel = page.locator('#jovia-settings');
     await page.keyboard.press('Control+Shift+c');
     await page
       .locator(

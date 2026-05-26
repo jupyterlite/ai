@@ -92,7 +92,7 @@ export class AISettingsWidget extends ReactWidget {
     this._providerRegistry = options.providerRegistry;
     this._secretsAccess = options.secretsAccess;
     this._trans = options.trans;
-    this.id = 'jupyterlite-ai-settings';
+    this.id = 'jovia-settings';
     this.title.label = this._trans.__('AI Settings');
     this.title.caption = this._trans.__('Configure AI providers and behavior');
     this.title.closable = true;
