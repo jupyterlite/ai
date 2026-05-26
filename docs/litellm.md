@@ -2,7 +2,7 @@
 
 [LiteLLM Proxy](https://docs.litellm.ai/docs/simple_proxy) is an OpenAI-compatible proxy server that allows you to call 100+ LLMs through a unified interface.
 
-Using LiteLLM Proxy with jupyterlite-ai provides flexibility to switch between different AI providers (OpenAI, Anthropic, Google, Azure, local models, etc.) without changing your JupyterLite configuration. It's particularly useful for enterprise deployments where the proxy can be hosted within private infrastructure to manage external API calls and keep API keys server-side.
+Using LiteLLM Proxy with jovia provides flexibility to switch between different AI providers (OpenAI, Anthropic, Google, Azure, local models, etc.) without changing your JupyterLite configuration. It's particularly useful for enterprise deployments where the proxy can be hosted within private infrastructure to manage external API calls and keep API keys server-side.
 
 ## Setting up LiteLLM Proxy
 
@@ -31,7 +31,7 @@ litellm --config litellm_config.yaml
 
 The proxy will start on `http://0.0.0.0:4000` by default.
 
-## Configuring jupyterlite-ai to use LiteLLM Proxy
+## Configuring jovia to use LiteLLM Proxy
 
 Configure the [Generic provider (OpenAI-compatible)](./usage.md#using-a-generic-openai-compatible-provider) with the following settings:
 

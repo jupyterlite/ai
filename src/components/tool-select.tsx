@@ -21,7 +21,7 @@ import type {
   IToolRegistry
 } from '../tokens';
 
-const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
+const SELECT_ITEM_CLASS = 'jovia-ToolSelect-item';
 
 /**
  * Properties for the tool select component.

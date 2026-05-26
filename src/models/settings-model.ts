@@ -8,7 +8,7 @@ import {
   IProviderConfig
 } from '../tokens';
 
-const PLUGIN_ID = '@jupyterlite/ai:settings-model';
+const PLUGIN_ID = '@jovia/extension:settings-model';
 
 export class AISettingsModel extends VDomModel implements IAISettingsModel {
   private _config: IAIConfig = {

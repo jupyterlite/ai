@@ -196,7 +196,7 @@ namespace Private {
  * Provider registry plugin
  */
 const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
-  id: '@jupyterlite/ai:provider-registry',
+  id: '@jovia/extension:provider-registry',
   description: 'AI provider registry',
   autoStart: true,
   provides: IProviderRegistry,
@@ -209,7 +209,7 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
  * Anthropic provider plugin
  */
 const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:anthropic-provider',
+  id: '@jovia/extension:anthropic-provider',
   description: 'Register Anthropic provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -222,7 +222,7 @@ const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Google provider plugin
  */
 const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:google-provider',
+  id: '@jovia/extension:google-provider',
   description: 'Register Google Generative AI provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -235,7 +235,7 @@ const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Mistral provider plugin
  */
 const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:mistral-provider',
+  id: '@jovia/extension:mistral-provider',
   description: 'Register Mistral provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -248,7 +248,7 @@ const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
  * OpenAI provider plugin
  */
 const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:openai-provider',
+  id: '@jovia/extension:openai-provider',
   description: 'Register OpenAI provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -261,7 +261,7 @@ const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Generic provider plugin
  */
 const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:generic-provider',
+  id: '@jovia/extension:generic-provider',
   description: 'Register Generic OpenAI-compatible provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -274,7 +274,7 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Chat command registry plugin.
  */
 const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
-  id: '@jupyterlite/ai:chat-command-registry',
+  id: '@jovia/extension:chat-command-registry',
   description: 'Provide the chat command registry for JupyterLite AI.',
   autoStart: true,
   provides: IChatCommandRegistry,
@@ -287,7 +287,7 @@ const chatCommandRegistryPlugin: JupyterFrontEndPlugin<IChatCommandRegistry> = {
  * Clear chat command plugin.
  */
 const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:clear-command',
+  id: '@jovia/extension:clear-command',
   description: 'Register the /clear chat command.',
   autoStart: true,
   requires: [IChatCommandRegistry],
@@ -300,7 +300,7 @@ const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
  * Skills chat command plugin.
  */
 const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:skills-command',
+  id: '@jovia/extension:skills-command',
   description: 'Register the /skills chat command.',
   autoStart: true,
   requires: [IChatCommandRegistry, ISkillRegistry],
@@ -322,7 +322,7 @@ const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
  * The chat model handler.
  */
 const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
-  id: '@jupyterlite/ai:chat-model-handler',
+  id: '@jovia/extension:chat-model-handler',
   description: 'A handler to create current chat model',
   autoStart: true,
   requires: [
@@ -360,7 +360,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
  * The active cell manager plugin, to allow copying code from chat to notebook.
  */
 const activeCellManager: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:activeCellManager',
+  id: '@jovia/extension:activeCellManager',
   description: 'Add the active cell manager to the model handler',
   autoStart: true,
   requires: [IChatModelHandler, INotebookTracker],
@@ -381,7 +381,7 @@ const activeCellManager: JupyterFrontEndPlugin<void> = {
  * Initialization data for the extension.
  */
 const plugin: JupyterFrontEndPlugin<IChatTracker> = {
-  id: '@jupyterlite/ai:plugin',
+  id: '@jovia/extension:plugin',
   description: 'AI in JupyterLab',
   autoStart: true,
   provides: IChatTracker,
@@ -416,7 +416,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     palette?: ICommandPalette,
     documentManager?: IDocumentManager
   ): IChatTracker => {
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const trans = (translator ?? nullTranslator).load('jovia');
 
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
@@ -484,7 +484,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         }) as Promise<boolean>
     });
 
-    chatPanel.id = '@jupyterlite/ai:chat-panel';
+    chatPanel.id = '@jovia/extension:chat-panel';
     chatPanel.title.icon = chatIcon;
     chatPanel.title.caption = trans.__('Chat with AI assistant');
 
@@ -1321,7 +1321,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
  * AI settings panel plugin.
  */
 const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:settings-panel',
+  id: '@jovia/extension:settings-panel',
   description: 'Provide the AI settings panel',
   autoStart: true,
   requires: [IAISettingsModel, IAgentManagerFactory, IProviderRegistry],
@@ -1343,7 +1343,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     themeManager?: IThemeManager,
     translator?: ITranslator
   ): void => {
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const trans = (translator ?? nullTranslator).load('jovia');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
 
     const settingsWidget = new AISettingsWidget({
@@ -1355,11 +1355,11 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
       trans
     });
     settingsWidget.title.icon = settingsIcon;
-    settingsWidget.title.iconClass = 'jp-ai-settings-icon';
+    settingsWidget.title.iconClass = 'jovia-settings-icon';
 
     const open = () => {
       let widget = Array.from(app.shell.widgets('main')).find(
-        w => w.id === 'jupyterlite-ai-settings'
+        w => w.id === 'jovia-settings'
       ) as AISettingsWidget | undefined;
 
       if (!widget) {
@@ -1378,7 +1378,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
       label: trans.__('AI Settings'),
       caption: trans.__('Configure AI providers and behavior'),
       icon: settingsIcon,
-      iconClass: 'jp-ai-settings-icon',
+      iconClass: 'jovia-settings-icon',
       execute: () => {
         open();
       },
@@ -1400,7 +1400,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
  * Built-in completion providers plugin
  */
 const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
-  id: '@jupyterlite/ai:settings-model',
+  id: '@jovia/extension:settings-model',
   description: 'Provide the AI settings model',
   autoStart: true,
   provides: IAISettingsModel,
@@ -1417,7 +1417,7 @@ const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
  * Diff manager plugin
  */
 const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
-  id: '@jupyterlite/ai:diff-manager',
+  id: '@jovia/extension:diff-manager',
   description: 'Provide the diff manager for notebook cell diffs',
   autoStart: true,
   provides: IDiffManager,
@@ -1437,7 +1437,7 @@ const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
  * Skill registry plugin
  */
 const skillRegistryPlugin: JupyterFrontEndPlugin<ISkillRegistry> = {
-  id: '@jupyterlite/ai:skill-registry',
+  id: '@jovia/extension:skill-registry',
   description: 'Provide the skill registry',
   autoStart: true,
   provides: ISkillRegistry,
@@ -1447,7 +1447,7 @@ const skillRegistryPlugin: JupyterFrontEndPlugin<ISkillRegistry> = {
 };
 
 const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
-  id: '@jupyterlite/ai:tool-registry',
+  id: '@jovia/extension:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
   requires: [IAISettingsModel],
@@ -1487,7 +1487,7 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
  */
 const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
   {
-    id: '@jupyterlite/ai:input-toolbar-factory',
+    id: '@jovia/extension:input-toolbar-factory',
     description: 'The input toolbar registry plugin.',
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
@@ -1500,7 +1500,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
       providerRegistry: IProviderRegistry,
       translator?: ITranslator
     ): IInputToolbarRegistryFactory => {
-      const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+      const trans = (translator ?? nullTranslator).load('jovia');
       const stopButton = stopItem(trans);
       const clearButton = clearItem(trans);
       const toolSelectButton = createToolSelectItem(
@@ -1538,7 +1538,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
   };
 
 const completionStatus: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:completion-status',
+  id: '@jovia/extension:completion-status',
   description: 'The completion status displayed in the status bar',
   autoStart: true,
   requires: [IAISettingsModel],
@@ -1552,7 +1552,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
     if (!statusBar) {
       return;
     }
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const trans = (translator ?? nullTranslator).load('jovia');
     const item = new CompletionStatusWidget({
       settingsModel,
       translator: trans
@@ -1569,7 +1569,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
  * Skills plugin: discovers and registers agent skills from the filesystem.
  */
 const skillsPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:skills',
+  id: '@jovia/extension:skills',
   description: 'Discover and register agent skills',
   autoStart: true,
   requires: [IAISettingsModel, IDocumentManager, ISkillRegistry],
@@ -1582,7 +1582,7 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
     palette?: ICommandPalette,
     translator?: ITranslator
   ) => {
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const trans = (translator ?? nullTranslator).load('jovia');
     const validateResourcePath = (resourcePath: string): string | null => {
       if (resourcePath.startsWith('/')) {
         return null;

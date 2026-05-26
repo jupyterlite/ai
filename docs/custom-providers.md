@@ -1,6 +1,6 @@
 # Custom Providers
 
-`jupyterlite-ai` supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
+`jovia` supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
 
 Providers are based on the [AI SDK](https://ai-sdk.dev/), which provides a unified interface for working with different AI models.
 
@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyterlite/ai';
+import { IProviderRegistry } from '@jovia/extension';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -63,15 +63,15 @@ The provider configuration object requires the following properties:
 ## Hiding the Built-In Settings UI
 
 If your extension ships a fully configured provider and you do not want users to
-edit provider settings, disable the `@jupyterlite/ai:settings-panel` plugin.
+edit provider settings, disable the `@jovia/extension:settings-panel` plugin.
 This hides the AI settings command and the chat toolbar button without
-disabling the rest of `jupyterlite-ai`.
+disabling the rest of `jovia`.
 
 For example, in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": ["@jupyterlite/ai:settings-panel"]
+  "disabledExtensions": ["@jovia/extension:settings-panel"]
 }
 ```
 
@@ -110,7 +110,7 @@ In AI SDK terms, this can be either:
 - **Provider-defined tools** (declared as provider tools in AI SDK), or
 - **Provider-executed tools** (tool helpers exposed directly by provider SDKs).
 
-In `jupyterlite-ai`, provider-hosted web tools are wired through
+In `jovia`, provider-hosted web tools are wired through
 `IProviderInfo.providerToolCapabilities`. This means custom providers can opt in
 without relying on hardcoded provider IDs.
 

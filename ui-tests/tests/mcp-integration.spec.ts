@@ -17,8 +17,8 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
+    '@jovia/extension:settings-model': {
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model'],
       toolsEnabled: true,
       // To nudge the (relatively small) model to call the tools
       systemPrompt: 'Just call the tools you are asked to call',
@@ -74,7 +74,7 @@ test.describe('#mcpIntegration', () => {
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
 
-    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    const settingsPanel = page.locator('#jovia-settings');
     await expect(settingsPanel).toBeVisible();
 
     const mcpServersTab = settingsPanel.getByRole('tab', {

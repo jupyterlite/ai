@@ -66,7 +66,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
   /**
    * The unique identifier of the provider.
    */
-  readonly identifier = '@jupyterlite/ai:completer';
+  readonly identifier = '@jovia/extension:completer';
 
   /**
    * Get the current completer name based on settings.
@@ -175,7 +175,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       if (!token) {
         // This should never happen, the secrets manager should be disabled.
         console.error(
-          '@jupyterlite/ai::AICompletionProvider error: the settings manager token is not set.\nYou should disable the secrets manager from the AI settings.'
+          '@jovia/extension::AICompletionProvider error: the settings manager token is not set.\nYou should disable the secrets manager from the AI settings.'
         );
         apiKey = '';
       } else {

@@ -1,4 +1,4 @@
-# jupyterlite-ai
+# jovia
 
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/jupyterlite-ai/badge/?version=latest)](https://jupyterlite-ai.readthedocs.io/en/latest/?badge=latest)
@@ -23,13 +23,13 @@ You can try the extension in your browser using JupyterLite:
 To install the extension, execute:
 
 ```bash
-pip install jupyterlite-ai
+pip install jovia
 ```
 
 To install requirements (JupyterLab, JupyterLite and Notebook):
 
 ```bash
-pip install jupyterlite-ai[jupyter]
+pip install jovia[jupyter]
 ```
 
 ## Documentation
@@ -41,7 +41,7 @@ For detailed usage instructions, including how to configure AI providers, see th
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyterlite-ai
+pip uninstall jovia
 ```
 
 ## Contributing

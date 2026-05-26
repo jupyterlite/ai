@@ -12,9 +12,9 @@ import {
 import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
 const EXPECT_TIMEOUT = 120000;
-const TEST_MIME_BUNDLE_COMMAND_ID = 'jupyterlite-ai-tests:emit-mime-bundle';
+const TEST_MIME_BUNDLE_COMMAND_ID = 'jovia-tests:emit-mime-bundle';
 const BASE_SETTINGS =
-  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'];
+  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model'];
 const PROVIDERS = BASE_SETTINGS.providers.map(provider => {
   if (provider.id !== 'generic-functiongemma') {
     return provider;
@@ -36,14 +36,14 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
+    '@jovia/extension:settings-model': {
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       commandsAutoRenderMimeBundles: [TEST_MIME_BUNDLE_COMMAND_ID],
       systemPrompt:
-        'When asked to execute a command, call execute_command exactly once with this input shape: {"commandId":"jupyterlite-ai-tests:emit-mime-bundle"} and no args. Do not call any other tools and do not ask follow-up questions.'
+        'When asked to execute a command, call execute_command exactly once with this input shape: {"commandId":"jovia-tests:emit-mime-bundle"} and no args. Do not call any other tools and do not ask follow-up questions.'
     }
   }
 });

@@ -92,7 +92,7 @@ export class AISettingsWidget extends ReactWidget {
     this._providerRegistry = options.providerRegistry;
     this._secretsAccess = options.secretsAccess;
     this._trans = options.trans;
-    this.id = 'jupyterlite-ai-settings';
+    this.id = 'jovia-settings';
     this.title.label = this._trans.__('AI Settings');
     this.title.caption = this._trans.__('Configure AI providers and behavior');
     this.title.closable = true;
@@ -602,7 +602,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         <Select
                           value={config.activeCompleterProvider || ''}
                           label={trans.__('Completion Provider')}
-                          className="jp-ai-completion-provider-select"
+                          className="jovia-completion-provider-select"
                           onChange={e =>
                             model.setActiveCompleterProvider(
                               e.target.value || undefined

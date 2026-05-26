@@ -36,7 +36,7 @@ test.describe('#withoutModel', () => {
     await expect(page.locator('.jp-Dialog')).toBeVisible();
 
     // Should open the AI settings
-    await expect(page.locator('#jupyterlite-ai-settings')).toBeVisible();
+    await expect(page.locator('#jovia-settings')).toBeVisible();
   });
 });
 
@@ -151,7 +151,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const settingsButton = panel.getByTitle('Open AI Settings');
       await settingsButton.click();
 
-      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      const aiSettingsWidget = page.locator('#jovia-settings');
       await expect(aiSettingsWidget).toBeVisible();
 
       // Remove the existing default provider for this test only
@@ -222,7 +222,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const mainAreaPanel =
         await page.activity.getPanelLocator(QWEN_MODEL_NAME);
       await mainAreaPanel
-        ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
+        ?.locator('[data-command="@jovia/extension:move-chat"]')
         .click();
       await expect(chatWidgetToolbar).toBeVisible();
       await expect(mainAreaTab).toHaveCount(0);
@@ -235,7 +235,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
 
       await panel.getByTitle('Open AI Settings').click();
 
-      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      const aiSettingsWidget = page.locator('#jovia-settings');
       await expect(aiSettingsWidget).toBeVisible();
       await aiSettingsWidget.getByRole('tab', { name: 'Behavior' }).click();
       await aiSettingsWidget.getByLabel('Show Context Usage').click();
@@ -258,7 +258,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-chat',
+            '@jovia/extension:open-chat',
             {
               name,
               input
@@ -283,7 +283,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, area, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+            '@jovia/extension:open-or-reveal-chat',
             {
               name,
               area,
@@ -310,7 +310,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await page.evaluate(
         ({ name, area, input }) => {
           return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+            '@jovia/extension:open-or-reveal-chat',
             {
               name,
               area,

@@ -27,7 +27,7 @@ curl http://localhost:8000/health
 # Expected: {"status": "healthy"}
 ```
 
-## Configuring jupyterlite-ai to use any-llm-gateway
+## Configuring jovia to use any-llm-gateway
 
 Configure the [Generic provider (OpenAI-compatible)](./usage.md#using-a-generic-openai-compatible-provider) with the following settings:
 
@@ -36,16 +36,16 @@ Configure the [Generic provider (OpenAI-compatible)](./usage.md#using-a-generic-
 - **API Key**: Your gateway virtual API key
 
 :::{tip}
-**Using virtual API keys**: The master key requires a `user` field in each request, which the generic OpenAI provider doesn't send by default. To use the gateway seamlessly with jupyterlite-ai, create a virtual API key:
+**Using virtual API keys**: The master key requires a `user` field in each request, which the generic OpenAI provider doesn't send by default. To use the gateway seamlessly with jovia, create a virtual API key:
 
 ```bash
 curl -X POST http://localhost:8000/v1/keys \
   -H "Authorization: Bearer ${GATEWAY_MASTER_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"key_name": "jupyterlite-ai"}'
+  -d '{"key_name": "jovia"}'
 ```
 
-The response will contain a key starting with `gw-`. Use this virtual key as your API key in jupyterlite-ai. Virtual keys automatically track usage without requiring the `user` field.
+The response will contain a key starting with `gw-`. Use this virtual key as your API key in jovia. Virtual keys automatically track usage without requiring the `user` field.
 :::
 
 :::{note}

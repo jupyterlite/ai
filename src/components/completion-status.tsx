@@ -4,8 +4,8 @@ import type { TranslationBundle } from '@jupyterlab/translation';
 import { jupyternautIcon } from '../icons';
 import type { IAISettingsModel } from '../tokens';
 
-const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
-const COMPLETION_DISABLED_CLASS = 'jp-ai-completion-disabled';
+const COMPLETION_STATUS_CLASS = 'jovia-completion-status';
+const COMPLETION_DISABLED_CLASS = 'jovia-completion-disabled';
 
 /**
  * The completion status props.

@@ -26,14 +26,14 @@ export type {
  * Command IDs namespace
  */
 export namespace CommandIds {
-  export const openSettings = '@jupyterlite/ai:open-settings';
-  export const reposition = '@jupyterlite/ai:reposition';
-  export const openChat = '@jupyterlite/ai:open-chat';
-  export const openOrRevealChat = '@jupyterlite/ai:open-or-reveal-chat';
-  export const moveChat = '@jupyterlite/ai:move-chat';
-  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
-  export const saveChat = '@jupyterlite/ai:save-chat';
-  export const restoreChat = '@jupyterlite/ai:restore-chat';
+  export const openSettings = '@jovia/extension:open-settings';
+  export const reposition = '@jovia/extension:reposition';
+  export const openChat = '@jovia/extension:open-chat';
+  export const openOrRevealChat = '@jovia/extension:open-or-reveal-chat';
+  export const moveChat = '@jovia/extension:move-chat';
+  export const refreshSkills = '@jovia/extension:refresh-skills';
+  export const saveChat = '@jovia/extension:save-chat';
+  export const restoreChat = '@jovia/extension:restore-chat';
 }
 
 /* THE TOOL REGISTRY */
@@ -102,7 +102,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  '@jupyterlite/ai:IToolRegistry',
+  '@jovia/extension:IToolRegistry',
   'Tool registry for AI agent functionality'
 );
 
@@ -145,7 +145,7 @@ export interface ISkillRegistry {
  * The skill registry token.
  */
 export const ISkillRegistry = new Token<ISkillRegistry>(
-  '@jupyterlite/ai:ISkillRegistry',
+  '@jovia/extension:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
 
@@ -335,7 +335,7 @@ export interface IProviderRegistry {
  * Token for the provider registry.
  */
 export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/ai:IProviderRegistry',
+  '@jovia/extension:IProviderRegistry',
   'Registry for AI providers'
 );
 
@@ -445,7 +445,7 @@ export interface IAISettingsModel extends VDomRenderer.IModel {
  * Token for the AI settings model.
  */
 export const IAISettingsModel = new Token<IAISettingsModel>(
-  '@jupyterlite/ai:IAISettingsModel'
+  '@jovia/extension:IAISettingsModel'
 );
 
 /* THE AGENT MANAGER */
@@ -641,7 +641,7 @@ export interface IAgentManager {
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<IAgentManager>(
-  '@jupyterlite/ai:IAgentManager'
+  '@jovia/extension:IAgentManager'
 );
 
 /* The AGENT MANAGER FACTORY */
@@ -673,7 +673,7 @@ export interface IAgentManagerFactory {
  * Token for the agent manager factory.
  */
 export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
-  '@jupyterlite/ai:IAgentManagerFactory'
+  '@jovia/extension:IAgentManagerFactory'
 );
 
 /* THE CHAT MODELS HANDLER */
@@ -785,7 +785,7 @@ export interface ICreateChatOptions {
  * Token for the chat model handler.
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
-  '@jupyterlite/ai:IChatModelHandler'
+  '@jovia/extension:IChatModelHandler'
 );
 
 /* THE DIFF MANAGER */
@@ -860,7 +860,7 @@ export interface IDiffManager {
  * Token for the diff manager.
  */
 export const IDiffManager = new Token<IDiffManager>(
-  '@jupyterlite/ai:IDiffManager'
+  '@jovia/extension:IDiffManager'
 );
 
 /**
@@ -892,7 +892,7 @@ export interface ITokenUsage {
 /**
  * The string that replaces a secret key in settings.
  */
-export const SECRETS_NAMESPACE = '@jupyterlite/ai:providers';
+export const SECRETS_NAMESPACE = '@jovia/extension:providers';
 export const SECRETS_REPLACEMENT = '***';
 
 /**

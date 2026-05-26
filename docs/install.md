@@ -5,7 +5,7 @@
 To install the extension, execute:
 
 ```bash
-pip install jupyterlite-ai
+pip install jovia
 ```
 
 ## Install with Jupyter dependencies
@@ -13,7 +13,7 @@ pip install jupyterlite-ai
 To install requirements (JupyterLab, JupyterLite and Notebook):
 
 ```bash
-pip install jupyterlite-ai[jupyter]
+pip install jovia[jupyter]
 ```
 
 ## Uninstall
@@ -21,5 +21,5 @@ pip install jupyterlite-ai[jupyter]
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyterlite-ai
+pip uninstall jovia
 ```

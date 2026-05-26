@@ -1,6 +1,6 @@
 # API Key Management
 
-To avoid storing the API keys in the settings, `jupyterlite-ai` uses [jupyter-secrets-manager](https://github.com/jupyterlab-contrib/jupyter-secrets-manager) by default.
+To avoid storing the API keys in the settings, `jovia` uses [jupyter-secrets-manager](https://github.com/jupyterlab-contrib/jupyter-secrets-manager) by default.
 
 The secrets manager gets the API keys from a connector in a secure way.
 The default connector of the secrets manager is _in memory_, which means that **the API keys are reset when reloading the page**.

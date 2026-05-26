@@ -10,7 +10,7 @@ export const QWEN_MODEL_NAME = 'Qwen2.5';
 export const FUNCTIONGEMMA_MODEL_NAME = 'Functiongemma';
 
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
-  '@jupyterlite/ai:settings-model': {
+  '@jovia/extension:settings-model': {
     defaultProvider: 'generic-qwen',
     mcpServers: [],
     providers: [
@@ -40,7 +40,7 @@ export const TEST_PROVIDERS = [
   { name: 'Generic', settings: DEFAULT_GENERIC_PROVIDER_SETTINGS }
 ];
 
-export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
+export const CHAT_PANEL_ID = '@jovia/extension:chat-panel';
 
 export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
 

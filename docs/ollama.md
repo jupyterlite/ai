@@ -13,7 +13,7 @@ ollama pull llama3.2
 
 3. Start the Ollama server (it typically runs on `http://localhost:11434`)
 
-## Configuring jupyterlite-ai to use Ollama
+## Configuring jovia to use Ollama
 
 1. In JupyterLab, open the AI settings panel and go to the **Providers** section
 2. Click on "Add a new provider"

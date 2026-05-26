@@ -2,7 +2,7 @@
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open standard that enables AI assistants to connect to external tools and data sources.
 
-With `jupyterlite-ai`, you can connect to remote MCP servers to extend the AI's capabilities with additional tools.
+With `jovia`, you can connect to remote MCP servers to extend the AI's capabilities with additional tools.
 
 ## Configuring an MCP Server
 
@@ -18,7 +18,7 @@ Once connected, the MCP server's tools will be available to the AI assistant in 
 
 ## Example MCP Servers
 
-Here are some publicly available remote MCP servers you can use with `jupyterlite-ai`:
+Here are some publicly available remote MCP servers you can use with `jovia`:
 
 ### DeepWiki
 
@@ -40,11 +40,11 @@ The GitMCP server enables the AI to fetch and understand code from GitHub reposi
 
 The MCP ecosystem is growing rapidly, with directories of available servers at places like the [MCP Servers Repository](https://github.com/modelcontextprotocol/servers).
 
-However, be aware that **most MCP servers listed in these directories will not work** with `jupyterlite-ai` due to browser constraints explained below.
+However, be aware that **most MCP servers listed in these directories will not work** with `jovia` due to browser constraints explained below.
 
 ## Browser Constraints
 
-Since `jupyterlite-ai` runs entirely in the browser, it can only connect to MCP servers that meet two requirements:
+Since `jovia` runs entirely in the browser, it can only connect to MCP servers that meet two requirements:
 
 1. **Streamable HTTP transport**: The server must support the [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) defined in the MCP specification. The vast majority of MCP servers are designed to run locally using the stdio transport, which is inaccessible from a browser.
 
@@ -63,7 +63,7 @@ If you want to add custom tools, the practical approach is to provide new Jupyte
 How it works at a high level:
 
 1. Create or install a JupyterLab extension that registers one or more commands (for example, `my-extension:run-my-tool`).
-2. `jupyterlite-ai` exposes JupyterLab commands to the model through its command tools (`discover_commands` and `execute_command`).
+2. `jovia` exposes JupyterLab commands to the model through its command tools (`discover_commands` and `execute_command`).
 3. The AI can discover your command and execute it with arguments, so the command effectively becomes an AI-usable tool.
 4. If needed, require manual confirmation for specific command IDs using the **Commands Requiring Approval** setting.
 
