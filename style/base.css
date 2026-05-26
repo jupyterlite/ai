@@ -52,63 +52,6 @@
   margin-right: 8px;
 }
 
-/* Enhanced tool select button styles */
-.jp-AIToolSelect-button {
-  min-width: 36px;
-  padding: 6px 8px;
-  background: var(--jp-layout-color2) !important;
-  border: 1px solid var(--jp-border-color1) !important;
-  transition: all 0.2s ease;
-}
-
-.jp-AIToolSelect-button:hover {
-  background: var(--jp-layout-color3) !important;
-  border-color: var(--jp-brand-color1) !important;
-}
-
-.jp-AIToolSelect-button[aria-expanded='true'] {
-  background: var(--jp-brand-color1) !important;
-  color: white !important;
-}
-
-/* Enhanced tool select menu styles */
-.jp-AIToolSelect-menu {
-  max-width: 300px;
-  box-shadow: var(--jp-elevation-z6);
-  border: 1px solid var(--jp-border-color2);
-}
-
-.jp-AIToolSelect-menu .MuiMenuItem-root {
-  padding: 8px 16px;
-  min-height: 40px;
-  border-bottom: 1px solid var(--jp-border-color3);
-}
-
-.jp-AIToolSelect-menu .MuiMenuItem-root:last-child {
-  border-bottom: none;
-}
-
-.jp-AIChatToolbar {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.jp-AIChatWrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.jp-AIChatPanel {
-  flex: 1;
-  min-height: 0;
-}
-
-.jp-chat-attachment {
-  border-radius: 2px;
-  padding: 0 0.4em;
-}
-
 /* Save button */
 .jovia-SaveButton {
   display: flex;
