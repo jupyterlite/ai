@@ -1355,7 +1355,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
       trans
     });
     settingsWidget.title.icon = settingsIcon;
-    settingsWidget.title.iconClass = 'jp-ai-settings-icon';
+    settingsWidget.title.iconClass = 'jovia-settings-icon';
 
     const open = () => {
       let widget = Array.from(app.shell.widgets('main')).find(
@@ -1378,7 +1378,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
       label: trans.__('AI Settings'),
       caption: trans.__('Configure AI providers and behavior'),
       icon: settingsIcon,
-      iconClass: 'jp-ai-settings-icon',
+      iconClass: 'jovia-settings-icon',
       execute: () => {
         open();
       },

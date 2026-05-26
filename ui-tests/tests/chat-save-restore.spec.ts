@@ -38,7 +38,7 @@ test.describe('#chatSaveRestore', () => {
     page
   }) => {
     const panel = await openChatPanel(page);
-    const saveContainer = panel.locator('.jp-ai-SaveButton');
+    const saveContainer = panel.locator('.jovia-SaveButton');
 
     await expect(saveContainer).toBeVisible();
     await expect(saveContainer.getByTitle('Save chat')).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('#chatSaveRestore', () => {
   test('should save the chat to a backup file', async ({ page }) => {
     const panel = await openChatPanel(page);
 
-    await panel.locator('.jp-ai-SaveButton').getByTitle('Save chat').click();
+    await panel.locator('.jovia-SaveButton').getByTitle('Save chat').click();
 
     await page.waitForCondition(
       async () => await page.filebrowser.contents.fileExists(BACKUP_FILE)
@@ -57,7 +57,7 @@ test.describe('#chatSaveRestore', () => {
 
   test('should toggle auto-save on and off', async ({ page }) => {
     const panel = await openChatPanel(page);
-    const saveContainer = panel.locator('.jp-ai-SaveButton');
+    const saveContainer = panel.locator('.jovia-SaveButton');
     const autoSaveButton = saveContainer.getByTitle('Auto-save');
 
     // Initially not toggled.
@@ -86,8 +86,8 @@ test.describe('#chatSaveRestore', () => {
     );
 
     // Enable auto-save.
-    await panel.locator('.jp-ai-SaveButton').getByTitle('Auto-save').click();
-    await expect(panel.locator('.jp-ai-SaveButton')).toHaveClass(
+    await panel.locator('.jovia-SaveButton').getByTitle('Auto-save').click();
+    await expect(panel.locator('.jovia-SaveButton')).toHaveClass(
       /lm-mod-toggled/
     );
 
@@ -124,7 +124,7 @@ test.describe('#chatSaveRestore', () => {
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Save the chat.
-    await panel.locator('.jp-ai-SaveButton').getByTitle('Save chat').click();
+    await panel.locator('.jovia-SaveButton').getByTitle('Save chat').click();
 
     // Wait for the chat to be created.
     await page.waitForCondition(
@@ -202,7 +202,7 @@ test.describe('#chatSaveRestore', () => {
       panel.locator('.jp-chat-message-header:has-text("Jupyternaut")')
     ).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
-    await panel.locator('.jp-ai-SaveButton').getByTitle('Save chat').click();
+    await panel.locator('.jovia-SaveButton').getByTitle('Save chat').click();
 
     await page.waitForCondition(
       async () => await page.filebrowser.contents.fileExists(backupPath)
@@ -229,7 +229,7 @@ test.describe('#chatSaveRestore', () => {
     );
 
     // Enable auto-save and send a message so there is content to save.
-    await panel.locator('.jp-ai-SaveButton').getByTitle('Auto-save').click();
+    await panel.locator('.jovia-SaveButton').getByTitle('Auto-save').click();
     await input.pressSequentially('Hello');
     await sendButton.click();
 
@@ -257,7 +257,7 @@ test.describe('#chatSaveRestore', () => {
     const reloadedPanel = await openChatPanel(page);
 
     // The auto-save state should have been restored (container toggled).
-    const saveContainer = reloadedPanel.locator('.jp-ai-SaveButton');
+    const saveContainer = reloadedPanel.locator('.jovia-SaveButton');
 
     await expect(saveContainer).toHaveClass(/lm-mod-toggled/, {
       timeout: 10000

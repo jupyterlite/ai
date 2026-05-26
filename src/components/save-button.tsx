@@ -9,8 +9,8 @@ import React, { useEffect, useState } from 'react';
 
 import { IAIChatModel } from '../tokens';
 
-const COMPONENT_CLASS = 'jp-ai-SaveButton';
-const AUTOSAVE_BUTTON_CLASS = 'jp-ai-AutoSaveButton';
+const COMPONENT_CLASS = 'jovia-SaveButton';
+const AUTOSAVE_BUTTON_CLASS = 'jovia-AutoSaveButton';
 
 /**
  * Properties for the SaveButton component.

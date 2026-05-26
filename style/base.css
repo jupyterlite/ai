@@ -31,7 +31,7 @@
 }
 
 /* Tool Select Component Styles - Enhanced */
-.jp-AIToolSelect-item {
+.jovia-ToolSelect-item {
   display: flex;
   align-items: center;
   min-height: 36px;
@@ -39,11 +39,11 @@
   transition: background-color 0.2s ease;
 }
 
-.jp-AIToolSelect-item:hover {
+.jovia-ToolSelect-item:hover {
   background: var(--jp-layout-color2);
 }
 
-.jp-AIToolSelect-item .lm-Menu-itemIcon {
+.jovia-ToolSelect-item .lm-Menu-itemIcon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@
 }
 
 /* Save button */
-.jp-ai-SaveButton {
+.jovia-SaveButton {
   display: flex;
   align-items: center;
   background-color: var(--jp-layout-color1);
@@ -119,32 +119,32 @@
   padding: 4px;
 }
 
-.jp-ai-SaveButton.lm-mod-toggled {
+.jovia-SaveButton.lm-mod-toggled {
   box-shadow: inset 0 0 2px 2px var(--neutral-fill-strong-active);
 }
 
-.jp-ai-SaveButton .jp-ToolbarButtonComponent {
+.jovia-SaveButton .jp-ToolbarButtonComponent {
   margin: unset;
   height: 18px;
 }
 
-.jp-ai-SaveButton .jp-ai-AutoSaveButton {
+.jovia-SaveButton .jovia-AutoSaveButton {
   min-width: unset;
   width: 18px;
 }
 
-.jp-ai-SaveButton .jp-ai-AutoSaveButton svg {
+.jovia-SaveButton .jovia-AutoSaveButton svg {
   width: 12px;
   height: 12px;
 }
 
 .jp-MainAreaWidget
-  .jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:move-chat']
+  .jp-ToolbarButtonComponent[data-command='@jovia/extension:move-chat']
   svg {
   transform: rotate(180deg);
 }
 
-.jp-ai-settings-icon {
+.jovia-settings-icon {
   align-items: center;
   display: flex;
 }
@@ -159,10 +159,10 @@
 }
 
 /* Disabled color for the completion status */
-.jp-ai-completion-status .jp-ai-completion-disabled circle {
+.jovia-completion-status .jovia-completion-disabled circle {
   fill: var(--jp-layout-color3);
 }
 
-.jp-ai-completion-status .jp-ai-completion-disabled path {
+.jovia-completion-status .jovia-completion-disabled path {
   fill: var(--jp-layout-color2);
 }

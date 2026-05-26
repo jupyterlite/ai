@@ -97,7 +97,7 @@ test.describe('#CompletionStatus', () => {
   });
 
   test('should have a completion status indicator', async ({ page }) => {
-    await expect(page.locator('.jp-ai-completion-status')).toBeVisible();
+    await expect(page.locator('.jovia-completion-status')).toBeVisible();
   });
 
   test('completion status indicator should be enabled', async ({ page }) => {
@@ -105,9 +105,9 @@ test.describe('#CompletionStatus', () => {
       DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model']
         .providers[0].model;
     const component = page.locator(
-      '.jp-ai-completion-status > div:first-child'
+      '.jovia-completion-status > div:first-child'
     );
-    await expect(component).not.toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).not.toHaveClass(/jovia-completion-disabled/);
     await expect(component).toHaveAttribute(
       'title',
       `Completion using ${model}`
@@ -122,7 +122,7 @@ test.describe('#CompletionStatus', () => {
       DEFAULT_GENERIC_PROVIDER_SETTINGS['@jovia/extension:settings-model']
         .providers[0].name;
     const component = page.locator(
-      '.jp-ai-completion-status > div:first-child'
+      '.jovia-completion-status > div:first-child'
     );
 
     // Open the settings panel
@@ -137,21 +137,21 @@ test.describe('#CompletionStatus', () => {
     await settingsPanel.getByRole('switch').first().click();
 
     // Expect the completion to be disabled
-    await expect(component).toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).toHaveClass(/jovia-completion-disabled/);
     await expect(component).toHaveAttribute('title', 'No completion');
 
     // Select back a model and expect the completion to be enabled
-    await settingsPanel.locator('.jp-ai-completion-provider-select').click();
+    await settingsPanel.locator('.jovia-completion-provider-select').click();
     await page.getByRole('option', { name }).click();
-    await expect(component).not.toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).not.toHaveClass(/jovia-completion-disabled/);
     await expect(component).toHaveAttribute(
       'title',
       `Completion using ${model}`
     );
 
     // Disable manually the completion
-    await settingsPanel.locator('.jp-ai-completion-provider-select').click();
+    await settingsPanel.locator('.jovia-completion-provider-select').click();
     await page.getByRole('option', { name: 'No completion' }).click();
-    await expect(component).toHaveClass(/jp-ai-completion-disabled/);
+    await expect(component).toHaveClass(/jovia-completion-disabled/);
   });
 });

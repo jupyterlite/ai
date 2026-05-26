@@ -602,7 +602,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         <Select
                           value={config.activeCompleterProvider || ''}
                           label={trans.__('Completion Provider')}
-                          className="jp-ai-completion-provider-select"
+                          className="jovia-completion-provider-select"
                           onChange={e =>
                             model.setActiveCompleterProvider(
                               e.target.value || undefined
