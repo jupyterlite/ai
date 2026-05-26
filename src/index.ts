@@ -112,6 +112,7 @@ import {
   createModelSelectItem,
   createToolSelectItem,
   stopItem,
+  micItem,
   CompletionStatusWidget,
   UsageWidget
 } from './components';
@@ -1511,6 +1512,11 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
         trans
       );
       const modelSelectButton = createModelSelectItem(settingsModel, trans);
+      const micButton = micItem(
+        trans,
+        settingsModel,
+        providerRegistry
+      );
 
       return {
         create() {
@@ -1520,6 +1526,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
           inputToolbarRegistry.addItem('clear', clearButton);
           inputToolbarRegistry.addItem('model', modelSelectButton);
           inputToolbarRegistry.addItem('tools', toolSelectButton);
+          inputToolbarRegistry.addItem('mic', micButton);
 
           // Listen for settings changes to update tool availability
           settingsModel.stateChanged.connect(() => {

@@ -346,6 +346,24 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       attachments: [...this.input.attachments]
     };
 
+    // Auto-enrich user message with AudioPlayer mime_model if an audio attachment is present
+    const audioAttachment = userMessage.attachments?.find(
+      att =>
+        att.type === 'file' &&
+        (att.mimetype?.startsWith('audio/') || att.value.endsWith('.wav'))
+    );
+
+    if (audioAttachment) {
+      userMessage.mime_model = {
+        data: {
+          'application/vnd.jupyter.chat.components': 'audio-player'
+        },
+        metadata: {
+          path: audioAttachment.value
+        }
+      };
+    }
+
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
       this.messageAdded(userMessage);
@@ -1379,16 +1397,26 @@ namespace Private {
           }
         } else {
           let mimetype = attachment.mimetype;
-          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+          const isDataUri = attachment.value.startsWith('data:');
+          const fileExtension = isDataUri
+            ? ''
+            : PathExt.extname(attachment.value).toLowerCase();
 
           // Fetch mimetype from server metadata if not provided
           if (!mimetype) {
             try {
-              const diskModel = await documentManager.services.contents.get(
-                attachment.value,
-                { content: false }
-              );
-              mimetype = diskModel?.mimetype;
+              if (isDataUri) {
+                const match = attachment.value.match(/^data:([^;]+);/);
+                if (match) {
+                  mimetype = match[1];
+                }
+              } else {
+                const diskModel = await documentManager.services.contents.get(
+                  attachment.value,
+                  { content: false }
+                );
+                mimetype = diskModel?.mimetype;
+              }
             } catch (e) {
               console.warn(
                 `Failed to fetch metadata for ${attachment.value}:`,
@@ -1396,6 +1424,19 @@ namespace Private {
               );
             }
           }
+
+          const getFilename = () => {
+            if (isDataUri) {
+              return mimetype?.startsWith('audio/')
+                ? 'voice-message.wav'
+                : mimetype?.startsWith('image/')
+                ? 'image.png'
+                : mimetype === 'application/pdf'
+                ? 'document.pdf'
+                : 'attachment';
+            }
+            return PathExt.basename(attachment.value);
+          };
 
           if (mimetype?.startsWith('image/')) {
             if (supportsImages) {
@@ -1411,7 +1452,7 @@ namespace Private {
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else if (mimetype === 'application/pdf') {
             if (supportsPdf) {
@@ -1424,11 +1465,11 @@ namespace Private {
                   type: 'file',
                   data,
                   mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
+                  filename: getFilename()
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else if (mimetype?.startsWith('audio/')) {
             if (supportsAudio) {
@@ -1441,11 +1482,11 @@ namespace Private {
                   type: 'file',
                   data,
                   mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
+                  filename: getFilename()
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else {
             const fileContent = await readFileAttachment(
@@ -1496,6 +1537,14 @@ namespace Private {
     attachment: IAttachment,
     documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
+    if (attachment.value.startsWith('data:')) {
+      const parts = attachment.value.split(',');
+      if (parts.length > 1) {
+        return parts[1].replace(/\s/g, '');
+      }
+      return null;
+    }
+
     if (!documentManager) {
       return null;
     }
