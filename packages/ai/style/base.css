@@ -1,0 +1,168 @@
+/*
+    See the JupyterLab Developer Guide for useful CSS Patterns:
+
+    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+*/
+
+@import url('@jupyter/chat/style/index.css');
+
+.jp-chat-welcome-message {
+  text-align: center;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.jp-chat-welcome-message button[data-commandLinker-command] {
+  background: var(--jp-layout-color2);
+  border: 1px solid var(--jp-border-color1);
+  color: var(--jp-ui-font-color1);
+  border-radius: var(--jp-border-radius);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 2px 6px;
+  transition: all 0.2s ease;
+}
+
+.jp-chat-welcome-message button[data-commandLinker-command]:hover {
+  background: var(--jp-layout-color3);
+  border-color: var(--jp-brand-color1);
+  color: var(--jp-brand-color1);
+}
+
+/* Tool Select Component Styles - Enhanced */
+.jp-AIToolSelect-item {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 16px;
+  transition: background-color 0.2s ease;
+}
+
+.jp-AIToolSelect-item:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-AIToolSelect-item .lm-Menu-itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+}
+
+/* Enhanced tool select button styles */
+.jp-AIToolSelect-button {
+  min-width: 36px;
+  padding: 6px 8px;
+  background: var(--jp-layout-color2) !important;
+  border: 1px solid var(--jp-border-color1) !important;
+  transition: all 0.2s ease;
+}
+
+.jp-AIToolSelect-button:hover {
+  background: var(--jp-layout-color3) !important;
+  border-color: var(--jp-brand-color1) !important;
+}
+
+.jp-AIToolSelect-button[aria-expanded='true'] {
+  background: var(--jp-brand-color1) !important;
+  color: white !important;
+}
+
+/* Enhanced tool select menu styles */
+.jp-AIToolSelect-menu {
+  max-width: 300px;
+  box-shadow: var(--jp-elevation-z6);
+  border: 1px solid var(--jp-border-color2);
+}
+
+.jp-AIToolSelect-menu .MuiMenuItem-root {
+  padding: 8px 16px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--jp-border-color3);
+}
+
+.jp-AIToolSelect-menu .MuiMenuItem-root:last-child {
+  border-bottom: none;
+}
+
+.jp-AIChatToolbar {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.jp-AIChatWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.jp-AIChatPanel {
+  flex: 1;
+  min-height: 0;
+}
+
+.jp-chat-attachment {
+  border-radius: 2px;
+  padding: 0 0.4em;
+}
+
+/* Save button */
+.jp-ai-SaveButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--jp-layout-color1);
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.jp-ai-SaveButton.lm-mod-toggled {
+  box-shadow: inset 0 0 2px 2px var(--neutral-fill-strong-active);
+}
+
+.jp-ai-SaveButton .jp-ToolbarButtonComponent {
+  margin: unset;
+  height: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton {
+  min-width: unset;
+  width: 18px;
+}
+
+.jp-ai-SaveButton .jp-ai-AutoSaveButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.jp-MainAreaWidget
+  .jp-ToolbarButtonComponent[data-command='@jupyterlite/ai:move-chat']
+  svg {
+  transform: rotate(180deg);
+}
+
+.jp-ai-settings-icon {
+  align-items: center;
+  display: flex;
+}
+
+.jp-chat-sidepanel .jp-chat-add span.jp-ToolbarButtonComponent-label {
+  display: none;
+}
+
+.jp-chat-sidepanel .jp-chat-add svg path.jp-icon3 {
+  stroke: var(--jp-inverse-layout-color3);
+  stroke-width: 2;
+}
+
+/* Disabled color for the completion status */
+.jp-ai-completion-status .jp-ai-completion-disabled circle {
+  fill: var(--jp-layout-color3);
+}
+
+.jp-ai-completion-status .jp-ai-completion-disabled path {
+  fill: var(--jp-layout-color2);
+}

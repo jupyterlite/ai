@@ -1,6 +1,9 @@
 *.bundle.*
 lib/
 node_modules/
+packages/*/lib/
+packages/*/node_modules/
+packages/*/tsconfig.tsbuildinfo
 *.log
 .eslintcache
 .stylelintcache
