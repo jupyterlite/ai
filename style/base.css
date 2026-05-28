@@ -105,8 +105,35 @@
 }
 
 .jp-chat-attachment {
-  border-radius: 2px;
-  padding: 0 0.4em;
+  border: 1px solid var(--jp-border-color2) !important;
+  border-radius: 14px !important;
+  padding: 4px 10px !important;
+  background-color: var(--jp-layout-color2) !important;
+  box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  font-weight: 500 !important;
+  max-width: 100% !important;
+}
+
+.jp-chat-attachment:hover {
+  transform: translateY(-1px) scale(1.01) !important;
+  border-color: var(--jp-brand-color1) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+  background-color: var(--jp-layout-color1) !important;
+}
+
+/* Close/remove attachment icon styling */
+.jp-chat-attachment-remove {
+  color: var(--jp-ui-font-color2) !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, color 0.2s ease !important;
+}
+
+.jp-chat-attachment-remove:hover {
+  opacity: 1 !important;
+  color: var(--jp-error-color1, #f44336) !important;
 }
 
 /* Save button */

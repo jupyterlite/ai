@@ -10,6 +10,12 @@ import {
   IUser
 } from '@jupyter/chat';
 
+declare module '@jupyter/chat' {
+  interface IFileAttachment {
+    data?: string;
+  }
+}
+
 import { YNotebook } from '@jupyter/ydoc';
 
 import { PathExt } from '@jupyterlab/coreutils';
@@ -346,6 +352,26 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       attachments: [...this.input.attachments]
     };
 
+    // Auto-enrich user message with AudioPlayer mime_model if an audio attachment is present
+    const audioAttachment = userMessage.attachments?.find(
+      att =>
+        att.type === 'file' &&
+        (att.mimetype?.startsWith('audio/') ||
+          att.value.endsWith('.wav') ||
+          att.data)
+    );
+
+    if (audioAttachment && audioAttachment.type === 'file') {
+      userMessage.mime_model = {
+        data: {
+          'application/vnd.jupyter.chat.components': 'audio-player'
+        },
+        metadata: {
+          path: audioAttachment.data || audioAttachment.value
+        }
+      };
+    }
+
     // Check if we have valid configuration
     if (!this._agentManager.hasValidConfig()) {
       this.messageAdded(userMessage);
@@ -412,6 +438,27 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           supportsPdf,
           supportsAudio
         );
+
+        // After processing, strip out any voice message attachments from the UI attachments array
+        // so they don't render as redundant or base64 attachment badges under the sent message.
+        const cleanedAttachments = userMessage.attachments.filter(
+          att =>
+            !(
+              att.type === 'file' &&
+              (att.mimetype?.startsWith('audio/') ||
+                att.value.endsWith('.wav') ||
+                att.data)
+            )
+        );
+
+        if (cleanedAttachments.length !== userMessage.attachments.length) {
+          userMessage.attachments = cleanedAttachments;
+          // Trigger a model update for the sent message to re-render in UI and hide the badge
+          const msg = this.messages.find(m => m.id === userMessage.id);
+          if (msg) {
+            msg.update({ attachments: cleanedAttachments });
+          }
+        }
       }
 
       await this._agentManager.generateResponse(enhancedMessage);
@@ -1381,16 +1428,26 @@ namespace Private {
           }
         } else {
           let mimetype = attachment.mimetype;
-          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
+          const isDataUri = attachment.value.startsWith('data:');
+          const fileExtension = isDataUri
+            ? ''
+            : PathExt.extname(attachment.value).toLowerCase();
 
           // Fetch mimetype from server metadata if not provided
           if (!mimetype) {
             try {
-              const diskModel = await documentManager.services.contents.get(
-                attachment.value,
-                { content: false }
-              );
-              mimetype = diskModel?.mimetype;
+              if (isDataUri) {
+                const match = attachment.value.match(/^data:([^;]+);/);
+                if (match) {
+                  mimetype = match[1];
+                }
+              } else {
+                const diskModel = await documentManager.services.contents.get(
+                  attachment.value,
+                  { content: false }
+                );
+                mimetype = diskModel?.mimetype;
+              }
             } catch (e) {
               console.warn(
                 `Failed to fetch metadata for ${attachment.value}:`,
@@ -1398,6 +1455,19 @@ namespace Private {
               );
             }
           }
+
+          const getFilename = () => {
+            if (isDataUri) {
+              return mimetype?.startsWith('audio/')
+                ? 'voice-message.wav'
+                : mimetype?.startsWith('image/')
+                ? 'image.png'
+                : mimetype === 'application/pdf'
+                ? 'document.pdf'
+                : 'attachment';
+            }
+            return PathExt.basename(attachment.value);
+          };
 
           if (mimetype?.startsWith('image/')) {
             if (supportsImages) {
@@ -1413,7 +1483,7 @@ namespace Private {
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else if (mimetype === 'application/pdf') {
             if (supportsPdf) {
@@ -1426,11 +1496,11 @@ namespace Private {
                   type: 'file',
                   data,
                   mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
+                  filename: getFilename()
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else if (mimetype?.startsWith('audio/')) {
             if (supportsAudio) {
@@ -1443,11 +1513,11 @@ namespace Private {
                   type: 'file',
                   data,
                   mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
+                  filename: getFilename()
                 });
               }
             } else {
-              omittedNames.push(PathExt.basename(attachment.value));
+              omittedNames.push(getFilename());
             }
           } else {
             const fileContent = await readFileAttachment(
@@ -1498,6 +1568,27 @@ namespace Private {
     attachment: IAttachment,
     documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
+    // Support custom inline binary data (e.g., from local voice recorder)
+    if (attachment.type === 'file' && attachment.data) {
+      const customData = attachment.data;
+      if (customData.startsWith('data:')) {
+        const parts = customData.split(',');
+        if (parts.length > 1) {
+          return parts[1].replace(/\s/g, '');
+        }
+      } else {
+        return customData.replace(/\s/g, '');
+      }
+    }
+
+    if (attachment.value.startsWith('data:')) {
+      const parts = attachment.value.split(',');
+      if (parts.length > 1) {
+        return parts[1].replace(/\s/g, '');
+      }
+      return null;
+    }
+
     if (!documentManager) {
       return null;
     }
