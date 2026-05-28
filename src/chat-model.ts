@@ -10,6 +10,12 @@ import {
   IUser
 } from '@jupyter/chat';
 
+declare module '@jupyter/chat' {
+  interface IFileAttachment {
+    data?: string;
+  }
+}
+
 import { YNotebook } from '@jupyter/ydoc';
 
 import { PathExt } from '@jupyterlab/coreutils';
@@ -350,16 +356,18 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const audioAttachment = userMessage.attachments?.find(
       att =>
         att.type === 'file' &&
-        (att.mimetype?.startsWith('audio/') || att.value.endsWith('.wav'))
+        (att.mimetype?.startsWith('audio/') ||
+          att.value.endsWith('.wav') ||
+          att.data)
     );
 
-    if (audioAttachment) {
+    if (audioAttachment && audioAttachment.type === 'file') {
       userMessage.mime_model = {
         data: {
           'application/vnd.jupyter.chat.components': 'audio-player'
         },
         metadata: {
-          path: audioAttachment.value
+          path: audioAttachment.data || audioAttachment.value
         }
       };
     }
@@ -430,6 +438,27 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           supportsPdf,
           supportsAudio
         );
+
+        // After processing, strip out any voice message attachments from the UI attachments array
+        // so they don't render as redundant or base64 attachment badges under the sent message.
+        const cleanedAttachments = userMessage.attachments.filter(
+          att =>
+            !(
+              att.type === 'file' &&
+              (att.mimetype?.startsWith('audio/') ||
+                att.value.endsWith('.wav') ||
+                att.data)
+            )
+        );
+
+        if (cleanedAttachments.length !== userMessage.attachments.length) {
+          userMessage.attachments = cleanedAttachments;
+          // Trigger a model update for the sent message to re-render in UI and hide the badge
+          const msg = this.messages.find(m => m.id === userMessage.id);
+          if (msg) {
+            msg.update({ attachments: cleanedAttachments });
+          }
+        }
       }
 
       await this._agentManager.generateResponse(enhancedMessage);
@@ -1537,6 +1566,19 @@ namespace Private {
     attachment: IAttachment,
     documentManager: IDocumentManager | null | undefined
   ): Promise<string | null> {
+    // Support custom inline binary data (e.g., from local voice recorder)
+    if (attachment.type === 'file' && attachment.data) {
+      const customData = attachment.data;
+      if (customData.startsWith('data:')) {
+        const parts = customData.split(',');
+        if (parts.length > 1) {
+          return parts[1].replace(/\s/g, '');
+        }
+      } else {
+        return customData.replace(/\s/g, '');
+      }
+    }
+
     if (attachment.value.startsWith('data:')) {
       const parts = attachment.value.split(',');
       if (parts.length > 1) {

@@ -7,6 +7,13 @@ import { modelSupportsAudio } from '../providers/model-info';
 import type { IAISettingsModel, IProviderRegistry } from '../tokens';
 import { AIChatModel } from '../chat-model';
 
+// Augment the @jupyter/chat module to cleanly type the custom audio data payload
+declare module '@jupyter/chat' {
+  interface IFileAttachment {
+    data?: string;
+  }
+}
+
 /**
  * Properties for the mic button component.
  */
@@ -84,22 +91,18 @@ export function MicButton(props: IMicButtonProps): JSX.Element {
         try {
           const base64data = reader.result as string;
 
-          // Attach the Base64 Data URI directly in the input toolbar model
+          // Attach the Base64 Data URI via custom 'data' property to keep the input toolbar UI clean
           const inputModel = props.model;
           if (inputModel) {
             const attachment: IAttachment = {
               type: 'file',
-              value: base64data,
-              mimetype: 'audio/wav'
+              value: 'Voice Note',
+              mimetype: 'audio/wav',
+              data: base64data
             };
 
-            if (typeof inputModel.addAttachment === 'function') {
+            if (inputModel.addAttachment) {
               inputModel.addAttachment(attachment);
-            } else if (Array.isArray(inputModel.attachments)) {
-              (inputModel as any).attachments = [...inputModel.attachments, attachment];
-              if (typeof (inputModel as any).stateChanged?.emit === 'function') {
-                (inputModel as any).stateChanged.emit();
-              }
             }
           }
         } catch (err) {
