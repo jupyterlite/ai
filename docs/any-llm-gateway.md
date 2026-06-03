@@ -1,10 +1,10 @@
 # Using any-llm-gateway
 
-[any-llm-gateway](https://docs.mozilla.ai/) is an OpenAI-compatible proxy server that provides production-grade cost controls, budget management, and usage tracking across multiple LLM providers (OpenAI, Anthropic, Google, etc.).
+[any-llm-gateway](https://otari.ai/docs/gateway) is an OpenAI-compatible proxy server that provides production-grade cost controls, budget management, and usage tracking across multiple LLM providers (OpenAI, Anthropic, Google, etc.).
 
 ## Setting up any-llm-gateway
 
-1. **Installation:** Install and configure the gateway following the [Quick Start guide](https://docs.mozilla.ai/quickstart). This involves creating a directory, downloading the `docker-compose.yml`, and setting up your `config.yml`.
+1. **Installation:** Install and configure the gateway following the [Quick Start guide](https://otari.ai/docs/quickstart). This involves creating a directory, downloading the `docker-compose.yml`, and setting up your `config.yml`.
 
 2. Generate a master key:
 
@@ -53,5 +53,5 @@ any-llm-gateway uses the `provider:model` format for model names (e.g., `openai:
 :::
 
 :::{note}
-For more information about any-llm-gateway configuration, including budget management and virtual API keys, see the [any-llm-gateway documentation](https://docs.mozilla.ai/).
+For more information about any-llm-gateway configuration, including budget management and virtual API keys, see the [any-llm-gateway documentation](https://otari.ai/docs).
 :::
