@@ -35,6 +35,9 @@ jobs:
           cp README.md contents
         working-directory: ./demo
 
+      - name: Set up micromamba (cockle needs it to build cockle_wasm_env for the terminal)
+        uses: mamba-org/setup-micromamba@v3
+
       - name: Build the JupyterLite site
         run: |
           uv run jupyter lite build
