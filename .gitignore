@@ -127,6 +127,11 @@ dmypy.json
 _output
 *.doit.db
 
+# jupyterlite-terminal (cockle) build artifacts
+cockle_wasm_env/
+cockle-config.json
+.cockle_temp/
+
 # Jupyter
 Untitled*.ipynb
 
