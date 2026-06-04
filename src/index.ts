@@ -695,11 +695,10 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           }
           (model as IAIChatModel).removeQueuedMessage(messageId);
         },
-        reorderQueuedMessages: (
-          targetId: string,
-          messageIds: string[]
-        ) => {
-          const model = tracker.find(chat => chat.model.name === targetId)?.model;
+        reorderQueuedMessages: (targetId: string, messageIds: string[]) => {
+          const model = tracker.find(
+            chat => chat.model.name === targetId
+          )?.model;
           if (!model) {
             return;
           }
@@ -710,7 +709,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           messageId: string,
           newBody: string
         ) => {
-          const model = tracker.find(chat => chat.model.name === targetId)?.model;
+          const model = tracker.find(
+            chat => chat.model.name === targetId
+          )?.model;
           if (!model) {
             return;
           }
@@ -1083,7 +1084,7 @@ function registerCommands(
           }
         }
       }
-    }); 
+    });
 
     commands.addCommand(CommandIds.moveChat, {
       caption: trans.__('Move chat between area'),

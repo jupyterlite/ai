@@ -276,7 +276,8 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       addSystemMessage: (body: string) => this._addSystemMessage(body),
       removeQueuedMessage: (id: string) => this.removeQueuedMessage(id),
       reorderQueuedMessages: (ids: string[]) => this.reorderQueuedMessages(ids),
-      editQueuedMessage: (id: string, body: string) => this.editQueuedMessage(id, body)
+      editQueuedMessage: (id: string, body: string) =>
+        this.editQueuedMessage(id, body)
     };
   }
 
