@@ -2,6 +2,37 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.18.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.17.0...2307a5230c43ece0e01793182ca42ebe953d1ffe))
+
+### Enhancements made
+
+- Title follow up [#337](https://github.com/jupyterlite/ai/pull/337) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Implement error component [#333](https://github.com/jupyterlite/ai/pull/333) ([@Yahiewi](https://github.com/Yahiewi), [@brichet](https://github.com/brichet))
+- Implement queue component [#331](https://github.com/jupyterlite/ai/pull/331) ([@Yahiewi](https://github.com/Yahiewi), [@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Use grouped tool calls component [#328](https://github.com/jupyterlite/ai/pull/328) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Improve attachment input handling and history [#323](https://github.com/jupyterlite/ai/pull/323) ([@Yahiewi](https://github.com/Yahiewi), [@brichet](https://github.com/brichet), [@nakul-py](https://github.com/nakul-py))
+
+### Bugs fixed
+
+- Save the chat when autosave is updated [#336](https://github.com/jupyterlite/ai/pull/336) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Maintenance and upkeep improvements
+
+- Export an interface for the ai chat model [#335](https://github.com/jupyterlite/ai/pull/335) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-04-23&to=2026-05-15&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-04-23..2026-05-15&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-04-23..2026-05-15&type=Issues)) | @nakul-py ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Anakul-py+updated%3A2026-04-23..2026-05-15&type=Issues)) | @Yahiewi ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AYahiewi+updated%3A2026-04-23..2026-05-15&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.17.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.16.0...48e65a88b6da6626f8d100be4a242bbaa83370eb))
@@ -28,8 +59,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-04-14&to=2026-04-23&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-04-14..2026-04-23&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-04-14..2026-04-23&type=Issues)) | @MUFFANUJ ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AMUFFANUJ+updated%3A2026-04-14..2026-04-23&type=Issues)) | @Yahiewi ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AYahiewi+updated%3A2026-04-14..2026-04-23&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.16.0
 
