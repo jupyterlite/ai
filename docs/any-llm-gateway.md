@@ -53,5 +53,5 @@ any-llm-gateway uses the `provider:model` format for model names (e.g., `openai:
 :::
 
 :::{note}
-For more information about any-llm-gateway configuration, including budget management and virtual API keys, see the [any-llm-gateway documentation](https://mozilla-ai.github.io/any-llm/gateway/overview/).
+For more information about any-llm-gateway configuration, including budget management and virtual API keys, see the [any-llm-gateway documentation](https://docs.mozilla.ai/).
 :::
