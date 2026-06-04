@@ -743,11 +743,11 @@ wheels = [
 
 [[package]]
 name = "jupyter-chat-components"
-version = "0.5.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7a/10/0bd6d39f3fb1ecb1d95b44f62b7664032b953d43204df41b73fe4d9e98bf/jupyter_chat_components-0.5.0.tar.gz", hash = "sha256:9538b0cfe6fec33a42a6733ae58ff1d236fb3fe1fca810fde4f608090866aa02", size = 329355, upload-time = "2026-04-29T16:06:26.533Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/89/8c06d99d1dc077843d4620dcc99c5aa5c6cdde487bf73004d5bb18d4391d/jupyter_chat_components-0.6.0.tar.gz", hash = "sha256:894821160bb28ca60e6eddbbaa7427f14ed9b22cb1c9ab9e2de239f99db98727", size = 333695, upload-time = "2026-06-02T07:09:32.2Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/56/3809b4b4620cf12cd6ad10ab0eb1cb099f1f917ee8a071f94d9ebf501e1a/jupyter_chat_components-0.5.0-py3-none-any.whl", hash = "sha256:4db1df6b0d43e6b44d9328b870ea843d595b69d7973ff22c2a23ce8f1756f3a7", size = 32491, upload-time = "2026-04-29T16:06:24.855Z" },
+    { url = "https://files.pythonhosted.org/packages/50/20/f865d6b61a47be77c0c1be1917945a0f376ba60a75d4a50f5b4e46b5a3d8/jupyter_chat_components-0.6.0-py3-none-any.whl", hash = "sha256:2e5993e03ab082c2c81d3590e52b0eeccba3deb3c01b1808728e18c385385c65", size = 33945, upload-time = "2026-06-02T07:09:30.521Z" },
 ]
 
 [[package]]
@@ -1000,7 +1000,7 @@ dependencies = [
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyter-chat-components", specifier = ">=0.5.0,<0.6" },
+    { name = "jupyter-chat-components", specifier = ">=0.6.0,<0.7" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
