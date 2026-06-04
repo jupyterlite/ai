@@ -687,7 +687,9 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       chatComponentsFactory.queueMessageCallbacks = {
         ...chatComponentsFactory.queueMessageCallbacks,
         removeQueuedMessage: (targetId: string, messageId: string) => {
-          const model = tracker.find(chat => chat.model.name === targetId)?.model;
+          const model = tracker.find(
+            chat => chat.model.name === targetId
+          )?.model;
           if (!model) {
             return;
           }
