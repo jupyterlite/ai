@@ -694,30 +694,28 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
             return;
           }
           (model as IAIChatModel).removeQueuedMessage(messageId);
+        },
+        reorderQueuedMessages: (
+          targetId: string,
+          messageIds: string[]
+        ) => {
+          const model = tracker.find(chat => chat.model.name === targetId)?.model;
+          if (!model) {
+            return;
+          }
+          (model as IAIChatModel).reorderQueuedMessages(messageIds);
+        },
+        editQueuedMessage: (
+          targetId: string,
+          messageId: string,
+          newBody: string
+        ) => {
+          const model = tracker.find(chat => chat.model.name === targetId)?.model;
+          if (!model) {
+            return;
+          }
+          (model as IAIChatModel).editQueuedMessage(messageId, newBody);
         }
-      };
-
-      chatComponentsFactory.reorderQueuedMessages = (
-        targetId: string,
-        messageIds: string[]
-      ) => {
-        const model = tracker.find(chat => chat.model.name === targetId)?.model;
-        if (!model) {
-          return;
-        }
-        (model as IAIChatModel).reorderQueuedMessages(messageIds);
-      };
-
-      chatComponentsFactory.editQueuedMessage = (
-        targetId: string,
-        messageId: string,
-        newBody: string
-      ) => {
-        const model = tracker.find(chat => chat.model.name === targetId)?.model;
-        if (!model) {
-          return;
-        }
-        (model as IAIChatModel).editQueuedMessage(messageId, newBody);
       };
     }
 
