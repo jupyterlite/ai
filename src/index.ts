@@ -679,18 +679,22 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     }
 
     if (chatComponentsFactory) {
-      chatComponentsFactory.toolCallPermissionDecision =
-        toolCallPermissionDecision;
+      chatComponentsFactory.groupedToolCallCallbacks = {
+        ...chatComponentsFactory.groupedToolCallCallbacks,
+        toolCallPermissionDecision
+      };
 
-      chatComponentsFactory.removeQueuedMessage = (
-        targetId: string,
-        messageId: string
-      ) => {
-        const model = tracker.find(chat => chat.model.name === targetId)?.model;
-        if (!model) {
-          return;
+      chatComponentsFactory.queueMessageCallbacks = {
+        ...chatComponentsFactory.queueMessageCallbacks,
+        removeQueuedMessage: (targetId: string, messageId: string) => {
+          const model = tracker.find(
+            chat => chat.model.name === targetId
+          )?.model;
+          if (!model) {
+            return;
+          }
+          (model as IAIChatModel).removeQueuedMessage(messageId);
         }
-        (model as IAIChatModel).removeQueuedMessage(messageId);
       };
     }
 
