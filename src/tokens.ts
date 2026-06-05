@@ -732,6 +732,17 @@ export interface IAIChatModel extends IChatModel {
    */
   removeQueuedMessage(messageId: string): void;
   /**
+   * Reorders queued messages by their IDs.
+   * @param messageIds Array of message IDs in the desired order
+   */
+  reorderQueuedMessages(messageIds: string[]): void;
+  /**
+   * Edits a queued message by its ID.
+   * @param messageId The ID of the queued message to edit
+   * @param newBody The new body of the message
+   */
+  editQueuedMessage(messageId: string, newBody: string): void;
+  /**
    * The current message queue
    */
   messageQueue: any[];
