@@ -631,19 +631,13 @@ export class AgentManager implements IAgentManager {
       this._history.push(...Private.sanitizeModelMessages(responseHistory));
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        let helpMessage = `${(error as Error).message}`;
+        const payloadRejectionError = Private.getPayloadRejectionError(error);
+        let helpMessage = `${(payloadRejectionError ?? (error as Error)).message}`;
 
         // Remove attachments from history on payload rejection errors
-        if (
-          APICallError.isInstance(error) &&
-          (error.statusCode === 400 ||
-            error.statusCode === 404 ||
-            error.statusCode === 413 ||
-            error.statusCode === 415 ||
-            error.statusCode === 422)
-        ) {
+        if (payloadRejectionError) {
           this._stripAttachments(
-            [...this._history, ...responseHistory],
+            this._history,
             '_Attachment removed due to error_'
           );
           helpMessage +=
@@ -652,11 +646,6 @@ export class AgentManager implements IAgentManager {
         this._agentEvent.emit({
           type: 'error',
           data: { error: new Error(helpMessage) }
-        });
-        this._history.push(...Private.sanitizeModelMessages(responseHistory));
-        this._history.push({
-          role: 'assistant',
-          content: helpMessage
         });
       }
     } finally {
@@ -1303,6 +1292,32 @@ WEB RETRIEVAL POLICY:
 }
 
 namespace Private {
+  const payloadRejectionStatusCodes = new Set([400, 404, 413, 415, 422]);
+
+  /**
+   * Finds API errors that indicate the request payload was rejected.
+   */
+  export const getPayloadRejectionError = (
+    error: unknown
+  ): APICallError | null => {
+    const seen = new Set<unknown>();
+    let current = error;
+
+    while (current && typeof current === 'object' && !seen.has(current)) {
+      if (
+        APICallError.isInstance(current) &&
+        current.statusCode !== undefined &&
+        payloadRejectionStatusCodes.has(current.statusCode)
+      ) {
+        return current;
+      }
+      seen.add(current);
+      current = (current as { cause?: unknown }).cause;
+    }
+
+    return null;
+  };
+
   /**
    * Sanitize the messages before adding them to the history.
    *

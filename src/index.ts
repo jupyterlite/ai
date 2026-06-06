@@ -113,7 +113,8 @@ import {
   createToolSelectItem,
   stopItem,
   CompletionStatusWidget,
-  UsageWidget
+  UsageWidget,
+  ContextWarningController
 } from './components';
 
 import { AISettingsModel } from './models/settings-model';
@@ -563,6 +564,14 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       });
       chatPanel.current?.toolbar.insertBefore('markRead', 'usage', usageWidget);
 
+      const contextWarning = new ContextWarningController({
+        host: widget.node,
+        tokenUsageChanged: model.tokenUsageChanged,
+        settingsModel,
+        initialTokenUsage: model.agentManager.tokenUsage,
+        translator: trans
+      });
+
       if (model.saveAvailable) {
         const saveChatButton = new SaveComponentWidget({
           model,
@@ -605,6 +614,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         model.writersChanged?.disconnect(writersChanged);
 
         // Dispose of the approval buttons widget when the chat is disposed.
+        contextWarning.dispose();
         outputAreaCompat.dispose();
       });
     });

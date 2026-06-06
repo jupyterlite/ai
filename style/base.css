@@ -109,6 +109,49 @@
   padding: 0 0.4em;
 }
 
+.jp-ai-ContextWarning {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 17px 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--jp-warn-color2);
+  border-left-width: 3px;
+  border-radius: 4px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+}
+
+.jp-ai-ContextWarning[hidden] {
+  display: none;
+}
+
+.jp-ai-ContextWarning-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.jp-ai-ContextWarning-close {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--jp-ui-font-color2);
+  cursor: pointer;
+}
+
+.jp-ai-ContextWarning-close:hover {
+  color: var(--jp-ui-font-color1);
+}
+
 /* Save button */
 .jp-ai-SaveButton {
   display: flex;
