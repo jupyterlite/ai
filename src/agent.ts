@@ -319,6 +319,7 @@ export class AgentManager implements IAgentManager {
     this._providerRegistry = options.providerRegistry;
     this._skillRegistry = options.skillRegistry;
     this._secretsManager = options.secretsManager;
+    this._toolsEnabled = options.toolsEnabled;
     this._selectedToolNames = [];
     this._agent = null;
     this._history = [];
@@ -782,7 +783,8 @@ export class AgentManager implements IAgentManager {
     const model = await this._createModel();
 
     const supportsToolCalling = this._supportsToolCalling();
-    const canUseTools = config.toolsEnabled && supportsToolCalling;
+    const canUseTools =
+      (this._toolsEnabled ?? config.toolsEnabled) && supportsToolCalling;
     const hasFunctionToolRegistry = !!(
       this._toolRegistry && Object.keys(this._toolRegistry.tools).length > 0
     );
@@ -1281,6 +1283,7 @@ WEB RETRIEVAL POLICY:
   private _providerRegistry?: IProviderRegistry;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
+  private _toolsEnabled?: boolean;
   private _selectedToolNames: string[];
   private _agent: ToolLoopAgent<never, ToolMap> | null;
   private _history: ModelMessage[];

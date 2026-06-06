@@ -30,6 +30,7 @@ export namespace CommandIds {
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
   export const openOrRevealChat = '@jupyterlite/ai:open-or-reveal-chat';
+  export const openSideChat = '@jupyterlite/ai:open-side-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
   export const refreshSkills = '@jupyterlite/ai:refresh-skills';
   export const saveChat = '@jupyterlite/ai:save-chat';
@@ -497,6 +498,11 @@ export namespace IAgentManager {
      * JupyterLab render mime registry for discovering supported MIME types.
      */
     renderMimeRegistry?: IRenderMimeRegistry;
+
+    /**
+     * Whether tools are enabled for this agent.
+     */
+    toolsEnabled?: boolean;
   }
 
   /**
@@ -723,6 +729,10 @@ export interface IAIChatModel extends IChatModel {
    */
   restore(filepath: string, silent?: boolean): Promise<boolean>;
   /**
+   * Rebuild the agent history from the chat and its optional context.
+   */
+  rebuildHistory(): Promise<void>;
+  /**
    * Request a title to this chat, regarding the message history.
    */
   requestTitle(): Promise<string>;
@@ -784,6 +794,10 @@ export interface ICreateChatOptions {
    */
   messages?: IMessage[];
   /**
+   * Messages provided to the agent as hidden conversation context.
+   */
+  contextMessages?: IMessage[];
+  /**
    * Whether the chat is autosaved or not.
    */
   autosave?: boolean;
@@ -791,6 +805,18 @@ export interface ICreateChatOptions {
    * An optional title to the chat.
    */
   title?: string | null;
+  /**
+   * Whether to restore a saved chat with the same name.
+   */
+  restore?: boolean;
+  /**
+   * Whether tools are enabled for the chat.
+   */
+  toolsEnabled?: boolean;
+  /**
+   * Whether code blocks can modify the active notebook cell.
+   */
+  enableCodeToolbar?: boolean;
 }
 /**
  * Token for the chat model handler.
