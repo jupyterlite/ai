@@ -898,6 +898,9 @@ ${richOutputWorkflowInstruction}`;
       tools,
       temperature,
       maxOutputTokens,
+      prepareStep: ({ messages, model }) => ({
+        messages: Private.addCacheControlToMessages(messages, model)
+      }),
       stopWhen: stepCountIs(maxTurns)
     });
   }
@@ -1303,6 +1306,40 @@ WEB RETRIEVAL POLICY:
 }
 
 namespace Private {
+  /**
+   * Add an Anthropic prompt cache breakpoint to the last message.
+   */
+  export const addCacheControlToMessages = (
+    messages: ModelMessage[],
+    model: LanguageModel
+  ): ModelMessage[] => {
+    if (
+      messages.length === 0 ||
+      !(
+        (typeof model === 'string' &&
+          (model.includes('anthropic') || model.includes('claude'))) ||
+        (typeof model !== 'string' &&
+          (model.provider.includes('anthropic') ||
+            model.modelId.includes('anthropic') ||
+            model.modelId.includes('claude')))
+      )
+    ) {
+      return messages;
+    }
+
+    return messages.map((message, index) =>
+      index === messages.length - 1
+        ? {
+            ...message,
+            providerOptions: {
+              ...message.providerOptions,
+              anthropic: { cacheControl: { type: 'ephemeral' } }
+            }
+          }
+        : message
+    );
+  };
+
   /**
    * Sanitize the messages before adding them to the history.
    *
