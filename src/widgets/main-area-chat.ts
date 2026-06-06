@@ -6,6 +6,7 @@ import { CommandRegistry } from '@lumino/commands';
 
 import { SaveComponentWidget } from '../components/save-button';
 import { UsageWidget } from '../components/usage-display';
+import { ContextWarningController } from '../components/context-warning';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds, IAIChatModel, type IAISettingsModel } from '../tokens';
 
@@ -62,6 +63,14 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     });
     this.toolbar.addItem('usage', usageWidget);
 
+    this._contextWarning = new ContextWarningController({
+      host: this.content.node,
+      tokenUsageChanged: this.model.tokenUsageChanged,
+      settingsModel: options.settingsModel,
+      initialTokenUsage: this.model.agentManager.tokenUsage,
+      translator: trans
+    });
+
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.
     this._outputAreaCompat = new RenderedMessageOutputAreaCompat({
@@ -77,6 +86,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     super.dispose();
     // Dispose of the approval buttons widget when the chat is disposed.
     this._outputAreaCompat.dispose();
+    this._contextWarning.dispose();
     this.model.writersChanged?.disconnect(this._writersChanged);
     this.model.titleChanged.disconnect(this._titleChanged);
   }
@@ -113,4 +123,5 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   };
 
   private _outputAreaCompat: RenderedMessageOutputAreaCompat;
+  private _contextWarning: ContextWarningController;
 }

@@ -384,6 +384,72 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
 
   /**
+   * Updates a user message and restarts the conversation from that point.
+   */
+  async updateMessage(id: string, message: IMessageContent): Promise<boolean> {
+    if (this._isBusy) {
+      return false;
+    }
+
+    const index = this.messages.findIndex(msg => msg.id === id);
+    if (index === -1) {
+      return false;
+    }
+
+    const original = this.messages[index];
+    if (original.sender.username !== this.user.username) {
+      return false;
+    }
+
+    this._isBusy = true;
+    this._messageQueue = [];
+    this._queueMessageId = null;
+    this._currentStreamingMessage = null;
+    this._toolContexts.clear();
+
+    const editedMessage: IMessageContent = {
+      ...message,
+      id,
+      sender: this.user || original.sender,
+      time: Date.now() / 1000,
+      type: message.type ?? 'msg',
+      raw_time: false,
+      edited: true
+    };
+
+    this.messagesDeleted(index, this.messages.length - index);
+
+    try {
+      await this._rebuildHistory();
+    } catch (error) {
+      await this._agentManager.clearHistory();
+      this._isBusy = false;
+      this.updateWriters([]);
+      this.messageAdded({
+        body: '',
+        mime_model: {
+          data: {
+            'application/vnd.jupyter.chat.components': 'error'
+          },
+          metadata: {
+            errorMessage: `Error restarting conversation: ${(error as Error).message}`
+          }
+        },
+        sender: this._getAIUser(),
+        id: UUID.uuid4(),
+        time: Date.now() / 1000,
+        type: 'msg',
+        raw_time: false
+      });
+      return false;
+    }
+
+    this.messageAdded(editedMessage);
+    await this._processMessage(editedMessage);
+    return true;
+  }
+
+  /**
    * Internal method to process attachments and send the message to the agent.
    */
   private async _processMessage(userMessage: IMessageContent): Promise<void> {
