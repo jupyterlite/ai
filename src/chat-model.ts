@@ -109,7 +109,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       activeCellManager: options.activeCellManager,
       documentManager: options.documentManager,
       config: {
-        enableCodeToolbar: true,
+        enableCodeToolbar: options.enableCodeToolbar ?? true,
         sendWithShiftEnter: options.settingsModel.config.sendWithShiftEnter
       }
     });
@@ -118,6 +118,12 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     this._agentManager = options.agentManager;
     this._contentsManager = options.contentsManager;
     this._providerRegistry = options.providerRegistry;
+    this._contextMessages = (options.contextMessages ?? []).map(message => ({
+      ...message.content,
+      attachments: message.attachments ? [...message.attachments] : undefined
+    }));
+    this._restore = options.restore ?? true;
+    this._enableCodeToolbar = options.enableCodeToolbar ?? true;
 
     // Listen for agent events
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
@@ -144,7 +150,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   set name(value: string) {
     super.name = value;
     this._nameChanged.emit(value);
-    if (!this.messages.length) {
+    if (this._restore && !this.messages.length) {
       const directory = this._settingsModel.config.chatBackupDirectory;
       const filepath = PathExt.join(directory, `${this.name}.chat`);
       this.restore(filepath, true);
@@ -301,6 +307,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     this.title = null;
     this._toolContexts.clear();
     await this._agentManager.clearHistory();
+    await this.rebuildHistory();
   };
 
   /**
@@ -648,7 +655,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     });
     await this.clearMessages();
     this.messagesInserted(0, messages);
-    await this._rebuildHistory();
+    await this.rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
     this.title = content.metadata?.title ?? null;
     return true;
@@ -758,7 +765,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    */
   private _onSettingsChanged(): void {
     const config = this._settingsModel.config;
-    this.config = { ...config, enableCodeToolbar: true };
+    this.config = {
+      ...config,
+      enableCodeToolbar: this._enableCodeToolbar
+    };
     // Agent manager handles agent recreation automatically via its own settings listener
   }
 
@@ -774,18 +784,18 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       : undefined;
     if (modelKey && modelKey !== this._currentModelKey) {
       this._currentModelKey = modelKey;
-      this._rebuildHistory().catch(e =>
+      this.rebuildHistory().catch(e =>
         console.warn('Failed to rebuild history on model change:', e)
       );
     }
   }
 
   /**
-   * Rebuilds the agent history from the current messages.
+   * Rebuilds the agent history from the hidden context and current messages.
    * For vision-capable models, re-reads binary attachments from disk.
    * For text-only models, uses message text only.
    */
-  private async _rebuildHistory(): Promise<void> {
+  async rebuildHistory(): Promise<void> {
     const providerConfig = this._settingsModel.getProvider(
       this._agentManager.activeProvider
     );
@@ -803,7 +813,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     );
 
     const modelMessages: ModelMessage[] = [];
-    for (const msg of this.messages) {
+    for (const msg of [...this._contextMessages, ...this.messages]) {
       const isAI = msg.sender.username === 'ai-assistant';
       if (!isAI && msg.attachments?.length) {
         const enhancedContent = await Private.processAttachments(
@@ -1244,6 +1254,9 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
   // Private fields
   private _settingsModel: IAISettingsModel;
+  private _contextMessages: IMessageContent[];
+  private _restore: boolean;
+  private _enableCodeToolbar: boolean;
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: IAgentManager;
@@ -1843,9 +1856,17 @@ export namespace AIChatModel {
      */
     providerRegistry?: IProviderRegistry;
     /**
+     * Messages provided to the agent as hidden conversation context.
+     */
+    contextMessages?: IMessage[];
+    /**
      * Whether to restore or not the message (default to true)
      */
     restore?: boolean;
+    /**
+     * Whether code blocks can modify the active notebook cell.
+     */
+    enableCodeToolbar?: boolean;
   }
 
   /**

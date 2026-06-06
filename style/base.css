@@ -6,6 +6,12 @@
 
 @import url('@jupyter/chat/style/index.css');
 
+.jp-ai-side-chat {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .jp-chat-welcome-message {
   text-align: center;
   max-width: 350px;

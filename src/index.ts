@@ -51,7 +51,9 @@ import {
 } from '@jupyterlab/translation';
 
 import {
+  closeIcon,
   fileUploadIcon,
+  PanelWithToolbar,
   saveIcon,
   settingsIcon,
   Toolbar,
@@ -136,6 +138,9 @@ import { createBrowserFetchTool } from './tools/web';
 import { AISettingsWidget } from './widgets/ai-settings';
 
 import { MainAreaChat } from './widgets/main-area-chat';
+
+const SIDE_CHAT_ID = '@jupyterlite/ai:side-chat';
+const SIDE_CHAT_MODEL_NAME = '@jupyterlite/ai:side-chat-model';
 
 namespace Private {
   let aiSecretsToken: symbol | null = null;
@@ -552,6 +557,20 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       // Update the tracker if the active provider changed.
       model.agentManager.activeProviderChanged.connect(saveTracker);
 
+      chatPanel.current?.toolbar.insertBefore(
+        'close',
+        'sideChat',
+        new ToolbarButton({
+          icon: chatIcon,
+          onClick: () => {
+            void app.commands.execute(CommandIds.openSideChat, {
+              name: model.name
+            });
+          },
+          tooltip: trans.__('Open side chat')
+        })
+      );
+
       // Update the token usage widget.
       usageWidget?.dispose();
 
@@ -886,6 +905,144 @@ function registerCommands(
       chatPanel.disposeLoadedModel(loadedName);
       return true;
     };
+
+    const createSideChatInputToolbar = () => {
+      const registry = InputToolbarRegistry.defaultToolbarRegistry();
+      registry.addItem('stop', stopItem(trans));
+      registry.addItem('clear', clearItem(trans));
+      registry.addItem('model', createModelSelectItem(settingsModel, trans));
+      return registry;
+    };
+
+    let sideChatWidget: PanelWithToolbar | null = null;
+    let sideChatContent: ChatWidget | null = null;
+    let sideChatSource: IAIChatModel | null = null;
+
+    commands.addCommand(CommandIds.openSideChat, {
+      label: trans.__('Open side chat'),
+      caption: trans.__('Open a side chat for this conversation'),
+      icon: chatIcon,
+      execute: async (args): Promise<boolean> => {
+        const sourceName =
+          typeof args.name === 'string' ? args.name : undefined;
+        const sourceWidget = findChatWidget(sourceName);
+        const sourceModel = sourceWidget?.model as IAIChatModel | undefined;
+        if (!sourceModel) {
+          return false;
+        }
+
+        if (sideChatWidget && sideChatSource === sourceModel) {
+          app.shell.activateById(sideChatWidget.id);
+          sideChatContent?.model.input.focus();
+          return true;
+        }
+
+        sideChatWidget?.dispose();
+
+        const activeProvider = sourceModel.agentManager.activeProvider;
+        if (!activeProvider) {
+          showErrorMessage(
+            trans.__('Error creating side chat'),
+            trans.__('Please set up a provider')
+          );
+          if (commands.hasCommand(CommandIds.openSettings)) {
+            void commands.execute(CommandIds.openSettings);
+          }
+          return false;
+        }
+
+        const model = modelRegistry.createModel({
+          name: SIDE_CHAT_MODEL_NAME,
+          activeProvider,
+          contextMessages: sourceModel.messages,
+          restore: false,
+          toolsEnabled: false,
+          enableCodeToolbar: false
+        });
+        await model.rebuildHistory();
+
+        const content = new ChatWidget({
+          model,
+          rmRegistry,
+          themeManager: themeManager ?? null,
+          inputToolbarRegistry: createSideChatInputToolbar(),
+          attachmentOpenerRegistry,
+          chatCommandRegistry,
+          area: 'sidebar'
+        });
+        const widget = new PanelWithToolbar();
+        widget.id = SIDE_CHAT_ID;
+        widget.addClass('jp-ai-side-chat');
+        widget.title.icon = chatIcon;
+        widget.title.label = trans.__('Side Chat');
+        widget.title.caption = trans.__(
+          'Side chat for %1',
+          sourceModel.title ?? sourceModel.name
+        );
+        widget.title.closable = true;
+        widget.toolbar.addItem('spacer', Toolbar.createSpacerItem());
+        widget.toolbar.addItem(
+          'close',
+          new ToolbarButton({
+            icon: closeIcon,
+            onClick: () => {
+              widget.dispose();
+            },
+            tooltip: trans.__('Close side chat')
+          })
+        );
+        widget.addWidget(widget.toolbar);
+        widget.addWidget(content);
+
+        const writersChanged = (
+          _: IChatModel,
+          writers: IChatModel.IWriter[]
+        ) => {
+          const aiWriting = writers.some(
+            writer => writer.user.username === 'ai-assistant'
+          );
+          if (aiWriting) {
+            content.inputToolbarRegistry?.show('stop');
+          } else {
+            content.inputToolbarRegistry?.hide('stop');
+          }
+        };
+        model.writersChanged?.connect(writersChanged);
+
+        const outputAreaCompat = new RenderedMessageOutputAreaCompat({
+          chatPanel: content
+        });
+        widget.disposed.connect(() => {
+          model.writersChanged?.disconnect(writersChanged);
+          outputAreaCompat.dispose();
+          model.dispose();
+          if (sideChatWidget === widget) {
+            sideChatWidget = null;
+            sideChatContent = null;
+            sideChatSource = null;
+          }
+        });
+
+        sideChatWidget = widget;
+        sideChatContent = content;
+        sideChatSource = sourceModel;
+        app.shell.add(widget, 'right', { rank: 1000 });
+        app.shell.activateById(widget.id);
+        model.input.focus();
+        return true;
+      },
+      describedBy: {
+        args: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              description: trans.__('The source chat name')
+            }
+          }
+        }
+      }
+    });
 
     commands.addCommand(CommandIds.openChat, {
       label: trans.__('Open a chat'),

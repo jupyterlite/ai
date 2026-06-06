@@ -1,6 +1,6 @@
-import { ChatWidget, IChatModel } from '@jupyter/chat';
+import { chatIcon, ChatWidget, IChatModel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
-import { launchIcon } from '@jupyterlab/ui-components';
+import { launchIcon, ToolbarButton } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
@@ -27,6 +27,19 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     this.title.caption = this.model.title ?? this.model.name;
 
     const { trans } = options;
+
+    this.toolbar.addItem(
+      'sideChat',
+      new ToolbarButton({
+        icon: chatIcon,
+        onClick: () => {
+          void options.commands.execute(CommandIds.openSideChat, {
+            name: this.model.name
+          });
+        },
+        tooltip: trans.__('Open side chat')
+      })
+    );
 
     // Move to side button.
     this.toolbar.addItem(

@@ -5,14 +5,135 @@
 
 import { expect, galata, test } from '@jupyterlab/galata';
 import {
+  DEFAULT_GENERIC_PROVIDER_SETTINGS,
   QWEN_MODEL_NAME,
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
+  SIDE_CHAT_ID,
   TEST_PROVIDERS,
   openChatPanel
 } from './test-utils';
 
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
+
+test.describe('#sideChat', () => {
+  test.use({
+    mockSettings: {
+      ...galata.DEFAULT_SETTINGS,
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
+      '@jupyterlab/apputils-extension:notification': {
+        checkForUpdates: false,
+        fetchNews: 'false',
+        doNotDisturbMode: true
+      }
+    }
+  });
+
+  test('should use only the source chat context and close', async ({
+    page
+  }) => {
+    const panel = await openChatPanel(page);
+    const sourceMarker = 'source-chat-context';
+    const unrelatedMarker = 'unrelated-chat-context';
+    const sideQuestion = 'What did this chat discuss?';
+    let requestBody: any = null;
+
+    await page.route(
+      'http://localhost:11434/v1/chat/completions',
+      async route => {
+        requestBody = route.request().postDataJSON();
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/event-stream',
+          body: [
+            'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":"Source context received."},"finish_reason":null}]}',
+            '',
+            'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}',
+            '',
+            'data: [DONE]',
+            ''
+          ].join('\n')
+        });
+      }
+    );
+
+    await page.evaluate(
+      async ({ chatPanelId, sourceMarker, unrelatedMarker }) => {
+        const app = window.jupyterapp;
+        const chatPanel = Array.from(app.shell.widgets('left')).find(
+          widget => widget.id === chatPanelId
+        ) as any;
+        const sourceModel = chatPanel.current.model;
+        const sourceName = sourceModel.name;
+        const now = Date.now() / 1000;
+
+        sourceModel.messageAdded({
+          body: sourceMarker,
+          sender: { username: 'user', display_name: 'User' },
+          id: 'source-user-message',
+          time: now,
+          type: 'msg',
+          raw_time: false
+        });
+        sourceModel.messageAdded({
+          body: 'Source chat response',
+          sender: {
+            username: 'ai-assistant',
+            display_name: 'Jupyternaut'
+          },
+          id: 'source-ai-message',
+          time: now + 1,
+          type: 'msg',
+          raw_time: false
+        });
+
+        await app.commands.execute('@jupyterlite/ai:open-chat', {
+          name: 'Unrelated Chat'
+        });
+        chatPanel.current.model.messageAdded({
+          body: unrelatedMarker,
+          sender: { username: 'user', display_name: 'User' },
+          id: 'unrelated-user-message',
+          time: now + 2,
+          type: 'msg',
+          raw_time: false
+        });
+
+        await app.commands.execute('@jupyterlite/ai:open-or-reveal-chat', {
+          name: sourceName,
+          area: 'side'
+        });
+      },
+      { chatPanelId: CHAT_PANEL_ID, sourceMarker, unrelatedMarker }
+    );
+
+    const chatToolbar = panel.locator('.jp-chat-sidepanel-widget-toolbar');
+    await chatToolbar.getByTitle('Open side chat').click();
+
+    const sideChat = page.locator(`[id="${SIDE_CHAT_ID}"]`);
+    await expect(sideChat).toBeVisible();
+    await expect(panel).toBeVisible();
+    await expect(sideChat.getByTitle('Select AI Tools')).toHaveCount(0);
+    await expect(sideChat.locator('.jp-chat-message')).toHaveCount(0);
+
+    const input = sideChat
+      .locator('.jp-chat-input-container')
+      .getByRole('combobox');
+    await input.fill(sideQuestion);
+    await input.press('Enter');
+
+    await expect.poll(() => requestBody).not.toBeNull();
+    const request = JSON.stringify(requestBody);
+    expect(request).toContain(sourceMarker);
+    expect(request).toContain('Source chat response');
+    expect(request).toContain(sideQuestion);
+    expect(request).not.toContain(unrelatedMarker);
+
+    await expect(sideChat.locator('.jp-chat-message')).toHaveCount(2);
+    await sideChat.getByTitle('Close side chat').click();
+    await expect(sideChat).not.toBeAttached();
+  });
+});
 
 test.describe('#withoutModel', () => {
   test('should contain the chat panel icon', async ({ page }) => {
@@ -28,8 +149,8 @@ test.describe('#withoutModel', () => {
   });
 
   test('should not create a chat if there is no provider', async ({ page }) => {
-    const content = 'Hello';
     const panel = await openChatPanel(page);
+    await expect(panel.getByTitle('Open side chat')).toHaveCount(0);
     await panel.getByTitle('Create a new chat').click();
 
     // Should open an error dialog
@@ -301,6 +422,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       if (!mainAreaPanel) {
         throw new Error('Expected the moved chat to be visible in main area');
       }
+      await expect(mainAreaPanel.getByTitle('Open side chat')).toHaveCount(1);
       const mainInput = mainAreaPanel
         .locator('.jp-chat-input-container')
         .getByRole('combobox');

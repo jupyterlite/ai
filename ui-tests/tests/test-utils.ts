@@ -42,6 +42,8 @@ export const TEST_PROVIDERS = [
 
 export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
 
+export const SIDE_CHAT_ID = '@jupyterlite/ai:side-chat';
+
 export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
 
 export async function openChatPanel(

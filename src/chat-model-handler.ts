@@ -30,8 +30,18 @@ export class ChatModelHandler implements IChatModelHandler {
   }
 
   createModel(options: ICreateChatOptions): IAIChatModel {
-    const { name, activeProvider, tokenUsage, messages, autosave, title } =
-      options;
+    const {
+      name,
+      activeProvider,
+      tokenUsage,
+      messages,
+      contextMessages,
+      autosave,
+      title,
+      restore,
+      toolsEnabled,
+      enableCodeToolbar
+    } = options;
 
     // Create Agent Manager first so it can be shared
     const agentManager = this._agentManagerFactory.createAgent({
@@ -40,7 +50,8 @@ export class ChatModelHandler implements IChatModelHandler {
       providerRegistry: this._providerRegistry,
       activeProvider,
       tokenUsage,
-      renderMimeRegistry: this._rmRegistry
+      renderMimeRegistry: this._rmRegistry,
+      toolsEnabled
     });
 
     // Create AI chat model
@@ -51,7 +62,10 @@ export class ChatModelHandler implements IChatModelHandler {
       activeCellManager: this._activeCellManager,
       documentManager: this._docManager,
       contentsManager: this._contentsManager,
-      providerRegistry: this._providerRegistry
+      providerRegistry: this._providerRegistry,
+      contextMessages,
+      restore,
+      enableCodeToolbar
     });
 
     messages?.forEach(message => {
