@@ -438,6 +438,37 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     const namespace = 'ai-chat';
     const tracker = new WidgetTracker<MainAreaChat | ChatWidget>({ namespace });
 
+    // The token usage widget.
+    const usageWidgetItem: MultiChatPanel.IChatToolbarItem = {
+      name: 'usage',
+      create: (widget: ChatWidget) => {
+        const model = widget.model as IAIChatModel;
+        return new UsageWidget({
+          tokenUsageChanged: model.tokenUsageChanged,
+          settingsModel,
+          initialTokenUsage: model.agentManager.tokenUsage,
+          translator: trans
+        });
+      },
+      before: 'markRead'
+    };
+
+    // The save chat widget.
+    const saveChatWidgetItem: MultiChatPanel.IChatToolbarItem = {
+      name: 'saveChat',
+      create: (widget: ChatWidget) =>
+        new SaveComponentWidget({
+          model: widget.model as IAIChatModel,
+          translator: trans
+        }),
+      before: 'markRead'
+    };
+
+    const chatToolbarItems: MultiChatPanel.IChatToolbarItem[] = [
+      usageWidgetItem,
+      saveChatWidgetItem
+    ];
+
     // Create chat panel with drag/drop functionality
     const chatPanel = new MultiChatPanel({
       rmRegistry,
@@ -481,7 +512,8 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
         app.commands.execute(CommandIds.moveChat, {
           area: 'main',
           name
-        }) as Promise<boolean>
+        }) as Promise<boolean>,
+      chatToolbarItems: chatToolbarItems
     });
 
     chatPanel.id = '@jupyterlite/ai:chat-panel';
@@ -523,7 +555,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       chatPanel.disposed.connect(disconnectSettingsButtonListener);
     }
 
-    let usageWidget: UsageWidget | null = null;
     chatPanel.chatOpened.connect((_, widget) => {
       const model = widget.model as IAIChatModel;
 
@@ -551,30 +582,6 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
       // Update the tracker if the active provider changed.
       model.agentManager.activeProviderChanged.connect(saveTracker);
-
-      // Update the token usage widget.
-      usageWidget?.dispose();
-
-      usageWidget = new UsageWidget({
-        tokenUsageChanged: model.tokenUsageChanged,
-        settingsModel,
-        initialTokenUsage: model.agentManager.tokenUsage,
-        translator: trans
-      });
-      chatPanel.current?.toolbar.insertBefore('markRead', 'usage', usageWidget);
-
-      if (model.saveAvailable) {
-        const saveChatButton = new SaveComponentWidget({
-          model,
-          translator: trans
-        });
-
-        chatPanel.current?.toolbar.insertAfter(
-          'markRead',
-          'saveChat',
-          saveChatButton
-        );
-      }
 
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
@@ -652,6 +659,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       tracker,
       modelHandler,
       trans,
+      chatToolbarItems,
       themeManager,
       labShell,
       palette,
@@ -735,6 +743,7 @@ function registerCommands(
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
+  chatToolbarItems: MultiChatPanel.IChatToolbarItem[],
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
@@ -807,7 +816,8 @@ function registerCommands(
         content,
         commands,
         settingsModel,
-        trans
+        trans,
+        chatToolbarItems
       });
       app.shell.add(widget, 'main');
 
