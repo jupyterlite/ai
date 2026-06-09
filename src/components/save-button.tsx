@@ -31,8 +31,12 @@ export interface ISaveButtonProps {
  * When auto-save is active, the save button displays the JupyterLab
  * toggled-on appearance (inset box-shadow all around).
  */
-export function SaveComponent(props: ISaveButtonProps): JSX.Element {
+export function SaveComponent(props: ISaveButtonProps): JSX.Element | null {
   const { model, translator: trans } = props;
+
+  if (!model.saveAvailable) {
+    return null;
+  }
 
   const [autosave, setAutosave] = useState(model.autosave);
 
