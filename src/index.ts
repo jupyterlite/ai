@@ -464,6 +464,11 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       before: 'markRead'
     };
 
+    const chatToolbarItems: MultiChatPanel.IChatToolbarItem[] = [
+      usageWidgetItem,
+      saveChatWidgetItem
+    ];
+
     // Create chat panel with drag/drop functionality
     const chatPanel = new MultiChatPanel({
       rmRegistry,
@@ -508,7 +513,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
           area: 'main',
           name
         }) as Promise<boolean>,
-      chatToolbarItems: [usageWidgetItem, saveChatWidgetItem]
+      chatToolbarItems: chatToolbarItems
     });
 
     chatPanel.id = '@jupyterlite/ai:chat-panel';
@@ -654,6 +659,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       tracker,
       modelHandler,
       trans,
+      chatToolbarItems,
       themeManager,
       labShell,
       palette,
@@ -737,6 +743,7 @@ function registerCommands(
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
+  chatToolbarItems: MultiChatPanel.IChatToolbarItem[],
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
@@ -809,7 +816,8 @@ function registerCommands(
         content,
         commands,
         settingsModel,
-        trans
+        trans,
+        chatToolbarItems
       });
       app.shell.add(widget, 'main');
 

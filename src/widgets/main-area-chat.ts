@@ -1,11 +1,9 @@
-import { ChatWidget, IChatModel } from '@jupyter/chat';
+import { ChatWidget, IChatModel, MultiChatPanel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 
-import { SaveComponentWidget } from '../components/save-button';
-import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { CommandIds, IAIChatModel, type IAISettingsModel } from '../tokens';
 
@@ -14,6 +12,7 @@ export namespace MainAreaChat {
     commands: CommandRegistry;
     settingsModel: IAISettingsModel;
     trans: TranslationBundle;
+    chatToolbarItems?: MultiChatPanel.IChatToolbarItem[];
   }
 }
 
@@ -25,8 +24,6 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     super(options);
     this.title.label = this.model.name;
     this.title.caption = this.model.title ?? this.model.name;
-
-    const { trans } = options;
 
     // Move to side button.
     this.toolbar.addItem(
@@ -42,25 +39,11 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
       })
     );
 
-    if (this.model.saveAvailable) {
-      // Save chat component
-      this.toolbar.addItem(
-        'saveChat',
-        new SaveComponentWidget({
-          model: this.model,
-          translator: trans
-        })
-      );
+    if (options.chatToolbarItems) {
+      for (const item of options.chatToolbarItems) {
+        this.toolbar.addItem(item.name, item.create(this.content));
+      }
     }
-
-    // Add the token usage button.
-    const usageWidget = new UsageWidget({
-      tokenUsageChanged: this.model.tokenUsageChanged,
-      settingsModel: options.settingsModel,
-      initialTokenUsage: this.model.agentManager.tokenUsage,
-      translator: trans
-    });
-    this.toolbar.addItem('usage', usageWidget);
 
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.
