@@ -283,6 +283,11 @@ export interface IProviderInfo {
   providerToolCapabilities?: IProviderToolCapabilities;
 
   /**
+   * Optional provider-specific options to apply to cacheable prompts and tools.
+   */
+  cacheProviderOptions?: NonNullable<ModelMessage['providerOptions']>;
+
+  /**
    * Factory function for creating language models
    */
   factory: IProviderFactory;
