@@ -15,7 +15,7 @@
         "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
         "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
         "docs": "jupyter book start",
-        "docs:build": "sed -e 's/[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
+        "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache",
         "lint:check": "jlpm run prettier:check && jlpm run eslint:check && jlpm run stylelint:check",
