@@ -3235,7 +3235,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlite/agent@workspace:*, @jupyterlite/agent@workspace:packages/agent":
+"@jupyterlite/agent@^0.18.0, @jupyterlite/agent@workspace:packages/agent":
   version: 0.0.0-use.local
   resolution: "@jupyterlite/agent@workspace:packages/agent"
   dependencies:
@@ -3289,7 +3289,7 @@ __metadata:
     "@jupyterlab/statusbar": ^4.4.6
     "@jupyterlab/testutils": ^4.0.0
     "@jupyterlab/ui-components": ^4.4.6
-    "@jupyterlite/agent": "workspace:*"
+    "@jupyterlite/agent": ^0.18.0
     "@lumino/commands": ^2.3.2
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4
