@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react-jsx",
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "node",
     "noEmitOnError": true,
@@ -19,6 +19,6 @@
     "strict": true,
     "strictNullChecks": true,
     "isolatedModules": true,
-    "target": "ES2020"
+    "target": "ES2022"
   }
 }

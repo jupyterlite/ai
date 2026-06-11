@@ -8,8 +8,14 @@
     ],
     "scripts": {
         "build": "jlpm build:all",
-        "build:all": "jlpm workspace @jupyterlite/agent build && yarn workspace @jupyterlite/ai build",
-        "clean": "jlpm workspace @jupyterlite/agent clean && yarn workspace @jupyterlite/ai clean",
+        "build:all": "jlpm workspace @jupyterlite/agent build && jlpm workspace @jupyterlite/ai build",
+        "build:prod": "jlpm workspace @jupyterlite/agent build:prod && jlpm workspace @jupyterlite/ai build:prod",
+        "clean": "jlpm workspace @jupyterlite/agent clean && jlpm workspace @jupyterlite/ai clean",
+        "clean:lintcache": "rimraf .eslintcache .stylelintcache",
+        "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
+        "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
+        "docs": "jupyter book start",
+        "docs:build": "sed -e 's/[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache",
         "lint:check": "jlpm run prettier:check && jlpm run eslint:check && jlpm run stylelint:check",
@@ -17,7 +23,9 @@
         "prettier": "prettier --write \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
         "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
         "stylelint": "jlpm stylelint:check --fix",
-        "stylelint:check": "stylelint --cache \"**/style/**/*.css\""
+        "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
+        "sync:model-info": "jlpm workspace @jupyterlite/agent run sync:model-info",
+        "watch": "jlpm workspace @jupyterlite/ai run watch"
     },
     "devDependencies": {
         "@jupyter/eslint-plugin": "^0.0.5",
@@ -54,7 +62,7 @@
         ],
         "parser": "@typescript-eslint/parser",
         "parserOptions": {
-            "project": "./tsconfig.json",
+            "project": "tsconfig.json",
             "sourceType": "module"
         },
         "plugins": [
@@ -116,10 +124,6 @@
                     ]
                 }
             ]
-        },
-        "env": {
-            "browser": true,
-            "es2020": true
         }
     },
     "prettier": {

@@ -18,7 +18,8 @@
     "scripts": {
         "build": "echo 'Building @jupyterlite/agent' && tsc --sourceMap",
         "build:prod": "Building @jupyterlite/agent' && jlpm clean && tsc",
-        "clean": "rimraf lib tsconfig.tsbuildinfo"
+        "clean": "rimraf lib tsconfig.tsbuildinfo",
+        "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^3.0.58",
