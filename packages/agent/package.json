@@ -17,7 +17,7 @@
     },
     "scripts": {
         "build": "echo 'Building @jupyterlite/agent' && tsc --sourceMap",
-        "build:prod": "Building @jupyterlite/agent' && jlpm clean && tsc",
+        "build:prod": "echo 'Building @jupyterlite/agent' && jlpm clean && tsc",
         "clean": "rimraf lib tsconfig.tsbuildinfo",
         "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
     },

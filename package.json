@@ -19,7 +19,7 @@
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache",
         "lint:check": "jlpm run prettier:check && jlpm run eslint:check && jlpm run stylelint:check",
-        "lint": "jlpm run prettier && jlpm run eslint && jlpm run stylint",
+        "lint": "jlpm run prettier && jlpm run eslint && jlpm run stylelint",
         "prettier": "prettier --write \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
         "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
         "stylelint": "jlpm stylelint:check --fix",
@@ -52,7 +52,8 @@
             "**/__tests__",
             "ui-tests",
             ".venv",
-            "webpack.config.js"
+            "webpack.config.js",
+            "jupyterlite_ai"
         ],
         "extends": [
             "eslint:recommended",
@@ -124,6 +125,10 @@
                     ]
                 }
             ]
+        },
+        "env": {
+            "browser": true,
+            "es2022": true
         }
     },
     "prettier": {
