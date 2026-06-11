@@ -1,138 +1,156 @@
 {
-  "name": "jupyterlite-ai-monorepo",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Monorepo for JupyterLite AI - Agent and JupyterLab extension",
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "build": "jlpm build:all",
-    "build:all": "jlpm workspace @jupyterlite/agent build && yarn workspace @jupyterlite/ai build",
-    "lint": "jlpm workspace @jupyterlite/agent lint && yarn workspace @jupyterlite/ai lint",
-    "clean": "jlpm workspace @jupyterlite/agent clean && yarn workspace @jupyterlite/ai clean"
-  },
-  "devDependencies": {
-    "typescript": "~5.8.0"
-  },
-  "packageManager": "jlpm",
-  "eslintConfig": {
-    "ignorePatterns": [
-      "node_modules",
-      "dist",
-      "coverage",
-      "**/*.d.ts",
-      "tests",
-      "**/__tests__",
-      "ui-tests",
-      ".venv",
-      "webpack.config.js"
+    "name": "jupyterlite-ai-monorepo",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Monorepo for JupyterLite AI - Agent and JupyterLab extension",
+    "workspaces": [
+        "packages/*"
     ],
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:prettier/recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-      "project": "./tsconfig.json",
-      "sourceType": "module"
+    "scripts": {
+        "build": "jlpm build:all",
+        "build:all": "jlpm workspace @jupyterlite/agent build && yarn workspace @jupyterlite/ai build",
+        "clean": "jlpm workspace @jupyterlite/agent clean && yarn workspace @jupyterlite/ai clean",
+        "eslint": "jlpm eslint:check --fix",
+        "eslint:check": "eslint . --cache",
+        "lint:check": "jlpm run prettier:check && jlpm run eslint:check && jlpm run stylelint:check",
+        "lint": "jlpm run prettier && jlpm run eslint && jlpm run stylint",
+        "prettier": "prettier --write \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
+        "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
+        "stylelint": "jlpm stylelint:check --fix",
+        "stylelint:check": "stylelint --cache \"**/style/**/*.css\""
     },
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "@typescript-eslint/naming-convention": [
-        "error",
-        {
-          "selector": "interface",
-          "format": [
-            "PascalCase"
-          ],
-          "custom": {
-            "regex": "^I[A-Z]",
-            "match": true
-          }
-        }
-      ],
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          "args": "none"
-        }
-      ],
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-namespace": "off",
-      "@typescript-eslint/no-use-before-define": "off",
-      "@typescript-eslint/quotes": [
-        "error",
-        "single",
-        {
-          "avoidEscape": true,
-          "allowTemplateLiterals": false
-        }
-      ],
-      "curly": [
-        "error",
-        "all"
-      ],
-      "eqeqeq": "error",
-      "prefer-arrow-callback": "error",
-      "no-restricted-imports": [
-        "error",
-        {
-          "paths": [
-            {
-              "name": "@mui/icons-material",
-              "message": "Please import icons using path imports, e.g. `import AddIcon from '@mui/icons-material/Add'`"
-            }
-          ],
-          "patterns": [
-            {
-              "group": [
-                "@mui/*/*/*"
-              ],
-              "message": "3rd level imports in mui are considered private"
-            }
-          ]
-        }
-      ]
+    "devDependencies": {
+        "@jupyter/eslint-plugin": "^0.0.5",
+        "@typescript-eslint/eslint-plugin": "^6.1.0",
+        "@typescript-eslint/parser": "^6.1.0",
+        "eslint": "^8.36.0",
+        "eslint-config-prettier": "^8.8.0",
+        "eslint-plugin-prettier": "^5.0.0",
+        "prettier": "^3.0.0",
+        "style-loader": "^3.3.1",
+        "stylelint": "^15.10.1",
+        "stylelint-config-recommended": "^13.0.0",
+        "stylelint-config-standard": "^34.0.0",
+        "stylelint-csstree-validator": "^3.0.0",
+        "stylelint-prettier": "^4.0.0"
     },
-    "env": {
-      "browser": true,
-      "es2020": true
-    }
-  },
-  "prettier": {
-    "singleQuote": true,
-    "trailingComma": "none",
-    "arrowParens": "avoid",
-    "endOfLine": "auto",
-    "overrides": [
-      {
-        "files": "package.json",
-        "options": {
-          "tabWidth": 4
+    "eslintConfig": {
+        "ignorePatterns": [
+            "node_modules",
+            "dist",
+            "coverage",
+            "**/*.d.ts",
+            "tests",
+            "**/__tests__",
+            "ui-tests",
+            ".venv",
+            "webpack.config.js"
+        ],
+        "extends": [
+            "eslint:recommended",
+            "plugin:@typescript-eslint/eslint-recommended",
+            "plugin:@typescript-eslint/recommended",
+            "plugin:prettier/recommended"
+        ],
+        "parser": "@typescript-eslint/parser",
+        "parserOptions": {
+            "project": "./tsconfig.json",
+            "sourceType": "module"
+        },
+        "plugins": [
+            "@typescript-eslint"
+        ],
+        "rules": {
+            "@typescript-eslint/naming-convention": [
+                "error",
+                {
+                    "selector": "interface",
+                    "format": [
+                        "PascalCase"
+                    ],
+                    "custom": {
+                        "regex": "^I[A-Z]",
+                        "match": true
+                    }
+                }
+            ],
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    "args": "none"
+                }
+            ],
+            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-namespace": "off",
+            "@typescript-eslint/no-use-before-define": "off",
+            "@typescript-eslint/quotes": [
+                "error",
+                "single",
+                {
+                    "avoidEscape": true,
+                    "allowTemplateLiterals": false
+                }
+            ],
+            "curly": [
+                "error",
+                "all"
+            ],
+            "eqeqeq": "error",
+            "prefer-arrow-callback": "error",
+            "no-restricted-imports": [
+                "error",
+                {
+                    "paths": [
+                        {
+                            "name": "@mui/icons-material",
+                            "message": "Please import icons using path imports, e.g. `import AddIcon from '@mui/icons-material/Add'`"
+                        }
+                    ],
+                    "patterns": [
+                        {
+                            "group": [
+                                "@mui/*/*/*"
+                            ],
+                            "message": "3rd level imports in mui are considered private"
+                        }
+                    ]
+                }
+            ]
+        },
+        "env": {
+            "browser": true,
+            "es2020": true
         }
-      }
-    ]
-  },
-  "stylelint": {
-    "extends": [
-      "stylelint-config-recommended",
-      "stylelint-config-standard",
-      "stylelint-prettier/recommended"
-    ],
-    "plugins": [
-      "stylelint-csstree-validator"
-    ],
-    "rules": {
-      "csstree/validator": true,
-      "property-no-vendor-prefix": null,
-      "selector-class-pattern": "^([a-z][A-z\\d]*)(-[A-z\\d]+)*$|^Mui[A-Z]",
-      "selector-no-vendor-prefix": null,
-      "value-no-vendor-prefix": null
+    },
+    "prettier": {
+        "singleQuote": true,
+        "trailingComma": "none",
+        "arrowParens": "avoid",
+        "endOfLine": "auto",
+        "overrides": [
+            {
+                "files": "package.json",
+                "options": {
+                    "tabWidth": 4
+                }
+            }
+        ]
+    },
+    "stylelint": {
+        "extends": [
+            "stylelint-config-recommended",
+            "stylelint-config-standard",
+            "stylelint-prettier/recommended"
+        ],
+        "plugins": [
+            "stylelint-csstree-validator"
+        ],
+        "rules": {
+            "csstree/validator": true,
+            "property-no-vendor-prefix": null,
+            "selector-class-pattern": "^([a-z][A-z\\d]*)(-[A-z\\d]+)*$|^Mui[A-Z]",
+            "selector-no-vendor-prefix": null,
+            "value-no-vendor-prefix": null
+        }
     }
-  }
 }

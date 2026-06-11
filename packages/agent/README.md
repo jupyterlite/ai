@@ -3,6 +3,7 @@
 AI agent implementation for Jupyter using AI SDK.
 
 This package provides the core agent functionality including:
+
 - Agent manager and factory
 - Tool registry and tool implementations
 - Provider registry and model management
@@ -18,7 +19,11 @@ npm install @jupyterlite/agent
 ## Usage
 
 ```typescript
-import { AgentManagerFactory, IProviderRegistry, IToolRegistry } from '@jupyterlite/agent';
+import {
+  AgentManagerFactory,
+  IProviderRegistry,
+  IToolRegistry
+} from '@jupyterlite/agent';
 
 // Create a provider registry
 const providerRegistry = new ProviderRegistry();
@@ -27,7 +32,9 @@ const providerRegistry = new ProviderRegistry();
 const toolRegistry = new ToolRegistry();
 
 // Create settings model (you'll need to implement IAISettingsModel)
-const settingsModel = { /* ... */ };
+const settingsModel = {
+  /* ... */
+};
 
 // Create agent manager factory
 const agentManagerFactory = new AgentManagerFactory({
