@@ -1,4 +1,7 @@
-import { getEffectiveContextWindow, SECRETS_REPLACEMENT } from '@jupyterlite/agent';
+import {
+  getEffectiveContextWindow,
+  SECRETS_REPLACEMENT
+} from '@jupyterlite/agent';
 import type {
   IAgentManagerFactory,
   IAIConfig,
