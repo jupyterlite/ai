@@ -1,6 +1,7 @@
 // Agent package public API
 
 export * from './agent';
+export * from './icons';
 export * from './tokens';
 export * from './providers/provider-registry';
 export * from './providers/built-in-providers';

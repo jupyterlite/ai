@@ -8,6 +8,7 @@
   "types": "lib/index.d.ts",
   "files": [
     "lib/**/*.{d.ts,js,js.map,json}",
+    "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
     "src/**/*.{ts,tsx}"
   ],
   "repository": {

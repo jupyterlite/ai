@@ -1,9 +1,3 @@
-import type {
-  IAgentManager,
-  IProviderRegistry,
-  ITokenUsage
-} from '@jupyternaut/agent';
-
 import {
   AbstractChatModel,
   IActiveCellManager,
@@ -32,6 +26,14 @@ import { IRenderMime } from '@jupyterlab/rendermime';
 
 import { Contents } from '@jupyterlab/services';
 
+import { AI_AVATAR } from '@jupyternaut/agent';
+
+import type {
+  IAgentManager,
+  IProviderRegistry,
+  ITokenUsage
+} from '@jupyternaut/agent';
+
 import { UUID } from '@lumino/coreutils';
 
 import { Debouncer } from '@lumino/polling';
@@ -39,8 +41,6 @@ import { Debouncer } from '@lumino/polling';
 import { ISignal, Signal } from '@lumino/signaling';
 
 import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
-
-import { AI_AVATAR } from './icons';
 
 import type { IAIChatModel, IAISettingsModel } from './tokens';
 

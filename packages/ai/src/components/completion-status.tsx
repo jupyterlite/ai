@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
-import { jupyternautIcon } from '../icons';
+import { jupyternautIcon } from '@jupyternaut/agent';
 import type { IAISettingsModel } from '../tokens';
 
 const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
