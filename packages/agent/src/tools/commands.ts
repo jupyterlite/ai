@@ -2,6 +2,7 @@ import { CommandRegistry } from '@lumino/commands';
 import { Widget } from '@lumino/widgets';
 import { tool } from 'ai';
 import { z } from 'zod';
+
 import type { IAISettingsModel, ITool } from '../tokens';
 
 interface ICommandEntry {

@@ -1,7 +1,8 @@
 import { ISignal, Signal } from '@lumino/signaling';
 import type { LanguageModel } from 'ai';
+
 import type { IModelOptions } from './models';
-import { IProviderInfo, IProviderRegistry } from '../tokens';
+import type { IProviderInfo, IProviderRegistry } from '../tokens';
 
 /**
  * Implementation of the provider registry

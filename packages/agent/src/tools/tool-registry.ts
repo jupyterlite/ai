@@ -1,5 +1,6 @@
 import { ISignal, Signal } from '@lumino/signaling';
-import { ITool, IToolRegistry, INamedTool } from '../tokens';
+
+import type { ITool, IToolRegistry, INamedTool } from '../tokens';
 
 /**
  * Implementation of the tool registry for managing AI tools

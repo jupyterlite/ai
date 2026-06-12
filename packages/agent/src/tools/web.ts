@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ITool } from '../tokens';
+
+import type { ITool } from '../tokens';
 
 const DEFAULT_MAX_CONTENT_CHARS = 20000;
 const MAX_ALLOWED_CONTENT_CHARS = 100000;

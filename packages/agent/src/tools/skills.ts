@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ISkillRegistry, ITool } from '../tokens';
+
+import type { ISkillRegistry, ITool } from '../tokens';
 
 /**
  * Create a tool to discover available skills and their summaries.

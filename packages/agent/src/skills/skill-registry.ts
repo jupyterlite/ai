@@ -12,7 +12,7 @@ import {
   ISkillResourceResult,
   ISkillSummary
 } from './types';
-import { ISkillRegistry } from '../tokens';
+import type { ISkillRegistry } from '../tokens';
 
 interface ISkillEntry {
   definition: ISkillDefinition;
