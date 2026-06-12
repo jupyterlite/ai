@@ -86,7 +86,7 @@ version_cmd = "python scripts/bump_version.py --skip-if-dirty"
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
     "python -m pip install 'jupyterlab>=4.0.0,<5'",
-    "jlpm",
+    "YARN_ENABLE_IMMUTABLE_INSTALLS=0 jlpm",
     "jlpm build:prod"
 ]
 before-build-python = ["jlpm clean:all"]
