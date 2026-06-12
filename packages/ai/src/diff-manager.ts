@@ -2,7 +2,7 @@ import type {
   IDiffManager,
   IShowCellDiffParams,
   IShowFileDiffParams
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import { CommandRegistry } from '@lumino/commands';
 
 import type { IAISettingsModel } from './tokens';

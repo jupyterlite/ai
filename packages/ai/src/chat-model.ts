@@ -2,7 +2,7 @@ import type {
   IAgentManager,
   IProviderRegistry,
   ITokenUsage
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 
 import {
   AbstractChatModel,
@@ -48,7 +48,7 @@ import {
   modelSupportsAudio,
   modelSupportsImages,
   modelSupportsPdf
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 
 /**
  * Tool call status types.

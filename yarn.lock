@@ -3235,32 +3235,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlite/agent@^0.18.0, @jupyterlite/agent@workspace:packages/agent":
-  version: 0.0.0-use.local
-  resolution: "@jupyterlite/agent@workspace:packages/agent"
-  dependencies:
-    "@ai-sdk/anthropic": ^3.0.58
-    "@ai-sdk/google": ^3.0.43
-    "@ai-sdk/mcp": ^1.0.25
-    "@ai-sdk/mistral": ^3.0.24
-    "@ai-sdk/openai": ^3.0.41
-    "@ai-sdk/openai-compatible": ^2.0.35
-    "@jupyterlab/apputils": ^4.0.0
-    "@jupyterlab/coreutils": ^6.4.6
-    "@jupyterlab/rendermime": ^4.4.6
-    "@jupyterlab/services": ^7.4.6
-    "@lumino/coreutils": ^2.2.1
-    "@lumino/disposable": ^2.1.4
-    "@lumino/signaling": ^2.1.4
-    "@types/node": ^24.3.0
-    ai: ^6.0.116
-    jupyter-secrets-manager: ^0.5.0
-    rimraf: ^5.0.1
-    typescript: ~5.8.0
-    zod: ^4.3.6
-  languageName: unknown
-  linkType: soft
-
 "@jupyterlite/ai@workspace:packages/ai":
   version: 0.0.0-use.local
   resolution: "@jupyterlite/ai@workspace:packages/ai"
@@ -3289,7 +3263,7 @@ __metadata:
     "@jupyterlab/statusbar": ^4.4.6
     "@jupyterlab/testutils": ^4.0.0
     "@jupyterlab/ui-components": ^4.4.6
-    "@jupyterlite/agent": ^0.18.0
+    "@jupyternaut/agent": ^0.18.0
     "@lumino/commands": ^2.3.2
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4
@@ -3313,6 +3287,32 @@ __metadata:
     typescript: ~5.8.0
     yaml: ^2.8.1
     yjs: ^13.5.0
+    zod: ^4.3.6
+  languageName: unknown
+  linkType: soft
+
+"@jupyternaut/agent@^0.18.0, @jupyternaut/agent@workspace:packages/agent":
+  version: 0.0.0-use.local
+  resolution: "@jupyternaut/agent@workspace:packages/agent"
+  dependencies:
+    "@ai-sdk/anthropic": ^3.0.58
+    "@ai-sdk/google": ^3.0.43
+    "@ai-sdk/mcp": ^1.0.25
+    "@ai-sdk/mistral": ^3.0.24
+    "@ai-sdk/openai": ^3.0.41
+    "@ai-sdk/openai-compatible": ^2.0.35
+    "@jupyterlab/apputils": ^4.0.0
+    "@jupyterlab/coreutils": ^6.4.6
+    "@jupyterlab/rendermime": ^4.4.6
+    "@jupyterlab/services": ^7.4.6
+    "@lumino/coreutils": ^2.2.1
+    "@lumino/disposable": ^2.1.4
+    "@lumino/signaling": ^2.1.4
+    "@types/node": ^24.3.0
+    ai: ^6.0.116
+    jupyter-secrets-manager: ^0.5.0
+    rimraf: ^5.0.1
+    typescript: ~5.8.0
     zod: ^4.3.6
   languageName: unknown
   linkType: soft

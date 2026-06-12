@@ -87,7 +87,7 @@ export interface IToolRegistry {
  * The tool registry token.
  */
 export const IToolRegistry = new Token<IToolRegistry>(
-  '@jupyterlite/agent:IToolRegistry',
+  '@jupyternaut/agent:IToolRegistry',
   'Tool registry for AI agent functionality'
 );
 
@@ -130,7 +130,7 @@ export interface ISkillRegistry {
  * The skill registry token.
  */
 export const ISkillRegistry = new Token<ISkillRegistry>(
-  '@jupyterlite/agent:ISkillRegistry',
+  '@jupyternaut/agent:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
 
@@ -325,7 +325,7 @@ export interface IProviderRegistry {
  * Token for the provider registry.
  */
 export const IProviderRegistry = new Token<IProviderRegistry>(
-  '@jupyterlite/agent:IProviderRegistry',
+  '@jupyternaut/agent:IProviderRegistry',
   'Registry for AI providers'
 );
 
@@ -439,7 +439,7 @@ export interface IAISettingsModel extends VDomRenderer.IModel {
  * Token for the AI settings model.
  */
 export const IAISettingsModel = new Token<IAISettingsModel>(
-  '@jupyterlite/agent:IAISettingsModel'
+  '@jupyternaut/agent:IAISettingsModel'
 );
 
 /* THE AGENT MANAGER */
@@ -635,7 +635,7 @@ export interface IAgentManager {
  * Token for the agent manager.
  */
 export const IAgentManager = new Token<IAgentManager>(
-  '@jupyterlite/agent:IAgentManager'
+  '@jupyternaut/agent:IAgentManager'
 );
 
 /* The AGENT MANAGER FACTORY */
@@ -667,7 +667,7 @@ export interface IAgentManagerFactory {
  * Token for the agent manager factory.
  */
 export const IAgentManagerFactory = new Token<IAgentManagerFactory>(
-  '@jupyterlite/agent:IAgentManagerFactory'
+  '@jupyternaut/agent:IAgentManagerFactory'
 );
 
 /* THE DIFF MANAGER */
@@ -742,7 +742,7 @@ export interface IDiffManager {
  * Token for the diff manager.
  */
 export const IDiffManager = new Token<IDiffManager>(
-  '@jupyterlite/agent:IDiffManager'
+  '@jupyternaut/agent:IDiffManager'
 );
 
 /**
@@ -774,7 +774,7 @@ export interface ITokenUsage {
 /**
  * The string that replaces a secret key in settings.
  */
-export const SECRETS_NAMESPACE = '@jupyterlite/agent:providers';
+export const SECRETS_NAMESPACE = '@jupyternaut/agent:providers';
 export const SECRETS_REPLACEMENT = '***';
 
 /**

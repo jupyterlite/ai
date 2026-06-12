@@ -1,4 +1,4 @@
-import type { ITokenUsage } from '@jupyterlite/agent';
+import type { ITokenUsage } from '@jupyternaut/agent';
 import { ReactWidget, UseSignal } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { ISignal } from '@lumino/signaling';

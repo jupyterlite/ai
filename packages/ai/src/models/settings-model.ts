@@ -2,7 +2,7 @@ import type {
   IAIConfig,
   IMCPServerConfig,
   IProviderConfig
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 

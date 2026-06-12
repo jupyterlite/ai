@@ -2,7 +2,7 @@ import type {
   IAgentManagerFactory,
   IProviderRegistry,
   IToolRegistry
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import { ActiveCellManager } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';

@@ -1,10 +1,10 @@
-import { getProviderModelInfo } from '@jupyterlite/agent';
+import { getProviderModelInfo } from '@jupyternaut/agent';
 import type {
   IProviderConfig,
   IProviderParameters,
   IProviderRegistry,
   IProviderToolCapabilities
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Delete from '@mui/icons-material/Delete';

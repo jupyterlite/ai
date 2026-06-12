@@ -1,7 +1,7 @@
 import {
   getEffectiveContextWindow,
   SECRETS_REPLACEMENT
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import type {
   IAgentManagerFactory,
   IAIConfig,
@@ -9,7 +9,7 @@ import type {
   IMCPServerConfig,
   IProviderConfig,
   IProviderRegistry
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';

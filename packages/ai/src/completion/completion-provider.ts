@@ -2,7 +2,7 @@ import {
   createCompletionModel,
   IProviderRegistry,
   SECRETS_NAMESPACE
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import {
   CompletionHandler,
   IInlineCompletionContext,

@@ -1,10 +1,10 @@
-import { createProviderTools } from '@jupyterlite/agent';
+import { createProviderTools } from '@jupyternaut/agent';
 
 import type {
   INamedTool,
   IProviderRegistry,
   IToolRegistry
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 

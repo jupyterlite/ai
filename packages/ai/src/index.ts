@@ -20,9 +20,9 @@ import {
   SECRETS_NAMESPACE,
   SkillRegistry,
   ToolRegistry
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 
-import type { IAISecretsAccess, IProviderConfig } from '@jupyterlite/agent';
+import type { IAISecretsAccess, IProviderConfig } from '@jupyternaut/agent';
 
 import {
   ILabShell,

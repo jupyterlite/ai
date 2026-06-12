@@ -1,5 +1,5 @@
 {
-  "name": "@jupyterlite/agent",
+  "name": "@jupyternaut/agent",
   "version": "0.18.0",
   "description": "AI agent implementation for Jupyter using AI SDK",
   "license": "BSD-3-Clause",
@@ -16,8 +16,8 @@
     "directory": "packages/agent"
   },
   "scripts": {
-    "build": "echo 'Building @jupyterlite/agent' && tsc --sourceMap",
-    "build:prod": "echo 'Building @jupyterlite/agent' && jlpm clean && tsc",
+    "build": "echo 'Building @jupyternaut/agent' && tsc --sourceMap",
+    "build:prod": "echo 'Building @jupyternaut/agent' && jlpm clean && tsc",
     "clean": "rimraf lib tsconfig.tsbuildinfo",
     "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
   },

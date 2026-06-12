@@ -1,4 +1,4 @@
-import type { ISkillRegistry } from '@jupyterlite/agent';
+import type { ISkillRegistry } from '@jupyternaut/agent';
 import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
 import { CommandRegistry } from '@lumino/commands';
 

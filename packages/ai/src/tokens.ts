@@ -2,7 +2,7 @@ import type {
   IAISettingsModel as IBaseAISettingsModel,
   IAgentManager,
   ITokenUsage
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 import { ActiveCellManager, IChatModel, IMessage } from '@jupyter/chat';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
@@ -146,7 +146,7 @@ export const IChatModelHandler = new Token<IChatModelHandler>(
 
 /**
  * Interface for the AI settings model with JupyterLab-specific features.
- * Extends the base IAISettingsModel from @jupyterlite/agent which already includes VDomRenderer.IModel.
+ * Extends the base IAISettingsModel from @jupyternaut/agent which already includes VDomRenderer.IModel.
  */
 export interface IAISettingsModel extends IBaseAISettingsModel {
   // Extends the base IAISettingsModel with JupyterLab-specific features

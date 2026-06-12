@@ -1,4 +1,4 @@
-# @jupyterlite/agent
+# @jupyternaut/agent
 
 AI agent implementation for Jupyter using AI SDK.
 
@@ -13,7 +13,7 @@ This package provides the core agent functionality including:
 ## Installation
 
 ```bash
-npm install @jupyterlite/agent
+npm install @jupyternaut/agent
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ import {
   AgentManagerFactory,
   IProviderRegistry,
   IToolRegistry
-} from '@jupyterlite/agent';
+} from '@jupyternaut/agent';
 
 // Create a provider registry
 const providerRegistry = new ProviderRegistry();

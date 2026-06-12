@@ -65,7 +65,7 @@
     "@jupyterlab/settingregistry": "^4.0.0",
     "@jupyterlab/statusbar": "^4.4.6",
     "@jupyterlab/ui-components": "^4.4.6",
-    "@jupyterlite/agent": "^0.18.0",
+    "@jupyternaut/agent": "^0.18.0",
     "@lumino/commands": "^2.3.2",
     "@lumino/coreutils": "^2.2.1",
     "@lumino/disposable": "^2.1.4",
