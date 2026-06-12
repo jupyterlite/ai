@@ -1,8 +1,6 @@
 node_modules
 **/node_modules
 **/lib
-**/package.json
-!/package.json
 jupyterlite_ai
 .venv
 .copier-answers.yml
