@@ -94,6 +94,7 @@ def bump(skip_if_dirty, spec):
                         data[dep_field][dep_name] = f"^{js_version}"
         with pkg_file.open(mode="w") as f:
             json.dump(data, f, indent=2)
+            f.write("\n")
 
     # bump the Python packages
     version_file = Path('jupyterlite_ai/_version.py')
@@ -128,6 +129,7 @@ def bump(skip_if_dirty, spec):
 
         with path.open(mode="w") as f:
             json.dump(data, f, indent=2)
+            f.write("\n")
 
     else:
         raise FileNotFoundError(f"Could not find package.json under dir {path!s}")
