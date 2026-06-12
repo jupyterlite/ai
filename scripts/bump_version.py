@@ -96,29 +96,6 @@ def bump(skip_if_dirty, spec):
             json.dump(data, f, indent=2)
             f.write("\n")
 
-    # bump the Python packages
-    version_file = Path('jupyterlite_ai/_version.py')
-    lines = version_file.read_text().splitlines(keepends=True)
-    for i, line in enumerate(lines):
-        if line.startswith("__version__"):
-            parts = line.strip().split(" = ")
-            if len(parts) < 2:
-                raise ValueError(
-                    f"Version file {version_file} has unexpected content on line {i + 1}: {line!r}"
-                )
-            current = parts[-1].strip("'\"")
-            if spec in VERSION_SPEC:
-                version_spec = increment_version(current, spec)
-            else:
-                version_spec = spec
-            lines[i] = " = ".join(parts[:-1]) + f' = "{version_spec}"\n'
-            break
-    else:
-        raise ValueError(
-            f"Version file {version_file} has no line starting with '__version__'"
-        )
-    version_file.write_text("".join(lines))
-
     # bump the local package.json file
     path = HERE.joinpath("package.json")
     if path.exists():
