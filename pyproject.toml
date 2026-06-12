@@ -81,7 +81,7 @@ editable_build_cmd = "build"
 build_dir = "jupyterlite_ai/labextension"
 
 [tool.jupyter-releaser.options]
-version_cmd = "hatch version"
+version_cmd = "python scripts/bump_version.py --skip-if-dirty"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
@@ -90,6 +90,10 @@ before-build-npm = [
     "jlpm build:prod"
 ]
 before-build-python = ["jlpm clean:all"]
+before-bump-version = [
+    "python -m pip install -U jupyterlab",
+    "jlpm"
+]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
