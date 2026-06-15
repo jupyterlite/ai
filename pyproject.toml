@@ -32,9 +32,9 @@ dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 jupyter = [
-    "jupyterlab>=4.4.0",
+    "jupyterlab>=4.5.0",
     "jupyterlite>=0.6.0",
-    "notebook>=7.4.0"
+    "notebook>=7.5.0"
 ]
 test = [
     "fastmcp>=3.2.3,<4",
