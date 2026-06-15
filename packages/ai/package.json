@@ -86,8 +86,7 @@
     "npm-run-all2": "^7.0.1",
     "rimraf": "^5.0.1",
     "source-map-loader": "^1.0.2",
-    "typescript": "~5.8.0",
-    "yjs": "^13.5.0"
+    "typescript": "~5.8.0"
   },
   "sideEffects": [
     "style/*.css",

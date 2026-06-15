@@ -3159,7 +3159,6 @@ __metadata:
     source-map-loader: ^1.0.2
     typescript: ~5.8.0
     yaml: ^2.8.1
-    yjs: ^13.5.0
   languageName: unknown
   linkType: soft
 
@@ -11798,7 +11797,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yjs@npm:^13.5.0, yjs@npm:^13.5.40":
+"yjs@npm:^13.5.40":
   version: 13.6.27
   resolution: "yjs@npm:13.6.27"
   dependencies:
