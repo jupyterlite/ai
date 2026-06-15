@@ -58,6 +58,9 @@ The provider configuration object requires the following properties:
 - `defaultModels`: Array of model names to show in the settings
 - `modelInfo` (optional): Per-model metadata such as `contextWindow`
 - `supportsBaseURL`: Whether the provider supports a custom base URL
+- `cacheProviderOptions` (optional): Provider-specific options applied to the
+  cacheable prompt message and tool definitions, for providers that support
+  prompt caching
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
 ## Hiding the Built-In Settings UI

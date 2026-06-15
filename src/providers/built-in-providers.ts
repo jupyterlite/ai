@@ -38,6 +38,9 @@ export const anthropicProvider: IProviderInfo = {
     webSearch: { implementation: 'anthropic' },
     webFetch: { implementation: 'anthropic' }
   },
+  cacheProviderOptions: {
+    anthropic: { cacheControl: { type: 'ephemeral' } }
+  },
   factory: (options: IModelOptions) => {
     if (!options.apiKey) {
       throw new Error('API key required for Anthropic');

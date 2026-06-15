@@ -294,6 +294,7 @@ const DEFAULT_MAX_TURNS = 25;
  */
 interface IAgentConfig {
   model: LanguageModel;
+  providerInfo?: IProviderInfo | null;
   tools: ToolMap;
   temperature: number;
   maxOutputTokens?: number;
@@ -824,6 +825,7 @@ export class AgentManager implements IAgentManager {
 
     this._agentConfig = {
       model,
+      providerInfo: activeProviderInfo,
       tools,
       temperature,
       maxOutputTokens: maxTokens,
@@ -867,6 +869,7 @@ export class AgentManager implements IAgentManager {
 
     const {
       model,
+      providerInfo,
       tools,
       temperature,
       maxOutputTokens,
@@ -874,9 +877,14 @@ export class AgentManager implements IAgentManager {
       baseSystemPrompt,
       shouldUseTools
     } = this._agentConfig;
+    const toolsWithCacheProviderOptions =
+      Private.addCacheProviderOptionsToTools(tools, providerInfo);
 
     const baseInstructions = shouldUseTools
-      ? this._getEnhancedSystemPrompt(baseSystemPrompt, tools)
+      ? this._getEnhancedSystemPrompt(
+          baseSystemPrompt,
+          toolsWithCacheProviderOptions
+        )
       : baseSystemPrompt || 'You are a helpful assistant.';
     const richOutputWorkflowInstruction = shouldUseTools
       ? '- When the user asks for visual or rich outputs, prefer running code/commands that produce those outputs and describe that they will be rendered in chat.'
@@ -895,9 +903,15 @@ ${richOutputWorkflowInstruction}`;
     this._agent = new ToolLoopAgent({
       model,
       instructions,
-      tools,
+      tools: toolsWithCacheProviderOptions,
       temperature,
       maxOutputTokens,
+      prepareStep: ({ messages }) => ({
+        messages: Private.addCacheProviderOptionsToMessages(
+          messages,
+          providerInfo
+        )
+      }),
       stopWhen: stepCountIs(maxTurns)
     });
   }
@@ -1303,6 +1317,83 @@ WEB RETRIEVAL POLICY:
 }
 
 namespace Private {
+  type ProviderOptions = NonNullable<ModelMessage['providerOptions']>;
+
+  /**
+   * Merge provider options by provider key, preserving provider-specific fields.
+   */
+  const mergeProviderOptions = (
+    ...providerOptionsList: Array<ModelMessage['providerOptions'] | undefined>
+  ): ModelMessage['providerOptions'] => {
+    const merged: ProviderOptions = {};
+
+    for (const providerOptions of providerOptionsList) {
+      if (!providerOptions) {
+        continue;
+      }
+
+      for (const [provider, options] of Object.entries(providerOptions)) {
+        merged[provider] = {
+          ...(merged[provider] ?? {}),
+          ...options
+        };
+      }
+    }
+
+    return Object.keys(merged).length > 0 ? merged : undefined;
+  };
+
+  /**
+   * Add provider cache options to runtime tool definitions.
+   */
+  export const addCacheProviderOptionsToTools = (
+    tools: ToolMap,
+    providerInfo?: IProviderInfo | null
+  ): ToolMap => {
+    const cacheProviderOptions = providerInfo?.cacheProviderOptions;
+    if (!cacheProviderOptions || Object.keys(tools).length === 0) {
+      return tools;
+    }
+
+    return Object.fromEntries(
+      Object.entries(tools).map(([name, tool]) => [
+        name,
+        {
+          ...tool,
+          providerOptions: mergeProviderOptions(
+            cacheProviderOptions,
+            tool.providerOptions
+          )
+        }
+      ])
+    );
+  };
+
+  /**
+   * Add provider cache options to the last message.
+   */
+  export const addCacheProviderOptionsToMessages = (
+    messages: ModelMessage[],
+    providerInfo?: IProviderInfo | null
+  ): ModelMessage[] => {
+    const cacheProviderOptions = providerInfo?.cacheProviderOptions;
+    if (messages.length === 0 || !cacheProviderOptions) {
+      return messages;
+    }
+
+    return messages.map((message, index) =>
+      index === messages.length - 1
+        ? {
+            ...message,
+            providerOptions: mergeProviderOptions(
+              cacheProviderOptions,
+              message.providerOptions
+            )
+          }
+        : message
+    );
+  };
+
   /**
    * Sanitize the messages before adding them to the history.
    *
