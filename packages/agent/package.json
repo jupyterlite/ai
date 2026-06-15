@@ -1,0 +1,55 @@
+{
+  "name": "@jupyternaut/agent",
+  "version": "0.18.0",
+  "description": "AI agent implementation for Jupyter using AI SDK",
+  "license": "BSD-3-Clause",
+  "author": "JupyterLite Contributors",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*.{d.ts,js,js.map,json}",
+    "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
+    "src/**/*.{ts,tsx}"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlite/ai.git",
+    "directory": "packages/agent"
+  },
+  "scripts": {
+    "build": "echo 'Building @jupyternaut/agent' && tsc --sourceMap",
+    "build:prod": "echo 'Building @jupyternaut/agent' && jlpm clean && tsc",
+    "clean": "rimraf lib tsconfig.tsbuildinfo",
+    "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.58",
+    "@ai-sdk/google": "^3.0.43",
+    "@ai-sdk/mcp": "^1.0.25",
+    "@ai-sdk/mistral": "^3.0.24",
+    "@ai-sdk/openai": "^3.0.41",
+    "@ai-sdk/openai-compatible": "^2.0.35",
+    "@jupyterlab/apputils": "^4.6.8",
+    "@jupyterlab/coreutils": "^6.5.8",
+    "@jupyterlab/rendermime": "^4.5.8",
+    "@jupyterlab/services": "^7.5.8",
+    "@jupyterlab/ui-components": "^4.5.8",
+    "@lumino/commands": "^2.3.2",
+    "@lumino/coreutils": "^2.2.1",
+    "@lumino/disposable": "^2.1.4",
+    "@lumino/signaling": "^2.1.4",
+    "@lumino/widgets": "^2.7.1",
+    "ai": "^6.0.116",
+    "jupyter-secrets-manager": "^0.5.0",
+    "yaml": "^2.8.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "rimraf": "^5.0.1",
+    "typescript": "~5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -32,9 +32,9 @@ dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 jupyter = [
-    "jupyterlab>=4.4.0",
+    "jupyterlab>=4.5.0",
     "jupyterlite>=0.6.0",
-    "notebook>=7.4.0"
+    "notebook>=7.5.0"
 ]
 test = [
     "fastmcp>=3.2.3,<4",
@@ -75,21 +75,25 @@ build_cmd = "build:prod"
 npm = ["jlpm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
-build_cmd = "install:extension"
 npm = ["jlpm"]
-source_dir = "src"
+build_cmd = "build:prod"
+editable_build_cmd = "build"
 build_dir = "jupyterlite_ai/labextension"
 
 [tool.jupyter-releaser.options]
-version_cmd = "hatch version"
+version_cmd = "python scripts/bump_version.py --skip-if-dirty"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
     "python -m pip install 'jupyterlab>=4.0.0,<5'",
-    "jlpm",
+    "YARN_ENABLE_IMMUTABLE_INSTALLS=0 jlpm",
     "jlpm build:prod"
 ]
 before-build-python = ["jlpm clean:all"]
+before-bump-version = [
+    "python -m pip install -U jupyterlab",
+    "jlpm"
+]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]

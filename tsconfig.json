@@ -3,24 +3,22 @@
     "allowSyntheticDefaultImports": true,
     "composite": true,
     "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "incremental": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"],
-    "module": "esnext",
+    "module": "ESNext",
     "moduleResolution": "node",
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
-    "outDir": "lib",
-    "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2022",
-    "typeRoots": ["./node_modules/@types", "./src/types"]
-  },
-  "include": ["src/*", "src/**/*"]
+    "isolatedModules": true,
+    "target": "ES2022"
+  }
 }

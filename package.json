@@ -1,261 +1,152 @@
 {
-    "name": "@jupyterlite/ai",
-    "version": "0.18.0",
-    "description": "AI code completions and chat for JupyterLite",
-    "keywords": [
-        "jupyter",
-        "jupyterlab",
-        "jupyterlab-extension"
+  "name": "jupyterlite-ai-monorepo",
+  "version": "0.18.0",
+  "private": true,
+  "description": "Monorepo for JupyterLite AI - Agent and JupyterLab extension",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "jlpm build:all",
+    "build:all": "jlpm workspace @jupyternaut/agent build && jlpm workspace @jupyterlite/ai build",
+    "build:prod": "jlpm workspace @jupyternaut/agent build:prod && jlpm workspace @jupyterlite/ai build:prod",
+    "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyterlite/ai clean",
+    "clean:lintcache": "rimraf .eslintcache .stylelintcache",
+    "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
+    "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
+    "docs": "jupyter book start",
+    "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
+    "eslint": "jlpm eslint:check --fix",
+    "eslint:check": "eslint . --cache",
+    "lint:check": "jlpm run prettier:check && jlpm run eslint:check && jlpm run stylelint:check",
+    "lint": "jlpm run prettier && jlpm run eslint && jlpm run stylelint",
+    "prettier": "prettier --write \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
+    "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md,.yml}\"",
+    "stylelint": "jlpm stylelint:check --fix",
+    "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
+    "sync:model-info": "jlpm workspace @jupyternaut/agent run sync:model-info",
+    "watch": "jlpm workspace @jupyterlite/ai run watch"
+  },
+  "devDependencies": {
+    "@jupyter/eslint-plugin": "^0.0.5",
+    "@typescript-eslint/eslint-plugin": "^6.1.0",
+    "@typescript-eslint/parser": "^6.1.0",
+    "eslint": "^8.36.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.1",
+    "style-loader": "^3.3.1",
+    "stylelint": "^15.10.1",
+    "stylelint-config-recommended": "^13.0.0",
+    "stylelint-config-standard": "^34.0.0",
+    "stylelint-csstree-validator": "^3.0.0",
+    "stylelint-prettier": "^4.0.0"
+  },
+  "eslintConfig": {
+    "ignorePatterns": [
+      "node_modules",
+      "dist",
+      "coverage",
+      "**/*.d.ts",
+      "tests",
+      "**/__tests__",
+      "ui-tests",
+      ".venv",
+      "webpack.config.js",
+      "jupyterlite_ai"
     ],
-    "homepage": "https://github.com/jupyterlite/ai",
-    "bugs": {
-        "url": "https://github.com/jupyterlite/ai/issues"
-    },
-    "license": "BSD-3-Clause",
-    "author": "JupyterLite Contributors",
-    "files": [
-        "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf,md}",
-        "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
-        "src/**/*.{ts,tsx}",
-        "schema/*.json"
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:prettier/recommended"
     ],
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "style": "style/index.css",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/jupyterlite/ai.git"
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "project": "tsconfig.json",
+      "sourceType": "module"
     },
-    "scripts": {
-        "build": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:dev": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:prod": "jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
-        "build:labextension": "jupyter labextension build .",
-        "build:labextension:dev": "jupyter labextension build --development True .",
-        "build:lib": "tsc --sourceMap",
-        "build:lib:prod": "tsc",
-        "clean": "jlpm clean:lib",
-        "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
-        "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-        "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
-        "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
-        "eslint": "jlpm eslint:check --fix",
-        "eslint:check": "eslint . --cache --ext .ts,.tsx",
-        "install:extension": "jlpm build",
-        "lint": "jlpm stylelint && jlpm prettier && jlpm eslint",
-        "lint:check": "jlpm stylelint:check && jlpm prettier:check && jlpm eslint:check",
-        "prettier": "jlpm prettier:base --write --list-different",
-        "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
-        "prettier:check": "jlpm prettier:base --check",
-        "stylelint": "jlpm stylelint:check --fix",
-        "stylelint:check": "stylelint --cache \"style/**/*.css\"",
-        "watch": "run-p watch:src watch:labextension",
-        "watch:src": "tsc -w --sourceMap",
-        "watch:labextension": "jupyter labextension watch .",
-        "docs": "jupyter book start",
-        "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
-        "sync:model-info": "node scripts/sync-model-info.mjs && prettier --write src/providers/generated-model-info.ts && eslint --fix src/providers/generated-model-info.ts"
-    },
-    "dependencies": {
-        "@ai-sdk/anthropic": "^3.0.58",
-        "@ai-sdk/google": "^3.0.43",
-        "@ai-sdk/mcp": "^1.0.25",
-        "@ai-sdk/mistral": "^3.0.24",
-        "@ai-sdk/openai": "^3.0.41",
-        "@ai-sdk/openai-compatible": "^2.0.35",
-        "@jupyter/chat": "^0.21.1",
-        "@jupyterlab/application": "^4.0.0",
-        "@jupyterlab/apputils": "^4.5.6",
-        "@jupyterlab/cells": "^4.4.6",
-        "@jupyterlab/completer": "^4.0.0",
-        "@jupyterlab/coreutils": "^6.4.6",
-        "@jupyterlab/docmanager": "^4.4.6",
-        "@jupyterlab/docregistry": "^4.4.6",
-        "@jupyterlab/filebrowser": "^4.5.6",
-        "@jupyterlab/fileeditor": "^4.4.6",
-        "@jupyterlab/notebook": "^4.4.6",
-        "@jupyterlab/rendermime": "^4.4.6",
-        "@jupyterlab/services": "^7.4.6",
-        "@jupyterlab/settingregistry": "^4.0.0",
-        "@jupyterlab/statusbar": "^4.4.6",
-        "@jupyterlab/ui-components": "^4.4.6",
-        "@lumino/commands": "^2.3.2",
-        "@lumino/coreutils": "^2.2.1",
-        "@lumino/disposable": "^2.1.4",
-        "@lumino/messaging": "^2.0.3",
-        "@lumino/polling": "^2.1.4",
-        "@lumino/signaling": "^2.1.4",
-        "@lumino/widgets": "^2.7.1",
-        "@mui/icons-material": "^7",
-        "@mui/material": "^7",
-        "ai": "^6.0.116",
-        "jupyter-chat-components": "^0.6.0",
-        "jupyter-secrets-manager": "^0.5.0",
-        "yaml": "^2.8.1",
-        "zod": "^4.3.6"
-    },
-    "devDependencies": {
-        "@jupyterlab/builder": "^4.0.0",
-        "@jupyterlab/testutils": "^4.0.0",
-        "@types/json-schema": "^7.0.11",
-        "@types/node": "^24.3.0",
-        "@types/react": "^18.0.26",
-        "@types/react-addons-linked-state-mixin": "^0.14.22",
-        "@typescript-eslint/eslint-plugin": "^6.1.0",
-        "@typescript-eslint/parser": "^6.1.0",
-        "css-loader": "^6.7.1",
-        "eslint": "^8.36.0",
-        "eslint-config-prettier": "^8.8.0",
-        "eslint-plugin-prettier": "^5.0.0",
-        "npm-run-all2": "^7.0.1",
-        "prettier": "^3.0.0",
-        "rimraf": "^5.0.1",
-        "source-map-loader": "^1.0.2",
-        "style-loader": "^3.3.1",
-        "stylelint": "^15.10.1",
-        "stylelint-config-recommended": "^13.0.0",
-        "stylelint-config-standard": "^34.0.0",
-        "stylelint-csstree-validator": "^3.0.0",
-        "stylelint-prettier": "^4.0.0",
-        "typescript": "~5.8.0",
-        "yjs": "^13.5.0"
-    },
-    "sideEffects": [
-        "style/*.css",
-        "style/index.js"
+    "plugins": [
+      "@typescript-eslint"
     ],
-    "styleModule": "style/index.js",
-    "publishConfig": {
-        "access": "public"
-    },
-    "jupyterlab": {
-        "extension": true,
-        "outputDir": "jupyterlite_ai/labextension",
-        "schemaDir": "schema",
-        "sharedPackages": {
-            "@jupyter/chat": {
-                "bundled": true,
-                "singleton": true
-            },
-            "jupyter-chat-components": {
-                "bundled": false,
-                "singleton": true
-            }
+    "rules": {
+      "@typescript-eslint/naming-convention": [
+        "error",
+        {
+          "selector": "interface",
+          "format": [
+            "PascalCase"
+          ],
+          "custom": {
+            "regex": "^I[A-Z]",
+            "match": true
+          }
         }
-    },
-    "eslintIgnore": [
-        "node_modules",
-        "dist",
-        "coverage",
-        "**/*.d.ts",
-        "tests",
-        "**/__tests__",
-        "ui-tests",
-        ".venv",
-        "webpack.config.js"
-    ],
-    "eslintConfig": {
-        "extends": [
-            "eslint:recommended",
-            "plugin:@typescript-eslint/eslint-recommended",
-            "plugin:@typescript-eslint/recommended",
-            "plugin:prettier/recommended"
-        ],
-        "parser": "@typescript-eslint/parser",
-        "parserOptions": {
-            "project": "tsconfig.json",
-            "sourceType": "module"
-        },
-        "plugins": [
-            "@typescript-eslint"
-        ],
-        "rules": {
-            "@typescript-eslint/naming-convention": [
-                "error",
-                {
-                    "selector": "interface",
-                    "format": [
-                        "PascalCase"
-                    ],
-                    "custom": {
-                        "regex": "^I[A-Z]",
-                        "match": true
-                    }
-                }
-            ],
-            "@typescript-eslint/no-unused-vars": [
-                "warn",
-                {
-                    "args": "none"
-                }
-            ],
-            "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/no-namespace": "off",
-            "@typescript-eslint/no-use-before-define": "off",
-            "@typescript-eslint/quotes": [
-                "error",
-                "single",
-                {
-                    "avoidEscape": true,
-                    "allowTemplateLiterals": false
-                }
-            ],
-            "curly": [
-                "error",
-                "all"
-            ],
-            "eqeqeq": "error",
-            "prefer-arrow-callback": "error",
-            "no-restricted-imports": [
-                "error",
-                {
-                    "paths": [
-                        {
-                            "name": "@mui/icons-material",
-                            "message": "Please import icons using path imports, e.g. `import AddIcon from '@mui/icons-material/Add'`"
-                        }
-                    ],
-                    "patterns": [
-                        {
-                            "group": [
-                                "@mui/*/*/*"
-                            ],
-                            "message": "3rd level imports in mui are considered private"
-                        }
-                    ]
-                }
-            ]
+      ],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "args": "none"
         }
-    },
-    "prettier": {
-        "singleQuote": true,
-        "trailingComma": "none",
-        "arrowParens": "avoid",
-        "endOfLine": "auto",
-        "overrides": [
+      ],
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-namespace": "off",
+      "@typescript-eslint/no-use-before-define": "off",
+      "@typescript-eslint/quotes": [
+        "error",
+        "single",
+        {
+          "avoidEscape": true,
+          "allowTemplateLiterals": false
+        }
+      ],
+      "curly": [
+        "error",
+        "all"
+      ],
+      "eqeqeq": "error",
+      "prefer-arrow-callback": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
             {
-                "files": "package.json",
-                "options": {
-                    "tabWidth": 4
-                }
+              "name": "@mui/icons-material",
+              "message": "Please import icons using path imports, e.g. `import AddIcon from '@mui/icons-material/Add'`"
             }
-        ]
-    },
-    "stylelint": {
-        "extends": [
-            "stylelint-config-recommended",
-            "stylelint-config-standard",
-            "stylelint-prettier/recommended"
-        ],
-        "plugins": [
-            "stylelint-csstree-validator"
-        ],
-        "rules": {
-            "csstree/validator": true,
-            "property-no-vendor-prefix": null,
-            "selector-class-pattern": "^([a-z][A-z\\d]*)(-[A-z\\d]+)*$|^Mui[A-Z]",
-            "selector-no-vendor-prefix": null,
-            "value-no-vendor-prefix": null
+          ],
+          "patterns": [
+            {
+              "group": [
+                "@mui/*/*/*"
+              ],
+              "message": "3rd level imports in mui are considered private"
+            }
+          ]
         }
+      ]
+    },
+    "env": {
+      "browser": true,
+      "es2022": true
     }
+  },
+  "stylelint": {
+    "extends": [
+      "stylelint-config-recommended",
+      "stylelint-config-standard",
+      "stylelint-prettier/recommended"
+    ],
+    "plugins": [
+      "stylelint-csstree-validator"
+    ],
+    "rules": {
+      "csstree/validator": true,
+      "property-no-vendor-prefix": null,
+      "selector-class-pattern": "^([a-z][A-z\\d]*)(-[A-z\\d]+)*$|^Mui[A-Z]",
+      "selector-no-vendor-prefix": null,
+      "value-no-vendor-prefix": null
+    }
+  }
 }

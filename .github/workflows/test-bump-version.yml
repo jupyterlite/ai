@@ -1,0 +1,93 @@
+name: Test bump_version script
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'scripts/bump_version.py'
+      - '.github/workflows/test-bump-version.yml'
+  pull_request:
+    branches: ['*']
+    paths:
+      - 'scripts/bump_version.py'
+      - '.github/workflows/test-bump-version.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Base Setup
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+      - name: Install bump_version dependencies
+        run: python -m pip install jupyter_releaser packaging click
+
+      - name: Configure git
+        run: |
+          git config user.email "test@test.com"
+          git config user.name "Test User"
+
+      - name: Test bump with a specific version
+        run: |
+          set -eux
+          python scripts/bump_version.py 1.2.3
+          # Check root package.json
+          python3 <<'PY'
+          import json
+          with open('package.json') as f:
+              data = json.load(f)
+          assert data['version'] == '1.2.3', f"Expected 1.2.3, got {data['version']}"
+          PY
+          # Check workspace package versions
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          for pkg_file in list(Path('packages').glob('*/package.json')) + list(Path('docs').glob('*/package.json') if Path('docs').exists() else []):
+              data = json.loads(pkg_file.read_text())
+              assert data['version'] == '1.2.3', f"{pkg_file}: Expected 1.2.3, got {data['version']}"
+          PY
+
+      - name: Test bump with a pre-release version
+        run: |
+          set -eux
+          # Reset to original state first
+          git checkout .
+          python scripts/bump_version.py 2.0.0a1
+          python3 <<'PY'
+          import json
+          with open('package.json') as f:
+              data = json.load(f)
+          assert data['version'] == '2.0.0-alpha.1', f"Expected 2.0.0-alpha.1, got {data['version']}"
+          PY
+
+      - name: Test failure when dirty without --skip-if-dirty
+        run: |
+          set -eux
+          # Restore original state
+          git checkout .
+          # Make the git state dirty (touch a file not managed by bump_version)
+          echo "dirty" >> README.md
+          # Run bump without --skip-if-dirty — should fail with a clear error message
+          output=$(python scripts/bump_version.py 9.9.9 2>&1) && exit 1 || true
+          echo "$output" | grep -q "Must be in a clean git state"
+          # Verify nothing was changed by the failed command
+          [ -z "$(git diff HEAD -- jupyterlite_ai/ packages/ package.json)" ]
+
+      - name: Test --skip-if-dirty with dirty git state
+        run: |
+          set -eux
+          # Restore original state
+          git checkout .
+          # Make the git state dirty (touch a file not managed by bump_version)
+          echo "dirty" >> README.md
+          # Run bump with --skip-if-dirty — should exit successfully and make no changes
+          python scripts/bump_version.py --skip-if-dirty 9.9.9
+          # Verify nothing was changed
+          [ -z "$(git diff HEAD -- jupyterlite_ai/ packages/ package.json)" ]

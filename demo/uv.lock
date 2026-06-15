@@ -1002,10 +1002,10 @@ requires-dist = [
     { name = "jupyter-book", marker = "extra == 'docs'" },
     { name = "jupyter-chat-components", specifier = ">=0.6.0,<0.7" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
-    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.4.0" },
+    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.6.0" },
-    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.4.0" },
+    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
 ]
 provides-extras = ["docs", "jupyter", "test"]
