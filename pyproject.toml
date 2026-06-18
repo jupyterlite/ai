@@ -1,9 +1,22 @@
+[build-system]
+requires = ["hatchling", "hatch-nodejs-version>=0.3.2"]
+build-backend = "hatchling.build"
+
 [project]
 name = "jupyterlite-ai-monorepo"
 description = "Monorepo root for jupyterlite-ai"
 readme = "README.md"
 license = { file = "LICENSE" }
 dynamic = ["version"]
+
+[tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.hatch.build.targets.sdist]
+include = []
 
 [tool.jupyter-releaser.options]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
