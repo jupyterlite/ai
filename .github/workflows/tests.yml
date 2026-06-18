@@ -29,7 +29,7 @@ jobs:
         run: |
           set -eux
           pip install "jupyterlab>=4.5.0"
-          pip install -e ".[test]"
+          python scripts/dev_install.py test
 
       - name: Setup Ollama
         uses: ai-action/setup-ollama@6dbbafb345a2e0b94c4ade700f24858c927ef250

@@ -10,10 +10,8 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Install package in development mode
-pip install -e "python/jupyterlite-ai"
-# Link your development version of the extension with JupyterLab
-jupyter labextension develop python/jupyterlite-ai --overwrite
+# Install all packages in development mode and link labextensions
+python scripts/dev_install.py
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
