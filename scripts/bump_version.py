@@ -107,6 +107,8 @@ def bump(skip_if_dirty, spec):
         with path.open(mode="w") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
+    else:
+        raise FileNotFoundError(f"Could not find package.json under dir {path!s}")
 
     # bump the Python packages
     for version_file in HERE.glob("python/**/_version.py"):
@@ -123,9 +125,6 @@ def bump(skip_if_dirty, spec):
         else:
             version_spec = spec
         version_file.write_text(f'__version__ = "{version_spec}"\n')
-
-    else:
-        raise FileNotFoundError(f"Could not find package.json under dir {path!s}")
 
 
 if __name__ == "__main__":
