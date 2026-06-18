@@ -989,7 +989,7 @@ wheels = [
 
 [[package]]
 name = "jupyterlite-ai"
-source = { directory = "../" }
+source = { directory = "../python/jupyterlite-ai" }
 dependencies = [
     { name = "jupyter-chat-components" },
     { name = "jupyter-secrets-manager" },
@@ -1030,7 +1030,7 @@ requires-dist = [
     { name = "jupyterlab", specifier = ">=4.5.0" },
     { name = "jupyterlab-day", specifier = ">=0.2.0" },
     { name = "jupyterlab-night", specifier = ">=0.5.2" },
-    { name = "jupyterlite-ai", directory = "../" },
+    { name = "jupyterlite-ai", directory = "../python/jupyterlite-ai" },
     { name = "jupyterlite-core", specifier = ">=0.7.0" },
     { name = "jupyterlite-pyodide-kernel", specifier = ">=0.7.0" },
 ]
