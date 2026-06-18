@@ -7,6 +7,11 @@ name = "jupyterlite_ai"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
+description = "A serverless AI code completions and chat"
+authors = [
+    { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
+]
+keywords = ["jupyter", "jupyterlab", "jupyterlite", "jupyterlab-extension"]
 classifiers = [
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
@@ -22,13 +27,20 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14"
 ]
-
 dependencies = [
     "jupyter-chat-components >=0.6.0,<0.7",
     "jupyter-secrets-manager >=0.5,<0.6",
     "jupyterlab-ai-commands >=0.3.1,<0.4",
 ]
-dynamic = ["version", "description", "authors", "urls", "keywords"]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://jupyterlite-ai.readthedocs.io/en/latest/"
+Repository = "https://github.com/jupyterlite/ai"
+Changelog = "https://jupyterlite-ai.readthedocs.io/en/latest/changelog/"
+Source = "https://github.com/jupyterlite/ai/tree/main"
+Issues = "https://github.com/jupyterlite/ai/issues/new/choose"
+"Try it" = "https://jupyterlite.github.io/ai/lab/index.html"
 
 [project.optional-dependencies]
 jupyter = [
@@ -45,12 +57,7 @@ docs = [
 ]
 
 [tool.hatch.version]
-source = "nodejs"
-path = "../../packages/ai/package.json"
-
-[tool.hatch.metadata.hooks.nodejs]
-fields = ["description", "authors", "urls"]
-path = "../../packages/ai/package.json"
+path = "jupyterlite_ai/_version.py"
 
 [tool.hatch.build.targets.sdist]
 artifacts = ["jupyterlite_ai/labextension"]
