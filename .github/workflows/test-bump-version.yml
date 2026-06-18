@@ -78,7 +78,7 @@ jobs:
           output=$(python scripts/bump_version.py 9.9.9 2>&1) && exit 1 || true
           echo "$output" | grep -q "Must be in a clean git state"
           # Verify nothing was changed by the failed command
-          [ -z "$(git diff HEAD -- jupyterlite_ai/ packages/ package.json)" ]
+          [ -z "$(git diff HEAD -- python/jupyterlite-ai/ packages/ package.json)" ]
 
       - name: Test --skip-if-dirty with dirty git state
         run: |
@@ -90,4 +90,4 @@ jobs:
           # Run bump with --skip-if-dirty — should exit successfully and make no changes
           python scripts/bump_version.py --skip-if-dirty 9.9.9
           # Verify nothing was changed
-          [ -z "$(git diff HEAD -- jupyterlite_ai/ packages/ package.json)" ]
+          [ -z "$(git diff HEAD -- python/jupyterlite-ai/ packages/ package.json)" ]

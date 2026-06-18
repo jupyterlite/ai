@@ -12,7 +12,7 @@
     "build:prod": "jlpm workspace @jupyternaut/agent build:prod && jlpm workspace @jupyterlite/ai build:prod",
     "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyterlite/ai clean",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-    "clean:labextension": "rimraf jupyterlite_ai/labextension jupyterlite_ai/_version.py",
+    "clean:labextension": "rimraf python/jupyterlite-ai/jupyterlite_ai/labextension python/jupyterlite-ai/jupyterlite_ai/_version.py",
     "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
     "docs": "jupyter book start",
     "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
@@ -54,7 +54,7 @@
       "ui-tests",
       ".venv",
       "webpack.config.js",
-      "jupyterlite_ai"
+      "python/jupyterlite-ai/jupyterlite_ai"
     ],
     "extends": [
       "eslint:recommended",

@@ -10,11 +10,10 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Change directory to the jupyterlite_ai directory
 # Install package in development mode
-pip install -e "."
+pip install -e "python/jupyterlite-ai"
 # Link your development version of the extension with JupyterLab
-jupyter labextension develop . --overwrite
+jupyter labextension develop python/jupyterlite-ai --overwrite
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
@@ -56,7 +55,7 @@ The UI tests use Playwright and can be configured with environment variables:
 
 ```bash
 # Install Python test dependencies (includes the MCP test server)
-pip install -e ".[test]"
+pip install -e "python/jupyterlite-ai[test]"
 ```
 
 - `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
