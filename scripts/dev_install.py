@@ -25,7 +25,7 @@ def main() -> None:
         if extras:
             spec = f"{spec}[{extras}]"
         print(f"Installing {spec} ...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", f"{spec}[test]"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", spec])
         print(f"Linking labextension for {package} ...")
         subprocess.check_call(
             [sys.executable, "-m", "jupyter", "labextension", "develop", str(pkg_path), "--overwrite"]
