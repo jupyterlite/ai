@@ -28,7 +28,7 @@ def main() -> None:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", spec])
         print(f"Linking labextension for {package} ...")
         subprocess.check_call(
-            [sys.executable, "-m", "jupyter", "labextension", "develop", str(pkg_path), "--overwrite"]
+            ["jupyter-builder", "develop", str(pkg_path), "--overwrite"]
         )
 
 
