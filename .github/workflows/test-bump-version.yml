@@ -38,6 +38,8 @@ jobs:
         run: |
           set -eux
           python scripts/bump_version.py 1.2.3
+          # Check Python version file
+          grep '__version__ = "1.2.3"' python/jupyterlite-ai/jupyterlite_ai/_version.py
           # Check root package.json
           python3 <<'PY'
           import json
@@ -60,6 +62,7 @@ jobs:
           # Reset to original state first
           git checkout .
           python scripts/bump_version.py 2.0.0a1
+          grep '__version__ = "2.0.0a1"' python/jupyterlite-ai/jupyterlite_ai/_version.py
           python3 <<'PY'
           import json
           with open('package.json') as f:

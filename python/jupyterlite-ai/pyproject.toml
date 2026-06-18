@@ -58,7 +58,6 @@ docs = [
 
 [tool.hatch.version]
 path = "jupyterlite_ai/_version.py"
-pattern = "__version__ = VERSION = '(?P<version>[^']+)'"
 
 [tool.hatch.build.targets.sdist]
 artifacts = ["jupyterlite_ai/labextension"]
@@ -67,9 +66,6 @@ exclude = [".github", "binder"]
 [tool.hatch.build.targets.wheel.shared-data]
 "jupyterlite_ai/labextension" = "share/jupyter/labextensions/@jupyterlite/ai"
 "install.json" = "share/jupyter/labextensions/@jupyterlite/ai/install.json"
-
-[tool.hatch.build.hooks.version]
-path = "jupyterlite_ai/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
