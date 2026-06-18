@@ -3,6 +3,7 @@ name = "jupyterlite-ai-monorepo"
 description = "Monorepo root for jupyterlite-ai"
 readme = "README.md"
 license = { file = "LICENSE" }
+dynamic = ["version"]
 
 [tool.jupyter-releaser.options]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
