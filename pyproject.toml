@@ -33,3 +33,6 @@ before-bump-version = [
     "python -m pip install -U jupyterlab",
     "jlpm"
 ]
+
+[tool.check-wheel-contents]
+ignore = ["W002"]
