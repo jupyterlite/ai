@@ -3,6 +3,27 @@
   "jupyter.lab.setting-icon": "@jupyternaut/agent:jupyternaut",
   "title": "Jupyternaut Persona Settings",
   "description": "Configuration for Jupyternaut persona extension providers, models, and behavior",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-settings",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 110
+          },
+          {
+            "command": "@jupyternaut/persona:open-settings",
+            "rank": 110
+          },
+          {
+            "type": "separator",
+            "rank": 110
+          }
+        ]
+      }
+    ]
+  },
   "type": "object",
   "properties": {
     "useSecretsManager": {

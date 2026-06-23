@@ -96,7 +96,7 @@ export class AISettingsWidget extends ReactWidget {
     this._secretsAccess = options.secretsAccess;
     this._trans = options.trans;
     this.id = 'jupyternaut-persona-settings';
-    this.title.label = this._trans.__('AI Settings');
+    this.title.label = this._trans.__('Jupyternaut Settings');
     this.title.caption = this._trans.__('Configure AI providers and behavior');
     this.title.closable = true;
 

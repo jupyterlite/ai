@@ -370,7 +370,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     }
 
     app.commands.addCommand(CommandIds.openSettings, {
-      label: trans.__('AI Settings'),
+      label: trans.__('Jupyternaut Settings'),
       caption: trans.__('Configure AI providers and behavior'),
       icon: settingsIcon,
       iconClass: 'jp-ai-settings-icon',
