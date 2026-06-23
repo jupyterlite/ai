@@ -11,7 +11,7 @@ The `jlpm` command is JupyterLab's pinned version of
 ```bash
 # Clone the repo to your local environment
 # Install all packages in development mode and link labextensions
-python scripts/dev_install.py
+python ./scripts/dev_install.py
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
@@ -53,7 +53,7 @@ The UI tests use Playwright and can be configured with environment variables:
 
 ```bash
 # Install Python test dependencies (includes the MCP test server)
-pip install -e "python/jupyterlite-ai[test]"
+python ./scripts/dev_install.py test
 ```
 
 - `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
@@ -98,7 +98,7 @@ jlpm docs:build
 pip uninstall jupyterlite-ai
 ```
 
-In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
+In development mode, you will also need to remove the symlink created by `jupyter-builder develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
 folder is located. Then you can remove the symlink named `@jupyterlite/ai` within that folder.
 
