@@ -220,7 +220,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description: 'jupyternaut frontend persona',
   autoStart: true,
   requires: [IAgentManagerFactory, IAISettingsModel, IPersonaHandlerRegistry],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry],
+  optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
   activate: (
     app: JupyterFrontEnd,
     agentManagerFactory: IAgentManagerFactory,
@@ -228,7 +228,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     registry: IPersonaHandlerRegistry,
     chatTracker: IChatTracker | null,
     providerRegistry?: IProviderRegistry,
-    toolRegistry?: IToolRegistry
+    toolRegistry?: IToolRegistry,
+    documentManager?: IDocumentManager
   ) => {
     if (!chatTracker) {
       return;
@@ -247,7 +248,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const handler = new PersonaHandler({
         model: widget.model,
         agentManager,
-        trigger: PERSONA_MENTION
+        trigger: PERSONA_MENTION,
+        settingsModel,
+        providerRegistry,
+        documentManager
       });
       registry.register(widget.model, handler);
       widget.disposed.connect(() => {

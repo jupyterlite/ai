@@ -1,10 +1,31 @@
-import { IMessage, IMessageContent, IChatModel } from '@jupyter/chat';
+import {
+  IAttachment,
+  IMessage,
+  IMessageContent,
+  IChatModel
+} from '@jupyter/chat';
 
-import type { IAgentManager } from '@jupyternaut/agent';
+import type { IDocumentManager } from '@jupyterlab/docmanager';
+
+import type {
+  IAgentManager,
+  IAISettingsModel,
+  IProviderRegistry
+} from '@jupyternaut/agent';
+
+import {
+  modelSupportsAudio,
+  modelSupportsImages,
+  modelSupportsPdf
+} from '@jupyternaut/agent';
 
 import { UUID } from '@lumino/coreutils';
 
 import type { IObservableDisposable } from '@lumino/disposable';
+
+import type { UserContent } from 'ai';
+
+import { processAttachments } from './process-attachments';
 
 type ToolStatus =
   | 'pending'
@@ -80,6 +101,9 @@ export class PersonaHandler {
     this._model = options.model;
     this._agent = options.agentManager;
     this._trigger = options.trigger;
+    this._settingsModel = options.settingsModel;
+    this._providerRegistry = options.providerRegistry;
+    this._documentManager = options.documentManager;
     this._previousCount = options.model.messages.length;
 
     this._agent.agentEvent.connect(this._onAgentEvent, this);
@@ -106,20 +130,39 @@ export class PersonaHandler {
     this._previousCount = messages.length;
 
     for (const message of newMessages) {
+      console.log('MESSAGE', message);
+      console.log(message.body.includes(this._trigger));
       if (message.body.includes(this._trigger) && !message.sender.bot) {
         const body = message.body.replace(this._trigger, '').trim();
-        void this._respond(body || message.body);
+        void this._respond(body || message.body, message.attachments);
       }
     }
   }
 
-  private async _respond(body: string): Promise<void> {
+  private async _respond(
+    body: string,
+    attachments?: IAttachment[]
+  ): Promise<void> {
     if (this._busy) {
       return;
     }
     this._busy = true;
     try {
-      await this._agent.generateResponse(body);
+      let content: UserContent = body;
+      if (attachments && attachments.length > 0) {
+        const providerConfig = this._settingsModel.getProvider(
+          this._agent.activeProvider
+        );
+        content = await processAttachments(
+          attachments,
+          this._documentManager,
+          body,
+          modelSupportsImages(providerConfig, this._providerRegistry),
+          modelSupportsPdf(providerConfig, this._providerRegistry),
+          modelSupportsAudio(providerConfig, this._providerRegistry)
+        );
+      }
+      await this._agent.generateResponse(content);
     } catch (error) {
       console.error('PersonaHandler: error generating response', error);
     } finally {
@@ -338,6 +381,9 @@ export class PersonaHandler {
   private readonly _model: IChatModel;
   private readonly _agent: IAgentManager;
   private readonly _trigger: string;
+  private readonly _settingsModel: IAISettingsModel;
+  private readonly _providerRegistry: IProviderRegistry | undefined;
+  private readonly _documentManager: IDocumentManager | undefined;
   private _previousCount: number;
   private _busy = false;
   private _streamingMessage: IMessage | null = null;
@@ -349,5 +395,8 @@ export namespace PersonaHandler {
     model: IChatModel;
     agentManager: IAgentManager;
     trigger: string;
+    settingsModel: IAISettingsModel;
+    providerRegistry?: IProviderRegistry;
+    documentManager?: IDocumentManager;
   }
 }
