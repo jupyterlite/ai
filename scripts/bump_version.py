@@ -107,9 +107,24 @@ def bump(skip_if_dirty, spec):
         with path.open(mode="w") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
-
     else:
         raise FileNotFoundError(f"Could not find package.json under dir {path!s}")
+
+    # bump the Python packages
+    for version_file in HERE.glob("python/**/_version.py"):
+        content = version_file.read_text().splitlines()
+        variable, current = content[0].split(" = ")
+        if variable != "__version__":
+            raise ValueError(
+                f"Version file {version_file} has unexpected content;"
+                f" expected __version__ assignment in the first line, found {variable}"
+            )
+        current = current.strip("'\"")
+        if spec in VERSION_SPEC:
+            version_spec = increment_version(current, spec)
+        else:
+            version_spec = spec
+        version_file.write_text(f'__version__ = "{version_spec}"\n')
 
 
 if __name__ == "__main__":

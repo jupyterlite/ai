@@ -33,7 +33,7 @@ jobs:
       - name: Build the extension
         run: |
           set -eux
-          python -m pip install .[test]
+          python scripts/dev_install.py test
 
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
@@ -44,7 +44,7 @@ jobs:
           set -eux
 
           pip install build
-          python -m build
+          python -m build python/jupyterlite-ai --outdir dist
           pip uninstall -y "jupyterlite_ai" jupyterlab
 
       - name: Upload extension packages

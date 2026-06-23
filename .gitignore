@@ -10,9 +10,7 @@ packages/*/tsconfig.tsbuildinfo
 *.egg-info/
 .ipynb_checkpoints
 *.tsbuildinfo
-jupyterlite_ai/labextension
-# Version file is handled by hatchling
-jupyterlite_ai/_version.py
+python/jupyterlite-ai/jupyterlite_ai/labextension
 
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python
