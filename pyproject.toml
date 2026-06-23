@@ -20,7 +20,10 @@ include = []
 
 [tool.jupyter-releaser.options]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
-python_packages = ["python/jupyterlite-ai"]
+python_packages = [
+    "python/jupyterlite-ai",
+    "python/jupyternaut-persona"
+]
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [

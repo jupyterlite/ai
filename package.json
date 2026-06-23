@@ -8,11 +8,11 @@
   ],
   "scripts": {
     "build": "jlpm build:all",
-    "build:all": "jlpm workspace @jupyternaut/agent build && jlpm workspace @jupyterlite/ai build",
-    "build:prod": "jlpm workspace @jupyternaut/agent build:prod && jlpm workspace @jupyterlite/ai build:prod",
-    "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyterlite/ai clean",
+    "build:all": "jlpm workspace @jupyternaut/agent build && jlpm workspace @jupyternaut/persona build && jlpm workspace @jupyterlite/ai build",
+    "build:prod": "jlpm workspace @jupyternaut/agent build:prod && && jlpm workspace @jupyternaut/persona build:prod jlpm workspace @jupyterlite/ai build:prod",
+    "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyternaut/persona clean && jlpm workspace @jupyterlite/ai clean",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-    "clean:labextension": "rimraf python/jupyterlite-ai/jupyterlite_ai/labextension",
+    "clean:labextension": "rimraf python/jupyterlite-ai/jupyterlite_ai/labextension && rimraf python/jupyternaut-persona/jupyternaut_persona/labextension",
     "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
     "docs": "jupyter book start",
     "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
@@ -54,7 +54,8 @@
       "ui-tests",
       ".venv",
       "webpack.config.js",
-      "python/jupyterlite-ai/jupyterlite_ai"
+      "python/jupyterlite-ai/jupyterlite_ai",
+      "python/jupyternaut-persona/jupyternaut_persona"
     ],
     "extends": [
       "eslint:recommended",
