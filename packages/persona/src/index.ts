@@ -31,7 +31,12 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import { IChatTracker, MainAreaChat, ChatWidget } from '@jupyter/chat';
+import {
+  IChatTracker,
+  MainAreaChat,
+  ChatWidget,
+  IChatCommandRegistry
+} from '@jupyter/chat';
 
 import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
 
@@ -53,23 +58,23 @@ import { DisposableSet } from '@lumino/disposable';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { PersonaHandler } from './persona-handler';
-
-import { CommandIds, IPersonaHandlerRegistry } from './tokens';
-
-import { PersonaHandlerRegistry } from './persona-handler-registry';
+import { MentionCommandProvider } from './chat-commands/mention';
 
 import { AICompletionProvider } from './completion';
 
 import { CompletionStatusWidget } from './components';
 
-import { AISettingsModel } from './models/settings-model';
-
 import { DiffManager } from './diff-manager';
 
-import { AISettingsWidget } from './widgets/ai-settings';
+import { AISettingsModel } from './models/settings-model';
 
-const PERSONA_MENTION = '@jupyternaut-frontend';
+import { PersonaHandler } from './persona-handler';
+
+import { PersonaHandlerRegistry } from './persona-handler-registry';
+
+import { CommandIds, IPersonaHandlerRegistry, PERSONA } from './tokens';
+
+import { AISettingsWidget } from './widgets/ai-settings';
 
 namespace Private {
   let aiSecretsToken: symbol | null = null;
@@ -204,38 +209,29 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * A registry containing the persona handler in the chat model.
+ */
 const personaHandlerRegistryPlugin: JupyterFrontEndPlugin<IPersonaHandlerRegistry> =
   {
     id: '@jupyternaut/persona:handler-registry',
     description: 'Registry mapping chat models to their persona handlers',
     autoStart: true,
+    requires: [IAgentManagerFactory, IAISettingsModel],
+    optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
     provides: IPersonaHandlerRegistry,
-    activate: (): IPersonaHandlerRegistry => {
-      return new PersonaHandlerRegistry();
-    }
-  };
-
-const plugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyternaut/persona:plugin',
-  description: 'jupyternaut frontend persona',
-  autoStart: true,
-  requires: [IAgentManagerFactory, IAISettingsModel, IPersonaHandlerRegistry],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
-  activate: (
+    activate: (
     app: JupyterFrontEnd,
     agentManagerFactory: IAgentManagerFactory,
     settingsModel: IAISettingsModel,
-    registry: IPersonaHandlerRegistry,
     chatTracker: IChatTracker | null,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry,
     documentManager?: IDocumentManager
-  ) => {
-    if (!chatTracker) {
-      return;
-    }
+  ): IPersonaHandlerRegistry => {
+      const registry = new PersonaHandlerRegistry();
 
-    const attachPersona = (widget: ChatWidget | MainAreaChat) => {
+      const attachPersona = (widget: ChatWidget | MainAreaChat) => {
       if (registry.get(widget.model)) {
         return;
       }
@@ -248,7 +244,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const handler = new PersonaHandler({
         model: widget.model,
         agentManager,
-        trigger: PERSONA_MENTION,
+        persona: PERSONA,
         settingsModel,
         providerRegistry,
         documentManager
@@ -260,8 +256,23 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
     };
 
-    chatTracker.forEach(widget => attachPersona(widget));
-    chatTracker.widgetAdded.connect((_, widget) => attachPersona(widget));
+    chatTracker?.forEach(widget => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+
+    return registry;
+    }
+  };
+
+/**
+ * Clear chat command plugin.
+ */
+const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:mention',
+  description: 'Register the Jupyternaut mention chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry],
+  activate: (app, registry: IChatCommandRegistry) => {
+    registry.addProvider(new MentionCommandProvider());
   }
 };
 
@@ -648,22 +659,29 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 export default [
+  // Provider registry and builtin providers
   providerRegistryPlugin,
   anthropicProviderPlugin,
   googleProviderPlugin,
   mistralProviderPlugin,
   openaiProviderPlugin,
   genericProviderPlugin,
-  settingsModel,
-  diffManager,
-  skillRegistryPlugin,
-  personaHandlerRegistryPlugin,
-  plugin,
-  toolRegistry,
+  // Agent
   agentManagerFactory,
-  settingsPanelPlugin,
   completionStatus,
-  skillsPlugin
+  // Skills
+  skillRegistryPlugin,
+  skillsPlugin,
+  // Tools
+  toolRegistry,
+  // Persona
+  personaHandlerRegistryPlugin,
+  mentionCommandPlugin,
+  // Settings
+  settingsModel,
+  settingsPanelPlugin,
+  // Diff manager (to be removed ?)
+  diffManager
 ];
 
 // Export extension points for other extensions to use

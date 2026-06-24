@@ -3175,7 +3175,6 @@ __metadata:
     rimraf: ^5.0.1
     source-map-loader: ^1.0.2
     typescript: ~5.8.0
-    yaml: ^2.8.1
   languageName: unknown
   linkType: soft
 
@@ -3254,7 +3253,6 @@ __metadata:
     rimraf: ^5.0.1
     source-map-loader: ^1.0.2
     typescript: ~5.8.0
-    yaml: ^2.8.1
   languageName: unknown
   linkType: soft
 

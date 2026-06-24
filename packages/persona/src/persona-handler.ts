@@ -2,7 +2,8 @@ import {
   IAttachment,
   IMessage,
   IMessageContent,
-  IChatModel
+  IChatModel,
+  IUser
 } from '@jupyter/chat';
 
 import type { IDocumentManager } from '@jupyterlab/docmanager';
@@ -27,6 +28,8 @@ import type { UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
+import { PERSONA, PERSONA_MENTION } from './tokens';
+
 type ToolStatus =
   | 'pending'
   | 'awaiting_approval'
@@ -43,13 +46,6 @@ interface IToolExecutionContext {
   status: ToolStatus;
   summary?: string;
 }
-
-const PERSONA_USER = {
-  username: 'jupyternaut-frontend',
-  display_name: 'Jupyternaut',
-  initials: 'JF',
-  bot: true
-};
 
 function extractToolSummary(toolName: string, input: string): string {
   try {
@@ -100,7 +96,7 @@ export class PersonaHandler {
   constructor(options: PersonaHandler.IOptions) {
     this._model = options.model;
     this._agent = options.agentManager;
-    this._trigger = options.trigger;
+    this._persona = options.persona;
     this._settingsModel = options.settingsModel;
     this._providerRegistry = options.providerRegistry;
     this._documentManager = options.documentManager;
@@ -124,16 +120,13 @@ export class PersonaHandler {
   }
 
   private _onMessagesUpdated(): void {
-    console.log('message updated');
     const messages = this._model.messages;
     const newMessages = messages.slice(this._previousCount);
     this._previousCount = messages.length;
 
     for (const message of newMessages) {
-      console.log('MESSAGE', message);
-      console.log(message.body.includes(this._trigger));
-      if (message.body.includes(this._trigger) && !message.sender.bot) {
-        const body = message.body.replace(this._trigger, '').trim();
+      if (message.mentions?.includes(this._persona) && !message.sender.bot) {
+        const body = message.body.replace(PERSONA_MENTION, '').trim();
         void this._respond(body || message.body, message.attachments);
       }
     }
@@ -207,7 +200,7 @@ export class PersonaHandler {
   ): void {
     const message: IMessageContent = {
       body: '',
-      sender: PERSONA_USER,
+      sender: PERSONA,
       id: event.data.messageId,
       time: Date.now() / 1000,
       type: 'msg',
@@ -270,7 +263,7 @@ export class PersonaHandler {
           ]
         }
       },
-      sender: PERSONA_USER,
+      sender: PERSONA,
       id: messageId,
       time: Date.now() / 1000,
       type: 'msg',
@@ -324,7 +317,7 @@ export class PersonaHandler {
           errorMessage: `Error generating response: ${event.data.error.message}`
         }
       },
-      sender: PERSONA_USER,
+      sender: PERSONA,
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',
@@ -380,7 +373,7 @@ export class PersonaHandler {
 
   private readonly _model: IChatModel;
   private readonly _agent: IAgentManager;
-  private readonly _trigger: string;
+  private readonly _persona: IUser;
   private readonly _settingsModel: IAISettingsModel;
   private readonly _providerRegistry: IProviderRegistry | undefined;
   private readonly _documentManager: IDocumentManager | undefined;
@@ -394,7 +387,7 @@ export namespace PersonaHandler {
   export interface IOptions {
     model: IChatModel;
     agentManager: IAgentManager;
-    trigger: string;
+    persona: IUser;
     settingsModel: IAISettingsModel;
     providerRegistry?: IProviderRegistry;
     documentManager?: IDocumentManager;

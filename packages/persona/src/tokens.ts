@@ -1,7 +1,20 @@
-import { IChatModel } from '@jupyter/chat';
+import { IChatModel, IUser } from '@jupyter/chat';
+import { AI_AVATAR } from '@jupyternaut/agent';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 import type { PersonaHandler } from './persona-handler';
+
+export const PERSONA: IUser = {
+  username: 'jupyternaut-frontend',
+  display_name: 'Jupyternaut',
+  initials: 'JF',
+  color: '#2196F3',
+  avatar_url: AI_AVATAR,
+  bot: true,
+  mention_name: 'jupyternaut-frontend'
+};
+
+export const PERSONA_MENTION = `@${PERSONA.mention_name}`;
 
 /**
  * Command IDs namespace
