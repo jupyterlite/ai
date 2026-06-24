@@ -1,5 +1,6 @@
 import type {
   IAgentManagerFactory,
+  IAISettingsModel,
   IProviderRegistry,
   IToolRegistry
 } from '@jupyternaut/agent';
@@ -11,7 +12,6 @@ import { Contents } from '@jupyterlab/services';
 import { AIChatModel } from './chat-model';
 import type {
   IAIChatModel,
-  IAISettingsModel,
   IChatModelHandler,
   ICreateChatOptions
 } from './tokens';

@@ -1,10 +1,8 @@
-import type { ITokenUsage } from '@jupyternaut/agent';
+import type { IAISettingsModel, ITokenUsage } from '@jupyternaut/agent';
 import { ReactWidget, UseSignal } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { ISignal } from '@lumino/signaling';
 import React from 'react';
-
-import type { IAISettingsModel } from '../tokens';
 
 /**
  * Props for the UsageDisplay component.

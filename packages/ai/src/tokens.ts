@@ -1,5 +1,4 @@
 import type {
-  IAISettingsModel as IBaseAISettingsModel,
   IAgentManager,
   ITokenUsage
 } from '@jupyternaut/agent';
@@ -142,19 +141,4 @@ export interface ICreateChatOptions {
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
   '@jupyterlite/ai:IChatModelHandler'
-);
-
-/**
- * Interface for the AI settings model with JupyterLab-specific features.
- * Extends the base IAISettingsModel from @jupyternaut/agent which already includes VDomRenderer.IModel.
- */
-export interface IAISettingsModel extends IBaseAISettingsModel {
-  // Extends the base IAISettingsModel with JupyterLab-specific features
-}
-
-/**
- * Token for the AI settings model.
- */
-export const IAISettingsModel = new Token<IAISettingsModel>(
-  '@jupyterlite/ai:IAISettingsModel'
 );

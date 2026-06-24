@@ -2,12 +2,13 @@ import { ChatWidget, IChatModel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import type { IAISettingsModel } from '@jupyternaut/agent';
 import { CommandRegistry } from '@lumino/commands';
 
 import { SaveComponentWidget } from '../components/save-button';
 import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
-import { CommandIds, IAIChatModel, type IAISettingsModel } from '../tokens';
+import { CommandIds, IAIChatModel } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {

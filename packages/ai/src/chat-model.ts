@@ -30,6 +30,7 @@ import { AI_AVATAR } from '@jupyternaut/agent';
 
 import type {
   IAgentManager,
+  IAISettingsModel,
   IProviderRegistry,
   ITokenUsage
 } from '@jupyternaut/agent';
@@ -42,7 +43,7 @@ import { ISignal, Signal } from '@lumino/signaling';
 
 import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
 
-import type { IAIChatModel, IAISettingsModel } from './tokens';
+import type { IAIChatModel } from './tokens';
 
 import {
   modelSupportsAudio,
@@ -347,7 +348,8 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       time: Date.now() / 1000,
       type: 'msg',
       raw_time: false,
-      attachments: [...this.input.attachments]
+      attachments: [...this.input.attachments],
+      mentions: this.input.mentions
     };
 
     // Check if we have valid configuration
@@ -376,11 +378,11 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       return;
     }
 
-    this._isBusy = true;
+    // this._isBusy = true;
     this.messageAdded(userMessage);
     this.input.clearAttachments();
-
-    await this._processMessage(userMessage);
+    this.input.clearMentions();
+    // await this._processMessage(userMessage);
   }
 
   /**

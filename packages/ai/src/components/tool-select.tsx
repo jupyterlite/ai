@@ -1,6 +1,7 @@
 import { createProviderTools } from '@jupyternaut/agent';
 
 import type {
+  IAISettingsModel,
   INamedTool,
   IProviderRegistry,
   IToolRegistry
@@ -19,8 +20,6 @@ import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AIChatModel } from '../chat-model';
-
-import type { IAISettingsModel } from '../tokens';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 

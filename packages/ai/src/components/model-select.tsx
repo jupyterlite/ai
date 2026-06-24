@@ -1,10 +1,10 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import type { IAISettingsModel } from '@jupyternaut/agent';
 import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { AIChatModel } from '../chat-model';
-import type { IAISettingsModel } from '../tokens';
 
 /**
  * Properties for the model select component.
