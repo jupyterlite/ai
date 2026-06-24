@@ -140,6 +140,7 @@ export class PersonaHandler {
       return;
     }
     this._busy = true;
+    this._model.updateWriters([{ user: this._persona }]);
     try {
       let content: UserContent = body;
       if (attachments && attachments.length > 0) {
@@ -159,6 +160,7 @@ export class PersonaHandler {
     } catch (error) {
       console.error('PersonaHandler: error generating response', error);
     } finally {
+      this._model.updateWriters([]);
       this._busy = false;
     }
   }
