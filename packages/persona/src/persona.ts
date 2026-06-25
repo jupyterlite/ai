@@ -28,6 +28,7 @@ import type { UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
+import type { IPersona as IPersona } from './tokens';
 import { PERSONA, PERSONA_MENTION } from './tokens';
 
 type ToolStatus =
@@ -92,8 +93,8 @@ function formatToolOutput(outputData: unknown): string {
  * as long as the associated chat widget is open, so conversation history is
  * preserved across multiple mentions.
  */
-export class PersonaHandler {
-  constructor(options: PersonaHandler.IOptions) {
+export class Persona implements IPersona {
+  constructor(options: Persona.IOptions) {
     this._model = options.model;
     this._agent = options.agentManager;
     this._persona = options.persona;
@@ -117,6 +118,10 @@ export class PersonaHandler {
 
   get agentManager(): IAgentManager {
     return this._agent;
+  }
+
+  get model(): IChatModel {
+    return this._model;
   }
 
   private _onMessagesUpdated(): void {
@@ -385,7 +390,7 @@ export class PersonaHandler {
   private _toolContexts = new Map<string, IToolExecutionContext>();
 }
 
-export namespace PersonaHandler {
+export namespace Persona {
   export interface IOptions {
     model: IChatModel;
     agentManager: IAgentManager;

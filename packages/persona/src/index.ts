@@ -68,11 +68,11 @@ import { DiffManager } from './diff-manager';
 
 import { AISettingsModel } from './models/settings-model';
 
-import { PersonaHandler } from './persona-handler';
+import { Persona } from './persona';
 
-import { PersonaHandlerRegistry } from './persona-handler-registry';
+import { PersonaRegistry } from './persona-registry';
 
-import { CommandIds, IPersonaHandlerRegistry, PERSONA } from './tokens';
+import { CommandIds, IPersonaRegistry, PERSONA } from './tokens';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -210,63 +210,68 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * A registry containing the persona handler in the chat model.
+ * Provides the persona handler registry without any IChatTracker dependency,
+ * so it can be consumed by the toolbar factory without creating a plugin cycle.
  */
-const personaHandlerRegistryPlugin: JupyterFrontEndPlugin<IPersonaHandlerRegistry> =
-  {
-    id: '@jupyternaut/persona:handler-registry',
-    description: 'Registry mapping chat models to their persona handlers',
-    autoStart: true,
-    requires: [IAgentManagerFactory, IAISettingsModel],
-    optional: [
-      IChatTracker,
-      IProviderRegistry,
-      IToolRegistry,
-      IDocumentManager
-    ],
-    provides: IPersonaHandlerRegistry,
-    activate: (
-      app: JupyterFrontEnd,
-      agentManagerFactory: IAgentManagerFactory,
-      settingsModel: IAISettingsModel,
-      chatTracker: IChatTracker | null,
-      providerRegistry?: IProviderRegistry,
-      toolRegistry?: IToolRegistry,
-      documentManager?: IDocumentManager
-    ): IPersonaHandlerRegistry => {
-      const registry = new PersonaHandlerRegistry();
+const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
+  id: '@jupyternaut/persona:registry',
+  description: 'Registry mapping chat models to their persona handlers',
+  autoStart: true,
+  provides: IPersonaRegistry,
+  activate: (): IPersonaRegistry => {
+    return new PersonaRegistry();
+  }
+};
 
-      const attachPersona = (widget: ChatWidget | MainAreaChat) => {
-        if (registry.get(widget.model)) {
-          return;
-        }
+/**
+ * Connects the persona handler registry to the chat tracker, creating a
+ * PersonaHandler for each chat widget that is opened.
+ */
+const persona: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:plugin',
+  description: 'Attach persona handlers to chat widgets as they are opened',
+  autoStart: true,
+  requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
+  optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IPersonaRegistry,
+    agentManagerFactory: IAgentManagerFactory,
+    settingsModel: IAISettingsModel,
+    chatTracker: IChatTracker | null,
+    providerRegistry?: IProviderRegistry,
+    toolRegistry?: IToolRegistry,
+    documentManager?: IDocumentManager
+  ): void => {
+    const attachPersona = (widget: ChatWidget | MainAreaChat) => {
+      if (registry.get(widget.model)) {
+        return;
+      }
 
-        const agentManager = agentManagerFactory.createAgent({
-          settingsModel,
-          providerRegistry,
-          toolRegistry
-        });
-        const handler = new PersonaHandler({
-          model: widget.model,
-          agentManager,
-          persona: PERSONA,
-          settingsModel,
-          providerRegistry,
-          documentManager
-        });
-        registry.register(widget.model, handler);
-        widget.disposed.connect(() => {
-          handler.dispose();
-          registry.unregister(widget.model);
-        });
-      };
+      const agentManager = agentManagerFactory.createAgent({
+        settingsModel,
+        providerRegistry,
+        toolRegistry
+      });
+      const persona = new Persona({
+        model: widget.model,
+        agentManager,
+        persona: PERSONA,
+        settingsModel,
+        providerRegistry,
+        documentManager
+      });
+      registry.register(widget.model, persona);
+      widget.disposed.connect(() => {
+        persona.dispose();
+        registry.unregister(widget.model);
+      });
+    };
 
-      chatTracker?.forEach(widget => attachPersona(widget));
-      chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
-
-      return registry;
-    }
-  };
+    chatTracker?.forEach(widget => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+  }
+};
 
 /**
  * Clear chat command plugin.
@@ -680,7 +685,8 @@ export default [
   // Tools
   toolRegistry,
   // Persona
-  personaHandlerRegistryPlugin,
+  personaRegistry,
+  persona,
   mentionCommandPlugin,
   // Settings
   settingsModel,
