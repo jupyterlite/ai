@@ -1,7 +1,4 @@
-import type {
-  IAgentManager,
-  ITokenUsage
-} from '@jupyternaut/agent';
+import type { IAgentManager, ITokenUsage } from '@jupyternaut/agent';
 import { ActiveCellManager, IChatModel, IMessage } from '@jupyter/chat';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';

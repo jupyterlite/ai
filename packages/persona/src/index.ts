@@ -218,48 +218,53 @@ const personaHandlerRegistryPlugin: JupyterFrontEndPlugin<IPersonaHandlerRegistr
     description: 'Registry mapping chat models to their persona handlers',
     autoStart: true,
     requires: [IAgentManagerFactory, IAISettingsModel],
-    optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
+    optional: [
+      IChatTracker,
+      IProviderRegistry,
+      IToolRegistry,
+      IDocumentManager
+    ],
     provides: IPersonaHandlerRegistry,
     activate: (
-    app: JupyterFrontEnd,
-    agentManagerFactory: IAgentManagerFactory,
-    settingsModel: IAISettingsModel,
-    chatTracker: IChatTracker | null,
-    providerRegistry?: IProviderRegistry,
-    toolRegistry?: IToolRegistry,
-    documentManager?: IDocumentManager
-  ): IPersonaHandlerRegistry => {
+      app: JupyterFrontEnd,
+      agentManagerFactory: IAgentManagerFactory,
+      settingsModel: IAISettingsModel,
+      chatTracker: IChatTracker | null,
+      providerRegistry?: IProviderRegistry,
+      toolRegistry?: IToolRegistry,
+      documentManager?: IDocumentManager
+    ): IPersonaHandlerRegistry => {
       const registry = new PersonaHandlerRegistry();
 
       const attachPersona = (widget: ChatWidget | MainAreaChat) => {
-      if (registry.get(widget.model)) {
-        return;
-      }
+        if (registry.get(widget.model)) {
+          return;
+        }
 
-      const agentManager = agentManagerFactory.createAgent({
-        settingsModel,
-        providerRegistry,
-        toolRegistry
-      });
-      const handler = new PersonaHandler({
-        model: widget.model,
-        agentManager,
-        persona: PERSONA,
-        settingsModel,
-        providerRegistry,
-        documentManager
-      });
-      registry.register(widget.model, handler);
-      widget.disposed.connect(() => {
-        handler.dispose();
-        registry.unregister(widget.model);
-      });
-    };
+        const agentManager = agentManagerFactory.createAgent({
+          settingsModel,
+          providerRegistry,
+          toolRegistry
+        });
+        const handler = new PersonaHandler({
+          model: widget.model,
+          agentManager,
+          persona: PERSONA,
+          settingsModel,
+          providerRegistry,
+          documentManager
+        });
+        registry.register(widget.model, handler);
+        widget.disposed.connect(() => {
+          handler.dispose();
+          registry.unregister(widget.model);
+        });
+      };
 
-    chatTracker?.forEach(widget => attachPersona(widget));
-    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+      chatTracker?.forEach(widget => attachPersona(widget));
+      chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
 
-    return registry;
+      return registry;
     }
   };
 
