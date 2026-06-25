@@ -1,14 +1,15 @@
+import { ActiveCellManager } from '@jupyter/chat';
+import { IDocumentManager } from '@jupyterlab/docmanager';
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { Contents } from '@jupyterlab/services';
 import type {
   IAgentManagerFactory,
   IAISettingsModel,
   IProviderRegistry,
   IToolRegistry
 } from '@jupyternaut/agent';
-import { ActiveCellManager } from '@jupyter/chat';
-import { IDocumentManager } from '@jupyterlab/docmanager';
-import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { Contents } from '@jupyterlab/services';
+import { IPersonaRegistry } from '@jupyternaut/persona';
 
 import { AIChatModel } from './chat-model';
 import type {
@@ -22,15 +23,7 @@ import type {
  */
 export class ChatModelHandler implements IChatModelHandler {
   constructor(options: ChatModelHandler.IOptions) {
-    this._docManager = options.docManager;
-    this._agentManagerFactory = options.agentManagerFactory;
-    this._settingsModel = options.settingsModel;
-    this._chatSettings = options.chatSettings ?? null;
-    this._toolRegistry = options.toolRegistry;
-    this._providerRegistry = options.providerRegistry;
-    this._rmRegistry = options.rmRegistry;
-    this._activeCellManager = options.activeCellManager;
-    this._contentsManager = options.contentsManager;
+    this._options = options;
   }
 
   createModel(options: ICreateChatOptions): IAIChatModel {
@@ -38,25 +31,26 @@ export class ChatModelHandler implements IChatModelHandler {
       options;
 
     // Create Agent Manager first so it can be shared
-    const agentManager = this._agentManagerFactory.createAgent({
-      settingsModel: this._settingsModel,
-      toolRegistry: this._toolRegistry,
-      providerRegistry: this._providerRegistry,
+    const agentManager = this._options.agentManagerFactory.createAgent({
+      settingsModel: this._options.settingsModel,
+      toolRegistry: this._options.toolRegistry,
+      providerRegistry: this._options.providerRegistry,
       activeProvider,
       tokenUsage,
-      renderMimeRegistry: this._rmRegistry
+      renderMimeRegistry: this._options.rmRegistry
     });
 
     // Create AI chat model
     const model = new AIChatModel({
       user: { username: 'user', display_name: 'User' },
-      settingsModel: this._settingsModel,
-      settings: this._chatSettings ?? undefined,
-      agentManager,
-      activeCellManager: this._activeCellManager,
-      documentManager: this._docManager,
-      contentsManager: this._contentsManager,
-      providerRegistry: this._providerRegistry
+      settingsModel: this._options.settingsModel,
+      personaRegistry: this._options.personaRegistry,
+      settings: this._options.chatSettings ?? undefined,
+      activeProvider,
+      activeCellManager: this._options.activeCellManager,
+      documentManager: this._options.docManager,
+      contentsManager: this._options.contentsManager,
+      providerRegistry: this._options.providerRegistry
     });
 
     messages?.forEach(message => {
@@ -70,6 +64,7 @@ export class ChatModelHandler implements IChatModelHandler {
       model.title = title;
     }
 
+    this._options.personaRegistry?.register(model, agentManager);
     return model;
   }
 
@@ -77,21 +72,13 @@ export class ChatModelHandler implements IChatModelHandler {
    * Getter/setter for the active cell manager.
    */
   get activeCellManager(): ActiveCellManager | undefined {
-    return this._activeCellManager;
+    return this._options.activeCellManager;
   }
   set activeCellManager(manager: ActiveCellManager | undefined) {
-    this._activeCellManager = manager;
+    this._options.activeCellManager = manager;
   }
 
-  private _docManager: IDocumentManager;
-  private _agentManagerFactory: IAgentManagerFactory;
-  private _settingsModel: IAISettingsModel;
-  private _chatSettings: ISettingRegistry.ISettings | null;
-  private _toolRegistry?: IToolRegistry;
-  private _providerRegistry?: IProviderRegistry;
-  private _rmRegistry: IRenderMimeRegistry;
-  private _activeCellManager?: ActiveCellManager;
-  private _contentsManager?: Contents.IManager;
+  private _options: ChatModelHandler.IOptions;
 }
 
 export namespace ChatModelHandler {
@@ -108,6 +95,10 @@ export namespace ChatModelHandler {
      * AI settings model for configuration
      */
     settingsModel: IAISettingsModel;
+    /**
+     * Registry to attach an agent to the chat model.
+     */
+    personaRegistry: IPersonaRegistry;
     /**
      * Optional chat-specific settings from JupyterLab setting registry.
      */

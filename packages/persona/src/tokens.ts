@@ -45,6 +45,14 @@ export interface IPersona {
    */
   readonly model: IChatModel;
   /**
+   * Whether the persona is currently generating a response.
+   */
+  readonly isBusy: boolean;
+  /**
+   * A signal emitted when the busy state changes.
+   */
+  readonly busyChanged: ISignal<IPersona, boolean>;
+  /**
    * Dispose of the handler and release its resources.
    */
   dispose(): void;

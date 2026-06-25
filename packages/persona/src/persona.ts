@@ -24,6 +24,8 @@ import { UUID } from '@lumino/coreutils';
 
 import type { IObservableDisposable } from '@lumino/disposable';
 
+import { ISignal, Signal } from '@lumino/signaling';
+
 import type { UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
@@ -100,7 +102,10 @@ export class Persona implements IPersona {
     this._settingsModel = options.settingsModel;
     this._providerRegistry = options.providerRegistry;
     this._documentManager = options.documentManager;
-    this._previousCount = options.model.messages.length;
+
+    for (const message of options.model.messages) {
+      this._respondedToIds.add(message.id);
+    }
 
     this._agent.agentEvent.connect(this._onAgentEvent, this);
     this._model.messagesUpdated.connect(this._onMessagesUpdated, this);
@@ -123,17 +128,30 @@ export class Persona implements IPersona {
     return this._model;
   }
 
-  private _onMessagesUpdated(): void {
-    const messages = this._model.messages;
-    const newMessages = messages.slice(this._previousCount);
-    this._previousCount = messages.length;
+  get isBusy(): boolean {
+    return this._busy;
+  }
 
-    for (const message of newMessages) {
-      if (message.mentions?.includes(this._persona) && !message.sender.bot) {
-        const personaMention = `@${this._persona.mention_name}`;
-        const body = message.body.replace(personaMention, '').trim();
-        void this._respond(body || message.body, message.attachments);
-      }
+  get busyChanged(): ISignal<IPersona, boolean> {
+    return this._busyChanged;
+  }
+
+  private async _onMessagesUpdated(): Promise<void> {
+    const unhandled = this._model.messages.filter(
+      m =>
+        !this._respondedToIds.has(m.id) &&
+        m.mentions?.includes(this._persona) &&
+        !m.sender.bot
+    );
+
+    for (const message of unhandled) {
+      this._respondedToIds.add(message.id);
+    }
+
+    for (const message of unhandled) {
+      const personaMention = `@${this._persona.mention_name}`;
+      const body = message.body.replace(personaMention, '').trim();
+      await this._respond(body || message.body, message.attachments);
     }
   }
 
@@ -141,10 +159,8 @@ export class Persona implements IPersona {
     body: string,
     attachments?: IAttachment[]
   ): Promise<void> {
-    if (this._busy) {
-      return;
-    }
     this._busy = true;
+    this._busyChanged.emit(true);
     this._model.updateWriters([{ user: this._persona }]);
     try {
       let content: UserContent = body;
@@ -163,10 +179,11 @@ export class Persona implements IPersona {
       }
       await this._agent.generateResponse(content);
     } catch (error) {
-      console.error('PersonaHandler: error generating response', error);
+      console.error('Persona: error generating response', error);
     } finally {
-      this._model.updateWriters([]);
       this._busy = false;
+      this._busyChanged.emit(false);
+      this._model.updateWriters([]);
     }
   }
 
@@ -384,8 +401,9 @@ export class Persona implements IPersona {
   private readonly _settingsModel: IAISettingsModel;
   private readonly _providerRegistry: IProviderRegistry | undefined;
   private readonly _documentManager: IDocumentManager | undefined;
-  private _previousCount: number;
+  private _respondedToIds = new Set<string>();
   private _busy = false;
+  private _busyChanged = new Signal<IPersona, boolean>(this);
   private _streamingMessage: IMessage | null = null;
   private _toolContexts = new Map<string, IToolExecutionContext>();
 }
