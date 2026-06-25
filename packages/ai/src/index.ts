@@ -42,6 +42,8 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { FileDialog } from '@jupyterlab/filebrowser';
 
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
 import { INotebookTracker } from '@jupyterlab/notebook';
 
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
@@ -76,11 +78,7 @@ import { SaveComponentWidget } from './components/save-button';
 
 import { ChatModelHandler } from './chat-model-handler';
 
-import {
-  CommandIds,
-  IChatModelHandler,
-  IAIChatModel
-} from './tokens';
+import { CommandIds, IChatModelHandler, IAIChatModel } from './tokens';
 
 import {
   clearItem,
@@ -151,7 +149,8 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     IAISettingsModel,
     IAgentManagerFactory,
     IDocumentManager,
-    IRenderMimeRegistry
+    IRenderMimeRegistry,
+    ISettingRegistry
   ],
   optional: [IProviderRegistry, IToolRegistry, ITranslator],
   provides: IChatModelHandler,
@@ -161,13 +160,22 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     agentManagerFactory: IAgentManagerFactory,
     docManager: IDocumentManager,
     rmRegistry: IRenderMimeRegistry,
+    settingRegistry: ISettingRegistry,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): Promise<IChatModelHandler> => {
     await app.serviceManager.ready;
 
+    let chatSettings: ISettingRegistry.ISettings | undefined;
+    try {
+      chatSettings = await settingRegistry.load(chatTracker.id);
+    } catch (error) {
+      console.warn('Failed to load AI chat settings:', error);
+    }
+
     return new ChatModelHandler({
       settingsModel,
+      chatSettings,
       agentManagerFactory,
       docManager,
       rmRegistry,
@@ -202,8 +210,8 @@ const activeCellManager: JupyterFrontEndPlugin<void> = {
 /**
  * Initialization data for the extension.
  */
-const plugin: JupyterFrontEndPlugin<IChatTracker> = {
-  id: '@jupyterlite/ai:plugin',
+const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
+  id: '@jupyterlite/ai:chat',
   description: 'AI in JupyterLab',
   autoStart: true,
   provides: IChatTracker,
@@ -215,6 +223,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     IChatCommandRegistry
   ],
   optional: [
+    ISettingRegistry,
     IThemeManager,
     ILayoutRestorer,
     ILabShell,
@@ -223,13 +232,14 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     ICommandPalette,
     IDocumentManager
   ],
-  activate: (
+  activate: async (
     app: JupyterFrontEnd,
     rmRegistry: IRenderMimeRegistry,
     inputToolbarFactory: IInputToolbarRegistryFactory,
     modelHandler: IChatModelHandler,
     settingsModel: IAISettingsModel,
     chatCommandRegistry: IChatCommandRegistry,
+    settingRegistry?: ISettingRegistry,
     themeManager?: IThemeManager,
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
@@ -237,8 +247,15 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
     documentManager?: IDocumentManager
-  ): IChatTracker => {
+  ): Promise<IChatTracker> => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+
+    let chatSettings: ISettingRegistry.ISettings | undefined;
+    try {
+      chatSettings = await settingRegistry?.load(chatTracker.id);
+    } catch (error) {
+      console.warn('Failed to load AI chat settings in plugin:', error);
+    }
 
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
@@ -379,7 +396,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
 
       usageWidget = new UsageWidget({
         tokenUsageChanged: model.tokenUsageChanged,
-        settingsModel,
+        chatSettings,
         initialTokenUsage: model.agentManager.tokenUsage,
         translator: trans
       });
@@ -474,6 +491,7 @@ const plugin: JupyterFrontEndPlugin<IChatTracker> = {
       tracker,
       modelHandler,
       trans,
+      chatSettings,
       themeManager,
       labShell,
       palette,
@@ -557,6 +575,7 @@ function registerCommands(
   tracker: WidgetTracker<MainAreaChat | ChatWidget>,
   modelRegistry: IChatModelHandler,
   trans: TranslationBundle,
+  chatSettings?: ISettingRegistry.ISettings,
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
@@ -628,7 +647,7 @@ function registerCommands(
       const widget = new MainAreaChat({
         content,
         commands,
-        settingsModel,
+        chatSettings,
         trans
       });
       app.shell.add(widget, 'main');
@@ -1048,18 +1067,20 @@ function registerCommands(
           return false;
         }
 
+        const chatBackupDirectory =
+          (chatSettings?.composite['chatBackupDirectory'] as
+            | string
+            | undefined) ?? '';
         let backupDirExists = false;
         await app.serviceManager.contents
-          .get(settingsModel.config.chatBackupDirectory, { content: false })
+          .get(chatBackupDirectory, { content: false })
           .then(() => (backupDirExists = true))
           .catch(() => (backupDirExists = false));
 
         const selection = await FileDialog.getOpenFiles({
           title: trans.__('Select files to attach'),
           manager: documentManager,
-          defaultPath: backupDirExists
-            ? settingsModel.config.chatBackupDirectory
-            : ''
+          defaultPath: backupDirExists ? chatBackupDirectory : ''
         });
 
         const filepath = selection.value?.[0].path;
@@ -1175,7 +1196,7 @@ export default [
   skillsCommandPlugin,
   chatModelHandler,
   activeCellManager,
-  plugin,
+  chatTracker,
   inputToolbarFactory
 ];
 

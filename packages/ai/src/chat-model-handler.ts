@@ -7,6 +7,7 @@ import type {
 import { ActiveCellManager } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { Contents } from '@jupyterlab/services';
 
 import { AIChatModel } from './chat-model';
@@ -24,6 +25,7 @@ export class ChatModelHandler implements IChatModelHandler {
     this._docManager = options.docManager;
     this._agentManagerFactory = options.agentManagerFactory;
     this._settingsModel = options.settingsModel;
+    this._chatSettings = options.chatSettings ?? null;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
     this._rmRegistry = options.rmRegistry;
@@ -49,6 +51,7 @@ export class ChatModelHandler implements IChatModelHandler {
     const model = new AIChatModel({
       user: { username: 'user', display_name: 'User' },
       settingsModel: this._settingsModel,
+      settings: this._chatSettings ?? undefined,
       agentManager,
       activeCellManager: this._activeCellManager,
       documentManager: this._docManager,
@@ -83,6 +86,7 @@ export class ChatModelHandler implements IChatModelHandler {
   private _docManager: IDocumentManager;
   private _agentManagerFactory: IAgentManagerFactory;
   private _settingsModel: IAISettingsModel;
+  private _chatSettings: ISettingRegistry.ISettings | null;
   private _toolRegistry?: IToolRegistry;
   private _providerRegistry?: IProviderRegistry;
   private _rmRegistry: IRenderMimeRegistry;
@@ -104,6 +108,10 @@ export namespace ChatModelHandler {
      * AI settings model for configuration
      */
     settingsModel: IAISettingsModel;
+    /**
+     * Optional chat-specific settings from JupyterLab setting registry.
+     */
+    chatSettings?: ISettingRegistry.ISettings;
     /**
      * Optional tool registry for managing available tools
      */

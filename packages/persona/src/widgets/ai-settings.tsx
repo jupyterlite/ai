@@ -905,110 +905,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={config.sendWithShiftEnter}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          sendWithShiftEnter: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Send with Shift+Enter')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Use Shift+Enter to send messages (Enter creates new line)'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.autoTitle}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          autoTitle: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Auto Title')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Automatically generate a chat title from the model for every message until there are 5 messages'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.showTokenUsage}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          showTokenUsage: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Show Token Usage')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Display token usage information in the chat toolbar'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.showContextUsage}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          showContextUsage: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Show Context Usage')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Display estimated context usage in the chat toolbar'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
                       checked={config.showCellDiff}
                       onChange={e =>
                         handleConfigUpdate({
@@ -1078,20 +974,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                       </Typography>
                     </Box>
                   }
-                />
-
-                <TextField
-                  fullWidth
-                  label={trans.__('Chat Backup Directory')}
-                  value={config.chatBackupDirectory}
-                  onChange={e =>
-                    handleConfigUpdate({
-                      chatBackupDirectory: e.target.value
-                    })
-                  }
-                  helperText={trans.__(
-                    'Directory where chat history backups are saved (relative to the server root)'
-                  )}
                 />
 
                 <Divider sx={{ my: 1 }} />

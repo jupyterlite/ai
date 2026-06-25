@@ -1,7 +1,7 @@
 {
   "jupyter.lab.shortcuts": [],
   "jupyter.lab.setting-icon": "@jupyternaut/agent:jupyternaut",
-  "title": "Jupyternaut Persona Settings",
+  "title": "Jupyternaut Persona",
   "description": "Configuration for Jupyternaut persona extension providers, models, and behavior",
   "jupyter.lab.menus": {
     "main": [
@@ -225,30 +225,6 @@
       "type": "boolean",
       "default": true
     },
-    "sendWithShiftEnter": {
-      "title": "Send with Shift+Enter",
-      "description": "Use Shift+Enter to send messages (Enter creates new line)",
-      "type": "boolean",
-      "default": false
-    },
-    "autoTitle": {
-      "title": "Auto Title",
-      "description": "Automatically request a title from the model for every message until there are 5 messages",
-      "type": "boolean",
-      "default": false
-    },
-    "showTokenUsage": {
-      "title": "Show Token Usage",
-      "description": "Display token usage information in the chat toolbar",
-      "type": "boolean",
-      "default": false
-    },
-    "showContextUsage": {
-      "title": "Show Context Usage",
-      "description": "Display estimated context usage percentage in the chat toolbar",
-      "type": "boolean",
-      "default": false
-    },
     "commandsRequiringApproval": {
       "title": "Commands Requiring Approval",
       "description": "List of commands that require user approval before AI can execute them",
@@ -322,12 +298,6 @@
       "type": "array",
       "items": { "type": "string" },
       "default": [".agents/skills", "_agents/skills"]
-    },
-    "chatBackupDirectory": {
-      "title": "Chat Backup Directory",
-      "description": "Directory where chat history backups are saved, relative to the server root. Default is the server root.",
-      "type": "string",
-      "default": ""
     }
   },
   "additionalProperties": false

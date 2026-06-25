@@ -16,6 +16,8 @@ import { PathExt } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
 import { IDocumentWidget } from '@jupyterlab/docregistry';
 
 import * as nbformat from '@jupyterlab/nbformat';
@@ -111,10 +113,12 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       documentManager: options.documentManager,
       config: {
         enableCodeToolbar: true,
-        sendWithShiftEnter: options.settingsModel.config.sendWithShiftEnter
+        sendWithShiftEnter:
+          options.settings?.composite['sendWithShiftEnter'] === true
       }
     });
     this._settingsModel = options.settingsModel;
+    this._settings = options.settings ?? null;
     this._user = options.user;
     this._agentManager = options.agentManager;
     this._contentsManager = options.contentsManager;
@@ -124,7 +128,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
-    this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+    this._settings?.changed.connect(this._onSettingsChanged, this);
 
     // Rebuild history when the model changes
     this._agentManager.activeProviderChanged.connect(
@@ -146,7 +150,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     super.name = value;
     this._nameChanged.emit(value);
     if (!this.messages.length) {
-      const directory = this._settingsModel.config.chatBackupDirectory;
+      const directory =
+        (this._settings?.composite['chatBackupDirectory'] as
+          | string
+          | undefined) ?? '';
       const filepath = PathExt.join(directory, `${this.name}.chat`);
       this.restore(filepath, true);
     }
@@ -254,6 +261,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Dispose of the model.
    */
   dispose(): void {
+    this._settings?.changed.disconnect(this._onSettingsChanged, this);
     this.stopStreaming();
     this.messagesUpdated.disconnect(
       this._autosaveDebouncer.invoke,
@@ -443,7 +451,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       this._drainQueue();
 
       if (
-        this._settingsModel.config.autoTitle &&
+        this._settings?.composite['autoTitle'] === true &&
         (this.messages.filter(msg => msg.sender.username !== 'ai-assistant')
           .length <= 5 ||
           this.title === null)
@@ -571,7 +579,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     if (!this._contentsManager) {
       return;
     }
-    const directory = this._settingsModel.config.chatBackupDirectory;
+    const directory =
+      (this._settings?.composite['chatBackupDirectory'] as
+        | string
+        | undefined) ?? '';
     const filepath = PathExt.join(directory, `${this.name}.chat`);
     const content = JSON.stringify(this._serializeModel());
     await this._contentsManager
@@ -756,12 +767,14 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
 
   /**
-   * Handles settings changes and updates chat configuration accordingly.
+   * Handles chat-specific settings changes.
    */
   private _onSettingsChanged(): void {
-    const config = this._settingsModel.config;
-    this.config = { ...config, enableCodeToolbar: true };
-    // Agent manager handles agent recreation automatically via its own settings listener
+    this.config = {
+      enableCodeToolbar: true,
+      sendWithShiftEnter:
+        this._settings?.composite['sendWithShiftEnter'] === true
+    };
   }
 
   /**
@@ -1246,6 +1259,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
   // Private fields
   private _settingsModel: IAISettingsModel;
+  private _settings: ISettingRegistry.ISettings | null;
   private _user: IUser;
   private _toolContexts: Map<string, IToolExecutionContext> = new Map();
   private _agentManager: IAgentManager;
@@ -1824,6 +1838,10 @@ export namespace AIChatModel {
      * Settings model for AI configuration
      */
     settingsModel: IAISettingsModel;
+    /**
+     * Optional chat-specific settings from JupyterLab setting registry.
+     */
+    settings?: ISettingRegistry.ISettings;
     /**
      * Optional agent manager for handling AI agent lifecycle
      */
