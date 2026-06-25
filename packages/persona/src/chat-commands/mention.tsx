@@ -5,7 +5,7 @@ import {
   IInputModel
 } from '@jupyter/chat';
 
-import { PERSONA, PERSONA_MENTION } from '../tokens';
+import { DEFAULT_PERSONA } from '../tokens';
 
 export class MentionCommandProvider implements IChatCommandProvider {
   public id: string = '@jupyternaut/persona:mention';
@@ -29,14 +29,14 @@ export class MentionCommandProvider implements IChatCommandProvider {
     const input = inputModel.value;
     const match = input.match(this._regex)?.[0];
     if (this._command.name === match) {
-      inputModel.addMention?.(PERSONA);
+      inputModel.addMention?.(DEFAULT_PERSONA);
     }
   }
 
   private _command: ChatCommand = {
-    name: PERSONA_MENTION,
+    name: `@${DEFAULT_PERSONA.mention_name}`,
     providerId: this.id,
-    icon: <Avatar user={PERSONA} />,
+    icon: <Avatar user={DEFAULT_PERSONA} />,
     spaceOnAccept: true
   };
 

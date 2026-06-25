@@ -1,10 +1,15 @@
 import { IChatModel, IUser } from '@jupyter/chat';
-import type { IAgentManager } from '@jupyternaut/agent';
+import { IDocumentManager } from '@jupyterlab/docmanager';
+import type {
+  IAgentManager,
+  IAISettingsModel,
+  IProviderRegistry
+} from '@jupyternaut/agent';
 import { AI_AVATAR } from '@jupyternaut/agent';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 
-export const PERSONA: IUser = {
+export const DEFAULT_PERSONA: IUser = {
   username: 'jupyternaut-frontend',
   display_name: 'Jupyternaut',
   initials: 'JF',
@@ -13,8 +18,6 @@ export const PERSONA: IUser = {
   bot: true,
   mention_name: 'jupyternaut-frontend'
 };
-
-export const PERSONA_MENTION = `@${PERSONA.mention_name}`;
 
 /**
  * Command IDs namespace
@@ -55,21 +58,43 @@ export interface IPersona {
  */
 export interface IPersonaRegistry {
   /**
-   * Returns the handler registered for a given chat model, if any.
+   * Returns the persona registered for a given chat model, if any.
    */
   get(model: IChatModel): IPersona | undefined;
   /**
-   * Registers a handler for a given chat model.
+   * Registers a persona for a given chat model.
    */
-  register(model: IChatModel, handler: IPersona): void;
+  register(model: IChatModel, agentManager: IAgentManager): void;
   /**
-   * Removes the handler registered for a given chat model.
+   * Removes the persona registered for a given chat model.
    */
   unregister(model: IChatModel): void;
   /**
-   * A signal emitting whenever a new handler is registered.
+   * A signal emitting whenever a new persona is registered.
    */
   readonly personaAdded: ISignal<IPersonaRegistry, IPersona>;
+}
+
+/**
+ * The options to build a persona registry.
+ */
+export interface IPersonaRegistryOptions {
+  /**
+   * The persona used by the registry.
+   */
+  persona: IUser;
+  /**
+   * The agent settings model, used to process attachments in persona.
+   */
+  settingsModel: IAISettingsModel;
+  /**
+   * The optional provider registry, used to process attachments in persona.
+   */
+  providerRegistry?: IProviderRegistry;
+  /**
+   * The optional document manager, used to process attachments in persona.
+   */
+  documentManager?: IDocumentManager;
 }
 
 export const IPersonaRegistry = new Token<IPersonaRegistry>(

@@ -28,8 +28,7 @@ import type { UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
-import type { IPersona as IPersona } from './tokens';
-import { PERSONA, PERSONA_MENTION } from './tokens';
+import type { IPersona } from './tokens';
 
 type ToolStatus =
   | 'pending'
@@ -131,7 +130,8 @@ export class Persona implements IPersona {
 
     for (const message of newMessages) {
       if (message.mentions?.includes(this._persona) && !message.sender.bot) {
-        const body = message.body.replace(PERSONA_MENTION, '').trim();
+        const personaMention = `@${this._persona.mention_name}`;
+        const body = message.body.replace(personaMention, '').trim();
         void this._respond(body || message.body, message.attachments);
       }
     }
@@ -207,7 +207,7 @@ export class Persona implements IPersona {
   ): void {
     const message: IMessageContent = {
       body: '',
-      sender: PERSONA,
+      sender: this._persona,
       id: event.data.messageId,
       time: Date.now() / 1000,
       type: 'msg',
@@ -270,7 +270,7 @@ export class Persona implements IPersona {
           ]
         }
       },
-      sender: PERSONA,
+      sender: this._persona,
       id: messageId,
       time: Date.now() / 1000,
       type: 'msg',
@@ -324,7 +324,7 @@ export class Persona implements IPersona {
           errorMessage: `Error generating response: ${event.data.error.message}`
         }
       },
-      sender: PERSONA,
+      sender: this._persona,
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',

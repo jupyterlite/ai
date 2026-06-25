@@ -68,11 +68,9 @@ import { DiffManager } from './diff-manager';
 
 import { AISettingsModel } from './models/settings-model';
 
-import { Persona } from './persona';
-
 import { PersonaRegistry } from './persona-registry';
 
-import { CommandIds, IPersonaRegistry, PERSONA } from './tokens';
+import { CommandIds, IPersonaRegistry, DEFAULT_PERSONA } from './tokens';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -218,8 +216,20 @@ const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
   description: 'Registry mapping chat models to their persona handlers',
   autoStart: true,
   provides: IPersonaRegistry,
-  activate: (): IPersonaRegistry => {
-    return new PersonaRegistry();
+  requires: [IAISettingsModel],
+  optional: [IProviderRegistry, IDocumentManager],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: IAISettingsModel,
+    providerRegistry?: IProviderRegistry,
+    documentManager?: IDocumentManager
+  ): IPersonaRegistry => {
+    return new PersonaRegistry({
+      persona: DEFAULT_PERSONA,
+      settingsModel,
+      providerRegistry,
+      documentManager
+    });
   }
 };
 
@@ -232,7 +242,7 @@ const persona: JupyterFrontEndPlugin<void> = {
   description: 'Attach persona handlers to chat widgets as they are opened',
   autoStart: true,
   requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry, IDocumentManager],
+  optional: [IChatTracker, IProviderRegistry, IToolRegistry],
   activate: (
     app: JupyterFrontEnd,
     registry: IPersonaRegistry,
@@ -240,8 +250,7 @@ const persona: JupyterFrontEndPlugin<void> = {
     settingsModel: IAISettingsModel,
     chatTracker: IChatTracker | null,
     providerRegistry?: IProviderRegistry,
-    toolRegistry?: IToolRegistry,
-    documentManager?: IDocumentManager
+    toolRegistry?: IToolRegistry
   ): void => {
     const attachPersona = (widget: ChatWidget | MainAreaChat) => {
       if (registry.get(widget.model)) {
@@ -253,17 +262,9 @@ const persona: JupyterFrontEndPlugin<void> = {
         providerRegistry,
         toolRegistry
       });
-      const persona = new Persona({
-        model: widget.model,
-        agentManager,
-        persona: PERSONA,
-        settingsModel,
-        providerRegistry,
-        documentManager
-      });
-      registry.register(widget.model, persona);
+
+      registry.register(widget.model, agentManager);
       widget.disposed.connect(() => {
-        persona.dispose();
         registry.unregister(widget.model);
       });
     };
