@@ -2,9 +2,14 @@ import {
   IAttachment,
   IMessage,
   IMessageContent,
+  IMimeModelBody,
   IChatModel,
   IUser
 } from '@jupyter/chat';
+
+import * as nbformat from '@jupyterlab/nbformat';
+
+import { IRenderMime } from '@jupyterlab/rendermime';
 
 import type { IDocumentManager } from '@jupyterlab/docmanager';
 
@@ -47,6 +52,7 @@ interface IToolExecutionContext {
   input: string;
   status: ToolStatus;
   summary?: string;
+  shouldAutoRenderMimeBundles?: boolean;
 }
 
 function extractToolSummary(toolName: string, input: string): string {
@@ -84,6 +90,71 @@ function formatToolOutput(outputData: unknown): string {
   } catch {
     return '[Complex object - cannot serialize]';
   }
+}
+
+type IDisplayOutput =
+  | nbformat.IDisplayData
+  | nbformat.IDisplayUpdate
+  | nbformat.IExecuteResult;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDisplayOutput(value: unknown): value is IDisplayOutput {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const output = value as nbformat.IOutput;
+  return (
+    nbformat.isDisplayData(output) ||
+    nbformat.isDisplayUpdate(output) ||
+    nbformat.isExecuteResult(output)
+  );
+}
+
+function toDisplayOutputs(value: unknown): IDisplayOutput[] {
+  if (isDisplayOutput(value)) {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.filter(isDisplayOutput);
+  }
+  if (!isPlainObject(value)) {
+    return [];
+  }
+  if (Array.isArray(value.outputs)) {
+    return value.outputs.filter(isDisplayOutput);
+  }
+  if ('result' in value) {
+    return toDisplayOutputs(value.result);
+  }
+  return [];
+}
+
+function extractMimeBundles(
+  content: unknown,
+  trustedMimeTypes: ReadonlySet<string>
+): IMimeModelBody[] {
+  return toDisplayOutputs(content)
+    .map((output): IMimeModelBody | null => {
+      const data = output.data;
+      if (!isPlainObject(data) || Object.keys(data).length === 0) {
+        return null;
+      }
+      return {
+        data: data as IRenderMime.IMimeModel['data'],
+        ...(isPlainObject(output.metadata)
+          ? {
+              metadata: output.metadata as IRenderMime.IMimeModel['metadata']
+            }
+          : {}),
+        ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
+          ? { trusted: true }
+          : {})
+      };
+    })
+    .filter((b): b is IMimeModelBody => b !== null);
 }
 
 /**
@@ -257,13 +328,19 @@ export class Persona implements IPersona {
   ): void {
     const messageId = UUID.uuid4();
     const summary = extractToolSummary(event.data.toolName, event.data.input);
+    const shouldAutoRenderMimeBundles =
+      this._computeShouldAutoRenderMimeBundles(
+        event.data.toolName,
+        event.data.input
+      );
     const context: IToolExecutionContext = {
       toolCallId: event.data.callId,
       messageId,
       toolName: event.data.toolName,
       input: event.data.input,
       status: 'pending',
-      summary
+      summary,
+      shouldAutoRenderMimeBundles
     };
     this._toolContexts.set(event.data.callId, context);
 
@@ -298,13 +375,62 @@ export class Persona implements IPersona {
   private _handleToolCallComplete(
     event: IAgentManager.IAgentEvent<'tool_call_complete'>
   ): void {
+    const context = this._toolContexts.get(event.data.callId);
     const status = event.data.isError ? 'error' : 'completed';
     this._updateToolCallUI(
       event.data.callId,
       status,
       formatToolOutput(event.data.outputData)
     );
+
+    if (!event.data.isError && context?.shouldAutoRenderMimeBundles) {
+      const trustedMimeTypes = new Set(
+        this._settingsModel.config.trustedMimeTypesForAutoRender
+      );
+      for (const bundle of extractMimeBundles(
+        event.data.outputData,
+        trustedMimeTypes
+      )) {
+        this._model.messageAdded({
+          body: '',
+          mime_model: bundle,
+          sender: this._persona,
+          id: UUID.uuid4(),
+          time: Date.now() / 1000,
+          type: 'msg',
+          raw_time: false
+        });
+      }
+    }
+
     this._toolContexts.delete(event.data.callId);
+  }
+
+  private _computeShouldAutoRenderMimeBundles(
+    toolName: string,
+    input: string
+  ): boolean {
+    if (toolName !== 'execute_command') {
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(input);
+      console.log(
+        'Should rerender mime',
+        typeof parsed.commandId === 'string' &&
+          this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
+            parsed.commandId
+          )
+      );
+      return (
+        typeof parsed.commandId === 'string' &&
+        this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
+          parsed.commandId
+        )
+      );
+    } catch {
+      return false;
+    }
   }
 
   private _handleToolApprovalRequest(
