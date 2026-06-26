@@ -12,7 +12,7 @@ export interface IUsageDisplayProps {
   /**
    * The token usage changed signal
    */
-  tokenUsageChanged: ISignal<any, ITokenUsage>;
+  tokenUsageChanged: ISignal<any, ITokenUsage> | null;
 
   /**
    * The chat-specific settings from JupyterLab setting registry.
@@ -58,7 +58,7 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
     whiteSpace: 'nowrap'
   };
 
-  if (!chatSettings) {
+  if (!chatSettings || !tokenUsageChanged) {
     return null;
   }
 

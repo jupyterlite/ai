@@ -47,11 +47,11 @@ export interface IAIChatModel extends IChatModel {
   /**
    * A signal emitting when the token usage changed.
    */
-  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
+  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage> | null;
   /**
    * The agent manager used in the model.
    */
-  readonly agentManager: IAgentManager;
+  readonly agentManager: IAgentManager | null;
   /**
    * Save the chat as json file.
    */

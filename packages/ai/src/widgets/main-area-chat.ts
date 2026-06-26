@@ -58,7 +58,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     const usageWidget = new UsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,
       chatSettings: options.chatSettings,
-      initialTokenUsage: this.model.agentManager.tokenUsage,
+      initialTokenUsage: this.model.agentManager?.tokenUsage,
       translator: trans
     });
     this.toolbar.addItem('usage', usageWidget);

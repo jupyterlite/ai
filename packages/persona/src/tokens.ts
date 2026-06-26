@@ -56,6 +56,11 @@ export interface IPersona {
    * Dispose of the handler and release its resources.
    */
   dispose(): void;
+  /**
+   * Rebuilds the agent history from the current chat messages.
+   * Called after restoring a saved chat.
+   */
+  rebuildHistory(): Promise<void>;
 }
 
 /**

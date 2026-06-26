@@ -66,6 +66,8 @@ import { UUID } from '@lumino/coreutils';
 
 import { CommandRegistry } from '@lumino/commands';
 
+import { IPersonaRegistry } from '@jupyternaut/persona';
+
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
 import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
@@ -150,6 +152,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     IAgentManagerFactory,
     IDocumentManager,
     IRenderMimeRegistry,
+    IPersonaRegistry,
     ISettingRegistry
   ],
   optional: [IProviderRegistry, IToolRegistry, ITranslator],
@@ -160,6 +163,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     agentManagerFactory: IAgentManagerFactory,
     docManager: IDocumentManager,
     rmRegistry: IRenderMimeRegistry,
+    personaRegistry: IPersonaRegistry,
     settingRegistry: ISettingRegistry,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
@@ -175,6 +179,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
 
     return new ChatModelHandler({
       settingsModel,
+      personaRegistry,
       chatSettings,
       agentManagerFactory,
       docManager,
@@ -230,7 +235,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     ITranslator,
     IComponentsRendererFactory,
     ICommandPalette,
-    IDocumentManager
+    IDocumentManager,
+    IPersonaRegistry
   ],
   activate: async (
     app: JupyterFrontEnd,
@@ -246,7 +252,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     translator?: ITranslator,
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
-    documentManager?: IDocumentManager
+    documentManager?: IDocumentManager,
+    personaRegistry?: IPersonaRegistry
   ): Promise<IChatTracker> => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -389,7 +396,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       model.nameChanged.connect(saveTracker);
 
       // Update the tracker if the active provider changed.
-      model.agentManager.activeProviderChanged.connect(saveTracker);
+      model.agentManager?.activeProviderChanged.connect(saveTracker);
 
       // Update the token usage widget.
       usageWidget?.dispose();
@@ -397,7 +404,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       usageWidget = new UsageWidget({
         tokenUsageChanged: model.tokenUsageChanged,
         chatSettings,
-        initialTokenUsage: model.agentManager.tokenUsage,
+        initialTokenUsage: model.agentManager?.tokenUsage,
         translator: trans
       });
       chatPanel.current?.toolbar.insertBefore('markRead', 'usage', usageWidget);
@@ -417,10 +424,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
 
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
-        // Check if AI is currently writing (streaming)
-        const aiWriting = writers.some(
-          writer => writer.user.username === 'ai-assistant'
-        );
+        // Check if a bot is currently writing (streaming)
+        const aiWriting = writers.some(writer => writer.user.bot === true);
 
         if (aiWriting) {
           widget.inputToolbarRegistry?.show('stop');
@@ -440,7 +445,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       widget.disposed.connect(() => {
         model.titleChanged.disconnect(updateToolbarTitleOverlay);
         model.nameChanged.disconnect(saveTracker);
-        model.agentManager.activeProviderChanged.disconnect(saveTracker);
+        model.agentManager?.activeProviderChanged.disconnect(saveTracker);
         model.writersChanged?.disconnect(writersChanged);
 
         // Dispose of the approval buttons widget when the chat is disposed.
@@ -464,7 +469,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
         args: widget => ({
           name: widget.model.name,
           area: widget instanceof MainAreaChat ? 'main' : 'side',
-          provider: (widget.model as IAIChatModel).agentManager.activeProvider
+          provider: (widget.model as IAIChatModel).agentManager?.activeProvider
         }),
         name: widget => {
           const area = widget instanceof MainAreaChat ? 'main' : 'side';
@@ -498,64 +503,50 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       documentManager
     );
 
-    /**
-     * The callback for grouped tool calls permission decisions.
-     */
-    function toolCallPermissionDecision(
-      sessionId: string,
-      toolCallId: string,
-      optionId: string
-    ) {
-      const model = tracker.find(chat => chat.model.name === sessionId)
-        ?.model as IAIChatModel;
-      if (!model) {
-        return;
-      }
+    const findModel = (targetId: string) => {
+      return tracker.find(chat => chat.model.name === targetId)?.model as
+        | IAIChatModel
+        | undefined;
+    };
 
-      const isApproved = optionId === 'approve';
-      isApproved
-        ? model.agentManager.approveToolCall(toolCallId)
-        : model.agentManager.rejectToolCall(toolCallId);
-    }
+    const findPersona = (targetId: string) => {
+      const model = tracker.find(chat => chat.model.name === targetId)?.model;
+      return model ? personaRegistry?.get(model) : undefined;
+    };
 
     if (chatComponentsFactory) {
       chatComponentsFactory.groupedToolCallCallbacks = {
         ...chatComponentsFactory.groupedToolCallCallbacks,
-        toolCallPermissionDecision
+        toolCallPermissionDecision: (
+          sessionId: string,
+          toolCallId: string,
+          optionId: string
+        ) => {
+          const agent = findPersona(sessionId)?.agentManager;
+          if (!agent) {
+            return;
+          }
+          const isApproved = optionId === 'approve';
+          isApproved
+            ? agent.approveToolCall(toolCallId)
+            : agent.rejectToolCall(toolCallId);
+        }
       };
 
       chatComponentsFactory.queueMessageCallbacks = {
         ...chatComponentsFactory.queueMessageCallbacks,
         removeQueuedMessage: (targetId: string, messageId: string) => {
-          const model = tracker.find(
-            chat => chat.model.name === targetId
-          )?.model;
-          if (!model) {
-            return;
-          }
-          (model as IAIChatModel).removeQueuedMessage(messageId);
+          findModel(targetId)?.removeQueuedMessage(messageId);
         },
         reorderQueuedMessages: (targetId: string, messageIds: string[]) => {
-          const model = tracker.find(
-            chat => chat.model.name === targetId
-          )?.model;
-          if (!model) {
-            return;
-          }
-          (model as IAIChatModel).reorderQueuedMessages(messageIds);
+          findModel(targetId)?.reorderQueuedMessages(messageIds);
         },
         editQueuedMessage: (
           targetId: string,
           messageId: string,
           newBody: string
         ) => {
-          const model = tracker.find(
-            chat => chat.model.name === targetId
-          )?.model;
-          if (!model) {
-            return;
-          }
-          (model as IAIChatModel).editQueuedMessage(messageId, newBody);
+          findModel(targetId)?.editQueuedMessage(messageId, newBody);
         }
       };
     }
@@ -662,11 +653,11 @@ function registerCommands(
       // Update the tracker if the model name changed.
       model.nameChanged.connect(saveTracker);
       // Update the tracker if the active provider changed.
-      model.agentManager.activeProviderChanged.connect(saveTracker);
+      model.agentManager?.activeProviderChanged.connect(saveTracker);
 
       widget.disposed.connect(() => {
         model.nameChanged.disconnect(saveTracker);
-        model.agentManager.activeProviderChanged.disconnect(saveTracker);
+        model.agentManager?.activeProviderChanged.disconnect(saveTracker);
       });
 
       return widget;
@@ -710,7 +701,7 @@ function registerCommands(
         const model = widget.model as IAIChatModel;
         return (
           (!name || widget.model.name === name) &&
-          (!provider || model.agentManager.activeProvider === provider)
+          (!provider || model.agentManager?.activeProvider === provider)
         );
       });
     };
@@ -1145,13 +1136,14 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
     requires: [IAISettingsModel, IToolRegistry, IProviderRegistry],
-    optional: [ITranslator],
+    optional: [ITranslator, IPersonaRegistry],
     activate: (
       app: JupyterFrontEnd,
       settingsModel: IAISettingsModel,
       toolRegistry: IToolRegistry,
       providerRegistry: IProviderRegistry,
-      translator?: ITranslator
+      translator?: ITranslator,
+      personaHandlerRegistry?: IPersonaRegistry
     ): IInputToolbarRegistryFactory => {
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const stopButton = stopItem(trans);
@@ -1161,9 +1153,14 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
         settingsModel,
         providerRegistry,
         settingsModel.config.toolsEnabled,
-        trans
+        trans,
+        personaHandlerRegistry
       );
-      const modelSelectButton = createModelSelectItem(settingsModel, trans);
+      const modelSelectButton = createModelSelectItem(
+        settingsModel,
+        trans,
+        personaHandlerRegistry
+      );
 
       return {
         create() {

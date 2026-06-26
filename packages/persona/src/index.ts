@@ -698,3 +698,6 @@ export default [
 
 // Export extension points for other extensions to use
 export * from './tokens';
+
+// Export helper functions
+export { processAttachments } from './process-attachments';

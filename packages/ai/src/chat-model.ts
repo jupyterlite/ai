@@ -3,28 +3,17 @@ import {
   IActiveCellManager,
   IAttachment,
   IChatContext,
-  IMessage,
   IMessageContent,
   IMimeModelBody,
   INewMessage,
   IUser
 } from '@jupyter/chat';
 
-import { YNotebook } from '@jupyter/ydoc';
-
 import { PathExt } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-
-import { IDocumentWidget } from '@jupyterlab/docregistry';
-
-import * as nbformat from '@jupyterlab/nbformat';
-
-import { INotebookModel, Notebook } from '@jupyterlab/notebook';
-
-import { IRenderMime } from '@jupyterlab/rendermime';
 
 import { Contents } from '@jupyterlab/services';
 
@@ -33,9 +22,12 @@ import { AI_AVATAR } from '@jupyternaut/agent';
 import type {
   IAgentManager,
   IAISettingsModel,
-  IProviderRegistry,
   ITokenUsage
 } from '@jupyternaut/agent';
+
+import { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
+
+import type { ModelMessage } from 'ai';
 
 import { UUID } from '@lumino/coreutils';
 
@@ -43,60 +35,7 @@ import { Debouncer } from '@lumino/polling';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
-import type { UserContent, ImagePart, FilePart, ModelMessage } from 'ai';
-
 import type { IAIChatModel } from './tokens';
-
-import {
-  modelSupportsAudio,
-  modelSupportsImages,
-  modelSupportsPdf
-} from '@jupyternaut/agent';
-
-/**
- * Tool call status types.
- */
-type ToolStatus =
-  | 'pending'
-  | 'awaiting_approval'
-  | 'approved'
-  | 'rejected'
-  | 'completed'
-  | 'error';
-
-/**
- * Context for tracking tool execution state.
- */
-interface IToolExecutionContext {
-  /**
-   * The tool call ID from the AI SDK.
-   */
-  toolCallId: string;
-  /**
-   * The chat message ID for UI updates.
-   */
-  messageId: string;
-  /**
-   * The tool name.
-   */
-  toolName: string;
-  /**
-   * The tool input (formatted).
-   */
-  input: string;
-  /**
-   * Current status.
-   */
-  status: ToolStatus;
-  /**
-   * Human-readable summary extracted from tool input for display.
-   */
-  summary?: string;
-  /**
-   * Whether this tool call should auto-render trusted MIME bundles on completion.
-   */
-  shouldAutoRenderMimeBundles?: boolean;
-}
 
 /**
  * AI Chat Model implementation that provides chat functionality tool integration,
@@ -120,24 +59,37 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     this._settingsModel = options.settingsModel;
     this._settings = options.settings ?? null;
     this._user = options.user;
-    this._agentManager = options.agentManager;
+    this._activeProvider = options.activeProvider ?? null;
     this._contentsManager = options.contentsManager;
-    this._providerRegistry = options.providerRegistry;
-
-    // Listen for agent events
-    this._agentManager.agentEvent.connect(this._onAgentEvent, this);
 
     // Listen for settings changes to update chat behavior
     this._settings?.changed.connect(this._onSettingsChanged, this);
 
-    // Rebuild history when the model changes
-    this._agentManager.activeProviderChanged.connect(
-      this._onModelChanged,
-      this
-    );
     this._settingsModel.stateChanged.connect(this._onModelChanged, this);
 
     this._autosaveDebouncer = new Debouncer(this.save, 3000);
+
+    options.personaRegistry.personaAdded.connect(
+      (_: IPersonaRegistry, persona: IPersona) => {
+        if (persona.model === this) {
+          console.log('Persona added', persona);
+          this.agentManager?.activeProviderChanged.disconnect(
+            this._onModelChanged,
+            this
+          );
+          this._persona = persona;
+          if (this._activeProvider && this.agentManager) {
+            this.agentManager.activeProvider = this._activeProvider;
+          }
+          this._persona.busyChanged.connect(this._onPersonaBusyChanged, this);
+          // Rebuild history when the model changes
+          this.agentManager?.activeProviderChanged.connect(
+            this._onModelChanged,
+            this
+          );
+        }
+      }
+    );
   }
 
   /**
@@ -155,7 +107,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           | string
           | undefined) ?? '';
       const filepath = PathExt.join(directory, `${this.name}.chat`);
-      this.restore(filepath, true);
+      this.restore(filepath, false);
     }
     this.setReady();
   }
@@ -239,15 +191,15 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   /**
    * A signal emitting when the token usage changed.
    */
-  get tokenUsageChanged(): ISignal<IAgentManager, ITokenUsage> {
-    return this._agentManager.tokenUsageChanged;
+  get tokenUsageChanged(): ISignal<IAgentManager, ITokenUsage> | null {
+    return this.agentManager?.tokenUsageChanged ?? null;
   }
 
   /**
    * The agent manager used in the model.
    */
-  get agentManager(): IAgentManager {
-    return this._agentManager;
+  get agentManager(): IAgentManager | null {
+    return this._persona?.agentManager ?? null;
   }
 
   /**
@@ -281,7 +233,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       messages: this.messages,
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
-      agentManager: this._agentManager,
+      agentManager: this.agentManager,
       addSystemMessage: (body: string) => this._addSystemMessage(body),
       removeQueuedMessage: (id: string) => this.removeQueuedMessage(id),
       reorderQueuedMessages: (ids: string[]) => this.reorderQueuedMessages(ids),
@@ -294,7 +246,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Stops the current streaming response by aborting the request.
    */
   stopStreaming = (): void => {
-    this._agentManager.stopStreaming();
+    this.agentManager?.stopStreaming();
   };
 
   /**
@@ -303,13 +255,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   clearMessages = async (): Promise<void> => {
     this.stopStreaming();
     this._messageQueue = [];
-    this._isBusy = false;
     this._queueMessageId = null;
-    this._currentStreamingMessage = null;
     this.messagesDeleted(0, this.messages.length);
     this.title = null;
-    this._toolContexts.clear();
-    await this._agentManager.clearHistory();
+    await this.agentManager?.clearHistory();
   };
 
   /**
@@ -361,7 +310,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     };
 
     // Check if we have valid configuration
-    if (!this._agentManager.hasValidConfig()) {
+    if (!this.agentManager?.hasValidConfig()) {
       this.messageAdded(userMessage);
       const errorMessage: IMessageContent = {
         body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
@@ -375,92 +324,46 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       return;
     }
 
-    if (this._isBusy) {
+    if (this._persona?.isBusy) {
       this._messageQueue.push({
         id: UUID.uuid4(),
         body: message.body,
         _originalMsg: userMessage
       });
       this.input.clearAttachments();
+      this.input.clearMentions();
       this._updateQueueUI();
       return;
     }
 
-    // this._isBusy = true;
     this.messageAdded(userMessage);
     this.input.clearAttachments();
     this.input.clearMentions();
-    // await this._processMessage(userMessage);
   }
 
   /**
-   * Internal method to process attachments and send the message to the agent.
+   * Called when the persona's busy state changes. Drains the message queue
+   * and requests an auto-title when the persona becomes free.
    */
-  private async _processMessage(userMessage: IMessageContent): Promise<void> {
-    try {
-      this.updateWriters([{ user: this._getAIUser() }]);
+  private async _onPersonaBusyChanged(
+    _: IPersona,
+    busy: boolean
+  ): Promise<void> {
+    if (busy) {
+      return;
+    }
+    this._drainQueue();
 
-      let enhancedMessage: UserContent = userMessage.body;
-      if (userMessage.attachments && userMessage.attachments.length > 0) {
-        const providerConfig = this._settingsModel.getProvider(
-          this._agentManager.activeProvider
-        );
-        const supportsImages = modelSupportsImages(
-          providerConfig,
-          this._providerRegistry
-        );
-        const supportsPdf = modelSupportsPdf(
-          providerConfig,
-          this._providerRegistry
-        );
-        const supportsAudio = modelSupportsAudio(
-          providerConfig,
-          this._providerRegistry
-        );
-
-        enhancedMessage = await Private.processAttachments(
-          userMessage.attachments,
-          this.input.documentManager,
-          userMessage.body,
-          supportsImages,
-          supportsPdf,
-          supportsAudio
-        );
-      }
-
-      await this._agentManager.generateResponse(enhancedMessage);
-    } catch (error) {
-      const errorMessage: IMessageContent = {
-        body: '',
-        mime_model: {
-          data: {
-            'application/vnd.jupyter.chat.components': 'error'
-          },
-          metadata: {
-            errorMessage: `Error generating AI response: ${(error as Error).message}`
-          }
-        },
-        sender: this._getAIUser(),
-        id: UUID.uuid4(),
-        time: Date.now() / 1000,
-        type: 'msg',
-        raw_time: false
-      };
-      this.messageAdded(errorMessage);
-    } finally {
-      this._drainQueue();
-
-      if (
-        this._settings?.composite['autoTitle'] === true &&
-        (this.messages.filter(msg => msg.sender.username !== 'ai-assistant')
-          .length <= 5 ||
-          this.title === null)
-      ) {
-        try {
-          this.title = await this.requestTitle();
-        } catch (e) {
-          console.warn('Error while generating a title\n', e);
-        }
+    if (
+      this._settings?.composite['autoTitle'] === true &&
+      (this.messages.filter(msg => msg.sender.username !== 'ai-assistant')
+        .length <= 5 ||
+        this.title === null)
+    ) {
+      try {
+        this.title = await this.requestTitle();
+      } catch (e) {
+        console.warn('Error while generating a title\n', e);
       }
     }
   }
@@ -521,22 +424,18 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
 
   /**
-   * Processes the next message in the queue, or marks the agent as idle.
+   * Adds the next queued message to chat so the persona can respond to it.
    */
-  private async _drainQueue(): Promise<void> {
+  private _drainQueue(): void {
     if (this._messageQueue.length === 0) {
-      this._isBusy = false;
-      this.updateWriters([]);
       this._removeQueueUI();
       return;
     }
 
-    // Dequeue and push to chat
     const next = this._messageQueue.shift()!;
     next._originalMsg.time = Date.now() / 1000;
+    this._updateQueueUI();
     this.messageAdded(next._originalMsg);
-
-    await this._processMessage(next._originalMsg);
   }
 
   /**
@@ -636,7 +535,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {
-        this._agentManager.activeProvider = content.metadata.provider;
+        this.agentManager!.activeProvider = content.metadata.provider;
       } else if (!silent) {
         console.log(
           `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
@@ -661,7 +560,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     });
     await this.clearMessages();
     this.messagesInserted(0, messages);
-    await this._rebuildHistory();
+    await this._persona?.rebuildHistory();
     this.autosave = content.metadata?.autosave ?? false;
     this.title = content.metadata?.title ?? null;
     return true;
@@ -689,14 +588,14 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         content: history
       }
     ];
-    return this.agentManager.textResponse(messages);
+    return this.agentManager!.textResponse(messages);
   }
 
   /**
    * Serialize the model for backup
    */
   private _serializeModel(): AIChatModel.ExportedChat {
-    const provider = this._agentManager.activeProvider;
+    const provider = this.agentManager!.activeProvider;
     const messages: IMessageContent<string, string>[] = [];
     const users: { [id: string]: IUser } = {};
     const attachmentMap = new Map<string, number>(); // JSON → index
@@ -778,459 +677,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
 
   /**
-   * Rebuild history when the active model changes.
+   * Tracks the active provider for chat restore.
    */
   private _onModelChanged(): void {
-    const providerConfig = this._settingsModel.getProvider(
-      this._agentManager.activeProvider
-    );
-    const modelKey = providerConfig
-      ? `${providerConfig.provider}:${providerConfig.model}`
-      : undefined;
-    if (modelKey && modelKey !== this._currentModelKey) {
-      this._currentModelKey = modelKey;
-      this._rebuildHistory().catch(e =>
-        console.warn('Failed to rebuild history on model change:', e)
-      );
-    }
-  }
-
-  /**
-   * Rebuilds the agent history from the current messages.
-   * For vision-capable models, re-reads binary attachments from disk.
-   * For text-only models, uses message text only.
-   */
-  private async _rebuildHistory(): Promise<void> {
-    const providerConfig = this._settingsModel.getProvider(
-      this._agentManager.activeProvider
-    );
-    const supportsImages = modelSupportsImages(
-      providerConfig,
-      this._providerRegistry
-    );
-    const supportsPdf = modelSupportsPdf(
-      providerConfig,
-      this._providerRegistry
-    );
-    const supportsAudio = modelSupportsAudio(
-      providerConfig,
-      this._providerRegistry
-    );
-
-    const modelMessages: ModelMessage[] = [];
-    for (const msg of this.messages) {
-      const isAI = msg.sender.username === 'ai-assistant';
-      if (!isAI && msg.attachments?.length) {
-        const enhancedContent = await Private.processAttachments(
-          msg.attachments,
-          this.input.documentManager,
-          msg.body,
-          supportsImages,
-          supportsPdf,
-          supportsAudio
-        );
-
-        modelMessages.push({
-          role: 'user',
-          content: enhancedContent
-        } as ModelMessage);
-      } else if (msg.body) {
-        modelMessages.push({
-          role: isAI ? 'assistant' : 'user',
-          content: msg.body
-        } as ModelMessage);
-      }
-      // Skip messages with empty body like tool calls
-    }
-
-    this._agentManager.setHistory(modelMessages);
-  }
-
-  /**
-   * Handles events emitted by the agent manager.
-   * @param event The event data containing type and payload
-   */
-  private _onAgentEvent(
-    _sender: IAgentManager,
-    event: IAgentManager.IAgentEvent
-  ): void {
-    switch (event.type) {
-      case 'message_start':
-        this._handleMessageStart(event);
-        break;
-      case 'message_chunk':
-        this._handleMessageChunk(event);
-        break;
-      case 'message_complete':
-        this._handleMessageComplete(event);
-        break;
-      case 'tool_call_start':
-        this._handleToolCallStartEvent(event);
-        break;
-      case 'tool_call_complete':
-        this._handleToolCallCompleteEvent(event);
-        break;
-      case 'tool_approval_request':
-        this._handleToolApprovalRequest(event);
-        break;
-      case 'tool_approval_resolved':
-        this._handleToolApprovalResolved(event);
-        break;
-      case 'error':
-        this._handleErrorEvent(event);
-        break;
-    }
-  }
-
-  /**
-   * Handles the start of a new message from the AI agent.
-   * @param event Event containing the message start data
-   */
-  private _handleMessageStart(
-    event: IAgentManager.IAgentEvent<'message_start'>
-  ): void {
-    const aiMessage: IMessageContent = {
-      body: '',
-      sender: this._getAIUser(),
-      id: event.data.messageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-    this.messageAdded(aiMessage);
-    this._currentStreamingMessage =
-      this.messages.find(message => message.id === aiMessage.id) ?? null;
-    this._updateQueueUI();
-  }
-
-  /**
-   * Handles streaming message chunks from the AI agent.
-   * @param event Event containing the message chunk data
-   */
-  private _handleMessageChunk(
-    event: IAgentManager.IAgentEvent<'message_chunk'>
-  ): void {
-    if (
-      this._currentStreamingMessage &&
-      this._currentStreamingMessage.id === event.data.messageId
-    ) {
-      this._currentStreamingMessage.update({ body: event.data.fullContent });
-    }
-  }
-
-  /**
-   * Handles the completion of a message from the AI agent.
-   * @param event Event containing the message completion data
-   */
-  private _handleMessageComplete(
-    event: IAgentManager.IAgentEvent<'message_complete'>
-  ): void {
-    if (
-      this._currentStreamingMessage &&
-      this._currentStreamingMessage.id === event.data.messageId
-    ) {
-      this._currentStreamingMessage.update({ body: event.data.content });
-      this._currentStreamingMessage = null;
-    }
-  }
-
-  /**
-   * Extracts a human-readable summary from tool input for display in the header.
-   * @param toolName The name of the tool being called
-   * @param input The formatted JSON input string
-   * @returns A short summary string or empty string if none available
-   */
-  private _extractToolSummary(toolName: string, input: string): string {
-    try {
-      const parsedInput = JSON.parse(input);
-
-      switch (toolName) {
-        case 'execute_command':
-          if (parsedInput.commandId) {
-            return parsedInput.commandId;
-          }
-          break;
-        case 'discover_commands':
-          if (parsedInput.query) {
-            return `query: "${parsedInput.query}"`;
-          }
-          break;
-        case 'discover_skills':
-          if (parsedInput.query) {
-            return `query: "${parsedInput.query}"`;
-          }
-          break;
-        case 'load_skill':
-          if (parsedInput.name) {
-            if (parsedInput.resource) {
-              return `${parsedInput.name} (${parsedInput.resource})`;
-            }
-            return parsedInput.name;
-          }
-          break;
-        case 'browser_fetch':
-          if (parsedInput.url) {
-            return parsedInput.url;
-          }
-          break;
-        case 'web_fetch':
-          if (parsedInput.url) {
-            return parsedInput.url;
-          }
-          break;
-        case 'web_search':
-          if (parsedInput.query) {
-            return `query: "${parsedInput.query}"`;
-          }
-          break;
-      }
-    } catch {
-      // If parsing fails, return empty string
-    }
-    return '';
-  }
-
-  /**
-   * Determine whether this tool call should auto-render trusted MIME bundles.
-   */
-  private _computeShouldAutoRenderMimeBundles(
-    toolName: string,
-    input: string
-  ): boolean {
-    if (toolName !== 'execute_command') {
-      return false;
-    }
-
-    try {
-      const parsedInput = JSON.parse(input);
-      return (
-        typeof parsedInput.commandId === 'string' &&
-        this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
-          parsedInput.commandId
-        )
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Handles the start of a tool call execution.
-   * @param event Event containing the tool call start data
-   */
-  private _handleToolCallStartEvent(
-    event: IAgentManager.IAgentEvent<'tool_call_start'>
-  ): void {
-    const messageId = UUID.uuid4();
-    const summary = this._extractToolSummary(
-      event.data.toolName,
-      event.data.input
-    );
-    const shouldAutoRenderMimeBundles =
-      this._computeShouldAutoRenderMimeBundles(
-        event.data.toolName,
-        event.data.input
-      );
-    const context: IToolExecutionContext = {
-      toolCallId: event.data.callId,
-      messageId,
-      toolName: event.data.toolName,
-      input: event.data.input,
-      status: 'pending',
-      summary,
-      shouldAutoRenderMimeBundles
-    };
-
-    this._toolContexts.set(event.data.callId, context);
-
-    const toolCallMessage: IMessageContent = {
-      body: '',
-      mime_model: {
-        data: {
-          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
-        },
-        metadata: {
-          toolCalls: [
-            {
-              toolCallId: context.toolCallId,
-              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
-              kind: context.toolName,
-              status: 'in_progress',
-              rawInput: context.input
-            }
-          ]
-        }
-      },
-      sender: this._getAIUser(),
-      id: messageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-
-    this.messageAdded(toolCallMessage);
-    this._updateQueueUI();
-  }
-
-  /**
-   * Handles the completion of a tool call execution.
-   */
-  private _handleToolCallCompleteEvent(
-    event: IAgentManager.IAgentEvent<'tool_call_complete'>
-  ): void {
-    const context = this._toolContexts.get(event.data.callId);
-    const status = event.data.isError ? 'error' : 'completed';
-    this._updateToolCallUI(
-      event.data.callId,
-      status,
-      Private.formatToolOutput(event.data.outputData)
-    );
-
-    if (!event.data.isError && this._shouldAutoRenderMimeBundles(context)) {
-      // Tool results are arbitrary command payloads (often wrapped in
-      // { success, result, outputs, ... }), so extract display outputs
-      // defensively instead of assuming a raw kernel message shape.
-      const mimeBundles = Private.extractMimeBundlesFromUnknown(
-        event.data.outputData,
-        {
-          trustedMimeTypes:
-            this._settingsModel.config.trustedMimeTypesForAutoRender
-        }
-      );
-      for (const bundle of mimeBundles) {
-        this.messageAdded({
-          body: '',
-          mime_model: bundle,
-          sender: this._getAIUser(),
-          id: UUID.uuid4(),
-          time: Date.now() / 1000,
-          type: 'msg',
-          raw_time: false
-        });
-      }
-    }
-
-    this._toolContexts.delete(event.data.callId);
-  }
-
-  /**
-   * Determine whether a tool call output should auto-render MIME bundles.
-   */
-  private _shouldAutoRenderMimeBundles(
-    context: IToolExecutionContext | undefined
-  ): boolean {
-    if (!context) {
-      return false;
-    }
-
-    return !!context.shouldAutoRenderMimeBundles;
-  }
-
-  /**
-   * Handles error events from the AI agent.
-   */
-  private _handleErrorEvent(event: IAgentManager.IAgentEvent<'error'>): void {
-    this.messageAdded({
-      body: '',
-      mime_model: {
-        data: {
-          'application/vnd.jupyter.chat.components': 'error'
-        },
-        metadata: {
-          errorMessage: `Error generating response: ${event.data.error.message}`
-        }
-      },
-      sender: this._getAIUser(),
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    });
-    this._updateQueueUI();
-  }
-
-  /**
-   * Handles tool approval request events from the AI agent.
-   */
-  private _handleToolApprovalRequest(
-    event: IAgentManager.IAgentEvent<'tool_approval_request'>
-  ): void {
-    const context = this._toolContexts.get(event.data.toolCallId);
-    if (!context) {
-      return;
-    }
-    context.input = JSON.stringify(event.data.args, null, 2);
-    this._updateToolCallUI(event.data.toolCallId, 'awaiting_approval');
-  }
-
-  /**
-   * Handles tool approval resolved events from the AI agent.
-   */
-  private _handleToolApprovalResolved(
-    event: IAgentManager.IAgentEvent<'tool_approval_resolved'>
-  ): void {
-    const context = this._toolContexts.get(event.data.toolCallId);
-    if (!context) {
-      return;
-    }
-
-    const status = event.data.approved ? 'approved' : 'rejected';
-    this._updateToolCallUI(event.data.toolCallId, status);
-
-    if (!event.data.approved) {
-      this._toolContexts.delete(context.toolCallId);
-    }
-  }
-
-  /**
-   * Updates a tool call's UI with new status and optional output.
-   */
-  private _updateToolCallUI(
-    toolCallId: string,
-    status: ToolStatus,
-    output?: string
-  ): void {
-    const context = this._toolContexts.get(toolCallId);
-    if (!context) {
-      return;
-    }
-
-    const existingMessage = this.messages.find(
-      msg => msg.id === context.messageId
-    );
-    if (!existingMessage) {
-      return;
-    }
-
-    context.status = status;
-    existingMessage.update({
-      mime_model: {
-        data: {
-          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
-        },
-        metadata: {
-          toolCalls: [
-            {
-              toolCallId: context.toolCallId,
-              title: `${context.toolName}${context.summary ? ' : ' + context.summary : ''}`,
-              kind: context.toolName,
-              status: context.status,
-              rawInput: context.input,
-              rawOutput: output,
-              sessionId: this.name,
-              permissionStatus:
-                status === 'awaiting_approval' ? 'pending' : 'resolved',
-              ...(status === 'awaiting_approval' && {
-                permissionOptions: [
-                  { optionId: 'approve', name: 'Approve', kind: 'allow_once' },
-                  { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
-                ]
-              })
-            }
-          ]
-        }
-      }
-    });
+    this._activeProvider = this.agentManager?.activeProvider ?? null;
   }
 
   /**
@@ -1242,37 +692,33 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   set messageQueue(value: Private.IQueuedItem[]) {
     this._messageQueue = value;
     this._updateQueueUI();
-    if (this._messageQueue.length > 0 && !this._isBusy) {
+    if (this._messageQueue.length > 0 && !this.isBusy) {
       this._drainQueue();
     }
   }
 
   /**
-   * Whether the chat is busy
+   * Whether the chat is busy (delegates to the persona's busy state).
    */
   get isBusy(): boolean {
-    return this._isBusy;
+    return this._persona?.isBusy ?? false;
   }
-  set isBusy(value: boolean) {
-    this._isBusy = value;
+  set isBusy(_value: boolean) {
+    // managed by persona
   }
 
   // Private fields
+  private _persona: IPersona | null = null;
   private _settingsModel: IAISettingsModel;
   private _settings: ISettingRegistry.ISettings | null;
   private _user: IUser;
-  private _toolContexts: Map<string, IToolExecutionContext> = new Map();
-  private _agentManager: IAgentManager;
-  private _providerRegistry?: IProviderRegistry;
-  private _currentModelKey: string | undefined;
-  private _currentStreamingMessage: IMessage | null = null;
+  private _activeProvider: string | null;
   private _nameChanged = new Signal<IAIChatModel, string>(this);
   private _contentsManager?: Contents.IManager;
   private _autosave: boolean = false;
   private _autosaveChanged = new Signal<IAIChatModel, boolean>(this);
   private _autosaveDebouncer: Debouncer;
   private _messageQueue: Private.IQueuedItem[] = [];
-  private _isBusy: boolean = false;
   private _queueMessageId: string | null = null;
   private _title: string | null = null;
   private _titleChanged = new Signal<IAIChatModel, string | null>(this);
@@ -1283,542 +729,6 @@ namespace Private {
     id: string;
     body: string;
     _originalMsg: IMessageContent;
-  }
-
-  type IDisplayOutput =
-    | nbformat.IDisplayData
-    | nbformat.IDisplayUpdate
-    | nbformat.IExecuteResult;
-
-  export const isPlainObject = (
-    value: unknown
-  ): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
-
-  export const isDisplayOutput = (value: unknown): value is IDisplayOutput => {
-    if (!isPlainObject(value)) {
-      return false;
-    }
-
-    const output = value as nbformat.IOutput;
-    return (
-      nbformat.isDisplayData(output) ||
-      nbformat.isDisplayUpdate(output) ||
-      nbformat.isExecuteResult(output)
-    );
-  };
-
-  export const toMimeBundle = (
-    value: IDisplayOutput,
-    trustedMimeTypes: ReadonlySet<string>
-  ): IMimeModelBody | null => {
-    const data = value.data;
-    if (!isPlainObject(data) || Object.keys(data).length === 0) {
-      return null;
-    }
-
-    return {
-      data: data as IRenderMime.IMimeModel['data'],
-      ...(isPlainObject(value.metadata)
-        ? { metadata: value.metadata as IRenderMime.IMimeModel['metadata'] }
-        : {}),
-      // MIME auto-rendering only runs for explicitly configured command IDs.
-      // Trust handling is configurable to keep risky MIME execution opt-in.
-      ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-        ? { trusted: true }
-        : {})
-    };
-  };
-
-  /**
-   * Normalize arbitrary tool payloads into canonical display outputs.
-   *
-   * Tool outputs are not guaranteed to be raw Jupyter IOPub messages; they are
-   * often wrapped objects (for example `{ success, result: { outputs: [...] } }`).
-   */
-  export const toDisplayOutputs = (value: unknown): IDisplayOutput[] => {
-    if (isDisplayOutput(value)) {
-      return [value];
-    }
-
-    if (Array.isArray(value)) {
-      return value.filter(isDisplayOutput);
-    }
-
-    if (!isPlainObject(value)) {
-      return [];
-    }
-
-    if (Array.isArray(value.outputs)) {
-      return value.outputs.filter(isDisplayOutput);
-    }
-
-    if ('result' in value) {
-      return toDisplayOutputs(value.result);
-    }
-
-    return [];
-  };
-
-  /**
-   * Extract rendermime-ready mime bundles from arbitrary tool results.
-   */
-  export function extractMimeBundlesFromUnknown(
-    content: unknown,
-    options: { trustedMimeTypes?: ReadonlyArray<string> } = {}
-  ): IMimeModelBody[] {
-    const bundles: IMimeModelBody[] = [];
-    const outputs = toDisplayOutputs(content);
-    const trustedMimeTypes = new Set(options.trustedMimeTypes ?? []);
-    for (const output of outputs) {
-      const bundle = toMimeBundle(output, trustedMimeTypes);
-      if (bundle) {
-        bundles.push(bundle);
-      }
-    }
-    return bundles;
-  }
-
-  export function formatToolOutput(outputData: unknown): string {
-    if (typeof outputData === 'string') {
-      return outputData;
-    }
-
-    try {
-      return JSON.stringify(outputData, null, 2);
-    } catch {
-      return '[Complex object - cannot serialize]';
-    }
-  }
-
-  /**
-   * Processes file attachments and returns the message content with the attachments.
-   * @param attachments Array of file attachments to process
-   * @param documentManager Optional document manager for file operations
-   * @param body The message body
-   * @param supportsImages Whether the model supports images
-   * @param supportsPdf Whether the model supports pdfs
-   * @param supportsAudio Whether the model supports audio
-   * @returns Enhanced message content
-   */
-  export async function processAttachments(
-    attachments: IAttachment[],
-    documentManager: IDocumentManager | null | undefined,
-    body: string,
-    supportsImages: boolean,
-    supportsPdf: boolean,
-    supportsAudio: boolean
-  ): Promise<UserContent> {
-    const textContents: string[] = [];
-    const includedParts: Array<ImagePart | FilePart> = [];
-    const omittedNames: string[] = [];
-
-    if (!documentManager) {
-      return body;
-    }
-
-    for (const attachment of attachments) {
-      try {
-        if (attachment.type === 'notebook' && attachment.cells?.length) {
-          const cellContents = await readNotebookCells(
-            attachment,
-            documentManager
-          );
-          if (cellContents) {
-            textContents.push(cellContents);
-          }
-        } else {
-          let mimetype = attachment.mimetype;
-          const fileExtension = PathExt.extname(attachment.value).toLowerCase();
-
-          // Fetch mimetype from server metadata if not provided
-          if (!mimetype) {
-            try {
-              const diskModel = await documentManager.services.contents.get(
-                attachment.value,
-                { content: false }
-              );
-              mimetype = diskModel?.mimetype;
-            } catch (e) {
-              console.warn(
-                `Failed to fetch metadata for ${attachment.value}:`,
-                e
-              );
-            }
-          }
-
-          if (mimetype?.startsWith('image/')) {
-            if (supportsImages) {
-              const data = await readBinaryAttachment(
-                attachment,
-                documentManager
-              );
-              if (data) {
-                includedParts.push({
-                  type: 'image',
-                  image: data,
-                  mediaType: mimetype
-                });
-              }
-            } else {
-              omittedNames.push(PathExt.basename(attachment.value));
-            }
-          } else if (mimetype === 'application/pdf') {
-            if (supportsPdf) {
-              const data = await readBinaryAttachment(
-                attachment,
-                documentManager
-              );
-              if (data) {
-                includedParts.push({
-                  type: 'file',
-                  data,
-                  mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
-                });
-              }
-            } else {
-              omittedNames.push(PathExt.basename(attachment.value));
-            }
-          } else if (mimetype?.startsWith('audio/')) {
-            if (supportsAudio) {
-              const data = await readBinaryAttachment(
-                attachment,
-                documentManager
-              );
-              if (data) {
-                includedParts.push({
-                  type: 'file',
-                  data,
-                  mediaType: mimetype,
-                  filename: PathExt.basename(attachment.value)
-                });
-              }
-            } else {
-              omittedNames.push(PathExt.basename(attachment.value));
-            }
-          } else {
-            const fileContent = await readFileAttachment(
-              attachment,
-              documentManager
-            );
-            if (fileContent) {
-              const language =
-                fileExtension === '.ipynb' ||
-                mimetype === 'application/x-ipynb+json'
-                  ? 'json'
-                  : '';
-              textContents.push(
-                `**File: ${attachment.value}**\n\`\`\`${language}\n${fileContent}\n\`\`\``
-              );
-            }
-          }
-        }
-      } catch (error) {
-        console.warn(`Failed to read attachment ${attachment.value}:`, error);
-        textContents.push(
-          `**File: ${attachment.value}** (Could not read file)`
-        );
-      }
-    }
-
-    let textPart = body;
-    if (textContents.length > 0) {
-      textPart += '\n\n--- Attached Files ---\n' + textContents.join('\n\n');
-    }
-
-    if (omittedNames.length > 0) {
-      textPart += `\n[Attachments omitted (not supported by this model): ${omittedNames.join(', ')}.]`;
-    }
-
-    return includedParts.length > 0
-      ? [{ type: 'text', text: textPart }, ...includedParts]
-      : textPart;
-  }
-
-  /**
-   * Reads a binary attachment and returns its base64-encoded content.
-   * @param attachment The attachment to read
-   * @param documentManager Optional document manager for file operations
-   * @returns Base64 string or null if unable to read
-   */
-  export async function readBinaryAttachment(
-    attachment: IAttachment,
-    documentManager: IDocumentManager | null | undefined
-  ): Promise<string | null> {
-    if (!documentManager) {
-      return null;
-    }
-
-    try {
-      const diskModel = await documentManager.services.contents.get(
-        attachment.value,
-        { content: true }
-      );
-      if (diskModel?.content && diskModel.format === 'base64') {
-        // Strip whitespace/newlines
-        return (diskModel.content as string).replace(/\s/g, '');
-      }
-      return null;
-    } catch (error) {
-      console.warn(
-        `Failed to read binary attachment ${attachment.value}:`,
-        error
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Reads the content of a notebook cell.
-   * @param attachment The notebook attachment to read
-   * @param documentManager Optional document manager for file operations
-   * @returns Cell content as string or null if unable to read
-   */
-  export async function readNotebookCells(
-    attachment: IAttachment,
-    documentManager: IDocumentManager | null | undefined
-  ): Promise<string | null> {
-    if (
-      attachment.type !== 'notebook' ||
-      !attachment.cells ||
-      !documentManager
-    ) {
-      return null;
-    }
-
-    try {
-      // Try reading from live notebook if open
-      const widget = documentManager.findWidget(attachment.value) as
-        | IDocumentWidget<Notebook, INotebookModel>
-        | undefined;
-      let cellData: nbformat.ICell[];
-      let kernelLang = 'text';
-
-      const ymodel = widget?.context.model.sharedModel as YNotebook;
-
-      if (ymodel) {
-        const nb = ymodel.toJSON();
-
-        cellData = nb.cells;
-
-        const lang =
-          nb.metadata.language_info?.name ||
-          nb.metadata.kernelspec?.language ||
-          'text';
-
-        kernelLang = String(lang);
-      } else {
-        // Fallback: reading from disk
-        const model = await documentManager.services.contents.get(
-          attachment.value
-        );
-        if (!model || model.type !== 'notebook') {
-          return null;
-        }
-        cellData = model.content.cells ?? [];
-
-        kernelLang =
-          model.content.metadata.language_info?.name ||
-          model.content.metadata.kernelspec?.language ||
-          'text';
-      }
-
-      const selectedCells = attachment.cells
-        .map(cellInfo => {
-          const cell = cellData.find(c => c.id === cellInfo.id);
-          if (!cell) {
-            return null;
-          }
-
-          const code = cell.source || '';
-          const cellType = cell.cell_type;
-          const lang = cellType === 'code' ? kernelLang : cellType;
-
-          const DISPLAY_PRIORITY = [
-            'application/vnd.jupyter.widget-view+json',
-            'application/javascript',
-            'text/html',
-            'image/svg+xml',
-            'image/png',
-            'image/jpeg',
-            'text/markdown',
-            'text/latex',
-            'text/plain'
-          ];
-
-          function extractDisplay(data: nbformat.IMimeBundle): string {
-            for (const mime of DISPLAY_PRIORITY) {
-              if (!(mime in data)) {
-                continue;
-              }
-
-              const value = data[mime];
-              if (!value) {
-                continue;
-              }
-
-              switch (mime) {
-                case 'application/vnd.jupyter.widget-view+json':
-                  return `Widget: ${(value as { model_id?: string }).model_id ?? 'unknown model'}`;
-
-                case 'image/png':
-                  return `![image](data:image/png;base64,${String(value).slice(0, 100)}...)`;
-
-                case 'image/jpeg':
-                  return `![image](data:image/jpeg;base64,${String(value).slice(0, 100)}...)`;
-
-                case 'image/svg+xml':
-                  return String(value).slice(0, 500) + '...\n[svg truncated]';
-
-                case 'text/html':
-                  return (
-                    String(value).slice(0, 1000) +
-                    (String(value).length > 1000 ? '\n...[truncated]' : '')
-                  );
-
-                case 'text/markdown':
-                case 'text/latex':
-                case 'text/plain': {
-                  let text = Array.isArray(value)
-                    ? value.join('')
-                    : String(value);
-                  if (text.length > 2000) {
-                    text = text.slice(0, 2000) + '\n...[truncated]';
-                  }
-                  return text;
-                }
-
-                default:
-                  return JSON.stringify(value).slice(0, 2000);
-              }
-            }
-
-            return JSON.stringify(data).slice(0, 2000);
-          }
-
-          let outputs = '';
-          if (cellType === 'code' && Array.isArray(cell.outputs)) {
-            const outputsArray = cell.outputs as nbformat.IOutput[];
-            outputs = outputsArray
-              .map(output => {
-                if (output.output_type === 'stream') {
-                  return (output as nbformat.IStream).text;
-                } else if (output.output_type === 'error') {
-                  const err = output as nbformat.IError;
-                  return `${err.ename}: ${err.evalue}\n${(err.traceback || []).join('\n')}`;
-                } else if (
-                  output.output_type === 'execute_result' ||
-                  output.output_type === 'display_data'
-                ) {
-                  const data = (output as nbformat.IDisplayData).data;
-                  if (!data) {
-                    return '';
-                  }
-                  try {
-                    return extractDisplay(data);
-                  } catch (e) {
-                    console.error('Cannot extract cell output', e);
-                    return '';
-                  }
-                }
-                return '';
-              })
-              .filter(Boolean)
-              .join('\n---\n');
-
-            if (outputs.length > 2000) {
-              outputs = outputs.slice(0, 2000) + '\n...[truncated]';
-            }
-          }
-
-          return (
-            `**Cell [${cellInfo.id}] (${cellType}):**\n` +
-            `\`\`\`${lang}\n${code}\n\`\`\`` +
-            (outputs ? `\n**Outputs:**\n\`\`\`text\n${outputs}\n\`\`\`` : '')
-          );
-        })
-        .filter(Boolean)
-        .join('\n\n');
-
-      return `**Notebook: ${attachment.value}**\n${selectedCells}`;
-    } catch (error) {
-      console.warn(
-        `Failed to read notebook cells from ${attachment.value}:`,
-        error
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Reads the content of a file attachment.
-   * @param attachment The file attachment to read
-   * @param documentManager Optional document manager for file operations
-   * @returns File content as string or null if unable to read
-   */
-  export async function readFileAttachment(
-    attachment: IAttachment,
-    documentManager: IDocumentManager | null | undefined
-  ): Promise<string | null> {
-    // Handle both 'file' and 'notebook' types since both have a 'value' path
-    if (
-      (attachment.type !== 'file' && attachment.type !== 'notebook') ||
-      !documentManager
-    ) {
-      return null;
-    }
-
-    try {
-      // Try reading from an open widget first
-      const widget = documentManager.findWidget(attachment.value) as
-        | IDocumentWidget<Notebook, INotebookModel>
-        | undefined;
-
-      if (widget && widget.context && widget.context.model) {
-        const model = widget.context.model;
-        const ymodel = model.sharedModel as YNotebook;
-
-        if (typeof ymodel.getSource === 'function') {
-          const source = ymodel.getSource();
-          return typeof source === 'string'
-            ? source
-            : JSON.stringify(source, null, 2);
-        }
-      }
-
-      // If not open, load from disk
-      const diskModel = await documentManager.services.contents.get(
-        attachment.value
-      );
-
-      if (!diskModel?.content) {
-        return null;
-      }
-
-      if (diskModel.type === 'file') {
-        // Regular file content
-        return diskModel.content;
-      }
-
-      if (diskModel.type === 'notebook') {
-        const cleaned = {
-          ...diskModel,
-          cells: diskModel.content.cells.map((cell: nbformat.ICell) => ({
-            ...cell,
-            outputs: [] as nbformat.IOutput[],
-            execution_count: null
-          }))
-        };
-
-        return JSON.stringify(cleaned);
-      }
-      return null;
-    } catch (error) {
-      console.warn(`Failed to read file ${attachment.value}:`, error);
-      return null;
-    }
   }
 }
 
@@ -1839,13 +749,17 @@ export namespace AIChatModel {
      */
     settingsModel: IAISettingsModel;
     /**
+     * Registry to get the persona handler's agent manager for this model.
+     */
+    personaRegistry: IPersonaRegistry;
+    /**
      * Optional chat-specific settings from JupyterLab setting registry.
      */
     settings?: ISettingRegistry.ISettings;
     /**
      * Optional agent manager for handling AI agent lifecycle
      */
-    agentManager: IAgentManager;
+    activeProvider?: string;
     /**
      * Optional active cell manager for Jupyter integration
      */
@@ -1858,10 +772,6 @@ export namespace AIChatModel {
      * The contents manager.
      */
     contentsManager?: Contents.IManager;
-    /**
-     * Optional provider registry for model capability lookups.
-     */
-    providerRegistry?: IProviderRegistry;
     /**
      * Whether to restore or not the message (default to true)
      */
@@ -1887,7 +797,7 @@ export namespace AIChatModel {
     /**
      * The agent manager of the chat.
      */
-    agentManager: IAgentManager;
+    agentManager: IAgentManager | null;
     /**
      * Removes a queued message by its ID.
      */

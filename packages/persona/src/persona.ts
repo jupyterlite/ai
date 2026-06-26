@@ -31,7 +31,7 @@ import type { IObservableDisposable } from '@lumino/disposable';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
-import type { UserContent } from 'ai';
+import type { ModelMessage, UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
@@ -179,6 +179,10 @@ export class Persona implements IPersona {
     }
 
     this._agent.agentEvent.connect(this._onAgentEvent, this);
+    this._agent.activeProviderChanged.connect(
+      this._onActiveProviderChanged,
+      this
+    );
     this._model.messagesUpdated.connect(this._onMessagesUpdated, this);
     (this._model as unknown as IObservableDisposable).disposed.connect(
       this.dispose,
@@ -188,6 +192,10 @@ export class Persona implements IPersona {
 
   dispose(): void {
     this._agent.agentEvent.disconnect(this._onAgentEvent, this);
+    this._agent.activeProviderChanged.disconnect(
+      this._onActiveProviderChanged,
+      this
+    );
     this._model.messagesUpdated.disconnect(this._onMessagesUpdated, this);
   }
 
@@ -256,6 +264,66 @@ export class Persona implements IPersona {
       this._busyChanged.emit(false);
       this._model.updateWriters([]);
     }
+  }
+
+  rebuildHistory(): Promise<void> {
+    return this._rebuildHistory();
+  }
+
+  private _onActiveProviderChanged(): void {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agent.activeProvider
+    );
+    const modelKey = providerConfig
+      ? `${providerConfig.provider}:${providerConfig.model}`
+      : undefined;
+    if (modelKey && modelKey !== this._currentModelKey) {
+      this._currentModelKey = modelKey;
+      this._rebuildHistory().catch(e =>
+        console.warn('Failed to rebuild history on model change:', e)
+      );
+    }
+  }
+
+  private async _rebuildHistory(): Promise<void> {
+    const providerConfig = this._settingsModel.getProvider(
+      this._agent.activeProvider
+    );
+    const supportsImages = modelSupportsImages(
+      providerConfig,
+      this._providerRegistry
+    );
+    const supportsPdf = modelSupportsPdf(
+      providerConfig,
+      this._providerRegistry
+    );
+    const supportsAudio = modelSupportsAudio(
+      providerConfig,
+      this._providerRegistry
+    );
+
+    const modelMessages: ModelMessage[] = [];
+    for (const msg of this._model.messages) {
+      const isAI = msg.sender.bot === true;
+      if (!isAI && msg.attachments?.length) {
+        const enhancedContent = await processAttachments(
+          msg.attachments,
+          this._documentManager,
+          msg.body,
+          supportsImages,
+          supportsPdf,
+          supportsAudio
+        );
+        modelMessages.push({ role: 'user', content: enhancedContent });
+      } else if (msg.body) {
+        modelMessages.push({
+          role: isAI ? 'assistant' : 'user',
+          content: msg.body
+        });
+      }
+    }
+
+    this._agent.setHistory(modelMessages);
   }
 
   private _onAgentEvent(
@@ -528,6 +596,7 @@ export class Persona implements IPersona {
   private readonly _providerRegistry: IProviderRegistry | undefined;
   private readonly _documentManager: IDocumentManager | undefined;
   private _respondedToIds = new Set<string>();
+  private _currentModelKey: string | undefined;
   private _busy = false;
   private _busyChanged = new Signal<IPersona, boolean>(this);
   private _streamingMessage: IMessage | null = null;
