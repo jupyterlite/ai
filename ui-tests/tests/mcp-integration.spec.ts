@@ -12,13 +12,14 @@ const MCP_SERVER_URL = `http://0.0.0.0:${MCP_SERVER_PORT}/mcp`;
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
+    ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
+    '@jupyternaut/persona:settings-model': {
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'],
       toolsEnabled: true,
       // To nudge the (relatively small) model to call the tools
       systemPrompt: 'Just call the tools you are asked to call',
@@ -74,7 +75,7 @@ test.describe('#mcpIntegration', () => {
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
 
-    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    const settingsPanel = page.locator('#jupyternaut-persona-settings');
     await expect(settingsPanel).toBeVisible();
 
     const mcpServersTab = settingsPanel.getByRole('tab', {

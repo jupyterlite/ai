@@ -28,7 +28,6 @@ test.describe('#withoutModel', () => {
   });
 
   test('should not create a chat if there is no provider', async ({ page }) => {
-    const content = 'Hello';
     const panel = await openChatPanel(page);
     await panel.getByTitle('Create a new chat').click();
 
@@ -36,7 +35,7 @@ test.describe('#withoutModel', () => {
     await expect(page.locator('.jp-Dialog')).toBeVisible();
 
     // Should open the AI settings
-    await expect(page.locator('#jupyterlite-ai-settings')).toBeVisible();
+    await expect(page.locator('#jupyternaut-persona-settings')).toBeVisible();
   });
 });
 
@@ -151,7 +150,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const settingsButton = panel.getByTitle('Open AI Settings');
       await settingsButton.click();
 
-      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
       await expect(aiSettingsWidget).toBeVisible();
 
       // Remove the existing default provider for this test only
@@ -235,7 +234,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
 
       await panel.getByTitle('Open AI Settings').click();
 
-      const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+      const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
       await expect(aiSettingsWidget).toBeVisible();
       await aiSettingsWidget.getByRole('tab', { name: 'Behavior' }).click();
       await aiSettingsWidget.getByLabel('Show Context Usage').click();

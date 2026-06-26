@@ -5,7 +5,6 @@
 
 import { expect, galata, test } from '@jupyterlab/galata';
 import {
-  CHAT_PANEL_ID,
   DEFAULT_GENERIC_PROVIDER_SETTINGS,
   QWEN_MODEL_NAME,
   openChatPanel
@@ -162,7 +161,7 @@ test.describe('#chatSaveRestore', () => {
     await page.evaluate(async (dir: string) => {
       const app = (window as any).jupyterapp;
       await app.serviceManager.settings.save(
-        '@jupyterlite/ai:settings-model',
+        '@jupyterlite/ai:chat',
         JSON.stringify({ chatBackupDirectory: dir })
       );
     }, customDir);
@@ -172,7 +171,7 @@ test.describe('#chatSaveRestore', () => {
     // Update the backup directory in settings
     const settingsButton = panel.getByTitle('Open AI Settings');
     await settingsButton.click();
-    const aiSettingsWidget = page.locator('#jupyterlite-ai-settings');
+    const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
     await expect(aiSettingsWidget).toBeVisible();
     await aiSettingsWidget.getByText('BEHAVIOR').click();
 

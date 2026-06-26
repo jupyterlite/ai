@@ -12,13 +12,14 @@ const FIXTURE_URL = 'http://localhost:8765/health';
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
+    ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
+    '@jupyternaut/persona:settings-model': {
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       // Keep the test deterministic with small local models.

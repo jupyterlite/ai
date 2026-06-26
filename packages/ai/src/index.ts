@@ -66,7 +66,10 @@ import { UUID } from '@lumino/coreutils';
 
 import { CommandRegistry } from '@lumino/commands';
 
-import { IPersonaRegistry } from '@jupyternaut/persona';
+import {
+  CommandIds as PersonaCommandsIds,
+  IPersonaRegistry
+} from '@jupyternaut/persona';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
@@ -275,8 +278,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     });
 
     const openSettings = () => {
-      if (app.commands.hasCommand(CommandIds.openSettings)) {
-        void app.commands.execute(CommandIds.openSettings);
+      if (app.commands.hasCommand(PersonaCommandsIds.openSettings)) {
+        void app.commands.execute(PersonaCommandsIds.openSettings);
       }
     };
 
@@ -347,7 +350,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       );
     };
 
-    if (app.commands.hasCommand(CommandIds.openSettings)) {
+    if (app.commands.hasCommand(PersonaCommandsIds.openSettings)) {
       addSettingsButton();
     } else {
       const disconnectSettingsButtonListener = () => {
@@ -359,7 +362,10 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
         _: CommandRegistry,
         args: CommandRegistry.ICommandChangedArgs
       ) => {
-        if (args.id === CommandIds.openSettings && args.type === 'added') {
+        if (
+          args.id === PersonaCommandsIds.openSettings &&
+          args.type === 'added'
+        ) {
           disconnectSettingsButtonListener();
           addSettingsButton();
         }

@@ -10,7 +10,7 @@ export const QWEN_MODEL_NAME = 'Qwen2.5';
 export const FUNCTIONGEMMA_MODEL_NAME = 'Functiongemma';
 
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
-  '@jupyterlite/ai:settings-model': {
+  '@jupyternaut/persona:settings-model': {
     defaultProvider: 'generic-qwen',
     mcpServers: [],
     providers: [
@@ -29,9 +29,11 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
         baseURL: 'http://localhost:11434/v1'
       }
     ],
-    showTokenUsage: false,
     toolsEnabled: false,
     useSameProviderForChatAndCompleter: true,
+  },
+  '@jupyterlite/ai:chat': {
+    showTokenUsage: false,
     useSecretsManager: false
   }
 };
