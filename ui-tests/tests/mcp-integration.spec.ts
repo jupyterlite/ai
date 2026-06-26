@@ -19,7 +19,9 @@ test.use({
       doNotDisturbMode: true
     },
     '@jupyternaut/persona:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'],
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS[
+        '@jupyternaut/persona:settings-model'
+      ],
       toolsEnabled: true,
       // To nudge the (relatively small) model to call the tools
       systemPrompt: 'Just call the tools you are asked to call',

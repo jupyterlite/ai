@@ -30,7 +30,7 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
       }
     ],
     toolsEnabled: false,
-    useSameProviderForChatAndCompleter: true,
+    useSameProviderForChatAndCompleter: true
   },
   '@jupyterlite/ai:chat': {
     showTokenUsage: false,

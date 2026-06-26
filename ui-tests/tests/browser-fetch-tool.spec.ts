@@ -19,7 +19,9 @@ test.use({
       doNotDisturbMode: true
     },
     '@jupyternaut/persona:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'],
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS[
+        '@jupyternaut/persona:settings-model'
+      ],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       // Keep the test deterministic with small local models.

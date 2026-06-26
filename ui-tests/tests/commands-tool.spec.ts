@@ -18,14 +18,15 @@ test.use({
       doNotDisturbMode: true
     },
     '@jupyternaut/persona:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'],
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS[
+        '@jupyternaut/persona:settings-model'
+      ],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       // To nudge the model to call the tool with specific parameters
       systemPrompt:
         'When asked to discover commands, call the discover_commands tool with the exact query parameter provided in the user message. Always use the query parameter exactly as specified.'
-    },
-
+    }
   }
 });
 
