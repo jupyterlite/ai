@@ -77,6 +77,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
             this
           );
           this._persona = persona;
+          this._persona.requireMention = false;
           if (this._activeProvider && this.agentManager) {
             this.agentManager.activeProvider = this._activeProvider;
           }
@@ -106,7 +107,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           | string
           | undefined) ?? '';
       const filepath = PathExt.join(directory, `${this.name}.chat`);
-      this.restore(filepath, false);
+      this.restore(filepath, true);
     }
     this.setReady();
   }

@@ -219,8 +219,8 @@ export class Persona implements IPersona {
     const unhandled = this._model.messages.filter(
       m =>
         !this._respondedToIds.has(m.id) &&
-        m.mentions?.includes(this._persona) &&
-        !m.sender.bot
+        !m.sender.bot &&
+        (!this.requireMention || m.mentions?.includes(this._persona))
     );
 
     for (const message of unhandled) {
@@ -588,6 +588,13 @@ export class Persona implements IPersona {
       }
     });
   }
+
+  /**
+   * Whether a mention is required to trigger a response.
+   * When false, the persona responds to all non-bot messages.
+   * Defaults to true.
+   */
+  requireMention: boolean = true;
 
   private readonly _model: IChatModel;
   private readonly _agent: IAgentManager;

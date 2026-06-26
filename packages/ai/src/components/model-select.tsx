@@ -80,15 +80,12 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
 
   useEffect(() => {
     const personaAdded = (_: IPersonaRegistry, persona: IPersona) => {
-      console.log('Persona added', persona.model.name, chatModel.name);
-
       if (persona.model === chatModel) {
         setAgentManager(persona.agentManager);
       }
     };
 
     const persona = personaRegistry?.get(chatModel);
-    console.log('PERSONA', persona);
     if (persona) {
       setAgentManager(persona.agentManager);
     }

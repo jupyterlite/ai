@@ -53,6 +53,12 @@ export interface IPersona {
    */
   readonly busyChanged: ISignal<IPersona, boolean>;
   /**
+   * Whether a mention is required to trigger a response.
+   * When false, the persona responds to all non-bot messages.
+   * Defaults to true.
+   */
+  requireMention: boolean;
+  /**
    * Dispose of the handler and release its resources.
    */
   dispose(): void;
