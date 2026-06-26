@@ -395,6 +395,9 @@ export class AgentManager implements IAgentManager {
     return this._activeProvider;
   }
   set activeProvider(value: string) {
+    if (this._activeProvider === value) {
+      return;
+    }
     const previousProvider = this._activeProvider;
     this._activeProvider = value;
 

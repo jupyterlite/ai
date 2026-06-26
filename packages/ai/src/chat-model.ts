@@ -72,7 +72,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     options.personaRegistry.personaAdded.connect(
       (_: IPersonaRegistry, persona: IPersona) => {
         if (persona.model === this) {
-          console.log('Persona added', persona);
           this.agentManager?.activeProviderChanged.disconnect(
             this._onModelChanged,
             this
