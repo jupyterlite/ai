@@ -17,15 +17,17 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { Contents } from '@jupyterlab/services';
 
-import { AI_AVATAR } from '@jupyternaut/agent';
-
 import type {
   IAgentManager,
   IAISettingsModel,
   ITokenUsage
 } from '@jupyternaut/agent';
 
-import { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
+import {
+  DEFAULT_PERSONA,
+  IPersona,
+  IPersonaRegistry
+} from '@jupyternaut/persona';
 
 import type { ModelMessage } from 'ai';
 
@@ -312,15 +314,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     // Check if we have valid configuration
     if (!this.agentManager?.hasValidConfig()) {
       this.messageAdded(userMessage);
-      const errorMessage: IMessageContent = {
-        body: 'Please configure your AI settings first. Open the AI Settings to set your API key and model.',
-        sender: this._getAIUser(),
-        id: UUID.uuid4(),
-        time: Date.now() / 1000,
-        type: 'msg',
-        raw_time: false
-      };
-      this.messageAdded(errorMessage);
       return;
     }
 
@@ -656,13 +649,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Gets the AI user information for system messages.
    */
   private _getAIUser(): IUser {
-    return {
-      username: 'ai-assistant',
-      display_name: 'Jupyternaut',
-      initials: 'JN',
-      color: '#2196F3',
-      avatar_url: AI_AVATAR
-    };
+    return DEFAULT_PERSONA;
   }
 
   /**

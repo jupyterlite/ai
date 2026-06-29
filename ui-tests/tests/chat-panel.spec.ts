@@ -9,7 +9,8 @@ import {
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
   TEST_PROVIDERS,
-  openChatPanel
+  openChatPanel,
+  openSettings
 } from './test-utils';
 
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
@@ -232,12 +233,22 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
     }) => {
       const panel = await openChatPanel(page);
 
-      await panel.getByTitle('Open AI Settings').click();
+      const settings = await openSettings(page);
+      await settings
+        ?.getByRole('checkbox', {
+          name: 'Show Context Usage'
+        })
+        .check();
 
-      const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
-      await expect(aiSettingsWidget).toBeVisible();
-      await aiSettingsWidget.getByRole('tab', { name: 'Behavior' }).click();
-      await aiSettingsWidget.getByLabel('Show Context Usage').click();
+      // wait for the settings to be saved
+      await expect(page.activity.getTabLocator('Settings')).toHaveAttribute(
+        'class',
+        /jp-mod-dirty/
+      );
+      await expect(page.activity.getTabLocator('Settings')).not.toHaveAttribute(
+        'class',
+        /jp-mod-dirty/
+      );
 
       await expect(
         panel.getByTitle(/Context Usage unavailable\./)

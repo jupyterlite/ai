@@ -7,7 +7,8 @@ import { expect, galata, test } from '@jupyterlab/galata';
 import {
   DEFAULT_GENERIC_PROVIDER_SETTINGS,
   QWEN_MODEL_NAME,
-  openChatPanel
+  openChatPanel,
+  openSettings
 } from './test-utils';
 
 const BACKUP_FILE = `${QWEN_MODEL_NAME}.chat`;
@@ -169,20 +170,21 @@ test.describe('#chatSaveRestore', () => {
     const panel = await openChatPanel(page);
 
     // Update the backup directory in settings
-    const settingsButton = panel.getByTitle('Open AI Settings');
-    await settingsButton.click();
-    const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
-    await expect(aiSettingsWidget).toBeVisible();
-    await aiSettingsWidget.getByText('BEHAVIOR').click();
-
-    const backupDirectoryInput = aiSettingsWidget.getByLabel(
-      'Chat Backup Directory'
+    const settings = await openSettings(page);
+    const defaultDirectory = settings.locator(
+      'input[label="Chat Backup Directory"]'
     );
-    // Sometime clear method does nothing on MUI input.
-    while (await backupDirectoryInput.inputValue()) {
-      await backupDirectoryInput.clear();
-    }
-    await backupDirectoryInput.pressSequentially(customDir, { delay: 100 });
+    await defaultDirectory.pressSequentially(customDir, { delay: 100 });
+
+    // wait for the settings to be saved
+    await expect(page.activity.getTabLocator('Settings')).toHaveAttribute(
+      'class',
+      /jp-mod-dirty/
+    );
+    await expect(page.activity.getTabLocator('Settings')).not.toHaveAttribute(
+      'class',
+      /jp-mod-dirty/
+    );
 
     // Send a message
     const input = panel

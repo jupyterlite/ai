@@ -1,6 +1,6 @@
 {
   "jupyter.lab.shortcuts": [],
-  "title": "JupyterLite AI Chat",
+  "title": "AI Chat",
   "jupyter.lab.setting-icon": "@jupyternaut/agent:jupyternaut",
   "description": "Configuration for JupyterLite AI chat behavior",
   "type": "object",
