@@ -4,6 +4,8 @@ import type { TranslationBundle } from '@jupyterlab/translation';
 
 import StopIcon from '@mui/icons-material/Stop';
 
+import React from 'react';
+
 import { AIChatModel } from '../chat-model';
 
 /**

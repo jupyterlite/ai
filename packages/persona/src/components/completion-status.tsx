@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { jupyternautIcon } from '@jupyternaut/agent';
 import type { IAISettingsModel } from '@jupyternaut/agent';
+import React, { useEffect, useState } from 'react';
 
 const COMPLETION_STATUS_CLASS = 'jp-ai-completion-status';
 const COMPLETION_DISABLED_CLASS = 'jp-ai-completion-disabled';

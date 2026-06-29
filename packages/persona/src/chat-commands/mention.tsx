@@ -5,6 +5,8 @@ import {
   IInputModel
 } from '@jupyter/chat';
 
+import React from 'react';
+
 import { DEFAULT_PERSONA } from '../tokens';
 
 export class MentionCommandProvider implements IChatCommandProvider {

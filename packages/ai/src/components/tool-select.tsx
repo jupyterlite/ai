@@ -19,7 +19,7 @@ import CheckIcon from '@mui/icons-material/Check';
 
 import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { AIChatModel } from '../chat-model';
 

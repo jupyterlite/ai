@@ -4,7 +4,7 @@ import type { IAgentManager, IAISettingsModel } from '@jupyternaut/agent';
 import type { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
 import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 /**
  * Properties for the model select component.
