@@ -1,5 +1,5 @@
 {
-  "name": "@jupyterlite/ai",
+  "name": "@jupyternaut/persona",
   "version": "0.19.0",
   "description": "AI code completions and chat for JupyterLite",
   "keywords": [
@@ -28,9 +28,9 @@
     "directory": "packages/ai"
   },
   "scripts": {
-    "build": "echo 'Building @jupyterlite/ai' && jlpm build:lib && jlpm build:labextension:dev",
-    "build:dev": "echo 'Building @jupyterlite/ai' && jlpm build:lib && jlpm build:labextension:dev",
-    "build:prod": "echo 'Building @jupyterlite/ai' && jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
+    "build": "echo 'Building @jupyternaut/persona' && jlpm build:lib && jlpm build:labextension:dev",
+    "build:dev": "echo 'Building @jupyternaut/persona' && jlpm build:lib && jlpm build:labextension:dev",
+    "build:prod": "echo 'Building @jupyternaut/persona' && jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
     "build:labextension": "jupyter-builder build .",
     "build:labextension:dev": "jupyter-builder build --development True .",
     "build:lib": "tsc --sourceMap",
@@ -44,19 +44,21 @@
   },
   "dependencies": {
     "@jupyter/chat": "^0.21.1",
+    "@jupyter/ydoc": "^4.0.0",
     "@jupyterlab/application": "^4.5.8",
     "@jupyterlab/apputils": "^4.6.8",
+    "@jupyterlab/completer": "^4.5.8",
     "@jupyterlab/coreutils": "^6.5.8",
     "@jupyterlab/docmanager": "^4.5.8",
-    "@jupyterlab/filebrowser": "^4.5.8",
+    "@jupyterlab/docregistry": "^4.5.8",
+    "@jupyterlab/nbformat": "^4.5.8",
     "@jupyterlab/notebook": "^4.5.8",
     "@jupyterlab/rendermime": "^4.5.8",
-    "@jupyterlab/services": "^7.5.8",
     "@jupyterlab/settingregistry": "^4.5.8",
+    "@jupyterlab/statusbar": "^4.5.8",
     "@jupyterlab/translation": "^4.5.8",
     "@jupyterlab/ui-components": "^4.5.8",
     "@jupyternaut/agent": "^0.19.0",
-    "@jupyternaut/persona": "^0.19.0",
     "@lumino/commands": "^2.3.2",
     "@lumino/coreutils": "^2.2.1",
     "@lumino/disposable": "^2.1.4",
@@ -65,7 +67,7 @@
     "@mui/icons-material": "^7",
     "@mui/material": "^7",
     "ai": "^6.0.116",
-    "jupyter-chat-components": "^0.6.0",
+    "jupyter-secrets-manager": "^0.5.0",
     "react": "^18.3.1"
   },
   "devDependencies": {
@@ -91,27 +93,15 @@
   },
   "jupyterlab": {
     "extension": true,
-    "outputDir": "../../python/jupyterlite-ai/jupyterlite_ai/labextension",
+    "outputDir": "../../python/jupyternaut-persona/jupyternaut_persona/labextension",
     "schemaDir": "schema",
     "sharedPackages": {
       "@emotion/react": {
         "bundled": true,
         "singleton": true
       },
-      "@jupyter/chat": {
-        "bundled": true,
-        "singleton": true
-      },
       "@jupyternaut/agent": {
-        "bundled": false,
-        "singleton": true
-      },
-      "@jupyternaut/persona": {
-        "bundled": false,
-        "singleton": true
-      },
-      "jupyter-chat-components": {
-        "bundled": false,
+        "bundled": true,
         "singleton": true
       }
     }

@@ -1,9 +1,9 @@
-import type { ISkillRegistry } from '@jupyternaut/agent';
 import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
+import type { ISkillRegistry } from '@jupyternaut/agent';
+import { CommandIds } from '@jupyternaut/persona';
 import { CommandRegistry } from '@lumino/commands';
 
 import { AIChatModel } from '../chat-model';
-import { CommandIds } from '../tokens';
 
 export class SkillsCommandProvider implements IChatCommandProvider {
   constructor(options: SkillsCommandProvider.IOptions) {

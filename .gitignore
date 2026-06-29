@@ -11,6 +11,7 @@ packages/*/tsconfig.tsbuildinfo
 .ipynb_checkpoints
 *.tsbuildinfo
 python/jupyterlite-ai/jupyterlite_ai/labextension
+python/jupyternaut-persona/jupyternaut_persona/labextension
 
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python

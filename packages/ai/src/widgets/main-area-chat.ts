@@ -1,18 +1,19 @@
 import { ChatWidget, IChatModel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
-import { launchIcon } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { launchIcon } from '@jupyterlab/ui-components';
 import { CommandRegistry } from '@lumino/commands';
 
 import { SaveComponentWidget } from '../components/save-button';
 import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
-import { CommandIds, IAIChatModel, type IAISettingsModel } from '../tokens';
+import { CommandIds, IAIChatModel } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
     commands: CommandRegistry;
-    settingsModel: IAISettingsModel;
+    chatSettings?: ISettingRegistry.ISettings;
     trans: TranslationBundle;
   }
 }
@@ -56,8 +57,8 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     // Add the token usage button.
     const usageWidget = new UsageWidget({
       tokenUsageChanged: this.model.tokenUsageChanged,
-      settingsModel: options.settingsModel,
-      initialTokenUsage: this.model.agentManager.tokenUsage,
+      chatSettings: options.chatSettings,
+      initialTokenUsage: this.model.agentManager?.tokenUsage,
       translator: trans
     });
     this.toolbar.addItem('usage', usageWidget);

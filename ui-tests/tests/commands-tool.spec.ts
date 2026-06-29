@@ -11,13 +11,16 @@ const EXPECT_TIMEOUT = 120000;
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
+    ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
-      ...DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'],
+    '@jupyternaut/persona:settings-model': {
+      ...DEFAULT_GENERIC_PROVIDER_SETTINGS[
+        '@jupyternaut/persona:settings-model'
+      ],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
       // To nudge the model to call the tool with specific parameters

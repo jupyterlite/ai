@@ -10,7 +10,7 @@ export const QWEN_MODEL_NAME = 'Qwen2.5';
 export const FUNCTIONGEMMA_MODEL_NAME = 'Functiongemma';
 
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
-  '@jupyterlite/ai:settings-model': {
+  '@jupyternaut/persona:settings-model': {
     defaultProvider: 'generic-qwen',
     mcpServers: [],
     providers: [
@@ -29,10 +29,12 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
         baseURL: 'http://localhost:11434/v1'
       }
     ],
-    showTokenUsage: false,
     toolsEnabled: false,
     useSameProviderForChatAndCompleter: true,
     useSecretsManager: false
+  },
+  '@jupyterlite/ai:chat': {
+    showTokenUsage: false
   }
 };
 
@@ -55,3 +57,23 @@ export async function openChatPanel(
   }
   return panel;
 }
+
+export const openSettings = async (
+  page: IJupyterLabPageFixture,
+  globalSettings?: boolean
+): Promise<Locator> => {
+  const args = globalSettings ? {} : { query: 'AI Chat' };
+  await page.evaluate(async args => {
+    await window.jupyterapp.commands.execute('settingeditor:open', args);
+  }, args);
+
+  // Activate the settings tab, sometimes it does not automatically.
+  const settingsTab = page
+    .getByRole('main')
+    .getByRole('tab', { name: 'Settings', exact: true });
+  await settingsTab.click();
+  await page.waitForCondition(
+    async () => (await settingsTab.getAttribute('aria-selected')) === 'true'
+  );
+  return (await page.activity.getPanelLocator('Settings')) as Locator;
+};

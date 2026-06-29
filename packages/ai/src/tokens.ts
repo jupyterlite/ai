@@ -1,8 +1,4 @@
-import type {
-  IAISettingsModel as IBaseAISettingsModel,
-  IAgentManager,
-  ITokenUsage
-} from '@jupyternaut/agent';
+import type { IAgentManager, ITokenUsage } from '@jupyternaut/agent';
 import { ActiveCellManager, IChatModel, IMessage } from '@jupyter/chat';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
@@ -11,12 +7,10 @@ import { ISignal } from '@lumino/signaling';
  * Command IDs namespace
  */
 export namespace CommandIds {
-  export const openSettings = '@jupyterlite/ai:open-settings';
   export const reposition = '@jupyterlite/ai:reposition';
   export const openChat = '@jupyterlite/ai:open-chat';
   export const openOrRevealChat = '@jupyterlite/ai:open-or-reveal-chat';
   export const moveChat = '@jupyterlite/ai:move-chat';
-  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
   export const saveChat = '@jupyterlite/ai:save-chat';
   export const restoreChat = '@jupyterlite/ai:restore-chat';
 }
@@ -51,11 +45,11 @@ export interface IAIChatModel extends IChatModel {
   /**
    * A signal emitting when the token usage changed.
    */
-  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage>;
+  readonly tokenUsageChanged: ISignal<IAgentManager, ITokenUsage> | null;
   /**
    * The agent manager used in the model.
    */
-  readonly agentManager: IAgentManager;
+  readonly agentManager: IAgentManager | null;
   /**
    * Save the chat as json file.
    */
@@ -142,19 +136,4 @@ export interface ICreateChatOptions {
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
   '@jupyterlite/ai:IChatModelHandler'
-);
-
-/**
- * Interface for the AI settings model with JupyterLab-specific features.
- * Extends the base IAISettingsModel from @jupyternaut/agent which already includes VDomRenderer.IModel.
- */
-export interface IAISettingsModel extends IBaseAISettingsModel {
-  // Extends the base IAISettingsModel with JupyterLab-specific features
-}
-
-/**
- * Token for the AI settings model.
- */
-export const IAISettingsModel = new Token<IAISettingsModel>(
-  '@jupyterlite/ai:IAISettingsModel'
 );

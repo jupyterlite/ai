@@ -1,10 +1,9 @@
 import type { ITokenUsage } from '@jupyternaut/agent';
 import { ReactWidget, UseSignal } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ISignal } from '@lumino/signaling';
 import React from 'react';
-
-import type { IAISettingsModel } from '../tokens';
 
 /**
  * Props for the UsageDisplay component.
@@ -13,12 +12,12 @@ export interface IUsageDisplayProps {
   /**
    * The token usage changed signal
    */
-  tokenUsageChanged: ISignal<any, ITokenUsage>;
+  tokenUsageChanged: ISignal<any, ITokenUsage> | null;
 
   /**
-   * The settings model instance for configuration options
+   * The chat-specific settings from JupyterLab setting registry.
    */
-  settingsModel: IAISettingsModel;
+  chatSettings?: ISettingRegistry.ISettings;
 
   /**
    * Initial token usage.
@@ -38,7 +37,7 @@ export interface IUsageDisplayProps {
  */
 export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
   tokenUsageChanged,
-  settingsModel,
+  chatSettings,
   initialTokenUsage,
   translator: trans
 }) => {
@@ -59,12 +58,17 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
     whiteSpace: 'nowrap'
   };
 
+  if (!chatSettings || !tokenUsageChanged) {
+    return null;
+  }
+
   return (
-    <UseSignal signal={settingsModel.stateChanged} initialArgs={undefined}>
+    <UseSignal signal={chatSettings.changed} initialArgs={undefined}>
       {() => {
-        const config = settingsModel.config;
-        const showTokenUsage = config.showTokenUsage;
-        const showContextUsage = config.showContextUsage;
+        const showTokenUsage =
+          chatSettings.composite['showTokenUsage'] === true;
+        const showContextUsage =
+          chatSettings.composite['showContextUsage'] === true;
         if (!showTokenUsage && !showContextUsage) {
           return null;
         }

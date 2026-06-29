@@ -1,0 +1,40 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "AI Chat",
+  "jupyter.lab.setting-icon": "@jupyternaut/agent:jupyternaut",
+  "description": "Configuration for JupyterLite AI chat behavior",
+  "type": "object",
+  "properties": {
+    "sendWithShiftEnter": {
+      "title": "Send with Shift+Enter",
+      "description": "Use Shift+Enter to send messages (Enter creates new line)",
+      "type": "boolean",
+      "default": false
+    },
+    "autoTitle": {
+      "title": "Auto Title",
+      "description": "Automatically request a title from the model for every message until there are 5 messages",
+      "type": "boolean",
+      "default": false
+    },
+    "showTokenUsage": {
+      "title": "Show Token Usage",
+      "description": "Display token usage information in the chat toolbar",
+      "type": "boolean",
+      "default": false
+    },
+    "showContextUsage": {
+      "title": "Show Context Usage",
+      "description": "Display estimated context usage percentage in the chat toolbar",
+      "type": "boolean",
+      "default": false
+    },
+    "chatBackupDirectory": {
+      "title": "Chat Backup Directory",
+      "description": "Directory where chat history backups are saved, relative to the server root. Default is the server root.",
+      "type": "string",
+      "default": ""
+    }
+  },
+  "additionalProperties": false
+}
