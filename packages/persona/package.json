@@ -96,6 +96,10 @@
     "outputDir": "../../python/jupyternaut-persona/jupyternaut_persona/labextension",
     "schemaDir": "schema",
     "sharedPackages": {
+      "@emotion/react": {
+        "bundled": true,
+        "singleton": true
+      },
       "@jupyternaut/agent": {
         "bundled": true,
         "singleton": true

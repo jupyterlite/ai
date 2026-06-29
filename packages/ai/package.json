@@ -94,6 +94,10 @@
     "outputDir": "../../python/jupyterlite-ai/jupyterlite_ai/labextension",
     "schemaDir": "schema",
     "sharedPackages": {
+      "@emotion/react": {
+        "bundled": true,
+        "singleton": true
+      },
       "@jupyter/chat": {
         "bundled": true,
         "singleton": true
