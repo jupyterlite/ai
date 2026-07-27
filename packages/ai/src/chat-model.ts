@@ -349,8 +349,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
     if (
       this._settings?.composite['autoTitle'] === true &&
-      (this.messages.filter(msg => msg.sender.username !== 'ai-assistant')
-        .length <= 5 ||
+      (this.messages.filter(msg => !msg.sender.bot).length <= 5 ||
         this.title === null)
     ) {
       try {
@@ -565,10 +564,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   async requestTitle(): Promise<string> {
     const history = this.messages
       .filter(msg => msg.body !== '')
-      .map(
-        msg =>
-          `${msg.sender.username === 'ai-assistant' ? 'assistant' : 'user'}: ${msg.body}`
-      )
+      .map(msg => `${msg.sender.bot ? 'assistant' : 'user'}: ${msg.body}`)
       .join('\n');
     const messages: ModelMessage[] = [
       {

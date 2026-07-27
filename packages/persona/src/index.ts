@@ -438,7 +438,7 @@ const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
  * Diff manager plugin
  */
 const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
-  id: '@jupyterlite/ai:diff-manager',
+  id: '@jupyternaut/persona:diff-manager',
   description: 'Provide the diff manager for notebook cell diffs',
   autoStart: true,
   provides: IDiffManager,

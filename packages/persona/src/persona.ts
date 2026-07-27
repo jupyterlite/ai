@@ -483,13 +483,6 @@ export class Persona implements IPersona {
     }
     try {
       const parsed = JSON.parse(input);
-      console.log(
-        'Should rerender mime',
-        typeof parsed.commandId === 'string' &&
-          this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
-            parsed.commandId
-          )
-      );
       return (
         typeof parsed.commandId === 'string' &&
         this._settingsModel.config.commandsAutoRenderMimeBundles.includes(

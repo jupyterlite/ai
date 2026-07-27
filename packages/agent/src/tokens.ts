@@ -14,13 +14,6 @@ import type {
   ISkillSummary
 } from './skills';
 
-/**
- * Command IDs namespace
- */
-export namespace CommandIds {
-  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
-}
-
 /* THE TOOL REGISTRY */
 /**
  * Type definition for a tool

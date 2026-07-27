@@ -98,9 +98,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
 
   private _writersChanged = (_: IChatModel, writers: IChatModel.IWriter[]) => {
     // Check if AI is currently writing (streaming)
-    const aiWriting = writers.some(
-      writer => writer.user.username === 'ai-assistant'
-    );
+    const aiWriting = writers.some(writer => writer.user.bot);
 
     if (aiWriting) {
       this.content.inputToolbarRegistry?.show('stop');

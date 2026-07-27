@@ -431,7 +431,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
         // Check if a bot is currently writing (streaming)
-        const aiWriting = writers.some(writer => writer.user.bot === true);
+        const aiWriting = writers.some(writer => writer.user.bot);
 
         if (aiWriting) {
           widget.inputToolbarRegistry?.show('stop');
