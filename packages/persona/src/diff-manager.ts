@@ -1,11 +1,10 @@
 import type {
+  IAISettingsModel,
   IDiffManager,
   IShowCellDiffParams,
   IShowFileDiffParams
 } from '@jupyternaut/agent';
 import { CommandRegistry } from '@lumino/commands';
-
-import type { IAISettingsModel } from './tokens';
 
 /**
  * Command IDs for unified cell diffs

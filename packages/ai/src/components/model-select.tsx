@@ -1,10 +1,10 @@
 import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 import type { TranslationBundle } from '@jupyterlab/translation';
+import type { IAgentManager, IAISettingsModel } from '@jupyternaut/agent';
+import type { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
 import CheckIcon from '@mui/icons-material/Check';
 import { Menu, MenuItem, Typography } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
-import { AIChatModel } from '../chat-model';
-import type { IAISettingsModel } from '../tokens';
+import React, { useCallback, useEffect, useState } from 'react';
 
 /**
  * Properties for the model select component.
@@ -19,18 +19,34 @@ export interface IModelSelectProps
    * The application language translator.
    */
   translator: TranslationBundle;
+  /**
+   * Optional registry to get the persona handler's agent manager for this model.
+   */
+  personaRegistry?: IPersonaRegistry;
 }
 
 /**
  * The model select component for choosing AI models.
  */
 export function ModelSelect(props: IModelSelectProps): JSX.Element {
-  const { settingsModel, model, translator: trans } = props;
-  const agentManager = (model.chatContext as AIChatModel.IAIChatContext)
-    .agentManager;
+  const {
+    settingsModel,
+    chatModel,
+    translator: trans,
+    personaRegistry
+  } = props;
+
+  if (!chatModel) {
+    console.warn('Model select button error: chat model not defined');
+    return <></>;
+  }
+
+  const [agentManager, setAgentManager] = useState<IAgentManager | null>(
+    personaRegistry?.get(chatModel)?.agentManager ?? null
+  );
 
   const [currentProvider, setCurrentProvider] = useState<string>(
-    agentManager.activeProvider ?? ''
+    agentManager?.activeProvider ?? ''
   );
   const [currentModel, setCurrentModel] = useState<string>('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
@@ -50,23 +66,43 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
 
   const selectModel = useCallback(
     async (providerId: string) => {
+      if (!agentManager) {
+        return;
+      }
       // Set the active provider using the provider ID
       agentManager.activeProvider = providerId;
       closeMenu();
 
       // Provider selected successfully
     },
-    [settingsModel, closeMenu]
+    [agentManager, closeMenu]
   );
+
+  useEffect(() => {
+    const personaAdded = (_: IPersonaRegistry, persona: IPersona) => {
+      if (persona.model === chatModel) {
+        setAgentManager(persona.agentManager);
+      }
+    };
+
+    const persona = personaRegistry?.get(chatModel);
+    if (persona) {
+      setAgentManager(persona.agentManager);
+    }
+    personaRegistry?.personaAdded.connect(personaAdded);
+    return () => {
+      personaRegistry?.personaAdded.disconnect(personaAdded);
+    };
+  }, [chatModel, personaRegistry]);
 
   // Update current selection when settings model changes
   useEffect(() => {
-    const updateCurrentSelection = () => {
-      if (!agentManager.activeProvider) {
+    const updateCurrentSelection = (manager: IAgentManager) => {
+      if (!manager.activeProvider) {
         return;
       }
       const activeProviderConfig = settingsModel.getProvider(
-        agentManager.activeProvider
+        manager.activeProvider
       );
       if (activeProviderConfig) {
         setCurrentProvider(activeProviderConfig.id);
@@ -74,12 +110,14 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
       }
     };
 
-    updateCurrentSelection();
-    agentManager.activeProviderChanged.connect(updateCurrentSelection);
+    if (agentManager) {
+      updateCurrentSelection(agentManager);
+    }
+    agentManager?.activeProviderChanged.connect(updateCurrentSelection);
     return () => {
-      agentManager.activeProviderChanged.disconnect(updateCurrentSelection);
+      agentManager?.activeProviderChanged.disconnect(updateCurrentSelection);
     };
-  }, [settingsModel]);
+  }, [agentManager, settingsModel]);
 
   // Get current provider label for display
   const activeProviderConfig = settingsModel.getProvider(currentProvider);
@@ -245,18 +283,19 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
  */
 export function createModelSelectItem(
   settingsModel: IAISettingsModel,
-  translator: TranslationBundle
+  translator: TranslationBundle,
+  personaRegistry?: IPersonaRegistry
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
-      const chatContext = props.model.chatContext as AIChatModel.IAIChatContext;
-      if (!chatContext.agentManager) {
+      if (!props.chatModel) {
         return;
       }
       const modelSelectProps: IModelSelectProps = {
         ...props,
         settingsModel,
-        translator
+        translator,
+        personaRegistry
       };
       return <ModelSelect {...modelSelectProps} />;
     },

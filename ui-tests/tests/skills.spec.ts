@@ -9,7 +9,7 @@ import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 const EXPECT_TIMEOUT = 120000;
 const EXPECTED_SKILL_NAME = 'agent-helper';
 const BASE_SETTINGS =
-  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model'];
+  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'];
 const PROVIDERS = BASE_SETTINGS.providers.map(provider => {
   if (provider.id !== 'generic-functiongemma') {
     return provider;
@@ -26,12 +26,13 @@ const PROVIDERS = BASE_SETTINGS.providers.map(provider => {
 test.use({
   mockSettings: {
     ...galata.DEFAULT_SETTINGS,
+    ...DEFAULT_GENERIC_PROVIDER_SETTINGS,
     '@jupyterlab/apputils-extension:notification': {
       checkForUpdates: false,
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyterlite/ai:settings-model': {
+    '@jupyternaut/persona:settings-model': {
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,

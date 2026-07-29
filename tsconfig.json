@@ -6,7 +6,7 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "incremental": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
     "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "node",

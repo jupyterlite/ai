@@ -1,0 +1,14 @@
+/*
+    See the JupyterLab Developer Guide for useful CSS Patterns:
+
+    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+*/
+
+/* Disabled color for the completion status */
+.jp-ai-completion-status .jp-ai-completion-disabled circle {
+  fill: var(--jp-layout-color3);
+}
+
+.jp-ai-completion-status .jp-ai-completion-disabled path {
+  fill: var(--jp-layout-color2);
+}

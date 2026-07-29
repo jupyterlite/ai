@@ -14,13 +14,6 @@ import type {
   ISkillSummary
 } from './skills';
 
-/**
- * Command IDs namespace
- */
-export namespace CommandIds {
-  export const refreshSkills = '@jupyterlite/ai:refresh-skills';
-}
-
 /* THE TOOL REGISTRY */
 /**
  * Type definition for a tool
@@ -379,12 +372,6 @@ export interface IAIConfig {
   systemPrompt: string;
   completionSystemPrompt: string;
   toolsEnabled: boolean;
-  // Chat behavior settings
-  sendWithShiftEnter: boolean;
-  // Token usage display setting
-  showTokenUsage: boolean;
-  // Context usage display setting
-  showContextUsage: boolean;
   // Commands that require approval before execution
   commandsRequiringApproval: string[];
   // Commands whose execute_command outputs may auto-render MIME bundles in chat
@@ -397,10 +384,6 @@ export interface IAIConfig {
   diffDisplayMode: 'split' | 'unified';
   // Paths to directories containing agent skills
   skillsPaths: string[];
-  // Directory where chat backups are saved
-  chatBackupDirectory: string;
-  // Automatically request a title from the model for every message until there are 5 messages
-  autoTitle: boolean;
 }
 
 /**

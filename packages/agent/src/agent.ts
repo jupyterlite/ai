@@ -395,6 +395,9 @@ export class AgentManager implements IAgentManager {
     return this._activeProvider;
   }
   set activeProvider(value: string) {
+    if (this._activeProvider === value) {
+      return;
+    }
     const previousProvider = this._activeProvider;
     this._activeProvider = value;
 
@@ -573,7 +576,9 @@ export class AgentManager implements IAgentManager {
       }
 
       if (!this._agent) {
-        throw new Error('Failed to initialize agent');
+        throw new Error(
+          'Failed to initialize agent.\nPlease configure your AI settings first. Open the AI Settings to set your API key and model.'
+        );
       }
 
       let continueLoop = true;

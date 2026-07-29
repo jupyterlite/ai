@@ -1,14 +1,13 @@
 import type {
   IAIConfig,
+  IAISettingsModel,
   IMCPServerConfig,
   IProviderConfig
 } from '@jupyternaut/agent';
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-import type { IAISettingsModel } from '../tokens';
-
-const PLUGIN_ID = '@jupyterlite/ai:settings-model';
+const PLUGIN_ID = '@jupyternaut/persona:settings-model';
 
 export class AISettingsModel extends VDomModel implements IAISettingsModel {
   private _config: IAIConfig = {
@@ -21,15 +20,10 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     contextAwareness: true,
     codeExecution: false,
     toolsEnabled: true,
-    sendWithShiftEnter: false,
-    showTokenUsage: false,
-    showContextUsage: false,
     showCellDiff: true,
     showFileDiff: true,
     diffDisplayMode: 'split',
     skillsPaths: ['.agents/skills', '_agents/skills'],
-    chatBackupDirectory: '',
-    autoTitle: false,
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',

@@ -4,6 +4,8 @@ import type { TranslationBundle } from '@jupyterlab/translation';
 
 import StopIcon from '@mui/icons-material/Stop';
 
+import React from 'react';
+
 import { AIChatModel } from '../chat-model';
 
 /**
@@ -51,9 +53,11 @@ export function stopItem(
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
-      const { model } = props;
-      const stopStreaming = () =>
-        (model.chatContext as AIChatModel.IAIChatContext).stopStreaming();
+      const { chatModel } = props;
+      if (!chatModel) {
+        return;
+      }
+      const stopStreaming = () => (chatModel as AIChatModel).stopStreaming();
       const stopProps: IStopButtonProps = {
         ...props,
         stopStreaming,

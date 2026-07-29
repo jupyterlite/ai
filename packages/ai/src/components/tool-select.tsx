@@ -1,6 +1,7 @@
 import { createProviderTools } from '@jupyternaut/agent';
 
 import type {
+  IAISettingsModel,
   INamedTool,
   IProviderRegistry,
   IToolRegistry
@@ -10,17 +11,17 @@ import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
 
 import type { TranslationBundle } from '@jupyterlab/translation';
 
+import type { IPersonaRegistry } from '@jupyternaut/persona';
+
 import BuildIcon from '@mui/icons-material/Build';
 
 import CheckIcon from '@mui/icons-material/Check';
 
 import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { AIChatModel } from '../chat-model';
-
-import type { IAISettingsModel } from '../tokens';
 
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
@@ -58,6 +59,10 @@ export interface IToolSelectProps
    * The application language translator.
    */
   translator: TranslationBundle;
+  /**
+   * Optional registry to get the persona's agent manager for this model.
+   */
+  personaRegistry?: IPersonaRegistry;
 }
 
 /**
@@ -71,10 +76,13 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     settingsModel,
     providerRegistry,
     model,
-    translator: trans
+    chatModel,
+    translator: trans,
+    personaRegistry: personaHandlerRegistry
   } = props;
-  const chatContext = model.chatContext as AIChatModel.IAIChatContext;
-  const agentManager = chatContext.agentManager;
+  const agentManager =
+    (chatModel && personaHandlerRegistry?.get(chatModel)?.agentManager) ??
+    (model.chatContext as AIChatModel.IAIChatContext)?.agentManager;
 
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [tools, setTools] = useState<INamedTool[]>(
@@ -317,17 +325,19 @@ export function createToolSelectItem(
   settingsModel: IAISettingsModel,
   providerRegistry: IProviderRegistry,
   toolsEnabled: boolean = true,
-  translator: TranslationBundle
+  translator: TranslationBundle,
+  personaRegistry?: IPersonaRegistry
 ): InputToolbarRegistry.IToolbarItem {
   return {
     element: (props: InputToolbarRegistry.IToolbarItemProps) => {
       const onToolSelectionChange = (tools: string[]) => {
-        const chatContext = props.model
-          .chatContext as AIChatModel.IAIChatContext;
-        if (!chatContext.agentManager) {
+        const agentManager =
+          props.chatModel &&
+          personaRegistry?.get(props.chatModel)?.agentManager;
+        if (!agentManager) {
           return;
         }
-        chatContext.agentManager.setSelectedTools(tools);
+        agentManager.setSelectedTools(tools);
       };
 
       const toolSelectProps: IToolSelectProps = {
@@ -337,7 +347,8 @@ export function createToolSelectItem(
         providerRegistry,
         onToolSelectionChange,
         toolsEnabled,
-        translator
+        translator,
+        personaRegistry
       };
       return <ToolSelect {...toolSelectProps} />;
     },

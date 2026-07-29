@@ -9,8 +9,6 @@ import {
   TEST_PROVIDERS
 } from './test-utils';
 
-const TIMEOUT = 120000;
-
 TEST_PROVIDERS.forEach(({ name, settings }) =>
   test.describe(`#completionWithModel${name}`, () => {
     test.use({
@@ -102,7 +100,7 @@ test.describe('#CompletionStatus', () => {
 
   test('completion status indicator should be enabled', async ({ page }) => {
     const model =
-      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model']
         .providers[0].model;
     const component = page.locator(
       '.jp-ai-completion-status > div:first-child'
@@ -116,21 +114,21 @@ test.describe('#CompletionStatus', () => {
 
   test('completion status should toggle', async ({ page }) => {
     const model =
-      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model']
         .providers[0].model;
     const name =
-      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyterlite/ai:settings-model']
+      DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model']
         .providers[0].name;
     const component = page.locator(
       '.jp-ai-completion-status > div:first-child'
     );
 
     // Open the settings panel
-    const settingsPanel = page.locator('#jupyterlite-ai-settings');
+    const settingsPanel = page.locator('#jupyternaut-persona-settings');
     await page.keyboard.press('Control+Shift+c');
     await page
       .locator(
-        '#modal-command-palette li[data-command="@jupyterlite/ai:open-settings"]'
+        '#modal-command-palette li[data-command="@jupyternaut/persona:open-settings"]'
       )
       .click();
     // Do not use the same provider for chat and completion
