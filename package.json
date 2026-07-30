@@ -55,7 +55,8 @@
       ".venv",
       "webpack.config.js",
       "python/jupyterlite-ai/jupyterlite_ai",
-      "python/jupyternaut-persona/jupyternaut_persona"
+      "python/jupyternaut-persona/jupyternaut_persona",
+      "**/style/index.js"
     ],
     "extends": [
       "eslint:recommended",
