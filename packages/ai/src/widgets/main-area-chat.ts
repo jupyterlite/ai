@@ -1,4 +1,4 @@
-import { ChatWidget, IChatModel } from '@jupyter/chat';
+import { ChatArea, ChatWidget, IChatModel, IChatPanel } from '@jupyter/chat';
 import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
@@ -21,7 +21,10 @@ export namespace MainAreaChat {
 /**
  * The chat as a main area widget.
  */
-export class MainAreaChat extends MainAreaWidget<ChatWidget> {
+export class MainAreaChat
+  extends MainAreaWidget<ChatWidget>
+  implements IChatPanel
+{
   constructor(options: MainAreaChat.IOptions) {
     super(options);
     this.title.label = this.model.name;
@@ -66,7 +69,7 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.
     this._outputAreaCompat = new RenderedMessageOutputAreaCompat({
-      chatPanel: this.content
+      chatPanel: this
     });
 
     this.model.writersChanged?.connect(this._writersChanged);
@@ -90,10 +93,17 @@ export class MainAreaChat extends MainAreaWidget<ChatWidget> {
   }
 
   /**
+   * Get the chat widget
+   */
+  get widget(): ChatWidget {
+    return this.content;
+  }
+
+  /**
    * Get the area of the chat.
    */
-  get area(): string | undefined {
-    return this.content.area;
+  get area(): ChatArea {
+    return 'main';
   }
 
   private _writersChanged = (_: IChatModel, writers: IChatModel.IWriter[]) => {

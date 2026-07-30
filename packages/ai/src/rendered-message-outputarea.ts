@@ -1,4 +1,4 @@
-import { ChatWidget } from '@jupyter/chat';
+import { IChatPanel } from '@jupyter/chat';
 import { IDisposable } from '@lumino/disposable';
 
 const OUTPUT_AREA_CLASS = 'jp-OutputArea';
@@ -50,13 +50,13 @@ export class RenderedMessageOutputAreaCompat implements IDisposable {
     });
   }
 
-  private readonly _chatPanel: ChatWidget;
+  private readonly _chatPanel: IChatPanel;
   private _isDisposed = false;
   private _raf = 0;
 }
 
 export namespace RenderedMessageOutputAreaCompat {
   export interface IOptions {
-    chatPanel: ChatWidget;
+    chatPanel: IChatPanel;
   }
 }

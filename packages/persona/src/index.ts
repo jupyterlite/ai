@@ -31,12 +31,7 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import {
-  IChatTracker,
-  MainAreaChat,
-  ChatWidget,
-  IChatCommandRegistry
-} from '@jupyter/chat';
+import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
 
 import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
 
@@ -254,7 +249,7 @@ const persona: JupyterFrontEndPlugin<void> = {
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): void => {
-    const attachPersona = (widget: ChatWidget | MainAreaChat) => {
+    const attachPersona = (widget: IChatPanel) => {
       if (registry.get(widget.model)) {
         return;
       }

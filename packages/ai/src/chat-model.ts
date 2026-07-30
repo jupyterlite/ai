@@ -293,15 +293,16 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * @param message The user message to send
    */
   async sendMessage(message: INewMessage): Promise<void> {
-    const hasBody = message.body.trim().length > 0;
+    const body =
+      !!message.body && message.body.trim().length > 0 ? message.body : '';
     const hasAttachments = this.input.attachments.length > 0;
-    if (!hasBody && !hasAttachments) {
+    if (!body && !hasAttachments) {
       return;
     }
 
     // Add user message to chat
     const userMessage: IMessageContent = {
-      body: message.body,
+      body,
       sender: this.user || { username: 'user', display_name: 'User' },
       id: UUID.uuid4(),
       time: Date.now() / 1000,
@@ -320,7 +321,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     if (this._persona?.isBusy) {
       this._messageQueue.push({
         id: UUID.uuid4(),
-        body: message.body,
+        body,
         _originalMsg: userMessage
       });
       this.input.clearAttachments();

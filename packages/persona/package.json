@@ -43,7 +43,7 @@
     "watch:labextension": "jupyter-builder watch ."
   },
   "dependencies": {
-    "@jupyter/chat": "^0.21.1",
+    "@jupyter/chat": "^0.23.1",
     "@jupyter/ydoc": "^4.0.0",
     "@jupyterlab/application": "^4.5.8",
     "@jupyterlab/apputils": "^4.6.8",
