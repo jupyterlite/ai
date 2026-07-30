@@ -228,7 +228,8 @@ export class AgentManagerFactory implements IAgentManagerFactory {
         const client = await createMCPClient({
           transport: {
             type: 'http',
-            url: serverConfig.url
+            url: serverConfig.url,
+            fetch: globalThis.fetch.bind(globalThis)
           }
         });
 
