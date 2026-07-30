@@ -7,8 +7,8 @@ import {
   ToolLoopAgent,
   type ModelMessage,
   type LanguageModel,
-  stepCountIs,
-  type StreamTextResult,
+  isStepCount,
+  type SystemModelMessage,
   type ToolApprovalRequestOutput,
   type TypedToolError,
   type TypedToolOutputDenied,
@@ -20,6 +20,7 @@ import {
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
+import { createExecuteCommandApprovalPolicy } from './tools/commands';
 import { getEffectiveContextWindow } from './providers/model-info';
 import {
   createProviderTools,
@@ -47,6 +48,13 @@ interface IMCPClientWrapper {
   name: string;
   client: MCPClient;
 }
+
+/**
+ * The stream result type produced by the agent.
+ */
+type AgentStreamResult = Awaited<
+  ReturnType<ToolLoopAgent<never, ToolMap>['stream']>
+>;
 
 /**
  * Result from processing a stream, including approval info if applicable.
@@ -592,10 +600,10 @@ export class AgentManager implements IAgentManager {
 
         if (streamResult.aborted) {
           try {
-            const responseMessages = await result.response;
-            if (responseMessages.messages?.length) {
+            const responseMessages = await result.responseMessages;
+            if (responseMessages.length) {
               this._history.push(
-                ...Private.sanitizeModelMessages(responseMessages.messages)
+                ...Private.sanitizeModelMessages(responseMessages)
               );
             }
           } catch {
@@ -605,11 +613,11 @@ export class AgentManager implements IAgentManager {
         }
 
         // Get response messages for completed steps.
-        const responseMessages = await result.response;
+        const responseMessages = await result.responseMessages;
 
         // Add response messages to history
-        if (responseMessages.messages?.length) {
-          responseHistory.push(...responseMessages.messages);
+        if (responseMessages.length) {
+          responseHistory.push(...responseMessages);
         }
 
         // Add approval response if processed
@@ -678,11 +686,15 @@ export class AgentManager implements IAgentManager {
   async textResponse(messages: ModelMessage[]): Promise<string> {
     try {
       const model = await this._createModel();
+      const instructions = messages.filter(
+        (message): message is SystemModelMessage => message.role === 'system'
+      );
       const result = await generateText({
         model,
-        messages
+        ...(instructions.length > 0 && { instructions }),
+        messages: messages.filter(message => message.role !== 'system')
       });
-      this._updateTokenUsage(result.totalUsage, result.totalUsage.inputTokens);
+      this._updateTokenUsage(result.usage, result.usage.inputTokens);
       return result.text;
     } catch (e) {
       throw `Error while getting the topic of the chat\n${e}`;
@@ -917,7 +929,10 @@ ${richOutputWorkflowInstruction}`;
           providerInfo
         )
       }),
-      stopWhen: stepCountIs(maxTurns)
+      stopWhen: isStepCount(maxTurns),
+      toolApproval: {
+        execute_command: createExecuteCommandApprovalPolicy(this._settingsModel)
+      }
     });
   }
 
@@ -928,7 +943,7 @@ ${richOutputWorkflowInstruction}`;
    * @returns Processing result including approval info if applicable
    */
   private async _processStreamResult(
-    result: StreamTextResult<ToolMap, never>
+    result: AgentStreamResult
   ): Promise<IStreamProcessResult> {
     let fullResponse = '';
     let currentMessageId: string | null = null;
@@ -937,7 +952,7 @@ ${richOutputWorkflowInstruction}`;
       aborted: false
     };
 
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       switch (part.type) {
         case 'text-delta':
           if (!currentMessageId) {
