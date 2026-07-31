@@ -29,12 +29,15 @@ import {
   MultiChatPanel,
   IChatModel,
   IChatPanel,
-  ChatArea
+  ChatArea,
+  injectAreaArg
 } from '@jupyter/chat';
 
 import {
+  createToolbarFactory,
   ICommandPalette,
   IThemeManager,
+  IToolbarWidgetRegistry,
   showDialog,
   showErrorMessage,
   WidgetTracker
@@ -58,6 +61,7 @@ import {
 
 import {
   fileUploadIcon,
+  launchIcon,
   saveIcon,
   settingsIcon,
   Toolbar,
@@ -85,7 +89,13 @@ import { SaveComponentWidget } from './components/save-button';
 
 import { ChatModelHandler } from './chat-model-handler';
 
-import { CommandIds, IChatModelHandler, IAIChatModel } from './tokens';
+import {
+  CommandIds,
+  IChatModelHandler,
+  IAIChatModel,
+  ChatToolbarFactory,
+  IChatToolbarFactory
+} from './tokens';
 
 import {
   clearItem,
@@ -146,6 +156,42 @@ const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
+ * Plugin providing the shared chat toolbar factory.
+ * Both the main area and side panel consume this token so that toolbar items
+ * are registered once and every CommandToolbarButton automatically receives
+ * the panel area as an arg via `injectAreaArg`.
+ */
+const chatToolbarFactoryPlugin: JupyterFrontEndPlugin<ChatToolbarFactory | null> =
+  {
+    id: '@jupyterlite/ai:chat-toolbar-factory',
+    description: 'The shared chat toolbar factory.',
+    autoStart: true,
+    provides: IChatToolbarFactory,
+    optional: [ISettingRegistry, IToolbarWidgetRegistry, ITranslator],
+    activate: async (
+      app: JupyterFrontEnd,
+      settingRegistry: ISettingRegistry | null,
+      toolbarRegistry: IToolbarWidgetRegistry | null,
+      translator_: ITranslator | null
+    ): Promise<ChatToolbarFactory | null> => {
+      if (!settingRegistry || !toolbarRegistry) {
+        return null;
+      }
+      const translator = translator_ ?? nullTranslator;
+      return injectAreaArg(
+        createToolbarFactory(
+          toolbarRegistry,
+          settingRegistry,
+          'Chat',
+          '@jupyterlite/ai:chat',
+          translator
+        ) as ChatToolbarFactory,
+        app.commands
+      );
+    }
+  };
+
+/**
  * The chat model handler.
  */
 const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
@@ -160,7 +206,7 @@ const chatModelHandler: JupyterFrontEndPlugin<IChatModelHandler> = {
     IPersonaRegistry,
     ISettingRegistry
   ],
-  optional: [IProviderRegistry, IToolRegistry, ITranslator],
+  optional: [IProviderRegistry, IToolRegistry],
   provides: IChatModelHandler,
   activate: async (
     app: JupyterFrontEnd,
@@ -238,10 +284,12 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     ILayoutRestorer,
     ILabShell,
     ITranslator,
+    IToolbarWidgetRegistry,
     IComponentsRendererFactory,
     ICommandPalette,
     IDocumentManager,
-    IPersonaRegistry
+    IPersonaRegistry,
+    IChatToolbarFactory
   ],
   activate: async (
     app: JupyterFrontEnd,
@@ -255,10 +303,12 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     restorer?: ILayoutRestorer,
     labShell?: ILabShell,
     translator?: ITranslator,
+    toolbarRegistry?: IToolbarWidgetRegistry,
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
     documentManager?: IDocumentManager,
-    personaRegistry?: IPersonaRegistry
+    personaRegistry?: IPersonaRegistry,
+    chatToolbarFactory?: ChatToolbarFactory
   ): Promise<IChatTracker> => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
 
@@ -268,6 +318,24 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     } catch (error) {
       console.warn('Failed to load AI chat settings in plugin:', error);
     }
+
+    toolbarRegistry?.addFactory<IChatPanel>('Chat', 'usage', panel => {
+      const model = panel.model as IAIChatModel;
+      return new UsageWidget({
+        tokenUsageChanged: model.tokenUsageChanged,
+        chatSettings,
+        initialTokenUsage: model.agentManager?.tokenUsage,
+        translator: trans
+      });
+    });
+
+    toolbarRegistry?.addFactory<IChatPanel>('Chat', 'saveChat', panel => {
+      const model = panel.model as IAIChatModel;
+      return new SaveComponentWidget({
+        model,
+        translator: trans
+      });
+    });
 
     // Create attachment opener registry to handle file attachments
     const attachmentOpenerRegistry = new AttachmentOpenerRegistry();
@@ -296,6 +364,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       inputToolbarFactory,
       attachmentOpenerRegistry,
       chatCommandRegistry,
+      chatToolbarFactory,
       createModel: async (provider?: string) => {
         if (!provider) {
           provider = settingsModel.getDefaultProvider()?.id;
@@ -328,11 +397,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
         return names;
       },
       renameChat: true
-      // openInMain: (name: string) =>
-      //   app.commands.execute(CommandIds.moveChat, {
-      //     area: 'main',
-      //     name
-      //   }) as Promise<boolean>
     });
 
     sidePanel.id = '@jupyterlite/ai:chat-panel';
@@ -377,10 +441,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       sidePanel.disposed.connect(disconnectSettingsButtonListener);
     }
 
-    let usageWidget: UsageWidget | null = null;
     sidePanel.chatOpened.connect((_, panel) => {
       const model = panel.model as IAIChatModel;
-
       // Add the widget to the tracker.
       tracker.add(panel);
 
@@ -405,30 +467,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
 
       // Update the tracker if the active provider changed.
       model.agentManager?.activeProviderChanged.connect(saveTracker);
-
-      // Update the token usage widget.
-      usageWidget?.dispose();
-
-      usageWidget = new UsageWidget({
-        tokenUsageChanged: model.tokenUsageChanged,
-        chatSettings,
-        initialTokenUsage: model.agentManager?.tokenUsage,
-        translator: trans
-      });
-      sidePanel.current?.toolbar.insertBefore('markRead', 'usage', usageWidget);
-
-      if (model.saveAvailable) {
-        const saveChatButton = new SaveComponentWidget({
-          model,
-          translator: trans
-        });
-
-        sidePanel.current?.toolbar.insertAfter(
-          'markRead',
-          'saveChat',
-          saveChatButton
-        );
-      }
 
       // Listen for writers change to display the stop button.
       function writersChanged(_: IChatModel, writers: IChatModel.IWriter[]) {
@@ -508,7 +546,8 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
       themeManager,
       labShell,
       palette,
-      documentManager
+      documentManager,
+      chatToolbarFactory
     );
 
     const findModel = (targetId: string) => {
@@ -567,7 +606,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
 function registerCommands(
   app: JupyterFrontEnd,
   rmRegistry: IRenderMimeRegistry,
-  chatPanel: MultiChatPanel,
+  sidePanel: MultiChatPanel,
   attachmentOpenerRegistry: IAttachmentOpenerRegistry,
   inputToolbarFactory: IInputToolbarRegistryFactory,
   settingsModel: IAISettingsModel,
@@ -579,7 +618,8 @@ function registerCommands(
   themeManager?: IThemeManager,
   labShell?: ILabShell,
   palette?: ICommandPalette,
-  documentManager?: IDocumentManager
+  documentManager?: IDocumentManager,
+  chatToolbarFactory?: ChatToolbarFactory
 ) {
   const { commands } = app;
 
@@ -646,9 +686,7 @@ function registerCommands(
       });
       const widget = new MainAreaChat({
         content,
-        commands,
-        chatSettings,
-        trans
+        toolbarFactory: chatToolbarFactory
       });
       app.shell.add(widget, 'main');
 
@@ -676,7 +714,7 @@ function registerCommands(
       if (widget && widget.area === 'main') {
         app.shell.activateById(widget.id);
       } else {
-        app.shell.activateById(chatPanel.id);
+        app.shell.activateById(sidePanel.id);
       }
     };
 
@@ -712,23 +750,10 @@ function registerCommands(
       });
     };
 
-    const disposeSideChatModel = (model: IChatModel): boolean => {
-      const loadedName = chatPanel
-        .getLoadedModelNames()
-        .find(name => chatPanel.getLoadedModel(name) === model);
-
-      if (!loadedName) {
-        return false;
-      }
-
-      chatPanel.unsetLoadedModel(loadedName);
-      return true;
-    };
-
     commands.addCommand(CommandIds.openChat, {
       label: trans.__('Open a chat'),
       execute: async (args): Promise<boolean> => {
-        const area = (args.area as string) === 'main' ? 'main' : 'side';
+        const area: ChatArea = args.area ? (args.area as ChatArea) : 'sidebar';
         const provider = (args.provider as string) ?? undefined;
         let name = (args.name as string) ?? undefined;
 
@@ -762,8 +787,8 @@ function registerCommands(
         if (area === 'main') {
           widget = openInMain(model);
         } else {
-          chatPanel.open({ model });
-          widget = chatPanel.current;
+          sidePanel.open({ model });
+          widget = sidePanel.current;
         }
         if (shouldFocus) {
           focusOnChat(widget);
@@ -778,7 +803,7 @@ function registerCommands(
           properties: {
             area: {
               type: 'string',
-              enum: ['main', 'side'],
+              enum: ['main', 'sidebar'],
               description: trans.__('The name of the area to open the chat to')
             },
             name: {
@@ -828,10 +853,10 @@ function registerCommands(
 
         // If the side chat model is loaded but not currently displayed, reveal it first.
         if (!existingWidget && name) {
-          const loadedModel = chatPanel.getLoadedModel(name);
+          const loadedModel = sidePanel.getLoadedModel(name);
           if (loadedModel) {
-            chatPanel.open({ model: loadedModel });
-            existingWidget = chatPanel.current;
+            sidePanel.open({ model: loadedModel });
+            existingWidget = sidePanel.current;
           }
         }
 
@@ -846,7 +871,7 @@ function registerCommands(
           const targetName = existingWidget.model.name;
           const moved = (await commands.execute(CommandIds.moveChat, {
             name: targetName,
-            area
+            area: existingWidget.area
           })) as boolean;
           if (!moved) {
             return false;
@@ -858,7 +883,7 @@ function registerCommands(
           }
 
           if (area === 'sidebar') {
-            chatPanel.open({ model: movedWidget.model });
+            sidePanel.open({ model: movedWidget.model });
           }
           if (shouldFocus) {
             focusOnChat(movedWidget);
@@ -872,7 +897,7 @@ function registerCommands(
         }
 
         if (area === 'sidebar') {
-          chatPanel.open({ model: existingWidget.model });
+          sidePanel.open({ model: existingWidget.model });
         }
         if (shouldFocus) {
           focusOnChat(existingWidget);
@@ -925,57 +950,55 @@ function registerCommands(
     });
 
     commands.addCommand(CommandIds.moveChat, {
-      caption: trans.__('Move chat between area'),
+      icon: launchIcon,
+      caption: args =>
+        (args.area as string) === 'sidebar'
+          ? trans.__('Move the chat to the main area')
+          : trans.__('Move the chat to the side panel'),
       execute: async (args): Promise<boolean> => {
         const area = args.area as string;
-        if (!['side', 'main'].includes(area)) {
+        if (!['sidebar', 'main'].includes(area)) {
           console.error(
-            'Error while moving the chat to main area: the area has not been provided or is not correct'
+            'Error while moving the chat area: the initial area has not been provided or is not correct'
           );
           return false;
         }
-        if (!args.name || !args.area) {
-          console.error(
-            'Error while moving the chat to main area: the name has not been provided'
-          );
-          return false;
-        }
-        let previousWidget: IChatPanel | undefined;
-        let previousModel: IAIChatModel | undefined;
-        tracker.forEach(widget => {
-          if (widget.model.name === args.name) {
-            previousWidget = widget;
-            previousModel = widget.model as IAIChatModel;
+        if (area === 'sidebar') {
+          let previousModel: IAIChatModel | undefined;
+          if (args.name && typeof args.name === 'string') {
+            previousModel = sidePanel.getLoadedModel(args.name) as IAIChatModel;
+          } else {
+            previousModel = sidePanel.current?.model as IAIChatModel;
           }
-        });
-
-        if (!previousModel) {
-          console.error(
-            'Error while moving the chat to main area: there is no reference model'
-          );
-          return false;
-        }
-
-        if (area === 'main') {
-          // Temporarily bypass model disposal to transport model to main view
-          // to keep the conversation when switching views
-          // TODO: Remove this code when jupyter-chat PR #423 is merged and released
-          const originalDispose = previousModel.dispose.bind(previousModel);
-          previousModel.dispose = () => {};
-
-          if (previousWidget instanceof ChatWidget) {
-            if (!disposeSideChatModel(previousModel)) {
-              previousWidget.dispose();
-            }
+          if (!previousModel) {
+            console.error(
+              'Error while moving the chat to main area: there is no reference model'
+            );
+            return false;
           }
-
-          // Restore model disposal and transport to main view
-          previousModel.dispose = originalDispose;
+          sidePanel.unsetLoadedModel(previousModel.name, false);
           openInMain(previousModel);
         } else {
+          let previousWidget: MainAreaChat | undefined;
+          if (args.name && typeof args.name === 'string') {
+            previousWidget = tracker.find(
+              widget =>
+                widget instanceof MainAreaChat &&
+                widget.model.name === args.name
+            ) as MainAreaChat;
+          } else {
+            previousWidget = app.shell.currentWidget as MainAreaChat;
+          }
+
+          if (!previousWidget) {
+            console.error(
+              'Error while moving the chat to side area: there is no reference widget'
+            );
+            return false;
+          }
           // MainAreaChat disposal does not dispose the model internally, so this is safe.
-          previousWidget?.dispose();
-          chatPanel.open({ model: previousModel });
+          previousWidget.dispose();
+          sidePanel.open({ model: previousWidget.model });
         }
 
         return true;
@@ -986,15 +1009,15 @@ function registerCommands(
           properties: {
             area: {
               type: 'string',
-              enum: ['main', 'side'],
-              description: trans.__('The area to move the chat to')
+              enum: ['main', 'sidebar'],
+              description: trans.__('The current area of the chat')
             },
             name: {
               type: 'string',
               description: trans.__('The name of the chat to move')
             }
           },
-          requires: ['area', 'name']
+          requires: ['area']
         }
       }
     });
@@ -1195,6 +1218,7 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
 
 export default [
   chatCommandRegistryPlugin,
+  chatToolbarFactoryPlugin,
   clearCommandPlugin,
   skillsCommandPlugin,
   chatModelHandler,

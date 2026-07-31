@@ -2900,7 +2900,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/observables@npm:^5.5.0, @jupyterlab/observables@npm:^5.6.3":
+"@jupyterlab/observables@npm:^5.5.0, @jupyterlab/observables@npm:^5.5.8, @jupyterlab/observables@npm:^5.6.3":
   version: 5.6.3
   resolution: "@jupyterlab/observables@npm:5.6.3"
   dependencies:
@@ -3147,6 +3147,7 @@ __metadata:
     "@jupyterlab/docmanager": ^4.5.8
     "@jupyterlab/filebrowser": ^4.5.8
     "@jupyterlab/notebook": ^4.5.8
+    "@jupyterlab/observables": ^5.5.8
     "@jupyterlab/rendermime": ^4.5.8
     "@jupyterlab/services": ^7.5.8
     "@jupyterlab/settingregistry": ^4.5.8

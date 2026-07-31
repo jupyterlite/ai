@@ -1,20 +1,17 @@
 import { ChatArea, ChatWidget, IChatModel, IChatPanel } from '@jupyter/chat';
-import { CommandToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
-import type { TranslationBundle } from '@jupyterlab/translation';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { launchIcon } from '@jupyterlab/ui-components';
-import { CommandRegistry } from '@lumino/commands';
+import { MainAreaWidget } from '@jupyterlab/apputils';
 
-import { SaveComponentWidget } from '../components/save-button';
-import { UsageWidget } from '../components/usage-display';
+// import { SaveComponentWidget } from '../components/save-button';
+// import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
-import { CommandIds, IAIChatModel } from '../tokens';
+import { ChatToolbarFactory, IAIChatModel } from '../tokens';
 
 export namespace MainAreaChat {
   export interface IOptions extends MainAreaWidget.IOptions<ChatWidget> {
-    commands: CommandRegistry;
-    chatSettings?: ISettingRegistry.ISettings;
-    trans: TranslationBundle;
+    /**
+     * An optional toolbar factory.
+     */
+    toolbarFactory?: ChatToolbarFactory;
   }
 }
 
@@ -30,41 +27,24 @@ export class MainAreaChat
     this.title.label = this.model.name;
     this.title.caption = this.model.title ?? this.model.name;
 
-    const { trans } = options;
-
-    // Move to side button.
-    this.toolbar.addItem(
-      'moveToSide',
-      new CommandToolbarButton({
-        commands: options.commands,
-        id: CommandIds.moveChat,
-        args: {
-          name: this.content.model.name,
-          area: 'side'
-        },
-        icon: launchIcon
-      })
-    );
-
-    if (this.model.saveAvailable) {
-      // Save chat component
-      this.toolbar.addItem(
-        'saveChat',
-        new SaveComponentWidget({
-          model: this.model,
-          translator: trans
-        })
-      );
+    if (options.toolbarFactory) {
+      const items = options.toolbarFactory(this);
+      for (let i = 0; i < items.length; i++) {
+        const { name, widget } = items.get(i);
+        this.toolbar.addItem(name, widget);
+      }
+      items.changed.connect((_, change) => {
+        if (change.type === 'add') {
+          for (const { name, widget } of change.newValues) {
+            this.toolbar.addItem(name, widget);
+          }
+        } else if (change.type === 'remove') {
+          for (const { widget } of change.oldValues) {
+            widget.dispose();
+          }
+        }
+      });
     }
-
-    // Add the token usage button.
-    const usageWidget = new UsageWidget({
-      tokenUsageChanged: this.model.tokenUsageChanged,
-      chatSettings: options.chatSettings,
-      initialTokenUsage: this.model.agentManager?.tokenUsage,
-      translator: trans
-    });
-    this.toolbar.addItem('usage', usageWidget);
 
     // Temporary compat: keep output-area CSS context for MIME renderers
     // until jupyter-chat provides it natively.
