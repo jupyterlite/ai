@@ -56,6 +56,8 @@ import { settingsIcon } from '@jupyterlab/ui-components';
 
 import { DisposableSet } from '@lumino/disposable';
 
+import { IMcpManager } from 'jupyter-mcp-manager';
+
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { MentionCommandProvider } from './chat-commands/mention';
@@ -301,18 +303,25 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
       autoStart: true,
       provides: IAgentManagerFactory,
       requires: [IAISettingsModel, IProviderRegistry],
-      optional: [ISkillRegistry, ICompletionProviderManager, ISecretsManager],
+      optional: [
+        ISkillRegistry,
+        ICompletionProviderManager,
+        ISecretsManager,
+        IMcpManager
+      ],
       activate: (
         app: JupyterFrontEnd,
         settingsModel: IAISettingsModel,
         providerRegistry: IProviderRegistry,
         skillRegistry?: ISkillRegistry,
         completionManager?: ICompletionProviderManager,
-        secretsManager?: ISecretsManager
+        secretsManager?: ISecretsManager,
+        mcpManager?: IMcpManager
       ): IAgentManagerFactory => {
         const agentManagerFactory = new AgentManagerFactory({
           settingsModel,
           skillRegistry,
+          mcpManager,
           secretsManager,
           token
         });
