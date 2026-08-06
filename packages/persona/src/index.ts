@@ -52,7 +52,7 @@ import { PathExt } from '@jupyterlab/coreutils';
 
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 
-import { settingsIcon } from '@jupyterlab/ui-components';
+import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
 
 import { DisposableSet } from '@lumino/disposable';
 
@@ -360,7 +360,11 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     ILayoutRestorer,
     ISecretsManager,
     IThemeManager,
-    ITranslator
+    ITranslator,
+    IFormRendererRegistry,
+    // This token is not used, but depending on it ensures that the renderer has been
+    // added to the form renderer registry.
+    IMcpManager
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -371,10 +375,16 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     restorer?: ILayoutRestorer,
     secretsManager?: ISecretsManager,
     themeManager?: IThemeManager,
-    translator?: ITranslator
+    translator?: ITranslator,
+    formRenderer?: IFormRendererRegistry
   ): void => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    // Get the renderer for MCP servers settings
+    const mcpServerRenderer = formRenderer?.getRenderer(
+      'jupyter-mcp-manager:manager.mcpSettings'
+    ).fieldRenderer;
 
     const settingsWidget = new AISettingsWidget({
       settingsModel,
@@ -382,7 +392,8 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
       themeManager,
       providerRegistry,
       secretsAccess,
-      trans
+      trans,
+      mcpServerRenderer
     });
     settingsWidget.title.icon = settingsIcon;
     settingsWidget.title.iconClass = 'jp-ai-settings-icon';

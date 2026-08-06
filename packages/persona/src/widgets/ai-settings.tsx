@@ -7,7 +7,6 @@ import type {
   IAIConfig,
   IAISecretsAccess,
   IAISettingsModel,
-  IMCPServerConfig,
   IProviderConfig,
   IProviderRegistry
 } from '@jupyternaut/agent';
@@ -16,13 +15,10 @@ import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import { Debouncer } from '@lumino/polling';
 import Add from '@mui/icons-material/Add';
-import Cable from '@mui/icons-material/Cable';
 import CheckCircle from '@mui/icons-material/CheckCircle';
-import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
 import Error from '@mui/icons-material/Error';
-import ErrorOutline from '@mui/icons-material/ErrorOutline';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
 import Settings from '@mui/icons-material/Settings';
@@ -33,10 +29,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
@@ -95,6 +87,8 @@ export class AISettingsWidget extends ReactWidget {
     this._providerRegistry = options.providerRegistry;
     this._secretsAccess = options.secretsAccess;
     this._trans = options.trans;
+    this._mcpServerRenderer = options.mcpServerRenderer;
+
     this.id = 'jupyternaut-persona-settings';
     this.title.label = this._trans.__('Jupyternaut Settings');
     this.title.caption = this._trans.__('Configure AI providers and behavior');
@@ -120,6 +114,7 @@ export class AISettingsWidget extends ReactWidget {
         providerRegistry={this._providerRegistry}
         secretsAccess={this._secretsAccess}
         trans={this._trans}
+        McpServerRenderer={this._mcpServerRenderer}
       />
     );
   }
@@ -130,6 +125,7 @@ export class AISettingsWidget extends ReactWidget {
   private _providerRegistry: IProviderRegistry;
   private _secretsAccess?: IAISecretsAccess;
   private _trans: TranslationBundle;
+  private _mcpServerRenderer?: React.ComponentType<any>;
 }
 
 /**
@@ -142,6 +138,7 @@ interface IAISettingsComponentProps {
   providerRegistry: IProviderRegistry;
   secretsAccess?: IAISecretsAccess;
   trans: TranslationBundle;
+  McpServerRenderer?: React.ComponentType<any>;
 }
 
 /**
@@ -155,7 +152,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   themeManager,
   providerRegistry,
   secretsAccess,
-  trans
+  trans,
+  McpServerRenderer
 }) => {
   if (!model) {
     return <div>{trans.__('Settings model not available')}</div>;
@@ -170,12 +168,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   >();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuProviderId, setMenuProviderId] = useState<string>('');
-  const [mcpDialogOpen, setMcpDialogOpen] = useState(false);
-  const [editingMCPServer, setEditingMCPServer] = useState<
-    IMCPServerConfig | undefined
-  >();
-  const [mcpMenuAnchor, setMcpMenuAnchor] = useState<null | HTMLElement>(null);
-  const [mcpMenuServerId, setMcpMenuServerId] = useState<string>('');
   const [systemPromptValue, setSystemPromptValue] = useState(
     config.systemPrompt
   );
@@ -447,77 +439,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
     await model.updateConfig(updates);
   };
 
-  /**
-   * Handle adding a new MCP server
-   * @param serverConfig - The MCP server configuration to add
-   */
-  const handleAddMCPServer = async (
-    serverConfig: Omit<IMCPServerConfig, 'id'>
-  ) => {
-    await model.addMCPServer(serverConfig);
-  };
-
-  /**
-   * Handle editing an existing MCP server
-   * @param serverConfig - The updated MCP server configuration
-   */
-  const handleEditMCPServer = async (
-    serverConfig: Omit<IMCPServerConfig, 'id'>
-  ) => {
-    if (editingMCPServer) {
-      await model.updateMCPServer(editingMCPServer.id, serverConfig);
-      setEditingMCPServer(undefined);
-    }
-  };
-
-  /**
-   * Handle deleting an MCP server
-   * @param id - The ID of the MCP server to delete
-   */
-  const handleDeleteMCPServer = async (id: string) => {
-    await model.removeMCPServer(id);
-    setMcpMenuAnchor(null);
-  };
-
-  /**
-   * Open the MCP server edit dialog
-   * @param server - The MCP server to edit
-   */
-  const openEditMCPDialog = (server: IMCPServerConfig) => {
-    setEditingMCPServer(server);
-    setMcpDialogOpen(true);
-    setMcpMenuAnchor(null);
-  };
-
-  /**
-   * Open the MCP server add dialog
-   */
-  const openAddMCPDialog = () => {
-    setEditingMCPServer(undefined);
-    setMcpDialogOpen(true);
-  };
-
-  /**
-   * Handle MCP server menu click
-   * @param event - The click event
-   * @param serverId - The ID of the MCP server
-   */
-  const handleMCPMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    serverId: string
-  ) => {
-    setMcpMenuAnchor(event.currentTarget);
-    setMcpMenuServerId(serverId);
-  };
-
-  /**
-   * Handle MCP server menu close
-   */
-  const handleMCPMenuClose = () => {
-    setMcpMenuAnchor(null);
-    setMcpMenuServerId('');
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -546,7 +467,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
           >
             <Tab label={trans.__('Providers')} />
             <Tab label={trans.__('Behavior')} />
-            <Tab label={trans.__('MCP Servers')} />
+            {McpServerRenderer && <Tab label={trans.__('MCP Servers')} />}
           </Tabs>
         </Box>
 
@@ -1310,124 +1231,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
         {activeTab === 2 && (
           <Card elevation={2}>
             <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mb: 2
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Cable color="primary" />
-                  <Typography variant="h6" component="h2">
-                    {trans.__('Remote MCP Servers')}
-                  </Typography>
-                </Box>
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={openAddMCPDialog}
-                  size="small"
-                >
-                  {trans.__('Add Server')}
-                </Button>
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {trans.__(
-                  "Configure remote Model Context Protocol (MCP) servers to extend the AI's capabilities with external tools and data sources."
-                )}
-              </Typography>
-
-              {config.mcpServers.length === 0 ? (
-                <Alert severity="info">
-                  {trans.__(
-                    'No MCP servers configured yet. Click "Add Server" to connect to remote MCP services.'
-                  )}
-                </Alert>
-              ) : (
-                <List>
-                  {config.mcpServers.map(server => (
-                    <ListItem
-                      key={server.id}
-                      divider
-                      secondaryAction={
-                        <IconButton
-                          onClick={e => handleMCPMenuClick(e, server.id)}
-                          size="small"
-                        >
-                          <MoreVert />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText
-                        primary={
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }}
-                          >
-                            <Typography variant="body1">
-                              {server.name}
-                            </Typography>
-                            {server.enabled &&
-                              agentManagerFactory?.isMCPServerConnected(
-                                server.name
-                              ) && (
-                                <CheckCircleOutline
-                                  sx={{ color: 'success.main', fontSize: 16 }}
-                                />
-                              )}
-                            {server.enabled &&
-                              !agentManagerFactory?.isMCPServerConnected(
-                                server.name
-                              ) && (
-                                <ErrorOutline
-                                  sx={{ color: 'error.main', fontSize: 16 }}
-                                />
-                              )}
-                            <Switch
-                              checked={server.enabled}
-                              onChange={e =>
-                                model.updateMCPServer(server.id, {
-                                  enabled: e.target.checked
-                                })
-                              }
-                              size="small"
-                              color="primary"
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              {server.url}
-                            </Typography>
-                            {server.enabled && agentManagerFactory && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {trans.__(
-                                  'Status: %1',
-                                  agentManagerFactory.isMCPServerConnected(
-                                    server.name
-                                  )
-                                    ? trans.__('Connected')
-                                    : trans.__('Connection failed')
-                                )}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
+              {McpServerRenderer && <McpServerRenderer />}
             </CardContent>
           </Card>
         )}
@@ -1471,167 +1275,8 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
             {trans.__('Delete')}
           </MenuItem>
         </Menu>
-
-        {/* MCP Server Configuration Dialog */}
-        <MCPServerDialog
-          open={mcpDialogOpen}
-          onClose={() => setMcpDialogOpen(false)}
-          onSave={editingMCPServer ? handleEditMCPServer : handleAddMCPServer}
-          initialConfig={editingMCPServer}
-          mode={editingMCPServer ? 'edit' : 'add'}
-          trans={trans}
-        />
-
-        {/* MCP Server Menu */}
-        <Menu
-          anchorEl={mcpMenuAnchor}
-          open={Boolean(mcpMenuAnchor)}
-          onClose={handleMCPMenuClose}
-        >
-          <MenuItem
-            onClick={() => {
-              const server = config.mcpServers.find(
-                s => s.id === mcpMenuServerId
-              );
-              if (server) {
-                openEditMCPDialog(server);
-              }
-            }}
-          >
-            <Edit sx={{ mr: 1 }} />
-            {trans.__('Edit')}
-          </MenuItem>
-          <MenuItem
-            onClick={() => handleDeleteMCPServer(mcpMenuServerId)}
-            sx={{ color: 'error.main' }}
-          >
-            <Delete sx={{ mr: 1 }} />
-            {trans.__('Delete')}
-          </MenuItem>
-        </Menu>
       </Box>
     </ThemeProvider>
-  );
-};
-
-/**
- * Props interface for the MCPServerDialog component
- */
-interface IMCPServerDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSave: (config: Omit<IMCPServerConfig, 'id'>) => void;
-  initialConfig?: IMCPServerConfig;
-  mode: 'add' | 'edit';
-  trans: TranslationBundle;
-}
-
-/**
- * Dialog component for adding/editing MCP server configurations
- * @param props - Component props for the MCP server dialog
- * @returns A React component for MCP server configuration
- */
-const MCPServerDialog: React.FC<IMCPServerDialogProps> = ({
-  open,
-  onClose,
-  onSave,
-  initialConfig,
-  mode,
-  trans
-}) => {
-  const [name, setName] = useState(initialConfig?.name || '');
-  const [url, setUrl] = useState(initialConfig?.url || '');
-  const [enabled, setEnabled] = useState(initialConfig?.enabled ?? true);
-
-  /**
-   * Effect to reset dialog state when opened with new config
-   */
-  useEffect(() => {
-    if (open) {
-      setName(initialConfig?.name || '');
-      setUrl(initialConfig?.url || '');
-      setEnabled(initialConfig?.enabled ?? true);
-    }
-  }, [open, initialConfig]);
-
-  /**
-   * Handle saving the MCP server configuration
-   */
-  const handleSave = () => {
-    if (!name.trim() || !url.trim()) {
-      return;
-    }
-
-    onSave({
-      name: name.trim(),
-      url: url.trim(),
-      enabled
-    });
-    onClose();
-  };
-
-  /**
-   * Check if a URL is valid
-   * @param url - The URL to validate
-   * @returns true if the URL is valid
-   */
-  const _isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const canSave = name.trim() && url.trim() && _isValidUrl(url.trim());
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {mode === 'add'
-          ? trans.__('Add MCP Server')
-          : trans.__('Edit MCP Server')}
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <TextField
-            autoFocus
-            fullWidth
-            label={trans.__('Server Name')}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder={trans.__('My MCP Server')}
-            helperText={trans.__('A friendly name to identify this MCP server')}
-          />
-          <TextField
-            fullWidth
-            label={trans.__('Server URL')}
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder={trans.__('https://example.com/mcp')}
-            helperText={trans.__('The HTTP/HTTPS URL of the MCP server')}
-            error={Boolean(url.trim() && !_isValidUrl(url.trim()))}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={enabled}
-                onChange={e => setEnabled(e.target.checked)}
-                color="primary"
-              />
-            }
-            label={trans.__('Enable this server')}
-          />
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{trans.__('Cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" disabled={!canSave}>
-          {mode === 'add' ? trans.__('Add') : trans.__('Save')}
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -1655,5 +1300,9 @@ export namespace AISettingsWidget {
      * The application language translation bundle.
      */
     trans: TranslationBundle;
+    /**
+     * The renderer for the MCP settings.
+     */
+    mcpServerRenderer?: React.ComponentType<any>;
   }
 }
