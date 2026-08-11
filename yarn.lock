@@ -5,113 +5,113 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@ai-sdk/anthropic@npm:^4.0.24":
-  version: 4.0.24
-  resolution: "@ai-sdk/anthropic@npm:4.0.24"
+"@ai-sdk/anthropic@npm:^4.0.37":
+  version: 4.0.37
+  resolution: "@ai-sdk/anthropic@npm:4.0.37"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 0b1d163bba11e815ff2f8e2a5fd986718fd509a4e7d5b201fffe698fa89706cf82b060ee15ee7db68d8cbf5a42f9cf83b437ce68f6405309377794574e520dcd
+  checksum: 1a7b5fbb8d06069ae3a3aa0d789e3a2139c0ee85e0652b13098eb8a0d73399677d779e0f016b77d1dc9005ee5309f6b5c99271708ff22e29847239ce6a992ead
   languageName: node
   linkType: hard
 
-"@ai-sdk/gateway@npm:4.0.32":
-  version: 4.0.32
-  resolution: "@ai-sdk/gateway@npm:4.0.32"
+"@ai-sdk/gateway@npm:4.0.47":
+  version: 4.0.47
+  resolution: "@ai-sdk/gateway@npm:4.0.47"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
     "@vercel/oidc": 3.2.0
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: bf1e66445aea15fa52ed216a1ce8128cc3d5ed4bda214d96c851714f94c0c395f59c094d251a4a19c837b3d6e922b39ec87822eebab0ee8886470c4fc2beaf87
+  checksum: 410a1e4464b55723559a6b529cb7327c042869ea635c6bc227fdff2c65236c7ea74e191c789355a34b20c81866e6ca43525b84cd8b22cef66b316fb9dca1a042
   languageName: node
   linkType: hard
 
-"@ai-sdk/google@npm:^4.0.28":
-  version: 4.0.28
-  resolution: "@ai-sdk/google@npm:4.0.28"
+"@ai-sdk/google@npm:^4.0.41":
+  version: 4.0.41
+  resolution: "@ai-sdk/google@npm:4.0.41"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: e36df8ae713d05990eef96d3b81eda4b485098c1ce85d4a2a5d7f0d65ca5ba278047baa4f7282e6954e191e33e4849649a60040766fade8567096b4a0f2ade9b
+  checksum: 2b408d027b3cc591077905c9476455658cd53facbf89dad8c0d890953e70edc04fd54ac2cff665e6e842610096f33ffcec3e4c65fcf0c466a2f1c751310c46d1
   languageName: node
   linkType: hard
 
-"@ai-sdk/mcp@npm:^2.0.19":
-  version: 2.0.19
-  resolution: "@ai-sdk/mcp@npm:2.0.19"
+"@ai-sdk/mcp@npm:^2.0.30":
+  version: 2.0.30
+  resolution: "@ai-sdk/mcp@npm:2.0.30"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
     pkce-challenge: ^5.0.1
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 5ba6eab5033fa3c3c4571099062b76af5a3f318955708ab81700d803e8fd3f02da148848fc696658bdd81802c879acd0c20bb11c1adfacc3d418d7b1e50aded1
+  checksum: fb86fdd00ca946ff89650d682a16d35ba70e0a83df71a7fa80bf9a96b2cbb894d936ccbdfc112e4b26be5e4df5da6fab5ee9cab83325adc414eaee2ddc032a62
   languageName: node
   linkType: hard
 
-"@ai-sdk/mistral@npm:^4.0.17":
-  version: 4.0.17
-  resolution: "@ai-sdk/mistral@npm:4.0.17"
+"@ai-sdk/mistral@npm:^4.0.28":
+  version: 4.0.28
+  resolution: "@ai-sdk/mistral@npm:4.0.28"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: f1003598fdcaf58ac0192a03dad43f99fd5bd2ba180ddf8144e0f9246c8ff97a10b8a699954fd67a59b27a5d6748ce854c6a7eeb5d3fbc2bc03b8b6b02d052bb
+  checksum: 55b1332b10e2c29831925622e2e0bde44437c5d40c34188e573cce9b1846f226c3d443403aee6a56698f6d78fbb6bc5768aaf6178bcedf1edc06ea16e373cc20
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai-compatible@npm:^3.0.17":
-  version: 3.0.17
-  resolution: "@ai-sdk/openai-compatible@npm:3.0.17"
+"@ai-sdk/openai-compatible@npm:^3.0.29":
+  version: 3.0.29
+  resolution: "@ai-sdk/openai-compatible@npm:3.0.29"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: fe6eb072dc6e3f2e6177268849920a5e412f94f01b591941ad12cd11543a040be4b8fc64de91c70387ecade8afa1671fe585b4c1564f3adb5aabed697d1c60ca
+  checksum: b1a4e9604b3851ba270b77543bc90329ff26de19b521409142c0ccf149c2578d08ba68335cf6f0b59017e5226ad28d32d827ef234876f2905f826a2117ae5251
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai@npm:^4.0.24":
-  version: 4.0.24
-  resolution: "@ai-sdk/openai@npm:4.0.24"
+"@ai-sdk/openai@npm:^4.0.37":
+  version: 4.0.37
+  resolution: "@ai-sdk/openai@npm:4.0.37"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: befee0b7a3fa55c419ba610101d879a43748fa7c521322aa2dee07ffbd4cbe86b006fff78647c84b6892440af17cd094eff81e6694700daa42f9dc4161e6d7fd
+  checksum: 6531f57fde3ab1633b34935a4171aa991f54604a5c3cec8f3f5cc66d9d6658f47d6626b96aec25d4d214c1399bc3fe3388bdf1c216170fb4e0fd199b30e65537
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:5.0.15":
-  version: 5.0.15
-  resolution: "@ai-sdk/provider-utils@npm:5.0.15"
+"@ai-sdk/provider-utils@npm:5.0.26":
+  version: 5.0.26
+  resolution: "@ai-sdk/provider-utils@npm:5.0.26"
   dependencies:
-    "@ai-sdk/provider": 4.0.4
+    "@ai-sdk/provider": 4.0.7
     "@standard-schema/spec": ^1.1.0
     "@workflow/serde": 4.1.0
     eventsource-parser: ^3.0.8
     undici: ^7.28.0
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 1f05998fd4beccecb5c56a0e7d5499924ed9bf15f1dc041445b30d3dbe5c088d7509701e22ecf2509c879a618d8be9c6f0840ba35006c983281301b59d98023e
+  checksum: a2db55920377ee8e30bdcaa05762ca562e1b3ff69aa6ec31c6368ebcc917a49c1b745b94634a73f2e853c9399f643572da5437640ed4e222cb8d1e4561848d0d
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider@npm:4.0.4":
-  version: 4.0.4
-  resolution: "@ai-sdk/provider@npm:4.0.4"
+"@ai-sdk/provider@npm:4.0.7":
+  version: 4.0.7
+  resolution: "@ai-sdk/provider@npm:4.0.7"
   dependencies:
     json-schema: ^0.4.0
-  checksum: 28475539475368488afaa12c151a2e6a4d7c9dd90bce52daafaa97f8c382a93e7f99fcdb075428ad613432f2310f65aa7900bf4f508b4ee2aadaa8d15cddd7c4
+  checksum: 95ef6f8edade2695a46d2630e5136c9349b93f4bb9d7438d621bdd8e0dbfa3ab241c3f2d4e2c69e7da9c623382e3bfb86c6faa0c1ba56fbd9c393bd35b507bbd
   languageName: node
   linkType: hard
 
@@ -3170,7 +3170,7 @@ __metadata:
     "@types/node": ^24.3.0
     "@types/react": ^18.0.26
     "@types/react-addons-linked-state-mixin": ^0.14.22
-    ai: ^7.0.42
+    ai: ^7.0.59
     css-loader: ^6.7.1
     jupyter-chat-components: ^0.6.0
     npm-run-all2: ^7.0.1
@@ -3185,12 +3185,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyternaut/agent@workspace:packages/agent"
   dependencies:
-    "@ai-sdk/anthropic": ^4.0.24
-    "@ai-sdk/google": ^4.0.28
-    "@ai-sdk/mcp": ^2.0.19
-    "@ai-sdk/mistral": ^4.0.17
-    "@ai-sdk/openai": ^4.0.24
-    "@ai-sdk/openai-compatible": ^3.0.17
+    "@ai-sdk/anthropic": ^4.0.37
+    "@ai-sdk/google": ^4.0.41
+    "@ai-sdk/mcp": ^2.0.30
+    "@ai-sdk/mistral": ^4.0.28
+    "@ai-sdk/openai": ^4.0.37
+    "@ai-sdk/openai-compatible": ^3.0.29
     "@jupyterlab/apputils": ^4.6.8
     "@jupyterlab/coreutils": ^6.5.8
     "@jupyterlab/rendermime": ^4.5.8
@@ -3202,7 +3202,7 @@ __metadata:
     "@lumino/signaling": ^2.1.4
     "@lumino/widgets": ^2.7.1
     "@types/node": ^24.3.0
-    ai: ^7.0.42
+    ai: ^7.0.59
     jupyter-secrets-manager: ^0.5.0
     rimraf: ^5.0.1
     typescript: ~5.8.0
@@ -3244,7 +3244,7 @@ __metadata:
     "@types/node": ^24.3.0
     "@types/react": ^18.0.26
     "@types/react-addons-linked-state-mixin": ^0.14.22
-    ai: ^7.0.42
+    ai: ^7.0.59
     css-loader: ^6.7.1
     jupyter-secrets-manager: ^0.5.0
     npm-run-all2: ^7.0.1
@@ -4954,16 +4954,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^7.0.42":
-  version: 7.0.42
-  resolution: "ai@npm:7.0.42"
+"ai@npm:^7.0.59":
+  version: 7.0.59
+  resolution: "ai@npm:7.0.59"
   dependencies:
-    "@ai-sdk/gateway": 4.0.32
-    "@ai-sdk/provider": 4.0.4
-    "@ai-sdk/provider-utils": 5.0.15
+    "@ai-sdk/gateway": 4.0.47
+    "@ai-sdk/provider": 4.0.7
+    "@ai-sdk/provider-utils": 5.0.26
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: eba52d8516ed199b9cdcca60c8879359a1c6ea4785137862eefc5d802637dc0899ae7bcf38328064c46035b61ed8e4a80105a23341aea9d618d94c8386a7d0a4
+  checksum: b9d5345adc36730f49e2080431a0b2a982889b32758241c5b81d1d57e8cb1e9b787d652d2a51f01466a04359e402d775d07f9c98132cb4733ad1cef131630975
   languageName: node
   linkType: hard
 

@@ -228,11 +228,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
         const client = await createMCPClient({
           transport: {
             type: 'http',
-            url: serverConfig.url,
-            // The transport calls this option as a method (`this.fetchFn(...)`),
-            // so an unbound window.fetch would throw "Illegal invocation" in
-            // browsers.
-            fetch: globalThis.fetch.bind(globalThis)
+            url: serverConfig.url
           }
         });
 
