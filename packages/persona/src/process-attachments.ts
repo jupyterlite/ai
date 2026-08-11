@@ -187,7 +187,8 @@ async function readNotebookCells(
       kernelLang = String(lang);
     } else {
       const model = await documentManager.services.contents.get(
-        attachment.value
+        attachment.value,
+        { content: true }
       );
       if (!model || model.type !== 'notebook') {
         return null;
@@ -287,7 +288,8 @@ async function readFileAttachment(
     }
 
     const diskModel = await documentManager.services.contents.get(
-      attachment.value
+      attachment.value,
+      { content: true }
     );
     if (!diskModel?.content) {
       return null;
