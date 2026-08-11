@@ -95,6 +95,7 @@ function searchCommands(
  */
 export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
   return tool({
+    metadata: { title: 'Discover Commands' },
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
@@ -165,6 +166,7 @@ export function createExecuteCommandApprovalPolicy(
  */
 export function createExecuteCommandTool(commands: CommandRegistry): ITool {
   return tool({
+    metadata: { title: 'Execute Command' },
     description:
       'Execute a specific JupyterLab command with optional arguments',
     inputSchema: z.object({

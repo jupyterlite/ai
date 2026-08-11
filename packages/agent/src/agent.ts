@@ -974,22 +974,26 @@ ${richOutputWorkflowInstruction}`;
           });
           break;
 
-        case 'tool-call':
+        case 'tool-call': {
           // Complete current message before tool call
           if (currentMessageId && fullResponse) {
             this._emitMessageComplete(currentMessageId, fullResponse);
             currentMessageId = null;
             fullResponse = '';
           }
+          const metadataTitle = part.toolMetadata?.title;
           this._agentEvent.emit({
             type: 'tool_call_start',
             data: {
               callId: part.toolCallId,
               toolName: part.toolName,
+              title:
+                typeof metadataTitle === 'string' ? metadataTitle : part.title,
               input: this._formatToolInput(JSON.stringify(part.input))
             }
           });
           break;
+        }
 
         case 'tool-result':
           this._handleToolResult(part);

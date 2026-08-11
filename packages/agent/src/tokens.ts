@@ -495,6 +495,7 @@ export namespace IAgentManager {
     tool_call_start: {
       callId: string;
       toolName: string;
+      title?: string;
       input: string;
     };
     tool_call_complete: {

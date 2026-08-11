@@ -49,6 +49,7 @@ interface IToolExecutionContext {
   toolCallId: string;
   messageId: string;
   toolName: string;
+  title?: string;
   input: string;
   status: ToolStatus;
   summary?: string;
@@ -405,6 +406,7 @@ export class Persona implements IPersona {
       toolCallId: event.data.callId,
       messageId,
       toolName: event.data.toolName,
+      title: event.data.title,
       input: event.data.input,
       status: 'pending',
       summary,
@@ -412,6 +414,7 @@ export class Persona implements IPersona {
     };
     this._toolContexts.set(event.data.callId, context);
 
+    const displayName = context.title ?? context.toolName;
     this._model.messageAdded({
       body: '',
       mime_model: {
@@ -423,8 +426,8 @@ export class Persona implements IPersona {
             {
               toolCallId: context.toolCallId,
               title: context.summary
-                ? `${context.toolName} : ${context.summary}`
-                : context.toolName,
+                ? `${displayName} : ${context.summary}`
+                : displayName,
               kind: context.toolName,
               status: 'in_progress',
               rawInput: context.input
@@ -550,6 +553,7 @@ export class Persona implements IPersona {
       return;
     }
     context.status = status;
+    const displayName = context.title ?? context.toolName;
     message.update({
       mime_model: {
         data: {
@@ -560,8 +564,8 @@ export class Persona implements IPersona {
             {
               toolCallId: context.toolCallId,
               title: context.summary
-                ? `${context.toolName} : ${context.summary}`
-                : context.toolName,
+                ? `${displayName} : ${context.summary}`
+                : displayName,
               kind: context.toolName,
               status: context.status,
               rawInput: context.input,
