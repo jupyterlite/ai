@@ -8,7 +8,7 @@ import type { ISkillRegistry, ITool } from '../tokens';
  */
 export function createDiscoverSkillsTool(skillRegistry: ISkillRegistry): ITool {
   return tool({
-    title: 'Discover Skills',
+    metadata: { title: 'Discover Skills' },
     description:
       'Discover available agent skills with their names and descriptions',
     inputSchema: z.object({
@@ -35,7 +35,7 @@ export function createDiscoverSkillsTool(skillRegistry: ISkillRegistry): ITool {
  */
 export function createLoadSkillTool(skillRegistry: ISkillRegistry): ITool {
   return tool({
-    title: 'Load Skill',
+    metadata: { title: 'Load Skill' },
     description:
       'Load a skill definition or a specific resource file bundled with a skill',
     inputSchema: z.object({

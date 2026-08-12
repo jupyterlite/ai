@@ -5,7 +5,7 @@ import type { IDocumentManager } from '@jupyterlab/docmanager';
 import type { IDocumentWidget } from '@jupyterlab/docregistry';
 import * as nbformat from '@jupyterlab/nbformat';
 import type { INotebookModel, Notebook } from '@jupyterlab/notebook';
-import type { UserContent, ImagePart, FilePart } from 'ai';
+import type { UserContent, FilePart } from 'ai';
 
 export async function processAttachments(
   attachments: IAttachment[],
@@ -16,7 +16,7 @@ export async function processAttachments(
   supportsAudio: boolean
 ): Promise<UserContent> {
   const textContents: string[] = [];
-  const includedParts: Array<ImagePart | FilePart> = [];
+  const includedParts: FilePart[] = [];
   const omittedNames: string[] = [];
 
   if (!documentManager) {
@@ -60,8 +60,8 @@ export async function processAttachments(
             );
             if (data) {
               includedParts.push({
-                type: 'image',
-                image: data,
+                type: 'file',
+                data,
                 mediaType: mimetype
               });
             }

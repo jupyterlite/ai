@@ -126,7 +126,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       const { text: completion } = await generateText({
         model: this._model,
         prompt: completionPrompt,
-        system: this.systemPrompt,
+        instructions: this.systemPrompt,
         temperature: providerConfig.temperature || 0.3
       });
 

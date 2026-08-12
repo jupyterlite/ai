@@ -471,22 +471,14 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyternaut/persona:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
-  requires: [IAISettingsModel],
   optional: [ISkillRegistry],
   provides: IToolRegistry,
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: IAISettingsModel,
-    skillRegistry?: ISkillRegistry
-  ) => {
+  activate: (app: JupyterFrontEnd, skillRegistry?: ISkillRegistry) => {
     const toolRegistry = new ToolRegistry();
 
     // Add command operation tools
     const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
-    const executeCommandTool = createExecuteCommandTool(
-      app.commands,
-      settingsModel
-    );
+    const executeCommandTool = createExecuteCommandTool(app.commands);
 
     toolRegistry.add('discover_commands', discoverCommandsTool);
     toolRegistry.add('execute_command', executeCommandTool);

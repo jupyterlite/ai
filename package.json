@@ -29,9 +29,9 @@
   },
   "devDependencies": {
     "@jupyter/eslint-plugin": "^0.0.5",
-    "@typescript-eslint/eslint-plugin": "^6.1.0",
-    "@typescript-eslint/parser": "^6.1.0",
-    "eslint": "^8.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^5.0.0",
     "prettier": "^3.0.0",
@@ -55,7 +55,8 @@
       ".venv",
       "webpack.config.js",
       "python/jupyterlite-ai/jupyterlite_ai",
-      "python/jupyternaut-persona/jupyternaut_persona"
+      "python/jupyternaut-persona/jupyternaut_persona",
+      "**/style/index.js"
     ],
     "extends": [
       "eslint:recommended",
@@ -91,10 +92,16 @@
           "args": "none"
         }
       ],
+      "@typescript-eslint/no-empty-object-type": [
+        "error",
+        {
+          "allowInterfaces": "with-single-extends"
+        }
+      ],
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-namespace": "off",
       "@typescript-eslint/no-use-before-define": "off",
-      "@typescript-eslint/quotes": [
+      "quotes": [
         "error",
         "single",
         {

@@ -61,7 +61,7 @@ test.describe('#commandsTool', () => {
     const toolCall = panel.locator('.jp-ai-tool-call-item > summary');
     await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
-    await expect(toolCall).toContainText('discover_commands', {
+    await expect(toolCall).toContainText('Discover Commands', {
       timeout: EXPECT_TIMEOUT
     });
     await expect(toolCall).toContainText('query: "notebook"', {
@@ -113,7 +113,7 @@ test.describe('#commandsTool', () => {
     const toolCall = panel.locator('.jp-ai-tool-call-item > summary');
     await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
-    await expect(toolCall).toContainText('discover_commands', {
+    await expect(toolCall).toContainText('Discover Commands', {
       timeout: EXPECT_TIMEOUT
     });
     await expect(toolCall).toContainText('query: "run notebook"', {
@@ -169,7 +169,7 @@ test.describe('#commandsTool', () => {
     await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Verify the tool was called
-    await expect(toolCall).toContainText('discover_commands', {
+    await expect(toolCall).toContainText('Discover Commands', {
       timeout: EXPECT_TIMEOUT
     });
 
@@ -227,7 +227,7 @@ test.describe('#commandsTool', () => {
     await expect(toolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
 
     // Verify the tool was called and the command name is displayed in the summary
-    await expect(toolCall).toContainText('execute_command', {
+    await expect(toolCall).toContainText('Execute Command', {
       timeout: EXPECT_TIMEOUT
     });
     await expect(toolCall).toContainText('notebook:create-new', {

@@ -251,7 +251,11 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
         {tools.map(namedTool => (
           <Tooltip
             key={namedTool.name}
-            title={namedTool.tool.description || namedTool.name}
+            title={
+              typeof namedTool.tool.description === 'string'
+                ? namedTool.tool.description
+                : namedTool.name
+            }
             placement="left"
           >
             <MenuItem

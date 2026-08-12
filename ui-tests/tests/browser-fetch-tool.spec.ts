@@ -56,7 +56,7 @@ test.describe('#browserFetchTool', () => {
 
     const browserFetchCall = panel
       .locator('.jp-ai-tool-call-item')
-      .filter({ hasText: 'browser_fetch' })
+      .filter({ hasText: 'Browser Fetch' })
       .first();
 
     await expect(browserFetchCall).toBeVisible({ timeout: EXPECT_TIMEOUT });
