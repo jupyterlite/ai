@@ -292,47 +292,49 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Sends a message to the AI and generates a response.
    * @param message The user message to send
    */
-  async sendMessage(message: INewMessage): Promise<void> {
+  async sendMessage(message: INewMessage): Promise<string | null> {
     const body =
       !!message.body && message.body.trim().length > 0 ? message.body : '';
-    const hasAttachments = this.input.attachments.length > 0;
-    if (!body && !hasAttachments) {
-      return;
+
+    if (!body && !message.mime_model && !message.attachments?.length) {
+      return null;
     }
 
     // Add user message to chat
-    const userMessage: IMessageContent = {
+    const msg: IMessageContent = {
       body,
-      sender: this.user || { username: 'user', display_name: 'User' },
+      sender:
+        message.sender ??
+        (this.user || { username: 'user', display_name: 'User' }),
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',
       raw_time: false,
-      attachments: [...this.input.attachments],
-      mentions: this.input.mentions
+      attachments: message.attachments,
+      mentions: message.mentions,
+      mime_model: message.mime_model
     };
 
     // Check if we have valid configuration
     if (!this.agentManager?.hasValidConfig()) {
-      this.messageAdded(userMessage);
-      return;
+      this.messageAdded(msg);
+      return null;
     }
 
-    if (this._persona?.isBusy) {
+    if (this._persona?.isBusy && !msg.sender.bot) {
       this._messageQueue.push({
         id: UUID.uuid4(),
         body,
-        _originalMsg: userMessage
+        _originalMsg: msg
       });
       this.input.clearAttachments();
       this.input.clearMentions();
       this._updateQueueUI();
-      return;
+      return null;
     }
 
-    this.messageAdded(userMessage);
-    this.input.clearAttachments();
-    this.input.clearMentions();
+    this.messageAdded(msg);
+    return msg.id;
   }
 
   /**
@@ -426,9 +428,8 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     }
 
     const next = this._messageQueue.shift()!;
-    next._originalMsg.time = Date.now() / 1000;
     this._updateQueueUI();
-    this.messageAdded(next._originalMsg);
+    this.sendMessage(next._originalMsg);
   }
 
   /**

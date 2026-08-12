@@ -1,10 +1,11 @@
 import {
   IAttachment,
   IMessage,
-  IMessageContent,
+  // IMessageContent,
   IMimeModelBody,
   IChatModel,
-  IUser
+  IUser,
+  INewMessage
 } from '@jupyter/chat';
 
 import * as nbformat from '@jupyterlab/nbformat';
@@ -25,7 +26,7 @@ import {
   modelSupportsPdf
 } from '@jupyternaut/agent';
 
-import { UUID } from '@lumino/coreutils';
+// import { UUID } from '@lumino/coreutils';
 
 import type { IObservableDisposable } from '@lumino/disposable';
 
@@ -359,43 +360,44 @@ export class Persona implements IPersona {
     }
   }
 
-  private _handleMessageStart(
+  private async _handleMessageStart(
     event: IAgentManager.IAgentEvent<'message_start'>
-  ): void {
-    const message: IMessageContent = {
+  ): Promise<void> {
+    const message: INewMessage = {
       body: '',
-      sender: this._persona,
-      id: event.data.messageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
+      sender: this._persona
     };
-    this._model.messageAdded(message);
-    this._streamingMessage =
-      this._model.messages.find(m => m.id === event.data.messageId) ?? null;
+    const msgId = await this._model.sendMessage(message);
+    const streamingMessage =
+      this._model.messages.find(m => m.id === msgId) ?? null;
+
+    if (streamingMessage) {
+      this._streamingMessage.set(event.data.messageId, streamingMessage);
+    }
   }
 
   private _handleMessageChunk(
     event: IAgentManager.IAgentEvent<'message_chunk'>
   ): void {
-    if (this._streamingMessage?.id === event.data.messageId) {
-      this._streamingMessage.update({ body: event.data.fullContent });
+    const streamingMessage = this._streamingMessage.get(event.data.messageId);
+    if (streamingMessage) {
+      streamingMessage.update({ body: event.data.fullContent });
     }
   }
 
   private _handleMessageComplete(
     event: IAgentManager.IAgentEvent<'message_complete'>
   ): void {
-    if (this._streamingMessage?.id === event.data.messageId) {
-      this._streamingMessage.update({ body: event.data.content });
-      this._streamingMessage = null;
+    const streamingMessage = this._streamingMessage.get(event.data.messageId);
+    if (streamingMessage) {
+      streamingMessage.update({ body: event.data.content });
+      this._streamingMessage.delete(event.data.messageId);
     }
   }
 
-  private _handleToolCallStart(
+  private async _handleToolCallStart(
     event: IAgentManager.IAgentEvent<'tool_call_start'>
-  ): void {
-    const messageId = UUID.uuid4();
+  ): Promise<void> {
     const summary = extractToolSummary(event.data.toolName, event.data.input);
     const shouldAutoRenderMimeBundles =
       this._computeShouldAutoRenderMimeBundles(
@@ -404,7 +406,7 @@ export class Persona implements IPersona {
       );
     const context: IToolExecutionContext = {
       toolCallId: event.data.callId,
-      messageId,
+      messageId: '',
       toolName: event.data.toolName,
       title: event.data.title,
       input: event.data.input,
@@ -412,10 +414,9 @@ export class Persona implements IPersona {
       summary,
       shouldAutoRenderMimeBundles
     };
-    this._toolContexts.set(event.data.callId, context);
 
     const displayName = context.title ?? context.toolName;
-    this._model.messageAdded({
+    const messageId = await this._model.sendMessage({
       body: '',
       mime_model: {
         data: {
@@ -435,12 +436,13 @@ export class Persona implements IPersona {
           ]
         }
       },
-      sender: this._persona,
-      id: messageId,
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
+      sender: this._persona
     });
+
+    if (messageId) {
+      context.messageId = messageId;
+      this._toolContexts.set(event.data.callId, context);
+    }
   }
 
   private _handleToolCallComplete(
@@ -462,14 +464,10 @@ export class Persona implements IPersona {
         event.data.outputData,
         trustedMimeTypes
       )) {
-        this._model.messageAdded({
+        this._model.sendMessage({
           body: '',
           mime_model: bundle,
-          sender: this._persona,
-          id: UUID.uuid4(),
-          time: Date.now() / 1000,
-          type: 'msg',
-          raw_time: false
+          sender: this._persona
         });
       }
     }
@@ -523,7 +521,7 @@ export class Persona implements IPersona {
   }
 
   private _handleError(event: IAgentManager.IAgentEvent<'error'>): void {
-    this._model.messageAdded({
+    this._model.sendMessage({
       body: '',
       mime_model: {
         data: { 'application/vnd.jupyter.chat.components': 'error' },
@@ -531,11 +529,7 @@ export class Persona implements IPersona {
           errorMessage: `Error generating response: ${event.data.error.message}`
         }
       },
-      sender: this._persona,
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
+      sender: this._persona
     });
   }
 
@@ -603,7 +597,7 @@ export class Persona implements IPersona {
   private _currentModelKey: string | undefined;
   private _busy = false;
   private _busyChanged = new Signal<IPersona, boolean>(this);
-  private _streamingMessage: IMessage | null = null;
+  private _streamingMessage = new Map<string, IMessage>();
   private _toolContexts = new Map<string, IToolExecutionContext>();
 }
 
