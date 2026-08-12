@@ -17,6 +17,7 @@ import {
   type AssistantModelMessage,
   APICallError
 } from 'ai';
+import { IMcpManager } from 'jupyter-mcp-manager';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
@@ -88,6 +89,10 @@ export namespace AgentManagerFactory {
      */
     skillRegistry?: ISkillRegistry;
     /**
+     * The MCP servers manager.
+     */
+    mcpManager?: IMcpManager;
+    /**
      * The secrets manager.
      */
     secretsManager?: ISecretsManager;
@@ -106,6 +111,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
     this._skillRegistry = options.skillRegistry;
+    this._mcpManager = options.mcpManager;
     this._secretsManager = options.secretsManager;
     this._mcpClients = [];
     this._mcpConnectionChanged = new Signal<this, boolean>(this);
@@ -123,6 +129,9 @@ export class AgentManagerFactory implements IAgentManagerFactory {
 
     // Listen for settings changes
     this._settingsModel.stateChanged.connect(this._onSettingsChanged, this);
+
+    // Listen for MCP servers changes
+    this._mcpManager?.serversChanged.connect(this._onSettingsChanged, this);
 
     // Disable the secrets manager if the token is empty.
     if (!options.token) {
@@ -208,8 +217,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
    * Closes existing clients and connects to enabled servers from configuration.
    */
   private async _initializeMCPClients(): Promise<void> {
-    const config = this._settingsModel.config;
-    const enabledServers = config.mcpServers.filter(server => server.enabled);
+    const servers = this._mcpManager?.getMCPServers() ?? [];
     let connectionChanged = false;
 
     // Close existing clients
@@ -223,7 +231,10 @@ export class AgentManagerFactory implements IAgentManagerFactory {
     }
     this._mcpClients = [];
 
-    for (const serverConfig of enabledServers) {
+    for (const serverConfig of servers) {
+      if (serverConfig.type !== 'http') {
+        continue;
+      }
       try {
         const client = await createMCPClient({
           transport: {
@@ -266,7 +277,6 @@ export class AgentManagerFactory implements IAgentManagerFactory {
         try {
           await this._initializeMCPClients();
           const mcpTools = await this.getMCPTools();
-
           this._agentManagers.forEach(manager => {
             manager.initializeAgent(mcpTools);
           });
@@ -290,6 +300,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
   private _settingsModel: IAISettingsModel;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
+  private _mcpManager?: IMcpManager;
   private _mcpClients: IMCPClientWrapper[];
   private _mcpConnectionChanged: Signal<this, boolean>;
   private _initQueue: Promise<void> = Promise.resolve();

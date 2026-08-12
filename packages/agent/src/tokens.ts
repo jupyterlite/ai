@@ -346,14 +346,6 @@ export interface IProviderConfig {
   [key: string]: any; // Index signature for settings compatibility
 }
 
-export interface IMCPServerConfig {
-  id: string;
-  name: string;
-  url: string;
-  enabled: boolean;
-  [key: string]: any; // Index signature for settings compatibility
-}
-
 export interface IAIConfig {
   // Whether to use the secrets manager
   useSecretsManager: boolean;
@@ -364,8 +356,6 @@ export interface IAIConfig {
   activeCompleterProvider?: string; // Provider for completions (if different)
   // When true, use the same provider for chat and completions
   useSameProviderForChatAndCompleter: boolean;
-  // MCP servers configuration
-  mcpServers: IMCPServerConfig[];
   // Global settings
   contextAwareness: boolean;
   codeExecution: boolean;
@@ -402,14 +392,6 @@ export interface IAISettingsModel extends VDomRenderer.IModel {
   updateProvider(id: string, updates: Partial<IProviderConfig>): Promise<void>;
   setActiveProvider(id: string): Promise<void>;
   setActiveCompleterProvider(id: string | undefined): Promise<void>;
-  readonly mcpServers: IMCPServerConfig[];
-  getMCPServer(id: string): IMCPServerConfig | undefined;
-  addMCPServer(serverConfig: Omit<IMCPServerConfig, 'id'>): Promise<string>;
-  removeMCPServer(id: string): Promise<void>;
-  updateMCPServer(
-    id: string,
-    updates: Partial<IMCPServerConfig>
-  ): Promise<void>;
   /**
    * Get the API key saved in the settings file for a given provider.
    *

@@ -190,23 +190,6 @@
       "type": "boolean",
       "default": true
     },
-    "mcpServers": {
-      "title": "MCP Servers",
-      "description": "Model Context Protocol servers configuration",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "url": { "type": "string" },
-          "enabled": { "type": "boolean" }
-        },
-        "required": ["id", "name", "url", "enabled"],
-        "additionalProperties": true
-      },
-      "default": []
-    },
     "contextAwareness": {
       "title": "Context Awareness",
       "description": "Enable context-aware responses",

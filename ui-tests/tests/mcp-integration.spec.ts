@@ -24,15 +24,18 @@ test.use({
       ],
       toolsEnabled: true,
       // To nudge the (relatively small) model to call the tools
-      systemPrompt: 'Just call the tools you are asked to call',
-      mcpServers: [
-        {
-          id: 'test-mcp-server',
-          name: 'Test MCP Server',
-          url: MCP_SERVER_URL,
-          enabled: true
-        }
-      ]
+      systemPrompt: 'Just call the tools you are asked to call'
+    },
+    'jupyter-mcp-manager:manager': {
+      mcpSettings: {
+        mcp_servers: [
+          {
+            name: 'Test MCP Server',
+            type: 'http',
+            url: MCP_SERVER_URL
+          }
+        ]
+      }
     }
   }
 });
@@ -67,25 +70,5 @@ test.describe('#mcpIntegration', () => {
     ).toHaveCount(1, { timeout: 60000 });
     await expect(toolCall).toContainText('process_data');
     await expect(toolCall).toContainText('Processed: hello world');
-  });
-
-  test('should show MCP server as Connected in AI Settings', async ({
-    page
-  }) => {
-    const panel = await openChatPanel(page);
-
-    const settingsButton = panel.getByTitle('Open AI Settings');
-    await settingsButton.click();
-
-    const settingsPanel = page.locator('#jupyternaut-persona-settings');
-    await expect(settingsPanel).toBeVisible();
-
-    const mcpServersTab = settingsPanel.getByRole('tab', {
-      name: /MCP Servers/i
-    });
-    await mcpServersTab.click();
-
-    await expect(settingsPanel.locator('text=Test MCP Server')).toBeVisible();
-    await expect(settingsPanel.locator('text=Status: Connected')).toBeVisible();
   });
 });

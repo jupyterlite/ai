@@ -12,7 +12,6 @@ export const FUNCTIONGEMMA_MODEL_NAME = 'Functiongemma';
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
   '@jupyternaut/persona:settings-model': {
     defaultProvider: 'generic-qwen',
-    mcpServers: [],
     providers: [
       {
         id: 'generic-qwen',

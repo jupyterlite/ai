@@ -1,7 +1,6 @@
 import type {
   IAIConfig,
   IAISettingsModel,
-  IMCPServerConfig,
   IProviderConfig
 } from '@jupyternaut/agent';
 import { VDomModel } from '@jupyterlab/ui-components';
@@ -16,7 +15,6 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     defaultProvider: '',
     activeCompleterProvider: undefined,
     useSameProviderForChatAndCompleter: true,
-    mcpServers: [],
     contextAwareness: true,
     codeExecution: false,
     toolsEnabled: true,
@@ -350,53 +348,6 @@ Rules:
       'activeCompleterProvider',
       this._config.activeCompleterProvider
     );
-  }
-
-  get mcpServers(): IMCPServerConfig[] {
-    return [...this._config.mcpServers];
-  }
-
-  getMCPServer(id: string): IMCPServerConfig | undefined {
-    return this._config.mcpServers.find(s => s.id === id);
-  }
-
-  async addMCPServer(
-    serverConfig: Omit<IMCPServerConfig, 'id'>
-  ): Promise<string> {
-    const id = `mcp-${Date.now()}`;
-    const newServer: IMCPServerConfig = {
-      id,
-      name: serverConfig.name,
-      url: serverConfig.url,
-      enabled: serverConfig.enabled
-    };
-
-    this._config.mcpServers.push(newServer);
-    await this._saveSetting('mcpServers', this._config.mcpServers);
-    return id;
-  }
-
-  async removeMCPServer(id: string): Promise<void> {
-    const index = this._config.mcpServers.findIndex(s => s.id === id);
-    if (index === -1) {
-      return;
-    }
-
-    this._config.mcpServers.splice(index, 1);
-    await this._saveSetting('mcpServers', this._config.mcpServers);
-  }
-
-  async updateMCPServer(
-    id: string,
-    updates: Partial<IMCPServerConfig>
-  ): Promise<void> {
-    const server = this.getMCPServer(id);
-    if (!server) {
-      return;
-    }
-
-    Object.assign(server, updates);
-    await this._saveSetting('mcpServers', this._config.mcpServers);
   }
 
   async updateConfig(updates: Partial<IAIConfig>): Promise<void> {
