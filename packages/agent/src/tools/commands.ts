@@ -95,7 +95,7 @@ function searchCommands(
  */
 export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
   return tool({
-    title: 'Discover Commands',
+    metadata: { title: 'Discover Commands' },
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
@@ -143,15 +143,30 @@ export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
 }
 
 /**
- * Create a tool to execute a specific JupyterLab command.
+ * Create the approval policy for the execute command tool, to be used with the
+ * `toolApproval` option of a `generateText`/`streamText` call or agent.
  * Commands in the settings' commandsRequiringApproval list will need approval.
  */
-export function createExecuteCommandTool(
-  commands: CommandRegistry,
+export function createExecuteCommandApprovalPolicy(
   settingsModel: IAISettingsModel
-): ITool {
+): (input: { commandId: string; args?: any }) => 'user-approval' | undefined {
+  return input => {
+    const commandsRequiringApproval =
+      settingsModel.config.commandsRequiringApproval || [];
+    return commandsRequiringApproval.includes(input.commandId)
+      ? 'user-approval'
+      : undefined;
+  };
+}
+
+/**
+ * Create a tool to execute a specific JupyterLab command.
+ * Approval for commands in the settings' commandsRequiringApproval list is
+ * handled at the agent level via `createExecuteCommandApprovalPolicy`.
+ */
+export function createExecuteCommandTool(commands: CommandRegistry): ITool {
   return tool({
-    title: 'Execute Command',
+    metadata: { title: 'Execute Command' },
     description:
       'Execute a specific JupyterLab command with optional arguments',
     inputSchema: z.object({
@@ -163,11 +178,6 @@ export function createExecuteCommandTool(
           'Optional arguments object to pass to the command (must be an object, not a string)'
         )
     }),
-    needsApproval: (input: { commandId: string; args?: any }) => {
-      const commandsRequiringApproval =
-        settingsModel.config.commandsRequiringApproval || [];
-      return commandsRequiringApproval.includes(input.commandId);
-    },
     execute: async (input: { commandId: string; args?: any }) => {
       const { commandId, args } = input;
 

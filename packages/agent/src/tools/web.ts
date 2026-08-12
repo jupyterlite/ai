@@ -105,7 +105,7 @@ async function readResponseText(
  */
 export function createBrowserFetchTool(): ITool {
   return tool({
-    title: 'Browser Fetch',
+    metadata: { title: 'Browser Fetch' },
     description:
       'Fetch a URL directly from the browser using HTTP GET for exact URL inspection when CORS/access permits.',
     inputSchema: z.object({

@@ -532,10 +532,11 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
           if (!agent) {
             return;
           }
-          const isApproved = optionId === 'approve';
-          isApproved
-            ? agent.approveToolCall(toolCallId)
-            : agent.rejectToolCall(toolCallId);
+          if (optionId === 'approve') {
+            agent.approveToolCall(toolCallId);
+          } else {
+            agent.rejectToolCall(toolCallId);
+          }
         }
       };
 

@@ -110,7 +110,7 @@ test.describe('#mimeBundles', () => {
       .locator('.jp-ai-tool-call-item')
       .filter({ hasText: TEST_MIME_BUNDLE_COMMAND_ID });
     await expect(executeToolCall).toHaveCount(1, { timeout: EXPECT_TIMEOUT });
-    await expect(executeToolCall).toContainText('execute_command', {
+    await expect(executeToolCall).toContainText('Execute Command', {
       timeout: EXPECT_TIMEOUT
     });
 
