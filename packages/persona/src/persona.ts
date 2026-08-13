@@ -1,7 +1,6 @@
 import {
   IAttachment,
   IMessage,
-  // IMessageContent,
   IMimeModelBody,
   IChatModel,
   IUser,
@@ -25,8 +24,6 @@ import {
   modelSupportsImages,
   modelSupportsPdf
 } from '@jupyternaut/agent';
-
-// import { UUID } from '@lumino/coreutils';
 
 import type { IObservableDisposable } from '@lumino/disposable';
 

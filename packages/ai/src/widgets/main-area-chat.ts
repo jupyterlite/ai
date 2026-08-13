@@ -1,8 +1,6 @@
 import { ChatArea, ChatWidget, IChatModel, IChatPanel } from '@jupyter/chat';
 import { MainAreaWidget } from '@jupyterlab/apputils';
 
-// import { SaveComponentWidget } from '../components/save-button';
-// import { UsageWidget } from '../components/usage-display';
 import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { ChatToolbarFactory, IAIChatModel } from '../tokens';
 
