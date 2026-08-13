@@ -30,7 +30,7 @@ test.describe('#withoutModel', () => {
 
   test('should not create a chat if there is no provider', async ({ page }) => {
     const panel = await openChatPanel(page);
-    await panel.getByTitle('Create a new chat').click();
+    await panel.getByTitle('Create a new chat').first().click();
 
     // Should open an error dialog
     await expect(page.locator('.jp-Dialog')).toBeVisible();
