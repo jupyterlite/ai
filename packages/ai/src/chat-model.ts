@@ -296,7 +296,12 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const body =
       !!message.body && message.body.trim().length > 0 ? message.body : '';
 
-    if (!body && !message.mime_model && !message.attachments?.length) {
+    if (
+      !body &&
+      !message.mime_model &&
+      !message.attachments?.length &&
+      !message.sender?.bot
+    ) {
       return null;
     }
 
@@ -309,11 +314,20 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',
-      raw_time: false,
-      attachments: message.attachments,
-      mentions: message.mentions,
-      mime_model: message.mime_model
+      raw_time: false
     };
+
+    if (message.attachments?.length) {
+      msg.attachments = message.attachments;
+    }
+
+    if (message.mime_model) {
+      msg.mime_model = message.mime_model;
+    }
+
+    if (message.mentions?.length) {
+      msg.mentions = message.mentions;
+    }
 
     // Check if we have valid configuration
     if (!this.agentManager?.hasValidConfig()) {
@@ -327,8 +341,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         body,
         _originalMsg: msg
       });
-      this.input.clearAttachments();
-      this.input.clearMentions();
       this._updateQueueUI();
       return null;
     }
@@ -409,7 +421,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const queueMessage: IMessageContent = {
       body: '',
       mime_model: queueBody,
-      sender: { username: 'system', display_name: '' },
+      sender: { username: 'system', display_name: '', bot: true },
       id: this._queueMessageId,
       time: Date.now() / 1000,
       type: 'msg',
