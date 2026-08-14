@@ -1,5 +1,12 @@
 import type { IAgentManager, ITokenUsage } from '@jupyternaut/agent';
-import { ActiveCellManager, IChatModel, IMessage } from '@jupyter/chat';
+import {
+  ActiveCellManager,
+  IChatModel,
+  IChatPanel,
+  IMessage
+} from '@jupyter/chat';
+import { ToolbarRegistry } from '@jupyterlab/apputils';
+import { IObservableList } from '@jupyterlab/observables';
 import { Token } from '@lumino/coreutils';
 import { ISignal } from '@lumino/signaling';
 
@@ -136,4 +143,20 @@ export interface ICreateChatOptions {
  */
 export const IChatModelHandler = new Token<IChatModelHandler>(
   '@jupyterlite/ai:IChatModelHandler'
+);
+
+/**
+ * The type for the chat toolbar factory.
+ * Given a chat panel, returns an observable list of toolbar items.
+ */
+export type ChatToolbarFactory = (
+  panel: IChatPanel
+) => IObservableList<ToolbarRegistry.IToolbarItem>;
+
+/**
+ * The token providing the chat toolbar factory, shared by the main area
+ * and side panel so that toolbar items are registered only once.
+ */
+export const IChatToolbarFactory = new Token<ChatToolbarFactory>(
+  '@jupyterlite/ai:IChatToolbarFactory'
 );

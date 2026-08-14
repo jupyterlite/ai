@@ -76,8 +76,10 @@ export class SaveComponentWidget extends ReactWidget {
     this._options = options;
   }
 
-  protected render(): React.ReactElement {
-    return <SaveComponent {...this._options} />;
+  protected render(): React.ReactElement | null {
+    return this._options.model.saveAvailable ? (
+      <SaveComponent {...this._options} />
+    ) : null;
   }
 
   private _options: ISaveButtonProps;

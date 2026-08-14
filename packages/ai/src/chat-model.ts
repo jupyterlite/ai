@@ -292,46 +292,61 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Sends a message to the AI and generates a response.
    * @param message The user message to send
    */
-  async sendMessage(message: INewMessage): Promise<void> {
-    const hasBody = message.body.trim().length > 0;
-    const hasAttachments = this.input.attachments.length > 0;
-    if (!hasBody && !hasAttachments) {
-      return;
+  async sendMessage(message: INewMessage): Promise<string | null> {
+    const body =
+      !!message.body && message.body.trim().length > 0 ? message.body : '';
+
+    if (
+      !body &&
+      !message.mime_model &&
+      !message.attachments?.length &&
+      !message.sender?.bot
+    ) {
+      return null;
     }
 
     // Add user message to chat
-    const userMessage: IMessageContent = {
-      body: message.body,
-      sender: this.user || { username: 'user', display_name: 'User' },
+    const msg: IMessageContent = {
+      body,
+      sender:
+        message.sender ??
+        (this.user || { username: 'user', display_name: 'User' }),
       id: UUID.uuid4(),
       time: Date.now() / 1000,
       type: 'msg',
-      raw_time: false,
-      attachments: [...this.input.attachments],
-      mentions: this.input.mentions
+      raw_time: false
     };
+
+    if (message.attachments?.length) {
+      msg.attachments = message.attachments;
+    }
+
+    if (message.mime_model) {
+      msg.mime_model = message.mime_model;
+    }
+
+    if (message.mentions?.length) {
+      msg.mentions = message.mentions;
+    }
 
     // Check if we have valid configuration
     if (!this.agentManager?.hasValidConfig()) {
-      this.messageAdded(userMessage);
-      return;
+      this.messageAdded(msg);
+      return null;
     }
 
-    if (this._persona?.isBusy) {
+    if (this._persona?.isBusy && !msg.sender.bot) {
       this._messageQueue.push({
         id: UUID.uuid4(),
-        body: message.body,
-        _originalMsg: userMessage
+        body,
+        _originalMsg: msg
       });
-      this.input.clearAttachments();
-      this.input.clearMentions();
       this._updateQueueUI();
-      return;
+      return null;
     }
 
-    this.messageAdded(userMessage);
-    this.input.clearAttachments();
-    this.input.clearMentions();
+    this.messageAdded(msg);
+    return msg.id;
   }
 
   /**
@@ -406,7 +421,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     const queueMessage: IMessageContent = {
       body: '',
       mime_model: queueBody,
-      sender: { username: 'system', display_name: '' },
+      sender: { username: 'system', display_name: '', bot: true },
       id: this._queueMessageId,
       time: Date.now() / 1000,
       type: 'msg',
@@ -425,9 +440,8 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     }
 
     const next = this._messageQueue.shift()!;
-    next._originalMsg.time = Date.now() / 1000;
     this._updateQueueUI();
-    this.messageAdded(next._originalMsg);
+    this.sendMessage(next._originalMsg);
   }
 
   /**
