@@ -25,8 +25,6 @@ import {
   modelSupportsPdf
 } from '@jupyternaut/agent';
 
-import type { IObservableDisposable } from '@lumino/disposable';
-
 import { ISignal, Signal } from '@lumino/signaling';
 
 import type { ModelMessage, UserContent } from 'ai';
@@ -34,6 +32,9 @@ import type { ModelMessage, UserContent } from 'ai';
 import { processAttachments } from './process-attachments';
 
 import type { IPersona } from './tokens';
+
+const JUPYTER_AI_PERSONA =
+  'jupyter-ai-personas::jupyternaut_persona::JupyternautPersona';
 
 type ToolStatus =
   | 'pending'
@@ -173,20 +174,21 @@ export class Persona implements IPersona {
     this._providerRegistry = options.providerRegistry;
     this._documentManager = options.documentManager;
 
-    for (const message of options.model.messages) {
-      this._respondedToIds.add(message.id);
-    }
-
     this._agent.agentEvent.connect(this._onAgentEvent, this);
     this._agent.activeProviderChanged.connect(
       this._onActiveProviderChanged,
       this
     );
-    this._model.messagesUpdated.connect(this._onMessagesUpdated, this);
-    (this._model as unknown as IObservableDisposable).disposed.connect(
-      this.dispose,
-      this
-    );
+
+    // Wait for the chat to be ready before connect to message update.
+    this._model.ready.then(() => {
+      for (const message of this._model.messages) {
+        this._respondedToIds.add(message.id);
+      }
+      this._model.messagesUpdated.connect(this._onMessagesUpdated, this);
+    });
+
+    this._model.disposed.connect(this.dispose, this);
   }
 
   dispose(): void {
@@ -219,7 +221,9 @@ export class Persona implements IPersona {
       m =>
         !this._respondedToIds.has(m.id) &&
         !m.sender.bot &&
-        (!this.requireMention || m.mentions?.includes(this._persona))
+        (!this.requireMention ||
+          m.mentions?.includes(this._persona) ||
+          (m.metadata as any)?.to_persona === JUPYTER_AI_PERSONA)
     );
 
     for (const message of unhandled) {
@@ -378,7 +382,18 @@ export class Persona implements IPersona {
   ): void {
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
-      streamingMessage.update({ body: event.data.fullContent });
+      if (!this._model.updateMessage) {
+        streamingMessage.update({ body: event.data.fullContent });
+      } else {
+        this._model.updateMessage(
+          streamingMessage.id,
+          {
+            ...streamingMessage,
+            body: event.data.fullContent
+          },
+          true
+        );
+      }
     }
   }
 
@@ -387,7 +402,19 @@ export class Persona implements IPersona {
   ): void {
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
-      streamingMessage.update({ body: event.data.content });
+      if (!this._model.updateMessage) {
+        streamingMessage.update({ body: event.data.content });
+      } else {
+        this._model.updateMessage(
+          streamingMessage.id,
+          {
+            ...streamingMessage,
+            body: event.data.content
+          },
+          true
+        );
+      }
+
       this._streamingMessage.delete(event.data.messageId);
     }
   }
@@ -545,36 +572,46 @@ export class Persona implements IPersona {
     }
     context.status = status;
     const displayName = context.title ?? context.toolName;
-    message.update({
-      mime_model: {
-        data: {
-          'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
-        },
-        metadata: {
-          toolCalls: [
-            {
-              toolCallId: context.toolCallId,
-              title: context.summary
-                ? `${displayName} : ${context.summary}`
-                : displayName,
-              kind: context.toolName,
-              status: context.status,
-              rawInput: context.input,
-              rawOutput: output,
-              sessionId: this._model.name,
-              permissionStatus:
-                status === 'awaiting_approval' ? 'pending' : 'resolved',
-              ...(status === 'awaiting_approval' && {
-                permissionOptions: [
-                  { optionId: 'approve', name: 'Approve', kind: 'allow_once' },
-                  { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
-                ]
-              })
-            }
-          ]
-        }
+    const mime_model = {
+      data: {
+        'application/vnd.jupyter.chat.components': 'grouped-tool-calls'
+      },
+      metadata: {
+        toolCalls: [
+          {
+            toolCallId: context.toolCallId,
+            title: context.summary
+              ? `${displayName} : ${context.summary}`
+              : displayName,
+            kind: context.toolName,
+            status: context.status,
+            rawInput: context.input,
+            rawOutput: output,
+            sessionId: this._model.name,
+            permissionStatus:
+              status === 'awaiting_approval' ? 'pending' : 'resolved',
+            ...(status === 'awaiting_approval' && {
+              permissionOptions: [
+                { optionId: 'approve', name: 'Approve', kind: 'allow_once' },
+                { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
+              ]
+            })
+          }
+        ]
       }
-    });
+    };
+    if (!this._model.updateMessage) {
+      message.update({ mime_model });
+    } else {
+      this._model.updateMessage(
+        message.id,
+        {
+          ...message,
+          mime_model
+        },
+        true
+      );
+    }
   }
 
   /**
