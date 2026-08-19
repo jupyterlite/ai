@@ -1,7 +1,6 @@
 import { ChatArea, ChatWidget, IChatModel, IChatPanel } from '@jupyter/chat';
 import { MainAreaWidget } from '@jupyterlab/apputils';
 
-import { RenderedMessageOutputAreaCompat } from '../rendered-message-outputarea';
 import { ChatToolbarFactory, IAIChatModel } from '../tokens';
 
 export namespace MainAreaChat {
@@ -44,12 +43,6 @@ export class MainAreaChat
       });
     }
 
-    // Temporary compat: keep output-area CSS context for MIME renderers
-    // until jupyter-chat provides it natively.
-    this._outputAreaCompat = new RenderedMessageOutputAreaCompat({
-      chatPanel: this
-    });
-
     this.model.writersChanged?.connect(this._writersChanged);
 
     this.model.titleChanged.connect(this._titleChanged);
@@ -58,7 +51,6 @@ export class MainAreaChat
   dispose(): void {
     super.dispose();
     // Dispose of the approval buttons widget when the chat is disposed.
-    this._outputAreaCompat.dispose();
     this.model.writersChanged?.disconnect(this._writersChanged);
     this.model.titleChanged.disconnect(this._titleChanged);
   }
@@ -98,6 +90,4 @@ export class MainAreaChat
   private _titleChanged = () => {
     this.title.caption = this.model.title ?? this.model.name;
   };
-
-  private _outputAreaCompat: RenderedMessageOutputAreaCompat;
 }

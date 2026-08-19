@@ -79,8 +79,6 @@ import {
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
-import { RenderedMessageOutputAreaCompat } from './rendered-message-outputarea';
-
 import { ClearCommandProvider } from './chat-commands/clear';
 
 import { SkillsCommandProvider } from './chat-commands/skills';
@@ -482,20 +480,11 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
 
       model.writersChanged?.connect(writersChanged);
 
-      // Temporary compat: keep output-area CSS context for MIME renderers
-      // until jupyter-chat provides it natively.
-      const outputAreaCompat = new RenderedMessageOutputAreaCompat({
-        chatPanel: panel
-      });
-
       panel.disposed.connect(() => {
         model.titleChanged.disconnect(updateToolbarTitleOverlay);
         model.nameChanged.disconnect(saveTracker);
         model.agentManager?.activeProviderChanged.disconnect(saveTracker);
         model.writersChanged?.disconnect(writersChanged);
-
-        // Dispose of the approval buttons widget when the chat is disposed.
-        outputAreaCompat.dispose();
       });
     });
 

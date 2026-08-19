@@ -2327,9 +2327,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/chat@npm:^0.24.0":
-  version: 0.24.0
-  resolution: "@jupyter/chat@npm:0.24.0"
+"@jupyter/chat@npm:^0.24.1":
+  version: 0.24.1
+  resolution: "@jupyter/chat@npm:0.24.1"
   dependencies:
     "@emotion/react": ^11.10.5
     "@emotion/styled": ^11.10.5
@@ -2360,7 +2360,7 @@ __metadata:
     clsx: ^2.1.0
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: 679d0429b2b993321712f8024c19cf817cca0f23f916047d10e7fe517f1cd09ea68dac3b34fdbf1443978be25712314530495ed392306f5263f9e71ca8f1c9ba
+  checksum: 65c8967cd319b1ce8130c6662cfb825a5e601e04db51ca5bb8c8fb8c36bf050c47c0b8b8737f2da3794b0e4d88507d03419bf89500c0f4910a4cb5742d8c8672
   languageName: node
   linkType: hard
 
@@ -3140,7 +3140,7 @@ __metadata:
   resolution: "@jupyterlite/ai@workspace:packages/ai"
   dependencies:
     "@jupyter/builder": ^1.0.2
-    "@jupyter/chat": ^0.24.0
+    "@jupyter/chat": ^0.24.1
     "@jupyterlab/application": ^4.5.8
     "@jupyterlab/apputils": ^4.6.8
     "@jupyterlab/coreutils": ^6.5.8
@@ -3214,7 +3214,7 @@ __metadata:
   resolution: "@jupyternaut/persona@workspace:packages/persona"
   dependencies:
     "@jupyter/builder": ^1.0.2
-    "@jupyter/chat": ^0.24.0
+    "@jupyter/chat": ^0.24.1
     "@jupyter/ydoc": ^4.0.0
     "@jupyterlab/application": ^4.5.8
     "@jupyterlab/apputils": ^4.6.8
