@@ -395,8 +395,7 @@ const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
       return model ? personaRegistry.get(model) : undefined;
     };
 
-    chatComponentsFactory.groupedToolCallCallbacks = {
-      ...chatComponentsFactory.groupedToolCallCallbacks,
+    chatComponentsFactory?.addCallbacks({
       toolCallPermissionDecision: (
         sessionId: string,
         toolCallId: string,
@@ -412,7 +411,7 @@ const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
           agent.rejectToolCall(toolCallId);
         }
       }
-    };
+    });
   }
 };
 

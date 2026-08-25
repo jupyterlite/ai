@@ -517,25 +517,22 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
         | undefined;
     };
 
-    if (chatComponentsFactory) {
-      chatComponentsFactory.queueMessageCallbacks = {
-        ...chatComponentsFactory.queueMessageCallbacks,
-        removeQueuedMessage: (targetId: string, messageId: string) => {
-          findModel(targetId)?.removeQueuedMessage(messageId);
-        },
-        reorderQueuedMessages: (targetId: string, messageIds: string[]) => {
-          findModel(targetId)?.reorderQueuedMessages(messageIds);
-        },
-        editQueuedMessage: (
-          targetId: string,
-          messageId: string,
-          newBody: string
-        ) => {
-          findModel(targetId)?.editQueuedMessage(messageId, newBody);
-        }
-      };
-    }
-
+    // Add callbacks handled by the chat components.
+    chatComponentsFactory?.addCallbacks({
+      removeQueuedMessage: (targetId: string, messageId: string) => {
+        findModel(targetId)?.removeQueuedMessage(messageId);
+      },
+      reorderQueuedMessages: (targetId: string, messageIds: string[]) => {
+        findModel(targetId)?.reorderQueuedMessages(messageIds);
+      },
+      editQueuedMessage: (
+        targetId: string,
+        messageId: string,
+        newBody: string
+      ) => {
+        findModel(targetId)?.editQueuedMessage(messageId, newBody);
+      }
+    });
     return tracker;
   }
 };
