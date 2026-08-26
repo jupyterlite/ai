@@ -25,8 +25,6 @@ import {
   modelSupportsPdf
 } from '@jupyternaut/agent';
 
-import { UUID } from '@lumino/coreutils';
-
 import { ISignal, Signal } from '@lumino/signaling';
 
 import type { ModelMessage, UserContent } from 'ai';
@@ -604,13 +602,9 @@ export class Persona implements IPersona {
   }
 
   sendSystemMessage(body: string): void {
-    this._model.messageAdded({
+    this._model.sendMessage({
       body,
-      sender: this._persona,
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
+      sender: this._persona
     });
   }
 
