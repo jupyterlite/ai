@@ -229,7 +229,6 @@ export class Persona implements IPersona {
     for (const message of unhandled) {
       this._respondedToIds.add(message.id);
     }
-
     for (const message of unhandled) {
       const personaMention = `@${this._persona.mention_name}`;
       const body = message.body.replace(personaMention, '').trim();
@@ -385,14 +384,10 @@ export class Persona implements IPersona {
       if (!this._model.updateMessage) {
         streamingMessage.update({ body: event.data.fullContent });
       } else {
-        this._model.updateMessage(
-          streamingMessage.id,
-          {
-            ...streamingMessage,
-            body: event.data.fullContent
-          },
-          true
-        );
+        this._model.updateMessage(streamingMessage.id, {
+          ...streamingMessage.content,
+          body: event.data.fullContent
+        });
       }
     }
   }
@@ -405,14 +400,10 @@ export class Persona implements IPersona {
       if (!this._model.updateMessage) {
         streamingMessage.update({ body: event.data.content });
       } else {
-        this._model.updateMessage(
-          streamingMessage.id,
-          {
-            ...streamingMessage,
-            body: event.data.content
-          },
-          true
-        );
+        this._model.updateMessage(streamingMessage.id, {
+          ...streamingMessage.content,
+          body: event.data.content
+        });
       }
 
       this._streamingMessage.delete(event.data.messageId);
@@ -603,14 +594,10 @@ export class Persona implements IPersona {
     if (!this._model.updateMessage) {
       message.update({ mime_model });
     } else {
-      this._model.updateMessage(
-        message.id,
-        {
-          ...message,
-          mime_model
-        },
-        true
-      );
+      this._model.updateMessage(message.id, {
+        ...message.content,
+        mime_model
+      });
     }
   }
 
