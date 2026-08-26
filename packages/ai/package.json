@@ -115,6 +115,9 @@
         "bundled": false,
         "singleton": true
       }
-    }
+    },
+    "disabledExtensions": [
+      "jupyterlab-chat-extension"
+    ]
   }
 }

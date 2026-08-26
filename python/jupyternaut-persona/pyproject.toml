@@ -32,7 +32,7 @@ dependencies = [
     "jupyter-secrets-manager >=0.5,<0.6",
     "jupyterlab-ai-commands >=0.3.1,<0.4",
     "jupyter-mcp-manager >=0.2.0, <0.3",
-    "jupyter-ai-persona-manager",
+    "jupyter-ai-persona-manager>= 0.1.2, <0.2",
 ]
 dynamic = ["version"]
 
