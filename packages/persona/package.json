@@ -102,6 +102,10 @@
         "bundled": true,
         "singleton": true
       },
+      "@jupyter/chat": {
+        "bundled": false,
+        "singleton": true
+      },
       "@jupyternaut/agent": {
         "bundled": true,
         "singleton": true
