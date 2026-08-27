@@ -117,7 +117,8 @@
       }
     },
     "disabledExtensions": [
-      "jupyterlab-chat-extension"
+      "jupyterlab-chat-extension",
+      "@jupyter-ai/persona-manager"
     ]
   }
 }
