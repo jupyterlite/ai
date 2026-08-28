@@ -219,10 +219,15 @@ export class Persona implements IPersona {
   private async _onMessagesUpdated(): Promise<void> {
     const unhandled = this._model.messages.filter(
       m =>
+        // message not yet responded
         !this._respondedToIds.has(m.id) &&
+        // AND message from user
         !m.sender.bot &&
+        // AND set up to respond to all user message (@jupyterlite/ai compatibility)
         (!this.requireMention ||
+          // OR persona mentioned in the message
           m.mentions?.includes(this._persona) ||
+          // OR persona explicitly targeted in metadata (jupyter-ai compatibility)
           (m.metadata as any)?.to_persona === JUPYTER_AI_PERSONA)
     );
 
@@ -232,13 +237,19 @@ export class Persona implements IPersona {
     for (const message of unhandled) {
       const personaMention = `@${this._persona.mention_name}`;
       const body = message.body.replace(personaMention, '').trim();
-      await this._respond(body || message.body, message.attachments);
+      await this._respond(
+        body || message.body,
+        message.attachments,
+        // Model (provider in this @jupyternaut) explicitly targeted in metadata (jupyter-ai compatibility)
+        (message.metadata as any)?.model?.id
+      );
     }
   }
 
   private async _respond(
     body: string,
-    attachments?: IAttachment[]
+    attachments?: IAttachment[],
+    provider?: string
   ): Promise<void> {
     this._busy = true;
     this._busyChanged.emit(true);
@@ -258,6 +269,16 @@ export class Persona implements IPersona {
           modelSupportsAudio(providerConfig, this._providerRegistry)
         );
       }
+
+      // Rebuild the agent if the current one is not the expected one.
+      if (
+        provider &&
+        this._agent.activeProvider !== provider &&
+        this._settingsModel.getProvider(provider)
+      ) {
+        await this._agent.setActiveProvider(provider);
+      }
+
       await this._agent.generateResponse(content);
     } catch (error) {
       console.error('Persona: error generating response', error);
