@@ -1,3 +1,27 @@
+import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
+
+import {
+  ILayoutRestorer,
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+
+import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+
+import { ICompletionProviderManager } from '@jupyterlab/completer';
+
+import { IDocumentManager } from '@jupyterlab/docmanager';
+
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
+import { IStatusBar } from '@jupyterlab/statusbar';
+
+import { PathExt } from '@jupyterlab/coreutils';
+
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+
+import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
+
 import {
   anthropicProvider,
   createBrowserFetchTool,
@@ -25,37 +49,15 @@ import {
 
 import type { IAISecretsAccess } from '@jupyternaut/agent';
 
-import {
-  ILayoutRestorer,
-  JupyterFrontEnd,
-  JupyterFrontEndPlugin
-} from '@jupyterlab/application';
-
-import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
-
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
-
-import { ICompletionProviderManager } from '@jupyterlab/completer';
-
-import { IDocumentManager } from '@jupyterlab/docmanager';
-
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
-
-import { IStatusBar } from '@jupyterlab/statusbar';
-
-import { PathExt } from '@jupyterlab/coreutils';
-
-import { ITranslator, nullTranslator } from '@jupyterlab/translation';
-
-import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
-
 import { DisposableSet } from '@lumino/disposable';
+
+import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
 import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { MentionCommandProvider } from './chat-commands/mention';
+import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
@@ -272,6 +274,54 @@ const persona: JupyterFrontEndPlugin<void> = {
 };
 
 /**
+ * Registers groupedToolCall callbacks to route tool call approval decisions
+ * to the correct persona's agent manager.
+ */
+const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:chat-components-callbacks',
+  description: 'Register chat components callbacks for the persona.',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker, IComponentsRendererFactory],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null,
+    chatComponentsFactory?: IComponentsRendererFactory
+  ): void => {
+    if (!chatComponentsFactory) {
+      return;
+    }
+
+    const findPersona = (sessionId: string) => {
+      const model = chatTracker?.find(
+        chat => chat.model.name === sessionId
+      )?.model;
+      return model ? personaRegistry.get(model) : undefined;
+    };
+
+    chatComponentsFactory.groupedToolCallCallbacks = {
+      ...chatComponentsFactory.groupedToolCallCallbacks,
+      toolCallPermissionDecision: (
+        sessionId: string,
+        toolCallId: string,
+        optionId: string
+      ) => {
+        const agent = findPersona(sessionId)?.agentManager;
+        if (!agent) {
+          return;
+        }
+        if (optionId === 'approve') {
+          agent.approveToolCall(toolCallId);
+        } else {
+          agent.rejectToolCall(toolCallId);
+        }
+      }
+    };
+  }
+};
+
+/**
  * Clear chat command plugin.
  */
 const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
@@ -281,6 +331,52 @@ const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IChatCommandRegistry],
   activate: (app, registry: IChatCommandRegistry) => {
     registry.addProvider(new MentionCommandProvider());
+  }
+};
+
+/**
+ * Skills chat command plugin.
+ */
+const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:skills-command',
+  description: 'Register the /skills chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, ISkillRegistry, IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IChatCommandRegistry,
+    skillRegistry: ISkillRegistry,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ) => {
+    const findModel = (chatName: string) =>
+      chatTracker?.find(c => c.model.name === chatName)?.model;
+
+    const isDefault = (chatName: string) => {
+      const model = findModel(chatName);
+      if (!model) {
+        return false;
+      }
+      const persona = personaRegistry.get(model);
+      return persona ? !persona.requireMention : false;
+    };
+
+    const sendSystemMessage = (chatName: string, body: string) => {
+      const model = findModel(chatName);
+      if (model) {
+        personaRegistry.get(model)?.sendSystemMessage(body);
+      }
+    };
+
+    registry.addProvider(
+      new SkillsCommandProvider({
+        skillRegistry,
+        commands: app.commands,
+        isDefault,
+        sendSystemMessage
+      })
+    );
   }
 };
 
@@ -695,7 +791,9 @@ export default [
   // Persona
   personaRegistry,
   persona,
+  chatComponentsCallbacks,
   mentionCommandPlugin,
+  skillsCommandPlugin,
   // Settings
   settingsModel,
   settingsPanelPlugin,

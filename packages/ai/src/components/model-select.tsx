@@ -70,7 +70,7 @@ export function ModelSelect(props: IModelSelectProps): JSX.Element {
         return;
       }
       // Set the active provider using the provider ID
-      agentManager.activeProvider = providerId;
+      agentManager.setActiveProvider(providerId);
       closeMenu();
 
       // Provider selected successfully

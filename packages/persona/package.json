@@ -43,7 +43,7 @@
     "watch:labextension": "jupyter-builder watch ."
   },
   "dependencies": {
-    "@jupyter/chat": "^0.24.1",
+    "@jupyter/chat": "^0.24.2",
     "@jupyter/ydoc": "^4.0.0",
     "@jupyterlab/application": "^4.5.8",
     "@jupyterlab/apputils": "^4.6.8",
@@ -67,6 +67,7 @@
     "@mui/icons-material": "^7",
     "@mui/material": "^7",
     "ai": "^7.0.59",
+    "jupyter-chat-components": "^0.6.0",
     "jupyter-mcp-manager": "^0.2.0",
     "jupyter-secrets-manager": "^0.5.0",
     "react": "^18.3.1"
@@ -99,6 +100,10 @@
     "sharedPackages": {
       "@emotion/react": {
         "bundled": true,
+        "singleton": true
+      },
+      "@jupyter/chat": {
+        "bundled": false,
         "singleton": true
       },
       "@jupyternaut/agent": {

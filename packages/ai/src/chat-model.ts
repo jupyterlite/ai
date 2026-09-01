@@ -23,11 +23,7 @@ import type {
   ITokenUsage
 } from '@jupyternaut/agent';
 
-import {
-  DEFAULT_PERSONA,
-  IPersona,
-  IPersonaRegistry
-} from '@jupyternaut/persona';
+import { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
 
 import type { ModelMessage } from 'ai';
 
@@ -81,7 +77,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           this._persona = persona;
           this._persona.requireMention = false;
           if (this._activeProvider && this.agentManager) {
-            this.agentManager.activeProvider = this._activeProvider;
+            this.agentManager.setActiveProvider(this._activeProvider);
           }
           this._persona.busyChanged.connect(this._onPersonaBusyChanged, this);
           // Rebuild history when the model changes
@@ -109,9 +105,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           | string
           | undefined) ?? '';
       const filepath = PathExt.join(directory, `${this.name}.chat`);
-      this.restore(filepath, true);
+      this.restore(filepath, true).then(() => this.setReady());
+    } else {
+      this.setReady();
     }
-    this.setReady();
   }
 
   /**
@@ -236,7 +233,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this.agentManager,
-      addSystemMessage: (body: string) => this._addSystemMessage(body),
       removeQueuedMessage: (id: string) => this.removeQueuedMessage(id),
       reorderQueuedMessages: (ids: string[]) => this.reorderQueuedMessages(ids),
       editQueuedMessage: (id: string, body: string) =>
@@ -271,21 +267,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     if (this._queueMessageId && message.id !== this._queueMessageId) {
       this._updateQueueUI();
     }
-  }
-
-  /**
-   * Adds a non-user message to the chat (used by chat commands).
-   */
-  private _addSystemMessage(body: string): void {
-    const message: IMessageContent = {
-      body,
-      sender: this._getAIUser(),
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-    this.messageAdded(message);
   }
 
   /**
@@ -541,7 +522,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {
-        this.agentManager!.activeProvider = content.metadata.provider;
+        this.agentManager!.setActiveProvider(content.metadata.provider);
       } else if (!silent) {
         console.log(
           `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
@@ -654,12 +635,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
         ...(this.title ? { title: this.title } : {})
       }
     };
-  }
-  /**
-   * Gets the AI user information for system messages.
-   */
-  private _getAIUser(): IUser {
-    return DEFAULT_PERSONA;
   }
 
   /**
@@ -787,10 +762,6 @@ export namespace AIChatModel {
      * The clear messages callback.
      */
     clearMessages: () => Promise<void>;
-    /**
-     * Adds an assistant/system message to the chat.
-     */
-    addSystemMessage: (body: string) => void;
     /**
      * The agent manager of the chat.
      */

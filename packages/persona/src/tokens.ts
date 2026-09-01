@@ -19,6 +19,9 @@ export const DEFAULT_PERSONA: IUser = {
   mention_name: 'jupyternaut-frontend'
 };
 
+export const PERSONA_ID =
+  'jupyter-ai-personas::jupyternaut_persona::JupyternautPersona';
+
 /**
  * Command IDs namespace
  */
@@ -67,6 +70,10 @@ export interface IPersona {
    * Called after restoring a saved chat.
    */
   rebuildHistory(): Promise<void>;
+  /**
+   * Adds an assistant message to the chat (used by chat commands).
+   */
+  sendSystemMessage(body: string): void;
 }
 
 /**

@@ -43,7 +43,7 @@
     "watch:labextension": "jupyter-builder watch ."
   },
   "dependencies": {
-    "@jupyter/chat": "^0.24.1",
+    "@jupyter/chat": "^0.24.2",
     "@jupyterlab/application": "^4.5.8",
     "@jupyterlab/apputils": "^4.6.8",
     "@jupyterlab/coreutils": "^6.5.8",
@@ -115,6 +115,10 @@
         "bundled": false,
         "singleton": true
       }
-    }
+    },
+    "disabledExtensions": [
+      "jupyterlab-chat-extension",
+      "@jupyter-ai/persona-manager"
+    ]
   }
 }
