@@ -1,0 +1,10 @@
+{
+  "jupyter-config-data": {
+    "disabledExtensions": [
+      "@jupyter/collaboration-extension",
+      "jupyterlab-chat-extension",
+      "@jupyter-ai/persona-manager",
+      "@jupyter-ai/router"
+    ]
+  }
+}
