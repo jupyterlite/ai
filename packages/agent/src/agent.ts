@@ -357,6 +357,7 @@ export class AgentManager implements IAgentManager {
     this._skills = [];
     this._agentConfig = null;
     this._renderMimeRegistry = options.renderMimeRegistry;
+    this._additionalInstructions = options.additionalInstructions;
     this._streaming.resolve();
 
     this.activeProvider =
@@ -930,7 +931,7 @@ RICH OUTPUT RENDERING:
 - ${supportedMimeTypesInstruction}
 - Use only MIME types from the supported list when creating MIME bundles. Do not invent MIME keys.
 - Do not claim that you cannot display maps, images, or rich outputs in chat.
-${richOutputWorkflowInstruction}`;
+${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._additionalInstructions}` : ''}`;
 
     this._agent = new ToolLoopAgent({
       model,
@@ -1133,6 +1134,7 @@ ${richOutputWorkflowInstruction}`;
   ): Promise<void> {
     const { approvalId, toolCall } = part;
 
+    const approval = this._waitForApproval(toolCall.toolCallId);
     this._agentEvent.emit({
       type: 'tool_approval_request',
       data: {
@@ -1142,19 +1144,22 @@ ${richOutputWorkflowInstruction}`;
       }
     });
 
-    const approved = await this._waitForApproval(toolCall.toolCallId);
+    const approved = await approval;
 
     result.approvalProcessed = true;
-    result.approvalResponse = {
-      role: 'tool',
-      content: [
-        {
-          type: 'tool-approval-response',
-          approvalId,
-          approved
-        }
-      ]
+    const response = {
+      type: 'tool-approval-response' as const,
+      approvalId,
+      approved
     };
+    if (
+      result.approvalResponse &&
+      Array.isArray(result.approvalResponse.content)
+    ) {
+      (result.approvalResponse.content as unknown[]).push(response);
+    } else {
+      result.approvalResponse = { role: 'tool', content: [response] };
+    }
   }
 
   /**
@@ -1346,6 +1351,7 @@ WEB RETRIEVAL POLICY:
   private _activeProviderChanged = new Signal<this, string | undefined>(this);
   private _skills: ISkillSummary[];
   private _renderMimeRegistry?: IRenderMimeRegistry;
+  private _additionalInstructions?: string;
   private _initQueue: Promise<void> = Promise.resolve();
   private _agentConfig: IAgentConfig | null;
   private _pendingApprovals: Map<
