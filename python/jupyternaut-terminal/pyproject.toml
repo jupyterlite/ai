@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling>=1.5.0", "jupyter-builder>=1.2.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jupyternaut_terminal"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+description = "Jupyternaut coding agent as a command in the JupyterLite terminal"
+authors = [
+    { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
+]
+keywords = ["jupyter", "jupyterlab", "jupyterlite", "jupyterlab-extension"]
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
+]
+dependencies = [
+    "jupyterlite-terminal >=1.6.2,<2",
+    "jupyternaut-persona ==0.19.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://jupyterlite-ai.readthedocs.io/en/latest/"
+Repository = "https://github.com/jupyterlite/ai"
+Changelog = "https://jupyterlite-ai.readthedocs.io/en/latest/changelog/"
+Source = "https://github.com/jupyterlite/ai/tree/main"
+Issues = "https://github.com/jupyterlite/ai/issues/new/choose"
+"Try it" = "https://jupyterlite.github.io/ai/lab/index.html"
+
+[tool.hatch.version]
+path = "jupyternaut_terminal/_version.py"
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["jupyternaut_terminal/labextension"]
+exclude = [".github", "binder"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"jupyternaut_terminal/labextension" = "share/jupyter/labextensions/@jupyternaut/terminal"
+"install.json" = "share/jupyter/labextensions/@jupyternaut/terminal/install.json"
+
+[tool.hatch.build.hooks.jupyter-builder]
+dependencies = ["hatch-jupyter-builder>=0.5"]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "jupyternaut_terminal/labextension/static/style.js",
+    "jupyternaut_terminal/labextension/package.json",
+]
+skip-if-exists = ["jupyternaut_terminal/labextension/static/style.js"]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build:prod"
+npm = ["jlpm"]
+path = "../.."
+
+[tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
+npm = ["jlpm"]
+build_cmd = "build:prod"
+editable_build_cmd = "build"
+build_dir = "jupyternaut_terminal/labextension"
+path = "../.."
+
+[tool.check-wheel-contents]
+ignore = ["W002"]

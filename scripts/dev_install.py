@@ -4,6 +4,7 @@
 Usage:
     python scripts/dev_install.py           # install all packages
     python scripts/dev_install.py test      # install all packages with [test] extras
+    python scripts/dev_install.py --no-lite # skip the packages that only load in JupyterLite
 """
 
 import subprocess
@@ -15,12 +16,19 @@ PYTHON_PACKAGES = [
     "python/jupyterlite-ai",
 ]
 
+# JupyterLab cannot load these: they need modules that only JupyterLite provides.
+LITE_PACKAGES = [
+    "python/jupyternaut-terminal",
+]
+
 
 def main() -> None:
-    extras = sys.argv[1] if len(sys.argv) > 1 else ""
+    args = [arg for arg in sys.argv[1:] if arg != "--no-lite"]
+    extras = args[0] if args else ""
+    packages = PYTHON_PACKAGES + ([] if "--no-lite" in sys.argv else LITE_PACKAGES)
     root = Path(__file__).resolve().parent.parent
 
-    for package in PYTHON_PACKAGES:
+    for package in packages:
         pkg_path = root / package
         spec = str(pkg_path)
         if extras:

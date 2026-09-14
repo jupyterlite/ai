@@ -11,6 +11,8 @@ dependencies = [
     "jupyterlab-night>=0.5.2",
     "jupyterlite-ai",
     "jupyternaut-persona",
+    "jupyternaut-terminal",
+    "jupyterlite-terminal>=1.6.2",
     "jupyterlite-core>=0.8.0",
     "jupyterlite-pyodide-kernel>=0.8.0",
 ]
@@ -18,3 +20,4 @@ dependencies = [
 [tool.uv.sources]
 jupyterlite-ai = { path = "../python/jupyterlite-ai" }
 jupyternaut-persona = { path = "../python/jupyternaut-persona" }
+jupyternaut-terminal = { path = "../python/jupyternaut-terminal" }
