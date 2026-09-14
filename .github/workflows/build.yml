@@ -33,7 +33,8 @@ jobs:
       - name: Build the extension
         run: |
           set -eux
-          python scripts/dev_install.py test
+          # The terminal extension cannot load in JupyterLab, the isolated test checks its installation
+          python scripts/dev_install.py test --no-lite
 
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
@@ -47,7 +48,8 @@ jobs:
           pip install build
           python -m build python/jupyternaut-persona --outdir dist
           python -m build python/jupyterlite-ai --outdir dist
-          pip uninstall -y "jupyterlite_ai" "jupyternaut_persona" jupyterlab
+          python -m build python/jupyternaut-terminal --outdir dist
+          pip uninstall -y "jupyterlite_ai" "jupyternaut_persona" "jupyternaut_terminal" jupyterlab
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v4
@@ -56,6 +58,7 @@ jobs:
           path: |
             dist/jupyterlite_ai*
             dist/jupyternaut_persona*
+            dist/jupyternaut_terminal*
           if-no-files-found: error
 
   test_isolated:
@@ -81,11 +84,12 @@ jobs:
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
 
-          pip install "jupyterlab>=4.0.0,<5" jupyternaut_persona*.whl jupyterlite_ai*.whl
+          pip install "jupyterlab>=4.0.0,<5" jupyternaut_persona*.whl jupyterlite_ai*.whl jupyternaut_terminal*.whl
 
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
           jupyter labextension list 2>&1 | grep -ie "@jupyternaut/persona.*OK"
+          jupyter labextension list 2>&1 | grep -ie "@jupyternaut/terminal.*OK"
           python -m jupyterlab.browser_check --no-browser-test
 
   check_links:

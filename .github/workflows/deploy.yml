@@ -47,6 +47,9 @@ jobs:
           cp README.md contents
         working-directory: ./demo
 
+      - name: Install micromamba for the terminal WebAssembly packages
+        uses: mamba-org/setup-micromamba@v3
+
       - name: Build the JupyterLite site
         run: |
           uv run jupyter lite build
