@@ -46,7 +46,7 @@ Issues = "https://github.com/jupyterlite/ai/issues/new/choose"
 [project.optional-dependencies]
 jupyter = [
     "jupyterlab>=4.5.0",
-    "jupyterlite>=0.6.0",
+    "jupyterlite>=0.8.0",
     "notebook>=7.5.0"
 ]
 test = [
