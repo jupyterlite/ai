@@ -11,8 +11,8 @@ dependencies = [
     "jupyterlab-night>=0.5.2",
     "jupyterlite-ai",
     "jupyternaut-persona",
-    "jupyterlite-core>=0.7.0",
-    "jupyterlite-pyodide-kernel>=0.7.0",
+    "jupyterlite-core>=0.8.0",
+    "jupyterlite-pyodide-kernel>=0.8.0",
 ]
 
 [tool.uv.sources]
