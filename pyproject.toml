@@ -18,6 +18,9 @@ packages = []
 [tool.hatch.build.targets.sdist]
 include = []
 
+[tool.jupyter-releaser]
+skip = ["check-python"]
+
 [tool.jupyter-releaser.options]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
 python_packages = [
