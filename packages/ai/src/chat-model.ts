@@ -95,6 +95,17 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
 
   /**
+   * Getter/setter for the chat id, set the chat as ready when the id is defined.
+   */
+  get id(): string | undefined {
+    return super.id;
+  }
+  set id(value: string) {
+    super.id = value;
+    this.setReady(super.id);
+  }
+
+  /**
    * Override the getter/setter of the name to add a signal when renaming a chat.
    */
   get name(): string {
@@ -111,7 +122,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       const filepath = PathExt.join(directory, `${this.name}.chat`);
       this.restore(filepath, true);
     }
-    this.setReady();
   }
 
   /**
@@ -228,9 +238,16 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
    * Creates a chat context for the current conversation.
    */
   createChatContext(): AIChatModel.IAIChatContext {
+    if (this.id === undefined) {
+      throw new Error(
+        'AIChatModel.id was read before the model was ready; ' +
+          'a chat context must only be created after `model.ready`.'
+      );
+    }
     return {
+      id: this.id,
       name: this.name,
-      user: { username: 'me' },
+      user: this.user,
       users: [],
       messages: this.messages,
       stopStreaming: () => this.stopStreaming(),

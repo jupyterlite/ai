@@ -10,6 +10,7 @@ import type {
   IToolRegistry
 } from '@jupyternaut/agent';
 import { IPersonaRegistry } from '@jupyternaut/persona';
+import { UUID } from '@lumino/coreutils';
 
 import { AIChatModel } from './chat-model';
 import type {
@@ -58,6 +59,7 @@ export class ChatModelHandler implements IChatModelHandler {
     model.autosave = autosave ?? false;
 
     model.name = name;
+    model.id = UUID.uuid4();
 
     if (title) {
       model.title = title;
