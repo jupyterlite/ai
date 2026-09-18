@@ -2,6 +2,45 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.20.0
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/@jupyterlite/ai@0.19.0...8ade260d199288bec26543f67b68997bb0ed2371))
+
+### Enhancements made
+
+- Expose `additionalInstructions`, fix tool call handling [#371](https://github.com/jupyterlite/ai/pull/371) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Jupyternaut persona extension [#356](https://github.com/jupyterlite/ai/pull/356) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Add jupyternaut-persona as dependency of jupyterlite-ai [#367](https://github.com/jupyterlite/ai/pull/367) ([@brichet](https://github.com/brichet))
+- Explicitly request file/directory content from the contents manager [#361](https://github.com/jupyterlite/ai/pull/361) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Fix default system prompt to prevent stopping before tool calls [#357](https://github.com/jupyterlite/ai/pull/357) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+
+### Maintenance and upkeep improvements
+
+- Skip check-python step in jupyter-releaser [#374](https://github.com/jupyterlite/ai/pull/374) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Update AI SDK packages [#372](https://github.com/jupyterlite/ai/pull/372) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Update to JupyterLite 0.8 [#370](https://github.com/jupyterlite/ai/pull/370) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Bump @jupyter/chat to 0.25 [#368](https://github.com/jupyterlite/ai/pull/368) ([@brichet](https://github.com/brichet), [@dlqqq](https://github.com/dlqqq), [@jtpio](https://github.com/jtpio))
+- Remove the message output rerender [#364](https://github.com/jupyterlite/ai/pull/364) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Bump to @jupyter/chat 0.24 stable [#362](https://github.com/jupyterlite/ai/pull/362) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Use the jupyter MCP manager extension [#360](https://github.com/jupyterlite/ai/pull/360) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Bump jupyter chat 0.24 [#359](https://github.com/jupyterlite/ai/pull/359) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+- Update to AI SDK v7 [#358](https://github.com/jupyterlite/ai/pull/358) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Python monorepo [#354](https://github.com/jupyterlite/ai/pull/354) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-06-15&to=2026-09-18&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-06-15..2026-09-18&type=Issues)) | @dlqqq ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Adlqqq+updated%3A2026-06-15..2026-09-18&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-06-15..2026-09-18&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.19.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/v0.18.0...0b3dff1a9d141de2f15d3efc907acb859c0cb3ed))
@@ -26,8 +65,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-05-15&to=2026-06-15&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-05-15..2026-06-15&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-05-15..2026-06-15&type=Issues)) | @MUFFANUJ ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AMUFFANUJ+updated%3A2026-05-15..2026-06-15&type=Issues)) | @Yahiewi ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3AYahiewi+updated%3A2026-05-15..2026-06-15&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.18.0
 

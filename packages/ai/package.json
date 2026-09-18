@@ -1,6 +1,6 @@
 {
   "name": "@jupyterlite/ai",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "AI code completions and chat for JupyterLite",
   "keywords": [
     "jupyter",
@@ -56,8 +56,8 @@
     "@jupyterlab/settingregistry": "^4.5.8",
     "@jupyterlab/translation": "^4.5.8",
     "@jupyterlab/ui-components": "^4.5.8",
-    "@jupyternaut/agent": "^0.19.0",
-    "@jupyternaut/persona": "^0.19.0",
+    "@jupyternaut/agent": "^0.20.0",
+    "@jupyternaut/persona": "^0.20.0",
     "@lumino/commands": "^2.3.2",
     "@lumino/coreutils": "^2.2.1",
     "@lumino/disposable": "^2.1.4",

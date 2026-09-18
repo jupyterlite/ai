@@ -3153,8 +3153,8 @@ __metadata:
     "@jupyterlab/testutils": ^4.0.0
     "@jupyterlab/translation": ^4.5.8
     "@jupyterlab/ui-components": ^4.5.8
-    "@jupyternaut/agent": ^0.19.0
-    "@jupyternaut/persona": ^0.19.0
+    "@jupyternaut/agent": ^0.20.0
+    "@jupyternaut/persona": ^0.20.0
     "@lumino/commands": ^2.3.2
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4
@@ -3177,7 +3177,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@jupyternaut/agent@^0.19.0, @jupyternaut/agent@workspace:packages/agent":
+"@jupyternaut/agent@^0.20.0, @jupyternaut/agent@workspace:packages/agent":
   version: 0.0.0-use.local
   resolution: "@jupyternaut/agent@workspace:packages/agent"
   dependencies:
@@ -3208,7 +3208,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@jupyternaut/persona@^0.19.0, @jupyternaut/persona@workspace:packages/persona":
+"@jupyternaut/persona@^0.20.0, @jupyternaut/persona@workspace:packages/persona":
   version: 0.0.0-use.local
   resolution: "@jupyternaut/persona@workspace:packages/persona"
   dependencies:
@@ -3229,7 +3229,7 @@ __metadata:
     "@jupyterlab/testutils": ^4.0.0
     "@jupyterlab/translation": ^4.5.8
     "@jupyterlab/ui-components": ^4.5.8
-    "@jupyternaut/agent": ^0.19.0
+    "@jupyternaut/agent": ^0.20.0
     "@lumino/commands": ^2.3.2
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4

@@ -31,7 +31,7 @@ dependencies = [
     "jupyter-chat-components >=0.6.0,<0.7",
     "jupyter-secrets-manager >=0.5,<0.6",
     "jupyterlab-ai-commands >=0.3.1,<0.4",
-    "jupyternaut-persona ==0.19.0",
+    "jupyternaut-persona ==0.20.0",
 ]
 dynamic = ["version"]
 
