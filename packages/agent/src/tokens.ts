@@ -456,6 +456,11 @@ export namespace IAgentManager {
      * Optional render mime registry for discovering supported MIME types.
      */
     renderMimeRegistry?: IRenderMimeRegistry;
+
+    /**
+     * Extra instructions appended to the system prompt of this agent.
+     */
+    additionalInstructions?: string;
   }
 
   /**
