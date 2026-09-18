@@ -12,6 +12,7 @@ packages/*/tsconfig.tsbuildinfo
 *.tsbuildinfo
 python/jupyterlite-ai/jupyterlite_ai/labextension
 python/jupyternaut-persona/jupyternaut_persona/labextension
+python/jupyternaut-terminal/jupyternaut_terminal/labextension
 
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python
@@ -145,3 +146,9 @@ docs/_changelog_content.md
 
 # Temporary files
 tmp
+
+# JupyterLite terminal build artifacts (cockle wasm packages)
+demo/cockle_wasm_env
+demo/cockle-config.json
+demo/.cockle_temp
+demo/cockle-files.txt

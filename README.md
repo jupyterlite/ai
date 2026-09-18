@@ -32,6 +32,19 @@ To install requirements (JupyterLab, JupyterLite and Notebook):
 pip install jupyterlite-ai[jupyter]
 ```
 
+## Terminal agent
+
+`jupyternaut-terminal` adds the Jupyternaut coding agent to the JupyterLite terminal as a
+`jupyternaut` command (alias `ai`). Everything runs in the browser: the agent runs shell
+commands in the in-browser `cockle` shell and reads and writes the files of the JupyterLite
+file system.
+
+```bash
+pip install jupyternaut-terminal
+```
+
+See the [terminal agent documentation](docs/terminal.md).
+
 ## Documentation
 
 For detailed usage instructions, including how to configure AI providers, see the [documentation](https://jupyterlite-ai.readthedocs.io/).

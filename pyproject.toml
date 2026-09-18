@@ -22,7 +22,8 @@ include = []
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
 python_packages = [
     "python/jupyterlite-ai",
-    "python/jupyternaut-persona"
+    "python/jupyternaut-persona",
+    "python/jupyternaut-terminal"
 ]
 
 [tool.jupyter-releaser.hooks]
