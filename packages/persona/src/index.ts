@@ -6,7 +6,11 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ICommandPalette,
+  IThemeManager,
+  Notification
+} from '@jupyterlab/apputils';
 
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 
@@ -34,6 +38,7 @@ import {
   loadSkillsFromPaths,
   mistralProvider,
   openaiProvider,
+  openrouterProvider,
   AgentManagerFactory,
   IAgentManagerFactory,
   IAISettingsModel,
@@ -43,11 +48,15 @@ import {
   ISkillRegistry,
   ProviderRegistry,
   SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT,
   SkillRegistry,
   ToolRegistry
 } from '@jupyternaut/agent';
 
-import type { IAISecretsAccess } from '@jupyternaut/agent';
+import type {
+  IAISecretsAccess,
+  IConnectAccountOptions
+} from '@jupyternaut/agent';
 
 import { DisposableSet } from '@lumino/disposable';
 
@@ -66,6 +75,8 @@ import { CompletionStatusWidget } from './components';
 import { DiffManager } from './diff-manager';
 
 import { AISettingsModel } from './models/settings-model';
+
+import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 
 import { PersonaRegistry } from './persona-registry';
 
@@ -190,6 +201,88 @@ const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IProviderRegistry],
   activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
     providerRegistry.registerProvider(openaiProvider);
+  }
+};
+
+/**
+ * OpenRouter provider plugin
+ */
+const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:openrouter-provider',
+  description: 'Register OpenRouter provider',
+  autoStart: true,
+  requires: [IProviderRegistry, IAISettingsModel],
+  optional: [ISecretsManager, ITranslator],
+  activate: (
+    app: JupyterFrontEnd,
+    providerRegistry: IProviderRegistry,
+    settingsModel: IAISettingsModel,
+    secretsManager?: ISecretsManager,
+    translator?: ITranslator
+  ) => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    const connectAccount = async (
+      options: IConnectAccountOptions
+    ): Promise<boolean> => {
+      try {
+        const key = await requestApiKey({
+          keyLabel: settingsModel.config.appAttribution.name
+        });
+        if (key === null) {
+          return false;
+        }
+        let apiKey = key;
+        if (
+          settingsModel.config.useSecretsManager &&
+          secretsAccess.isAvailable
+        ) {
+          await secretsAccess.set(`${openrouterProvider.id}:apiKey`, key);
+          apiKey = SECRETS_REPLACEMENT;
+        }
+        const { providerId } = options;
+        const config = { ...options.config, apiKey };
+        if (providerId && settingsModel.getProvider(providerId)) {
+          await settingsModel.updateProvider(providerId, config);
+        } else {
+          await settingsModel.addProvider(config);
+        }
+      } catch (error) {
+        Notification.error(
+          trans.__(
+            'Failed to connect to OpenRouter: %1',
+            (error as Error).message
+          ),
+          { autoClose: false }
+        );
+        return false;
+      }
+      Notification.success(trans.__('Connected to OpenRouter'), {
+        autoClose: 5000
+      });
+      return true;
+    };
+
+    providerRegistry.registerProvider({
+      ...openrouterProvider,
+      // The PKCE flow uses WebCrypto, which needs a secure context.
+      ...(window.isSecureContext && { connectAccount })
+    });
+  }
+};
+
+/**
+ * The "Connect with OpenRouter" flow runs in a popup window, which loads the
+ * application again when OpenRouter redirects back. In that window, send the
+ * authorization code to the main window.
+ */
+const openrouterAuthPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:openrouter-auth',
+  description: 'Complete the OpenRouter authorization in the popup window',
+  autoStart: true,
+  activate: (): void => {
+    forwardAuthCode();
   }
 };
 
@@ -779,6 +872,8 @@ export default [
   googleProviderPlugin,
   mistralProviderPlugin,
   openaiProviderPlugin,
+  openrouterProviderPlugin,
+  openrouterAuthPlugin,
   genericProviderPlugin,
   // Agent
   agentManagerFactory,

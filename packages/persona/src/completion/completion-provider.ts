@@ -197,7 +197,8 @@ export class AICompletionProvider implements IInlineCompletionProvider {
           provider,
           model,
           apiKey,
-          baseURL
+          baseURL,
+          appAttribution: this._settingsModel.config.appAttribution
         },
         this._providerRegistry
       );

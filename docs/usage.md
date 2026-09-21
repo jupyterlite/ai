@@ -15,6 +15,8 @@ For providers like Anthropic, MistralAI, or OpenAI:
 
 ![screenshot showing the dialog to add a new provider](https://github.com/user-attachments/assets/823c71c6-5807-44c8-80b6-2e59379a65d5)
 
+With [OpenRouter](./openrouter.md), you can also connect your account from the dialog instead of entering an API key.
+
 ## Using a generic OpenAI-compatible provider
 
 The Generic provider allows you to connect to any OpenAI-compatible API endpoint, including local servers like Ollama and LiteLLM.

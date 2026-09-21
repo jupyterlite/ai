@@ -6,7 +6,7 @@ import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel, UserContent, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import type { IModelOptions } from './providers/models';
+import type { IAppAttribution, IModelOptions } from './providers/models';
 import type {
   ISkillDefinition,
   ISkillRegistration,
@@ -201,6 +201,20 @@ export interface IProviderModelInfo {
   supportsAudio?: boolean;
 }
 
+/**
+ * The options to connect the account of the user to a provider.
+ */
+export interface IConnectAccountOptions {
+  /**
+   * The provider configuration to save with the new API key.
+   */
+  config: Omit<IProviderConfig, 'id'>;
+  /**
+   * The ID of the provider configuration to update, if there is one.
+   */
+  providerId?: string;
+}
+
 export interface IProviderInfo {
   /**
    * Unique identifier for the provider
@@ -224,6 +238,20 @@ export interface IProviderInfo {
    * Default model names for this provider
    */
   defaultModels: string[];
+
+  /**
+   * Optional function to fetch the list of available models.
+   * The default models are the fallback when it fails.
+   */
+  fetchModels?: () => Promise<string[]>;
+
+  /**
+   * Optional function to get an API key from the account of the user.
+   * The provider dialog shows a connect button when it is defined. The
+   * function saves the provider configuration with the new API key, and
+   * resolves to false if the connection did not complete.
+   */
+  connectAccount?: (options: IConnectAccountOptions) => Promise<boolean>;
 
   /**
    * Optional per-model metadata keyed by model ID.
@@ -374,6 +402,8 @@ export interface IAIConfig {
   diffDisplayMode: 'split' | 'unified';
   // Paths to directories containing agent skills
   skillsPaths: string[];
+  // Application reported to the providers that support app attribution
+  appAttribution: IAppAttribution;
 }
 
 /**
