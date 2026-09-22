@@ -153,8 +153,16 @@ def bump(skip_if_dirty, spec):
         if changed:
             pyproject_file.write_text(content)
 
-    # Update the demo uv.lock to reflect the new local package versions
-    run("uv lock", cwd=HERE / "demo")
+    # Update the demo uv.lock to reflect the new local package versions.
+    # --refresh-package is required for local packages with dynamic versioning
+    # (version from _version.py) to avoid using cached versions.
+    # jupyterlite-ai is not necessary because it is not pinned in the uv.lock
+    # file, but refreshing all package is future-proof if other package are
+    # included later.
+    refresh_flags = " ".join(
+        f"--refresh-package {pkg}" for pkg in sorted(local_python_packages)
+    )
+    run(f"uv lock {refresh_flags}", cwd=HERE / "demo")
 
 
 if __name__ == "__main__":
