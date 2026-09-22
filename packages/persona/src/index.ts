@@ -57,7 +57,7 @@ import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { MentionCommandProvider } from './chat-commands/mention';
+import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
@@ -331,6 +331,52 @@ const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IChatCommandRegistry],
   activate: (app, registry: IChatCommandRegistry) => {
     registry.addProvider(new MentionCommandProvider());
+  }
+};
+
+/**
+ * Skills chat command plugin.
+ */
+const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:skills-command',
+  description: 'Register the /skills chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, ISkillRegistry, IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IChatCommandRegistry,
+    skillRegistry: ISkillRegistry,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ) => {
+    const findModel = (chatName: string) =>
+      chatTracker?.find(c => c.model.name === chatName)?.model;
+
+    const isDefault = (chatName: string) => {
+      const model = findModel(chatName);
+      if (!model) {
+        return false;
+      }
+      const persona = personaRegistry.get(model);
+      return persona ? !persona.requireMention : false;
+    };
+
+    const sendSystemMessage = (chatName: string, body: string) => {
+      const model = findModel(chatName);
+      if (model) {
+        personaRegistry.get(model)?.sendSystemMessage(body);
+      }
+    };
+
+    registry.addProvider(
+      new SkillsCommandProvider({
+        skillRegistry,
+        commands: app.commands,
+        isDefault,
+        sendSystemMessage
+      })
+    );
   }
 };
 
@@ -747,6 +793,7 @@ export default [
   persona,
   chatComponentsCallbacks,
   mentionCommandPlugin,
+  skillsCommandPlugin,
   // Settings
   settingsModel,
   settingsPanelPlugin,

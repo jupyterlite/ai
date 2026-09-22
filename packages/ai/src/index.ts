@@ -62,8 +62,7 @@ import {
   IAgentManagerFactory,
   IAISettingsModel,
   IProviderRegistry,
-  IToolRegistry,
-  ISkillRegistry
+  IToolRegistry
 } from '@jupyternaut/agent';
 
 import type { IProviderConfig } from '@jupyternaut/agent';
@@ -79,7 +78,7 @@ import { CommandRegistry } from '@lumino/commands';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
-import { ClearCommandProvider, SkillsCommandProvider } from './chat-commands';
+import { ClearCommandProvider } from './chat-commands';
 
 import { ChatModelHandler } from './chat-model-handler';
 
@@ -125,28 +124,6 @@ const clearCommandPlugin: JupyterFrontEndPlugin<void> = {
   requires: [IChatCommandRegistry],
   activate: (app, registry: IChatCommandRegistry) => {
     registry.addProvider(new ClearCommandProvider());
-  }
-};
-
-/**
- * Skills chat command plugin.
- */
-const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/ai:skills-command',
-  description: 'Register the /skills chat command.',
-  autoStart: true,
-  requires: [IChatCommandRegistry, ISkillRegistry],
-  activate: (
-    app,
-    registry: IChatCommandRegistry,
-    skillRegistry: ISkillRegistry
-  ) => {
-    registry.addProvider(
-      new SkillsCommandProvider({
-        skillRegistry,
-        commands: app.commands
-      })
-    );
   }
 };
 
@@ -1180,7 +1157,6 @@ export default [
   chatCommandRegistryPlugin,
   chatToolbarFactoryPlugin,
   clearCommandPlugin,
-  skillsCommandPlugin,
   chatModelHandler,
   activeCellManager,
   chatTracker,

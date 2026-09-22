@@ -23,11 +23,7 @@ import type {
   ITokenUsage
 } from '@jupyternaut/agent';
 
-import {
-  DEFAULT_PERSONA,
-  IPersona,
-  IPersonaRegistry
-} from '@jupyternaut/persona';
+import { IPersona, IPersonaRegistry } from '@jupyternaut/persona';
 
 import type { ModelMessage } from 'ai';
 
@@ -253,7 +249,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       stopStreaming: () => this.stopStreaming(),
       clearMessages: () => this.clearMessages(),
       agentManager: this.agentManager,
-      addSystemMessage: (body: string) => this._addSystemMessage(body),
       removeQueuedMessage: (id: string) => this.removeQueuedMessage(id),
       reorderQueuedMessages: (ids: string[]) => this.reorderQueuedMessages(ids),
       editQueuedMessage: (id: string, body: string) =>
@@ -288,21 +283,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
     if (this._queueMessageId && message.id !== this._queueMessageId) {
       this._updateQueueUI();
     }
-  }
-
-  /**
-   * Adds a non-user message to the chat (used by chat commands).
-   */
-  private _addSystemMessage(body: string): void {
-    const message: IMessageContent = {
-      body,
-      sender: this._getAIUser(),
-      id: UUID.uuid4(),
-      time: Date.now() / 1000,
-      type: 'msg',
-      raw_time: false
-    };
-    this.messageAdded(message);
   }
 
   /**
@@ -672,12 +652,6 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       }
     };
   }
-  /**
-   * Gets the AI user information for system messages.
-   */
-  private _getAIUser(): IUser {
-    return DEFAULT_PERSONA;
-  }
 
   /**
    * Handles chat-specific settings changes.
@@ -804,10 +778,6 @@ export namespace AIChatModel {
      * The clear messages callback.
      */
     clearMessages: () => Promise<void>;
-    /**
-     * Adds an assistant/system message to the chat.
-     */
-    addSystemMessage: (body: string) => void;
     /**
      * The agent manager of the chat.
      */

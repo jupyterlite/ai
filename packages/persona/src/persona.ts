@@ -597,6 +597,13 @@ export class Persona implements IPersona {
     }
   }
 
+  sendSystemMessage(body: string): void {
+    this._model.sendMessage({
+      body,
+      sender: this._persona
+    });
+  }
+
   /**
    * Whether a mention is required to trigger a response.
    * When false, the persona responds to all non-bot messages.

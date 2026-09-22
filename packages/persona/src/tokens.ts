@@ -67,6 +67,10 @@ export interface IPersona {
    * Called after restoring a saved chat.
    */
   rebuildHistory(): Promise<void>;
+  /**
+   * Adds an assistant message to the chat (used by chat commands).
+   */
+  sendSystemMessage(body: string): void;
 }
 
 /**
