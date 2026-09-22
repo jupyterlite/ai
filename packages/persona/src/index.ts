@@ -1,3 +1,27 @@
+import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
+
+import {
+  ILayoutRestorer,
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+
+import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+
+import { ICompletionProviderManager } from '@jupyterlab/completer';
+
+import { IDocumentManager } from '@jupyterlab/docmanager';
+
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
+import { IStatusBar } from '@jupyterlab/statusbar';
+
+import { PathExt } from '@jupyterlab/coreutils';
+
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+
+import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
+
 import {
   anthropicProvider,
   createBrowserFetchTool,
@@ -25,31 +49,9 @@ import {
 
 import type { IAISecretsAccess } from '@jupyternaut/agent';
 
-import {
-  ILayoutRestorer,
-  JupyterFrontEnd,
-  JupyterFrontEndPlugin
-} from '@jupyterlab/application';
-
-import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
-
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
-
-import { ICompletionProviderManager } from '@jupyterlab/completer';
-
-import { IDocumentManager } from '@jupyterlab/docmanager';
-
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
-
-import { IStatusBar } from '@jupyterlab/statusbar';
-
-import { PathExt } from '@jupyterlab/coreutils';
-
-import { ITranslator, nullTranslator } from '@jupyterlab/translation';
-
-import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
-
 import { DisposableSet } from '@lumino/disposable';
+
+import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
 import { IMcpManager } from 'jupyter-mcp-manager';
 
@@ -268,6 +270,54 @@ const persona: JupyterFrontEndPlugin<void> = {
 
     chatTracker?.forEach(widget => attachPersona(widget));
     chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+  }
+};
+
+/**
+ * Registers groupedToolCall callbacks to route tool call approval decisions
+ * to the correct persona's agent manager.
+ */
+const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:chat-components-callbacks',
+  description: 'Register chat components callbacks for the persona.',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker, IComponentsRendererFactory],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null,
+    chatComponentsFactory?: IComponentsRendererFactory
+  ): void => {
+    if (!chatComponentsFactory) {
+      return;
+    }
+
+    const findPersona = (sessionId: string) => {
+      const model = chatTracker?.find(
+        chat => chat.model.name === sessionId
+      )?.model;
+      return model ? personaRegistry.get(model) : undefined;
+    };
+
+    chatComponentsFactory.groupedToolCallCallbacks = {
+      ...chatComponentsFactory.groupedToolCallCallbacks,
+      toolCallPermissionDecision: (
+        sessionId: string,
+        toolCallId: string,
+        optionId: string
+      ) => {
+        const agent = findPersona(sessionId)?.agentManager;
+        if (!agent) {
+          return;
+        }
+        if (optionId === 'approve') {
+          agent.approveToolCall(toolCallId);
+        } else {
+          agent.rejectToolCall(toolCallId);
+        }
+      }
+    };
   }
 };
 
@@ -695,6 +745,7 @@ export default [
   // Persona
   personaRegistry,
   persona,
+  chatComponentsCallbacks,
   mentionCommandPlugin,
   // Settings
   settingsModel,

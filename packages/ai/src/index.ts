@@ -1,14 +1,4 @@
 import {
-  IAgentManagerFactory,
-  IAISettingsModel,
-  IProviderRegistry,
-  IToolRegistry,
-  ISkillRegistry
-} from '@jupyternaut/agent';
-
-import type { IProviderConfig } from '@jupyternaut/agent';
-
-import {
   ILabShell,
   ILayoutRestorer,
   JupyterFrontEnd,
@@ -68,24 +58,39 @@ import {
   ToolbarButton
 } from '@jupyterlab/ui-components';
 
-import { UUID } from '@lumino/coreutils';
+import {
+  IAgentManagerFactory,
+  IAISettingsModel,
+  IProviderRegistry,
+  IToolRegistry,
+  ISkillRegistry
+} from '@jupyternaut/agent';
 
-import { CommandRegistry } from '@lumino/commands';
+import type { IProviderConfig } from '@jupyternaut/agent';
 
 import {
   CommandIds as PersonaCommandsIds,
   IPersonaRegistry
 } from '@jupyternaut/persona';
 
+import { UUID } from '@lumino/coreutils';
+
+import { CommandRegistry } from '@lumino/commands';
+
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
-import { ClearCommandProvider } from './chat-commands/clear';
-
-import { SkillsCommandProvider } from './chat-commands/skills';
-
-import { SaveComponentWidget } from './components/save-button';
+import { ClearCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { ChatModelHandler } from './chat-model-handler';
+
+import {
+  clearItem,
+  createModelSelectItem,
+  createToolSelectItem,
+  SaveComponentWidget,
+  stopItem,
+  UsageWidget
+} from './components';
 
 import {
   CommandIds,
@@ -94,14 +99,6 @@ import {
   ChatToolbarFactory,
   IChatToolbarFactory
 } from './tokens';
-
-import {
-  clearItem,
-  createModelSelectItem,
-  createToolSelectItem,
-  stopItem,
-  UsageWidget
-} from './components';
 
 import { MainAreaChat } from './widgets/main-area-chat';
 
@@ -286,7 +283,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     IComponentsRendererFactory,
     ICommandPalette,
     IDocumentManager,
-    IPersonaRegistry,
     IChatToolbarFactory
   ],
   activate: async (
@@ -305,7 +301,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     chatComponentsFactory?: IComponentsRendererFactory,
     palette?: ICommandPalette,
     documentManager?: IDocumentManager,
-    personaRegistry?: IPersonaRegistry,
     chatToolbarFactory?: ChatToolbarFactory
   ): Promise<IChatTracker> => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
@@ -545,31 +540,7 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
         | undefined;
     };
 
-    const findPersona = (targetId: string) => {
-      const model = tracker.find(chat => chat.model.name === targetId)?.model;
-      return model ? personaRegistry?.get(model) : undefined;
-    };
-
     if (chatComponentsFactory) {
-      chatComponentsFactory.groupedToolCallCallbacks = {
-        ...chatComponentsFactory.groupedToolCallCallbacks,
-        toolCallPermissionDecision: (
-          sessionId: string,
-          toolCallId: string,
-          optionId: string
-        ) => {
-          const agent = findPersona(sessionId)?.agentManager;
-          if (!agent) {
-            return;
-          }
-          if (optionId === 'approve') {
-            agent.approveToolCall(toolCallId);
-          } else {
-            agent.rejectToolCall(toolCallId);
-          }
-        }
-      };
-
       chatComponentsFactory.queueMessageCallbacks = {
         ...chatComponentsFactory.queueMessageCallbacks,
         removeQueuedMessage: (targetId: string, messageId: string) => {
