@@ -110,6 +110,10 @@
         "bundled": true,
         "singleton": true
       },
+      "jupyter-chat-components": {
+        "bundled": false,
+        "singleton": true
+      },
       "jupyter-mcp-manager": {
         "bundled": false,
         "singleton": true

@@ -381,7 +381,7 @@ export class Persona implements IPersona {
         streamingMessage.update({ body: event.data.fullContent });
       } else {
         this._model.updateMessage(streamingMessage.id, {
-          ...streamingMessage,
+          ...streamingMessage.content,
           body: event.data.fullContent
         });
       }
@@ -397,7 +397,7 @@ export class Persona implements IPersona {
         streamingMessage.update({ body: event.data.content });
       } else {
         this._model.updateMessage(streamingMessage.id, {
-          ...streamingMessage,
+          ...streamingMessage.content,
           body: event.data.content
         });
       }
@@ -591,7 +591,7 @@ export class Persona implements IPersona {
       message.update({ mime_model });
     } else {
       this._model.updateMessage(message.id, {
-        ...message,
+        ...message.content,
         mime_model
       });
     }
