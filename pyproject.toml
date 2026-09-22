@@ -37,6 +37,7 @@ before-build-npm = [
 before-build-python = ["jlpm clean:all"]
 before-bump-version = [
     "python -m pip install -U jupyterlab",
+    "pip install uv==0.9.5",
     "jlpm"
 ]
 

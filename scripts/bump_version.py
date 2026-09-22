@@ -153,6 +153,9 @@ def bump(skip_if_dirty, spec):
         if changed:
             pyproject_file.write_text(content)
 
+    # Update the demo uv.lock to reflect the new local package versions
+    run("uv lock", cwd=HERE / "demo")
+
 
 if __name__ == "__main__":
     bump()
