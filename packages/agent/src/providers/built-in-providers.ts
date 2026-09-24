@@ -5,8 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-model-info';
-import { DEFAULT_APP_ATTRIBUTION } from './models';
-import type { IModelOptions } from './models';
+import { DEFAULT_APP_ATTRIBUTION, type IModelOptions } from './models';
 import type { IProviderInfo } from '../tokens';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
@@ -234,6 +233,7 @@ export const openrouterProvider: IProviderInfo = {
     const { data } = (await response.json()) as { data: { id: string }[] };
     return data.map(model => model.id).filter(id => !id.endsWith(':batch'));
   },
+  supportsHeaders: true,
   supportsToolCalling: true,
   description: 'Access models from many providers with one account',
   factory: (options: IModelOptions) => {

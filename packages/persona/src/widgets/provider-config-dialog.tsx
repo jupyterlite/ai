@@ -164,6 +164,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
 
   const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
   const [connecting, setConnecting] = React.useState(false);
+  const [fetchedModels, setFetchedModels] = React.useState<string[]>();
   const connectAttempt = React.useRef(0);
   const selectedProviderInfo = React.useMemo(
     () => providerRegistry.getProviderInfo(provider),
@@ -206,8 +207,6 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   }, [providerRegistry]);
 
   const selectedProvider = providerOptions.find(p => p.value === provider);
-
-  const [fetchedModels, setFetchedModels] = React.useState<string[]>();
 
   React.useEffect(() => {
     setFetchedModels(undefined);
