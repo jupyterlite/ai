@@ -23,6 +23,11 @@ import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
 
 import {
+  IPersonaSessionRegistry,
+  PersonaSessionRegistry
+} from '@jupyter-ai/persona-manager';
+
+import {
   anthropicProvider,
   createBrowserFetchTool,
   createDiscoverCommandsTool,
@@ -241,13 +246,19 @@ const persona: JupyterFrontEndPlugin<void> = {
   description: 'Attach persona handlers to chat widgets as they are opened',
   autoStart: true,
   requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry],
+  optional: [
+    IChatTracker,
+    IPersonaSessionRegistry,
+    IProviderRegistry,
+    IToolRegistry
+  ],
   activate: (
     app: JupyterFrontEnd,
     registry: IPersonaRegistry,
     agentManagerFactory: IAgentManagerFactory,
     settingsModel: IAISettingsModel,
     chatTracker: IChatTracker | null,
+    personaSessionRegistry: PersonaSessionRegistry | null,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): void => {
@@ -269,7 +280,33 @@ const persona: JupyterFrontEndPlugin<void> = {
     };
 
     chatTracker?.forEach(widget => attachPersona(widget));
-    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => {
+      attachPersona(widget);
+      widget.model.ready.then(id => {
+        personaSessionRegistry?.registerFrontendPersona(id, {
+          id: DEFAULT_PERSONA.username,
+          name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
+          avatar_url: DEFAULT_PERSONA.avatar_url!
+        });
+        personaSessionRegistry?.updatePersonaState(
+          id,
+          DEFAULT_PERSONA.username,
+          {
+            model: {
+              current: settingsModel.getDefaultProvider()?.id ?? null,
+              options: [
+                ...settingsModel.providers.map(provider => ({
+                  id: provider.id,
+                  name: provider.name,
+                  description: provider.description ?? provider.model
+                }))
+              ],
+              settings: []
+            }
+          }
+        );
+      });
+    });
   }
 };
 

@@ -522,7 +522,8 @@ export interface IAgentManager {
   /**
    * The active provider for this agent.
    */
-  activeProvider: string;
+  readonly activeProvider: string;
+  setActiveProvider(provider: string): Promise<void>;
   /**
    * Signal emitted when agent events occur
    */

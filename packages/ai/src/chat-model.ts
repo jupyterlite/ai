@@ -77,7 +77,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           this._persona = persona;
           this._persona.requireMention = false;
           if (this._activeProvider && this.agentManager) {
-            this.agentManager.activeProvider = this._activeProvider;
+            this.agentManager.setActiveProvider(this._activeProvider);
           }
           this._persona.busyChanged.connect(this._onPersonaBusyChanged, this);
           // Rebuild history when the model changes
@@ -538,7 +538,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {
-        this.agentManager!.activeProvider = content.metadata.provider;
+        this.agentManager!.setActiveProvider(content.metadata.provider);
       } else if (!silent) {
         console.log(
           `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`

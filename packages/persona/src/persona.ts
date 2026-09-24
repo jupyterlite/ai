@@ -31,7 +31,7 @@ import type { ModelMessage, UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
-import type { IPersona } from './tokens';
+import { DEFAULT_PERSONA, type IPersona } from './tokens';
 
 type ToolStatus =
   | 'pending'
@@ -216,9 +216,16 @@ export class Persona implements IPersona {
   private async _onMessagesUpdated(): Promise<void> {
     const unhandled = this._model.messages.filter(
       m =>
+        // message not yet responded
         !this._respondedToIds.has(m.id) &&
+        // AND message from user
         !m.sender.bot &&
-        (!this.requireMention || m.mentions?.includes(this._persona))
+        // AND set up to respond to all user message (@jupyterlite/ai compatibility)
+        (!this.requireMention ||
+          // OR persona mentioned in the message
+          m.mentions?.includes(this._persona) ||
+          // OR persona explicitly targeted in metadata (jupyter-ai compatibility)
+          (m.metadata as any)?.to_persona === DEFAULT_PERSONA.username)
     );
 
     for (const message of unhandled) {
@@ -228,18 +235,33 @@ export class Persona implements IPersona {
     for (const message of unhandled) {
       const personaMention = `@${this._persona.mention_name}`;
       const body = message.body.replace(personaMention, '').trim();
-      await this._respond(body || message.body, message.attachments);
+      await this._respond(
+        body || message.body,
+        message.attachments,
+        // Model (provider in this @jupyternaut) explicitly targeted in metadata (jupyter-ai compatibility)
+        (message.metadata as any)?.model?.id
+      );
     }
   }
 
   private async _respond(
     body: string,
-    attachments?: IAttachment[]
+    attachments?: IAttachment[],
+    provider?: string
   ): Promise<void> {
     this._busy = true;
     this._busyChanged.emit(true);
     this._model.updateWriters([{ user: this._persona }]);
     try {
+      // Rebuild the agent if the current one is not the expected one.
+      if (
+        provider &&
+        this._agent.activeProvider !== provider &&
+        this._settingsModel.getProvider(provider)
+      ) {
+        await this._agent.setActiveProvider(provider);
+      }
+
       let content: UserContent = body;
       if (attachments && attachments.length > 0) {
         const providerConfig = this._settingsModel.getProvider(
@@ -254,6 +276,7 @@ export class Persona implements IPersona {
           modelSupportsAudio(providerConfig, this._providerRegistry)
         );
       }
+
       await this._agent.generateResponse(content);
     } catch (error) {
       console.error('Persona: error generating response', error);
@@ -356,6 +379,36 @@ export class Persona implements IPersona {
     }
   }
 
+  /**
+   * Wait for a message with the given id to appear in model.messages.
+   * Returns immediately if already present; otherwise waits for messagesUpdated,
+   * ignoring unrelated updates (e.g. peer messages). Times out after 5 s to
+   * avoid leaking the signal connection on error.
+   * This in necessary for chat using web socket, as the model is updated only when
+   * the message is broadcasted from the server.
+   */
+  private _waitForMessage(msgId: string): Promise<IMessage | undefined> {
+    const found = this._model.messages.find(m => m.id === msgId);
+    if (found) {
+      return Promise.resolve(found);
+    }
+    return new Promise<IMessage | undefined>(resolve => {
+      const cleanup = (result: IMessage | undefined) => {
+        clearTimeout(timer);
+        this._model.messagesUpdated.disconnect(onUpdate);
+        resolve(result);
+      };
+      const onUpdate = () => {
+        const msg = this._model.messages.find(m => m.id === msgId);
+        if (msg) {
+          cleanup(msg);
+        }
+      };
+      const timer = setTimeout(() => cleanup(undefined), 5000);
+      this._model.messagesUpdated.connect(onUpdate);
+    });
+  }
+
   private async _handleMessageStart(
     event: IAgentManager.IAgentEvent<'message_start'>
   ): Promise<void> {
@@ -364,11 +417,11 @@ export class Persona implements IPersona {
       sender: this._persona
     };
     const msgId = await this._model.sendMessage(message);
-    const streamingMessage =
-      this._model.messages.find(m => m.id === msgId) ?? null;
-
-    if (streamingMessage) {
-      this._streamingMessage.set(event.data.messageId, streamingMessage);
+    if (msgId) {
+      const streamingMessage = await this._waitForMessage(msgId);
+      if (streamingMessage) {
+        this._streamingMessage.set(event.data.messageId, streamingMessage);
+      }
     }
   }
 
@@ -451,6 +504,7 @@ export class Persona implements IPersona {
     });
 
     if (messageId) {
+      await this._waitForMessage(messageId);
       context.messageId = messageId;
       this._toolContexts.set(event.data.callId, context);
     }
