@@ -153,6 +153,16 @@ def bump(skip_if_dirty, spec):
         if changed:
             pyproject_file.write_text(content)
 
+    # Update the demo uv.lock to reflect the new local package versions.
+    # Refresh local packages because their versions come dynamically from _version.py
+    # and uv may otherwise reuse cached metadata. In particular, refreshing
+    # jupyterlite-ai ensures its updated jupyternaut-persona constraint is
+    # written to the lockfile; refreshing every local package also covers future additions.
+    refresh_flags = " ".join(
+        f"--refresh-package {pkg}" for pkg in sorted(local_python_packages)
+    )
+    run(f"uv lock {refresh_flags}", cwd=HERE / "demo")
+
 
 if __name__ == "__main__":
     bump()
