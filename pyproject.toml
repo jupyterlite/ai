@@ -9,6 +9,9 @@ readme = "README.md"
 license = { file = "LICENSE" }
 dynamic = ["version"]
 
+[dependency-groups]
+release = ["uv==0.12.17"]
+
 [tool.hatch.version]
 source = "nodejs"
 
@@ -37,7 +40,7 @@ before-build-npm = [
 before-build-python = ["jlpm clean:all"]
 before-bump-version = [
     "python -m pip install -U jupyterlab",
-    "pip install uv==0.12.17",
+    "python -m pip install --group release",
     "jlpm"
 ]
 

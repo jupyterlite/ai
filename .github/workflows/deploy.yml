@@ -18,7 +18,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: '0.12.17'
+          # setup-uv reads the uv pin from the "release" dependency group of pyproject.toml
+          version-file: pyproject.toml
           enable-cache: true
 
       # build extensions
