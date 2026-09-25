@@ -375,10 +375,10 @@ test.describe('#openrouterAppAttribution', () => {
   const appAttribution = { name: 'My App', url: 'https://example.org/my-app' };
 
   test.use({
+    autoGoto: false,
     mockSettings: {
       ...galata.DEFAULT_SETTINGS,
       '@jupyternaut/persona:settings-model': {
-        appAttribution,
         defaultProvider: 'openrouter-test',
         providers: [
           {
@@ -392,6 +392,19 @@ test.describe('#openrouterAppAttribution', () => {
         useSecretsManager: false
       }
     }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/lab/', async route => {
+      const response = await route.fetch();
+      const body = (await response.text()).replace(
+        /(<script id="jupyter-config-data" type="application\/json">)([^<]*)/,
+        (match, tag, config) =>
+          tag + JSON.stringify({ ...JSON.parse(config), appAttribution })
+      );
+      await route.fulfill({ response, body });
+    });
+    await page.goto();
   });
 
   test('should label the API key with the app name', async ({ page }) => {

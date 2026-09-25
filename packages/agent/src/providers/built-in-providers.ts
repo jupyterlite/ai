@@ -5,7 +5,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-model-info';
-import { DEFAULT_APP_ATTRIBUTION, type IModelOptions } from './models';
+import { getAppAttribution } from './app-attribution';
+import type { IModelOptions } from './models';
 import type { IProviderInfo } from '../tokens';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
@@ -240,7 +241,7 @@ export const openrouterProvider: IProviderInfo = {
     if (!options.apiKey) {
       throw new Error('API key required for OpenRouter');
     }
-    const { name, url } = options.appAttribution ?? DEFAULT_APP_ATTRIBUTION;
+    const { name, url } = getAppAttribution();
     const openrouter = createOpenAICompatible({
       name: 'openrouter',
       apiKey: options.apiKey,

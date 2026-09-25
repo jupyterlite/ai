@@ -281,26 +281,6 @@
       "type": "array",
       "items": { "type": "string" },
       "default": [".agents/skills", "_agents/skills"]
-    },
-    "appAttribution": {
-      "title": "App Attribution",
-      "description": "Name and URL of the application, reported to the providers that support app attribution (OpenRouter). The name is also the label of the API keys created with \"Connect with OpenRouter\". An application that includes this extension can set its own values. Leave a value empty to not send it.",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "url": {
-          "title": "URL",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "default": {
-        "name": "JupyterLite AI",
-        "url": "https://github.com/jupyterlite/ai"
-      }
     }
   },
   "additionalProperties": false

@@ -6,7 +6,7 @@ import { ISignal } from '@lumino/signaling';
 import type { Tool, LanguageModel, UserContent, ModelMessage } from 'ai';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
-import type { IAppAttribution, IModelOptions } from './providers/models';
+import type { IModelOptions } from './providers/models';
 import type {
   ISkillDefinition,
   ISkillRegistration,
@@ -406,8 +406,6 @@ export interface IAIConfig {
   diffDisplayMode: 'split' | 'unified';
   // Paths to directories containing agent skills
   skillsPaths: string[];
-  // Application reported to the providers that support app attribution
-  appAttribution: IAppAttribution;
 }
 
 /**

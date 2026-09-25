@@ -2,20 +2,6 @@ import type { LanguageModel } from 'ai';
 import type { IProviderRegistry } from '../tokens';
 
 /**
- * The application name and URL reported to the providers that support app
- * attribution, such as OpenRouter.
- */
-export interface IAppAttribution {
-  name: string;
-  url: string;
-}
-
-export const DEFAULT_APP_ATTRIBUTION: IAppAttribution = {
-  name: 'JupyterLite AI',
-  url: 'https://github.com/jupyterlite/ai'
-};
-
-/**
  * Configuration options for creating language models.
  */
 export interface IModelOptions {
@@ -43,11 +29,6 @@ export interface IModelOptions {
    * Custom base URL for the provider's API endpoint
    */
   baseURL?: string;
-
-  /**
-   * The application to report to the providers that support app attribution
-   */
-  appAttribution?: IAppAttribution;
 }
 
 /**

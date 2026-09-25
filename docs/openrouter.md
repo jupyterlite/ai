@@ -71,20 +71,18 @@ The Generic provider does not fetch the list of models and does not send the [ap
 
 OpenRouter can [attribute the requests to an application](https://openrouter.ai/docs/app-attribution), which then shows in the OpenRouter rankings and in the activity of the user. By default the requests are attributed to "JupyterLite AI".
 
-An application that includes `jupyterlite-ai` can set its own name and URL with the `appAttribution` setting, for example in an `overrides.json` file:
+A deployment can set its own name and URL with the `appAttribution` option, for example in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "@jupyternaut/persona:settings-model": {
-    "appAttribution": {
-      "name": "My App",
-      "url": "https://example.org/my-app"
-    }
+  "appAttribution": {
+    "name": "My App",
+    "url": "https://example.org/my-app"
   }
 }
 ```
 
-The name is also the label of the API keys created with **Connect with OpenRouter**. OpenRouter identifies an application by its URL, so set both values. An empty value is not sent.
+The name is also the label of the API keys created with **Connect with OpenRouter**. OpenRouter identifies an application by its URL, so set both values. An empty or missing value is not sent.
 
 ## Where is the API key stored?
 

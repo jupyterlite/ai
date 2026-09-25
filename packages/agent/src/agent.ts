@@ -1257,8 +1257,7 @@ ${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._ad
         provider,
         model,
         apiKey,
-        baseURL,
-        appAttribution: this._settingsModel.config.appAttribution
+        baseURL
       },
       this._providerRegistry
     );

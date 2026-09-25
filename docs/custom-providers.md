@@ -65,7 +65,7 @@ The provider configuration object requires the following properties:
   prompt caching
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
-The `factory` receives the model options, which include the `appAttribution` setting (application `name` and `url`) for providers that support app attribution.
+A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function. See [App attribution](./openrouter.md#app-attribution) to set them.
 
 ## Hiding the Built-In Settings UI
 

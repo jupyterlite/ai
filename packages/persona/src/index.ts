@@ -34,6 +34,7 @@ import {
   createExecuteCommandTool,
   createLoadSkillTool,
   genericProvider,
+  getAppAttribution,
   googleProvider,
   loadSkillsFromPaths,
   mistralProvider,
@@ -228,7 +229,7 @@ const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
     ): Promise<boolean> => {
       try {
         const key = await requestApiKey({
-          keyLabel: settingsModel.config.appAttribution.name,
+          keyLabel: getAppAttribution().name,
           signal: options.signal
         });
         if (key === null) {

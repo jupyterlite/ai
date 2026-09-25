@@ -1,4 +1,3 @@
-import { DEFAULT_APP_ATTRIBUTION } from '@jupyternaut/agent';
 import type {
   IAIConfig,
   IAISettingsModel,
@@ -23,7 +22,6 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     showFileDiff: true,
     diffDisplayMode: 'split',
     skillsPaths: ['.agents/skills', '_agents/skills'],
-    appAttribution: DEFAULT_APP_ATTRIBUTION,
     commandsRequiringApproval: [
       'notebook:restart-run-all',
       'notebook:run-cell',
