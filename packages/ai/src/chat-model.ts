@@ -98,7 +98,14 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   }
   set id(value: string) {
     super.id = value;
-    this.setReady(super.id);
+    if (this._restorePromise) {
+      this._restorePromise.then(() => {
+        this._restorePromise = null;
+        this.setReady(value);
+      });
+    } else {
+      this.setReady(value);
+    }
   }
 
   /**
@@ -116,7 +123,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
           | string
           | undefined) ?? '';
       const filepath = PathExt.join(directory, `${this.name}.chat`);
-      this.restore(filepath, true);
+      this._restorePromise = this.restore(filepath, true);
     }
   }
 
@@ -710,6 +717,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
   private _queueMessageId: string | null = null;
   private _title: string | null = null;
   private _titleChanged = new Signal<IAIChatModel, string | null>(this);
+  private _restorePromise: Promise<boolean> | null = null;
 }
 
 namespace Private {
