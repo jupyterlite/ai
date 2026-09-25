@@ -266,6 +266,29 @@ test.describe('#openrouter', () => {
     await expect(dialog).toBeHidden();
   });
 
+  test('should not save the provider when the dialog closes during the exchange', async ({
+    page
+  }) => {
+    const dialog = await openOpenRouterDialog(page);
+    await dialog.getByLabel('Provider Name').fill('My OpenRouter');
+    await page.route(KEYS_URL, async route => {
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      return route.fulfill({ json: { key: 'sk-or-v1-test' } });
+    });
+    const exchanged = page.waitForResponse(KEYS_URL);
+    await connect(page, dialog, 'test-code');
+    await exchanged;
+
+    // The provider is saved soon after the exchange if the cancel is missed.
+    await page.waitForTimeout(1000);
+    await expect(
+      page.locator('.Toastify__toast', { hasText: 'OpenRouter' })
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: 'My OpenRouter' })
+    ).toHaveCount(0);
+  });
+
   test('should ignore the code of another request', async ({ page }) => {
     const codes: string[] = [];
     await page.route(KEYS_URL, route => {

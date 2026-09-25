@@ -109,7 +109,11 @@ export async function requestApiKey(
   });
 
   const code = await waitForCode(popup, id, options.signal);
-  return code === null ? null : exchangeCode(code, verifier);
+  if (code === null) {
+    return null;
+  }
+  const key = await exchangeCode(code, verifier);
+  return options.signal?.aborted ? null : key;
 }
 
 /**
