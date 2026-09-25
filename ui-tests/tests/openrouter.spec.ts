@@ -48,21 +48,23 @@ async function openOpenRouterDialog(
  * Click on the connect button and wait until the popup window closes.
  *
  * The OpenRouter authorization page is replaced by a page that redirects to
- * the callback URL, with the given code if any. Returns the URL of the
- * authorization page.
+ * the callback URL, with the given code if any. The optional callback runs
+ * before that page loads. Returns the URL of the authorization page.
  */
 async function connect(
   page: IJupyterLabPageFixture,
   dialog: Locator,
-  code: string | null
+  code: string | null,
+  beforeAuthPage?: () => Promise<void>
 ): Promise<URL> {
   let authUrl: URL | undefined;
-  await page.context().route(`${AUTH_URL}?*`, route => {
+  await page.context().route(`${AUTH_URL}?*`, async route => {
     authUrl = new URL(route.request().url());
     const callbackUrl = new URL(authUrl.searchParams.get('callback_url')!);
     if (code) {
       callbackUrl.searchParams.set('code', code);
     }
+    await beforeAuthPage?.();
     return route.fulfill({
       contentType: 'text/html',
       body: `<script>location.replace(${JSON.stringify(callbackUrl)})</script>`
@@ -243,6 +245,50 @@ test.describe('#openrouter', () => {
     await expect(button).toBeEnabled();
     await expect(dialog).toBeVisible();
     expect(exchanged).toBe(false);
+  });
+
+  test('should close the popup when the dialog closes', async ({ page }) => {
+    await page
+      .context()
+      .route(`${AUTH_URL}?*`, route =>
+        route.fulfill({ contentType: 'text/html', body: '<p>OpenRouter</p>' })
+      );
+
+    const dialog = await openOpenRouterDialog(page);
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      dialog.getByRole('button', { name: CONNECT_BUTTON }).click()
+    ]);
+    const popupClosed = popup.waitForEvent('close');
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+
+    await popupClosed;
+    await expect(dialog).toBeHidden();
+  });
+
+  test('should ignore the code of another request', async ({ page }) => {
+    const codes: string[] = [];
+    await page.route(KEYS_URL, route => {
+      codes.push(route.request().postDataJSON().code);
+      return route.fulfill({ json: { key: 'sk-or-v1-test' } });
+    });
+
+    const dialog = await openOpenRouterDialog(page);
+    // Another tab of the same origin completes its own request.
+    await connect(page, dialog, 'test-code', () =>
+      page.evaluate(() => {
+        const channel = new BroadcastChannel(
+          '@jupyternaut/persona:openrouter-auth'
+        );
+        channel.postMessage({ type: channel.name, id: 'other', code: 'other' });
+        channel.close();
+      })
+    );
+
+    await expect(
+      page.locator('.Toastify__toast', { hasText: 'Connected to OpenRouter' })
+    ).toBeVisible();
+    expect(codes).toEqual(['test-code']);
   });
 
   test('should report a failed exchange', async ({ page }) => {

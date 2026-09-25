@@ -165,7 +165,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
   const [connecting, setConnecting] = React.useState(false);
   const [fetchedModels, setFetchedModels] = React.useState<string[]>();
-  const connectAttempt = React.useRef(0);
+  const connectController = React.useRef<AbortController | null>(null);
   const selectedProviderInfo = React.useMemo(
     () => providerRegistry.getProviderInfo(provider),
     [providerRegistry, provider]
@@ -252,7 +252,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       // Reset expanded state when dialog closes
       setDomainInputs(createEmptyDomainInputs());
       setExpandedAdvanced(false);
-      connectAttempt.current += 1;
+      connectController.current?.abort();
       setConnecting(false);
     }
   }, [open, initialConfig, providerRegistry]);
@@ -462,24 +462,26 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   };
 
   /**
-   * The provider saves the configuration with the new API key. An attempt
-   * that ends after the dialog closed is ignored.
+   * The provider saves the configuration with the new API key. Closing the
+   * dialog cancels the connection.
    */
   const handleConnectAccount = async () => {
-    const attempt = ++connectAttempt.current;
+    const controller = new AbortController();
+    connectController.current = controller;
     const config = buildConfig();
     delete config.apiKey;
     setConnecting(true);
     try {
       const connected = await selectedProviderInfo?.connectAccount?.({
         config: { ...config, name: config.name || selectedProviderInfo.name },
-        providerId: initialConfig?.id
+        providerId: initialConfig?.id,
+        signal: controller.signal
       });
-      if (connected && attempt === connectAttempt.current) {
+      if (connected && !controller.signal.aborted) {
         onClose();
       }
     } finally {
-      if (attempt === connectAttempt.current) {
+      if (!controller.signal.aborted) {
         setConnecting(false);
       }
     }

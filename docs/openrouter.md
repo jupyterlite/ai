@@ -12,7 +12,7 @@ The **OpenRouter** provider can create an API key for you, so there is no need t
 4. Choose a **Model**: the list comes from OpenRouter and shows the models with tool support, the most used first. The first model is selected by default. Type a part of a name (for example `sonnet`) to filter the list, or enter any [model ID supported by OpenRouter](https://openrouter.ai/models)
 5. Click on **Connect with OpenRouter**
 
-A window opens with the OpenRouter website, where you can log in (or create an account) and authorize `jupyterlite-ai`. If you are not logged in, OpenRouter shows its sign-up page first: use the **Sign in** link on that page if you already have an account. The window closes after the authorization. The provider is saved with the new API key, and a notification confirms the connection. If you close the window before the authorization, nothing is saved and you can click on the button again.
+A window opens with the OpenRouter website, where you can log in (or create an account) and authorize `jupyterlite-ai`. If you are not logged in, OpenRouter shows its sign-up page first: use the **Sign in** link on that page if you already have an account. The window closes after the authorization. The provider is saved with the new API key, and a notification confirms the connection. If you close the window or the dialog before the authorization, nothing is saved and you can click on the button again.
 
 The application is not reloaded, so your work is not interrupted, and the API keys of the other providers are kept.
 

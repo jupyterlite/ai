@@ -8,22 +8,20 @@ const KEYS_URL = 'https://openrouter.ai/api/v1/auth/keys';
  * entry that marks the popup window.
  */
 const CHANNEL = '@jupyternaut/persona:openrouter-auth';
-const POPUP_NAME = 'jupyternaut-openrouter-auth';
 const POPUP_WIDTH = 600;
 const POPUP_HEIGHT = 800;
 const POPUP_POLL_INTERVAL = 500;
 const POPUP_CLOSE_DELAY = 1000;
 
 /**
- * The message from the popup window. The code is null if the user denied the
- * request.
+ * The message from the popup window. The ID identifies the request, and the
+ * code is null if the user denied the request.
  */
 interface IAuthMessage {
   type: typeof CHANNEL;
+  id: string;
   code: string | null;
 }
-
-let cancelPending: (() => void) | null = null;
 
 /**
  * Get the URL OpenRouter redirects to: the given page URL without a previous
@@ -79,23 +77,22 @@ async function exchangeCode(code: string, verifier: string): Promise<string> {
 
 /**
  * Get an OpenRouter API key with the authorization page in a popup window.
- * Resolves to null if the user denies the request, closes the popup window,
- * or starts another request.
+ * Resolves to null if the user denies the request or closes the popup window,
+ * or if the signal aborts.
  *
  * The browser blocks the popup unless the call comes from a user action.
  */
 export async function requestApiKey(
-  options: { keyLabel?: string } = {}
+  options: { keyLabel?: string; signal?: AbortSignal } = {}
 ): Promise<string | null> {
-  cancelPending?.();
-
   // The popup window gets a copy of the session storage when it opens.
-  window.sessionStorage.setItem(CHANNEL, POPUP_NAME);
+  const id = crypto.randomUUID();
+  window.sessionStorage.setItem(CHANNEL, id);
   const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
   const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
   const popup = window.open(
     '',
-    POPUP_NAME,
+    '_blank',
     `popup,width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top}`
   );
   window.sessionStorage.removeItem(CHANNEL);
@@ -111,7 +108,7 @@ export async function requestApiKey(
     keyLabel: options.keyLabel
   });
 
-  const code = await waitForCode(popup);
+  const code = await waitForCode(popup, id, options.signal);
   return code === null ? null : exchangeCode(code, verifier);
 }
 
@@ -120,59 +117,70 @@ export async function requestApiKey(
  *
  * The message comes from `window.opener`, and from a broadcast channel for the
  * case where a page in the popup, such as a login page, cuts the opener link.
- * Such a page also reports the popup as closed, so a close counts only when
- * the focus comes back to this window.
+ * The channel reaches all the windows of the origin, so only the message with
+ * the ID of this request counts. A page that cuts the opener link also reports
+ * the popup as closed, so a close counts only while this window has the focus.
  */
-function waitForCode(popup: Window): Promise<string | null> {
+function waitForCode(
+  popup: Window,
+  id: string,
+  signal?: AbortSignal
+): Promise<string | null> {
   return new Promise(resolve => {
     const channel = new BroadcastChannel(CHANNEL);
-    let closeTimer: number | undefined;
+    let closedSince: number | null = null;
     const finish = (code: string | null) => {
       window.clearInterval(pollTimer);
-      window.clearTimeout(closeTimer);
       window.removeEventListener('message', onMessage);
       channel.close();
-      cancelPending = null;
+      signal?.removeEventListener('abort', cancel);
+      popup.close();
       resolve(code);
     };
+    const cancel = () => finish(null);
     const onMessage = (event: MessageEvent<IAuthMessage>) => {
       if (
         event.origin === window.location.origin &&
-        event.data?.type === CHANNEL
+        event.data?.type === CHANNEL &&
+        event.data.id === id
       ) {
         finish(event.data.code);
       }
     };
     // The popup posts its message before it closes itself.
     const pollTimer = window.setInterval(() => {
-      if (popup.closed) {
-        window.clearInterval(pollTimer);
-        closeTimer = window.setTimeout(() => {
-          if (document.hasFocus()) {
-            finish(null);
-          }
-        }, POPUP_CLOSE_DELAY);
+      if (!popup.closed || !document.hasFocus()) {
+        closedSince = null;
+      } else if (closedSince === null) {
+        closedSince = Date.now();
+      } else if (Date.now() - closedSince >= POPUP_CLOSE_DELAY) {
+        finish(null);
       }
     }, POPUP_POLL_INTERVAL);
     window.addEventListener('message', onMessage);
     channel.addEventListener('message', onMessage);
-    cancelPending = () => finish(null);
+    signal?.addEventListener('abort', cancel);
+    if (signal?.aborted) {
+      cancel();
+    }
   });
 }
 
 /**
  * In the popup window, send the authorization code to the window that opened
- * it, then close the popup. Returns false in any other window, even if its URL
+ * it, then close the popup. Does nothing in any other window, even if its URL
  * has a `code` parameter.
  */
-export function forwardAuthCode(): boolean {
-  if (window.sessionStorage.getItem(CHANNEL) === null) {
-    return false;
+export function forwardAuthCode(): void {
+  const id = window.sessionStorage.getItem(CHANNEL);
+  if (id === null) {
+    return;
   }
   window.sessionStorage.removeItem(CHANNEL);
 
   const message: IAuthMessage = {
     type: CHANNEL,
+    id,
     code: new URL(window.location.href).searchParams.get('code')
   };
   window.opener?.postMessage(message, window.location.origin);
@@ -180,5 +188,4 @@ export function forwardAuthCode(): boolean {
   channel.postMessage(message);
   channel.close();
   window.close();
-  return true;
 }

@@ -228,7 +228,8 @@ const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
     ): Promise<boolean> => {
       try {
         const key = await requestApiKey({
-          keyLabel: settingsModel.config.appAttribution.name
+          keyLabel: settingsModel.config.appAttribution.name,
+          signal: options.signal
         });
         if (key === null) {
           return false;

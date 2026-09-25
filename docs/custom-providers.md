@@ -57,7 +57,7 @@ The provider configuration object requires the following properties:
 - `apiKeyRequirement`: Whether an API key is `'required'`, `'optional'`, or `'none'`
 - `defaultModels`: Array of model names to show in the settings
 - `fetchModels` (optional): Async function that returns the model names to show in the settings; `defaultModels` is the fallback when it fails
-- `connectAccount` (optional): Async function that gets an API key from the account of the user, saves the provider configuration with it, and returns `true` (or `false` if the connection did not complete); the settings show a "Connect with ..." button when it is defined
+- `connectAccount` (optional): Async function that gets an API key from the account of the user, saves the provider configuration with it, and returns `true` (or `false` if the connection did not complete or its `signal` option aborted); the settings show a "Connect with ..." button when it is defined
 - `modelInfo` (optional): Per-model metadata such as `contextWindow`
 - `supportsBaseURL`: Whether the provider supports a custom base URL
 - `cacheProviderOptions` (optional): Provider-specific options applied to the

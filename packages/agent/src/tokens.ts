@@ -213,6 +213,10 @@ export interface IConnectAccountOptions {
    * The ID of the provider configuration to update, if there is one.
    */
   providerId?: string;
+  /**
+   * The signal to cancel the connection, for example when the dialog closes.
+   */
+  signal?: AbortSignal;
 }
 
 export interface IProviderInfo {
