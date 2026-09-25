@@ -201,6 +201,24 @@ export interface IProviderModelInfo {
   supportsAudio?: boolean;
 }
 
+/**
+ * The options to connect the account of the user to a provider.
+ */
+export interface IConnectAccountOptions {
+  /**
+   * The provider configuration to save with the new API key.
+   */
+  config: Omit<IProviderConfig, 'id'>;
+  /**
+   * The ID of the provider configuration to update, if there is one.
+   */
+  providerId?: string;
+  /**
+   * The signal to cancel the connection, for example when the dialog closes.
+   */
+  signal?: AbortSignal;
+}
+
 export interface IProviderInfo {
   /**
    * Unique identifier for the provider
@@ -224,6 +242,20 @@ export interface IProviderInfo {
    * Default model names for this provider
    */
   defaultModels: string[];
+
+  /**
+   * Optional function to fetch the list of available models.
+   * The default models are the fallback when it fails.
+   */
+  fetchModels?: () => Promise<string[]>;
+
+  /**
+   * Optional function to get an API key from the account of the user.
+   * The provider dialog shows a connect button when it is defined. The
+   * function saves the provider configuration with the new API key, and
+   * resolves to false if the connection did not complete.
+   */
+  connectAccount?: (options: IConnectAccountOptions) => Promise<boolean>;
 
   /**
    * Optional per-model metadata keyed by model ID.

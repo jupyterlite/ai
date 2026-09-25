@@ -3,6 +3,7 @@
 export * from './agent';
 export * from './icons';
 export * from './tokens';
+export * from './providers/app-attribution';
 export * from './providers/provider-registry';
 export * from './providers/built-in-providers';
 export * from './providers/model-info';

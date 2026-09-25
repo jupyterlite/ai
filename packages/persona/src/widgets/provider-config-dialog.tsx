@@ -163,6 +163,9 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   );
 
   const [expandedAdvanced, setExpandedAdvanced] = React.useState(false);
+  const [connecting, setConnecting] = React.useState(false);
+  const [fetchedModels, setFetchedModels] = React.useState<string[]>();
+  const connectController = React.useRef<AbortController | null>(null);
   const selectedProviderInfo = React.useMemo(
     () => providerRegistry.getProviderInfo(provider),
     [providerRegistry, provider]
@@ -206,6 +209,28 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
   const selectedProvider = providerOptions.find(p => p.value === provider);
 
   React.useEffect(() => {
+    setFetchedModels(undefined);
+    if (!open || !selectedProviderInfo?.fetchModels) {
+      return;
+    }
+    let isCurrent = true;
+    selectedProviderInfo.fetchModels().then(
+      models => {
+        if (isCurrent) {
+          setFetchedModels(models);
+          setModel(current => current || models[0] || '');
+        }
+      },
+      error => {
+        console.warn(`Failed to fetch the models of ${provider}:`, error);
+      }
+    );
+    return () => {
+      isCurrent = false;
+    };
+  }, [open, provider, selectedProviderInfo]);
+
+  React.useEffect(() => {
     if (open) {
       // Reset form when dialog opens
       const initialProvider = initialConfig?.provider || 'anthropic';
@@ -227,6 +252,8 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       // Reset expanded state when dialog closes
       setDomainInputs(createEmptyDomainInputs());
       setExpandedAdvanced(false);
+      connectController.current?.abort();
+      setConnecting(false);
     }
   }, [open, initialConfig, providerRegistry]);
 
@@ -402,11 +429,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
     [addDomainValue, domainInputs, removeDomainValue, trans]
   );
 
-  const handleSave = () => {
-    if (!name.trim() || !provider || !model) {
-      return;
-    }
-
+  const buildConfig = (): Omit<IProviderConfig, 'id'> => {
     // Only include parameters if at least one is set
     const hasParameters = Object.keys(parameters).some(
       key => parameters[key as keyof IProviderParameters] !== undefined
@@ -416,7 +439,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
       providerToolCapabilities
     );
 
-    const config: Omit<IProviderConfig, 'id'> = {
+    return {
       name: name.trim(),
       provider: provider as IProviderConfig['provider'],
       model,
@@ -427,9 +450,41 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
         customSettings: sanitizedCustomSettings
       })
     };
+  };
 
-    onSave(config);
+  const handleSave = () => {
+    if (!name.trim() || !provider || !model) {
+      return;
+    }
+
+    onSave(buildConfig());
     onClose();
+  };
+
+  /**
+   * The provider saves the configuration with the new API key. Closing the
+   * dialog cancels the connection.
+   */
+  const handleConnectAccount = async () => {
+    const controller = new AbortController();
+    connectController.current = controller;
+    const config = buildConfig();
+    delete config.apiKey;
+    setConnecting(true);
+    try {
+      const connected = await selectedProviderInfo?.connectAccount?.({
+        config: { ...config, name: config.name || selectedProviderInfo.name },
+        providerId: initialConfig?.id,
+        signal: controller.signal
+      });
+      if (connected && !controller.signal.aborted) {
+        onClose();
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setConnecting(false);
+      }
+    }
   };
 
   const isValid =
@@ -498,7 +553,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
           <Autocomplete
             freeSolo
             fullWidth
-            options={selectedProvider?.models ?? []}
+            options={fetchedModels ?? selectedProvider?.models ?? []}
             value={model}
             onChange={(_, value) => {
               setModel(typeof value === 'string' ? value : '');
@@ -522,6 +577,19 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
             clearOnBlur={false}
           />
 
+          {selectedProviderInfo?.connectAccount && (
+            <Button
+              variant="outlined"
+              onClick={handleConnectAccount}
+              disabled={!model || connecting}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              {connecting
+                ? trans.__('Connecting to %1...', selectedProviderInfo.name)
+                : trans.__('Connect with %1', selectedProviderInfo.name)}
+            </Button>
+          )}
+
           {selectedProvider &&
             selectedProvider?.apiKeyRequirement !== 'none' && (
               <TextField
@@ -537,6 +605,13 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                 onChange={e => setApiKey(e.target.value)}
                 placeholder={trans.__('Enter your API key...')}
                 required={selectedProvider?.apiKeyRequirement === 'required'}
+                helperText={
+                  selectedProviderInfo?.connectAccount &&
+                  trans.__(
+                    'Connect your %1 account to create a key, or paste an existing key',
+                    selectedProviderInfo.name
+                  )
+                }
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
