@@ -1,4 +1,9 @@
-import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
+import {
+  IChatTracker,
+  IChatPanel,
+  IChatCommandRegistry,
+  InputToolbarRegistry
+} from '@jupyter/chat';
 
 import {
   ILayoutRestorer,
@@ -66,7 +71,7 @@ import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
-import { CompletionStatusWidget } from './components';
+import { CompletionStatusWidget, JupyternautStopButton } from './components';
 
 import { DiffManager } from './diff-manager';
 
@@ -809,6 +814,59 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Update the stop button when the persona is jupyternaut.
+ */
+const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:stop-button',
+  description: 'Add a stop button to the chat input toolbar',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ): void => {
+    if (!chatTracker) {
+      return;
+    }
+
+    personaRegistry.personaAdded.connect((_, persona) => {
+      const panel = chatTracker.find(p => p.model === persona.model);
+      const registry = panel?.widget.inputToolbarRegistry;
+      if (!registry || registry.get('jupyternaut-stop')) {
+        return;
+      }
+
+      registry.addItem('jupyternaut-stop', {
+        element: (itemProps: InputToolbarRegistry.IToolbarItemProps) =>
+          JupyternautStopButton({ ...itemProps, persona }),
+        position: 7
+      });
+      registry.hide('jupyternaut-stop');
+
+      const syncVisibility = () => {
+        const jupyternautSelected =
+          (panel.model.input.getMetadata() as any).to_persona ===
+          DEFAULT_PERSONA.username;
+        if (jupyternautSelected) {
+          registry.hide('stop');
+          registry.show('jupyternaut-stop');
+        } else {
+          registry.show('stop');
+          registry.hide('jupyternaut-stop');
+        }
+      };
+
+      panel.model.input.metadataChanged?.connect(syncVisibility);
+      panel.disposed.connect(() =>
+        panel.model.input.metadataChanged?.disconnect(syncVisibility)
+      );
+    });
+  }
+};
+
 export default [
   // Provider registry and builtin providers
   providerRegistryPlugin,
@@ -827,6 +885,7 @@ export default [
   toolRegistry,
   // Persona
   personaRegistry,
+  stopButtonPlugin,
   persona,
   chatComponentsCallbacks,
   mentionCommandPlugin,
