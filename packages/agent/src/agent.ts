@@ -360,8 +360,9 @@ export class AgentManager implements IAgentManager {
     this._additionalInstructions = options.additionalInstructions;
     this._streaming.resolve();
 
-    this.activeProvider =
-      options.activeProvider ?? this._settingsModel.config.defaultProvider;
+    this.setActiveProvider(
+      options.activeProvider ?? this._settingsModel.config.defaultProvider
+    );
 
     // Initialize selected tools to all available tools by default
     if (this._toolRegistry) {
@@ -418,7 +419,7 @@ export class AgentManager implements IAgentManager {
   get activeProvider(): string {
     return this._activeProvider;
   }
-  set activeProvider(value: string) {
+  async setActiveProvider(value: string): Promise<void> {
     if (this._activeProvider === value) {
       return;
     }
@@ -433,8 +434,9 @@ export class AgentManager implements IAgentManager {
     this._tokenUsage.contextWindow = this._getActiveContextWindow();
 
     this._tokenUsageChanged.emit(this._tokenUsage);
-    this.initializeAgent();
-    this._activeProviderChanged.emit(this._activeProvider);
+    return this.initializeAgent().then(() => {
+      this._activeProviderChanged.emit(this._activeProvider);
+    });
   }
 
   /**
