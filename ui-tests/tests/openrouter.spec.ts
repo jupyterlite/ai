@@ -97,7 +97,9 @@ test.describe('#openrouter', () => {
 
     await dialog.locator('.MuiSelect-select').click();
     await page.getByRole('option', { name: /^OpenAI/ }).click();
-    await expect(button).toHaveCount(0);
+    await expect(
+      dialog.getByRole('button', { name: /^Connect with/ })
+    ).toHaveCount(0);
   });
 
   test('should list the models fetched from OpenRouter', async ({ page }) => {
