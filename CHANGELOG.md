@@ -2,6 +2,35 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.20.1
+
+([Full Changelog](https://github.com/jupyterlite/ai/compare/@jupyterlite/ai@0.20.0...00013ac714ca14ece6a9ec189d3d8ca6bdea2882))
+
+### Enhancements made
+
+- Move 'skills' command and tool call callbacks to persona [#377](https://github.com/jupyterlite/ai/pull/377) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Bugs fixed
+
+- Fix: set the chat as ready when messages are loaded only [#381](https://github.com/jupyterlite/ai/pull/381) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Maintenance and upkeep improvements
+
+- Pin the uv version in a release dependency group [#379](https://github.com/jupyterlite/ai/pull/379) ([@jtpio](https://github.com/jtpio), [@brichet](https://github.com/brichet))
+- Bump jupyternaut-persona in demo lock file [#378](https://github.com/jupyterlite/ai/pull/378) ([@brichet](https://github.com/brichet), [@Copilot](https://github.com/Copilot), [@jtpio](https://github.com/jtpio))
+- update the uv lock file in demo with latest jupyternaut-persona version [#375](https://github.com/jupyterlite/ai/pull/375) ([@brichet](https://github.com/brichet), [@jtpio](https://github.com/jtpio))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-09-18&to=2026-09-28&type=c))
+
+@brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-09-18..2026-09-28&type=Issues)) | @Copilot ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3ACopilot+updated%3A2026-09-18..2026-09-28&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-09-18..2026-09-28&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.20.0
 
 ([Full Changelog](https://github.com/jupyterlite/ai/compare/@jupyterlite/ai@0.19.0...8ade260d199288bec26543f67b68997bb0ed2371))
@@ -38,8 +67,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlite/ai/graphs/contributors?from=2026-06-15&to=2026-09-18&type=c))
 
 @brichet ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Abrichet+updated%3A2026-06-15..2026-09-18&type=Issues)) | @dlqqq ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Adlqqq+updated%3A2026-06-15..2026-09-18&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlite%2Fai+involves%3Ajtpio+updated%3A2026-06-15..2026-09-18&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.19.0
 
