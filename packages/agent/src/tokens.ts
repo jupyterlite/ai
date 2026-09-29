@@ -564,6 +564,10 @@ export interface IAgentManager {
    */
   clearHistory(): Promise<void>;
   /**
+   * Returns the current conversation history.
+   */
+  getHistory(): ModelMessage[];
+  /**
    * Sets the history from already-processed model messages.
    * @param messages Pre-built model messages (may include binary content)
    */
