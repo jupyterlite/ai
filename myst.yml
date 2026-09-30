@@ -19,6 +19,7 @@ project:
     - title: Usage
       children:
         - file: docs/usage.md
+        - file: docs/openrouter.md
         - file: docs/ollama.md
         - file: docs/litellm.md
         - file: docs/any-llm-gateway.md
