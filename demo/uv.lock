@@ -1128,23 +1128,23 @@ requires-dist = [
     { name = "jupyterlab-day", specifier = ">=0.2.0" },
     { name = "jupyterlab-night", specifier = ">=0.5.2" },
     { name = "jupyterlite-ai", directory = "../python/jupyterlite-ai" },
-    { name = "jupyterlite-core", specifier = ">=0.8.0" },
-    { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.0" },
+    { name = "jupyterlite-core", specifier = ">=0.8.5" },
+    { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.5" },
     { name = "jupyternaut-persona", directory = "../python/jupyternaut-persona" },
 ]
 
 [[package]]
 name = "jupyterlite-core"
-version = "0.8.3"
+version = "0.8.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "doit" },
     { name = "jupyter-core" },
     { name = "pycparser", marker = "platform_python_implementation == 'PyPy'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/31/9b18a4cac1925ca9229c62a0a734554c91f8795b19dc6e2be18084334a56/jupyterlite_core-0.8.3.tar.gz", hash = "sha256:92735e2de4e1f67b411a218094d609b21350327d46454d89de84f113cd8440ae", size = 15791222, upload-time = "2026-08-20T14:27:29.986Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e9/0d/76609e89f8e891fdea1203c383cce3a888da72a771c0d51ff45bd95a653d/jupyterlite_core-0.8.5.tar.gz", hash = "sha256:7ee0d20ea5591700d9b87b8f27be01f4f05404cabdf0346d3eff3ec935094f24", size = 15802385, upload-time = "2026-09-28T13:51:15.934Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/f1/c527ec3191c1d4f3019c4fdf08697adfdbb4054e31b0282b559cf15d4aa4/jupyterlite_core-0.8.3-py3-none-any.whl", hash = "sha256:f61b1dc434368794850dfeb9089e91bc86a2741dd6966e061edb028c8112c2e3", size = 15803305, upload-time = "2026-08-20T14:27:26.402Z" },
+    { url = "https://files.pythonhosted.org/packages/29/8c/0a4a982d2fc79755ce2844ab96aaec90fd7d132503182fd43424e932568b/jupyterlite_core-0.8.5-py3-none-any.whl", hash = "sha256:296767f7f8a99b493a83b8a75439e8969fe38b6d3d1816925d374755ccc78871", size = 15816221, upload-time = "2026-09-28T13:51:12.869Z" },
 ]
 
 [[package]]
