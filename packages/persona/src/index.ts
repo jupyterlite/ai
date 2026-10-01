@@ -91,7 +91,12 @@ import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 
 import { PersonaRegistry } from './persona-registry';
 
-import { CommandIds, IPersonaRegistry, DEFAULT_PERSONA } from './tokens';
+import {
+  CommandIds,
+  IPersona,
+  IPersonaRegistry,
+  DEFAULT_PERSONA
+} from './tokens';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -377,11 +382,7 @@ const persona: JupyterFrontEndPlugin<void> = {
       widget.disposed.connect(() => {
         registry.unregister(widget.model);
       });
-    };
 
-    chatTracker?.forEach(widget => attachPersona(widget));
-    chatTracker?.widgetAdded.connect((_, widget) => {
-      attachPersona(widget);
       widget.model.ready.then(id => {
         personaSessionRegistry?.registerFrontendPersona(id, {
           id: DEFAULT_PERSONA.username,
@@ -406,6 +407,11 @@ const persona: JupyterFrontEndPlugin<void> = {
           }
         );
       });
+    };
+
+    chatTracker?.forEach(widget => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => {
+      attachPersona(widget);
     });
   }
 };
@@ -927,9 +933,8 @@ const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
       return;
     }
 
-    personaRegistry.personaAdded.connect((_, persona) => {
-      const panel = chatTracker.find(p => p.model === persona.model);
-      const registry = panel?.widget.inputToolbarRegistry;
+    const registerStopButton = (persona: IPersona, panel: IChatPanel) => {
+      const registry = panel.widget.inputToolbarRegistry;
       if (!registry || registry.get('jupyternaut-stop')) {
         return;
       }
@@ -958,6 +963,20 @@ const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
       panel.disposed.connect(() =>
         panel.model.input.metadataChanged?.disconnect(syncVisibility)
       );
+    };
+
+    personaRegistry.personaAdded.connect((_, persona) => {
+      const panel = chatTracker.find(p => p.model === persona.model);
+      if (panel) {
+        registerStopButton(persona, panel);
+      }
+    });
+
+    chatTracker.forEach(panel => {
+      const persona = personaRegistry.get(panel.model);
+      if (persona) {
+        registerStopButton(persona, panel);
+      }
     });
   }
 };
