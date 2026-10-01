@@ -545,7 +545,7 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
 
     if (content.metadata?.provider) {
       if (this._settingsModel.getProvider(content.metadata.provider)) {
-        this.agentManager!.setActiveProvider(content.metadata.provider);
+        await this.agentManager!.setActiveProvider(content.metadata.provider);
       } else if (!silent) {
         console.log(
           `Provider '${content.metadata.provider}' doesn't exist, it can't be restored.`
