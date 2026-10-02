@@ -1,4 +1,9 @@
-import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
+import {
+  IChatTracker,
+  IChatPanel,
+  IChatCommandRegistry,
+  InputToolbarRegistry
+} from '@jupyter/chat';
 
 import {
   ILayoutRestorer,
@@ -6,7 +11,11 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import { ICommandPalette, IThemeManager } from '@jupyterlab/apputils';
+import {
+  ICommandPalette,
+  IThemeManager,
+  Notification
+} from '@jupyterlab/apputils';
 
 import { ICompletionProviderManager } from '@jupyterlab/completer';
 
@@ -23,6 +32,11 @@ import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
 
 import {
+  IPersonaSessionRegistry,
+  PersonaSessionRegistry
+} from '@jupyter-ai/persona-manager';
+
+import {
   anthropicProvider,
   createBrowserFetchTool,
   createDiscoverCommandsTool,
@@ -30,10 +44,12 @@ import {
   createExecuteCommandTool,
   createLoadSkillTool,
   genericProvider,
+  getAppAttribution,
   googleProvider,
   loadSkillsFromPaths,
   mistralProvider,
   openaiProvider,
+  openrouterProvider,
   AgentManagerFactory,
   IAgentManagerFactory,
   IAISettingsModel,
@@ -43,11 +59,15 @@ import {
   ISkillRegistry,
   ProviderRegistry,
   SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT,
   SkillRegistry,
   ToolRegistry
 } from '@jupyternaut/agent';
 
-import type { IAISecretsAccess } from '@jupyternaut/agent';
+import type {
+  IAISecretsAccess,
+  IConnectAccountOptions
+} from '@jupyternaut/agent';
 
 import { DisposableSet } from '@lumino/disposable';
 
@@ -65,15 +85,22 @@ import {
 
 import { AICompletionProvider } from './completion';
 
-import { CompletionStatusWidget } from './components';
+import { CompletionStatusWidget, JupyternautStopButton } from './components';
 
 import { DiffManager } from './diff-manager';
 
 import { AISettingsModel } from './models/settings-model';
 
+import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
+
 import { PersonaRegistry } from './persona-registry';
 
-import { CommandIds, IPersonaRegistry, DEFAULT_PERSONA } from './tokens';
+import {
+  CommandIds,
+  IPersona,
+  IPersonaRegistry,
+  DEFAULT_PERSONA
+} from './tokens';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -198,6 +225,89 @@ const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
+ * OpenRouter provider plugin
+ */
+const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:openrouter-provider',
+  description: 'Register OpenRouter provider',
+  autoStart: true,
+  requires: [IProviderRegistry, IAISettingsModel],
+  optional: [ISecretsManager, ITranslator],
+  activate: (
+    app: JupyterFrontEnd,
+    providerRegistry: IProviderRegistry,
+    settingsModel: IAISettingsModel,
+    secretsManager?: ISecretsManager,
+    translator?: ITranslator
+  ) => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    const connectAccount = async (
+      options: IConnectAccountOptions
+    ): Promise<boolean> => {
+      try {
+        const key = await requestApiKey({
+          keyLabel: getAppAttribution().name,
+          signal: options.signal
+        });
+        if (key === null) {
+          return false;
+        }
+        let apiKey = key;
+        if (
+          settingsModel.config.useSecretsManager &&
+          secretsAccess.isAvailable
+        ) {
+          await secretsAccess.set(`${openrouterProvider.id}:apiKey`, key);
+          apiKey = SECRETS_REPLACEMENT;
+        }
+        const { providerId } = options;
+        const config = { ...options.config, apiKey };
+        if (providerId && settingsModel.getProvider(providerId)) {
+          await settingsModel.updateProvider(providerId, config);
+        } else {
+          await settingsModel.addProvider(config);
+        }
+      } catch (error) {
+        Notification.error(
+          trans.__(
+            'Failed to connect to OpenRouter: %1',
+            (error as Error).message
+          ),
+          { autoClose: false }
+        );
+        return false;
+      }
+      Notification.success(trans.__('Connected to OpenRouter'), {
+        autoClose: 5000
+      });
+      return true;
+    };
+
+    providerRegistry.registerProvider({
+      ...openrouterProvider,
+      // The PKCE flow uses WebCrypto, which needs a secure context.
+      ...(window.isSecureContext && { connectAccount })
+    });
+  }
+};
+
+/**
+ * The "Connect with OpenRouter" flow runs in a popup window, which loads the
+ * application again when OpenRouter redirects back. In that window, send the
+ * authorization code to the main window.
+ */
+const openrouterAuthPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:openrouter-auth',
+  description: 'Complete the OpenRouter authorization in the popup window',
+  autoStart: true,
+  activate: (): void => {
+    forwardAuthCode();
+  }
+};
+
+/**
  * Generic provider plugin
  */
 const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
@@ -245,35 +355,85 @@ const persona: JupyterFrontEndPlugin<void> = {
   description: 'Attach persona handlers to chat widgets as they are opened',
   autoStart: true,
   requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry],
+  optional: [
+    IChatTracker,
+    IPersonaSessionRegistry,
+    IProviderRegistry,
+    IToolRegistry
+  ],
   activate: (
     app: JupyterFrontEnd,
     registry: IPersonaRegistry,
     agentManagerFactory: IAgentManagerFactory,
     settingsModel: IAISettingsModel,
     chatTracker: IChatTracker | null,
+    personaSessionRegistry: PersonaSessionRegistry | null,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): void => {
-    const attachPersona = (widget: IChatPanel) => {
+    const attachPersona = async (widget: IChatPanel) => {
       if (registry.get(widget.model)) {
         return;
       }
 
+      // Create the agent and add it to the persona registry.
       const agentManager = agentManagerFactory.createAgent({
         settingsModel,
         providerRegistry,
         toolRegistry
       });
-
       registry.register(widget.model, agentManager);
-      widget.disposed.connect(() => {
-        registry.unregister(widget.model);
+
+      // Wait for the model to be ready
+      await widget.model.ready;
+      const id = widget.model.id;
+      if (!id) {
+        return;
+      }
+
+      // Add the persona to the persona selector component.
+      personaSessionRegistry?.registerFrontendPersona(id, {
+        id: DEFAULT_PERSONA.username,
+        name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
+        avatar_url: DEFAULT_PERSONA.avatar_url!
+      });
+
+      // The callback to update the persona selector component.
+      const updatePersonaState = () => {
+        personaSessionRegistry?.updatePersonaState(
+          id,
+          DEFAULT_PERSONA.username,
+          {
+            model: {
+              current: settingsModel.getDefaultProvider()?.id ?? null,
+              options: [
+                ...settingsModel.providers.map(provider => ({
+                  id: provider.id,
+                  name: provider.name,
+                  description: provider.description ?? provider.model
+                }))
+              ],
+              // TODO: add the token usage
+              settings: []
+            }
+          }
+        );
+      };
+
+      updatePersonaState();
+      settingsModel.stateChanged.connect(updatePersonaState);
+
+      widget.model.disposed.connect(model => {
+        registry.unregister(model);
+        personaSessionRegistry?.discard(id);
+        settingsModel.stateChanged.disconnect(updatePersonaState);
       });
     };
 
     chatTracker?.forEach(widget => attachPersona(widget));
-    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => {
+      attachPersona(widget);
+    });
   }
 };
 
@@ -816,6 +976,73 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Update the stop button when the persona is jupyternaut.
+ */
+const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:stop-button',
+  description: 'Add a stop button to the chat input toolbar',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ): void => {
+    if (!chatTracker) {
+      return;
+    }
+
+    const registerStopButton = (persona: IPersona, panel: IChatPanel) => {
+      const registry = panel.widget.inputToolbarRegistry;
+      if (!registry || registry.get('jupyternaut-stop')) {
+        return;
+      }
+
+      registry.addItem('jupyternaut-stop', {
+        element: (itemProps: InputToolbarRegistry.IToolbarItemProps) =>
+          JupyternautStopButton({ ...itemProps, persona }),
+        position: 7
+      });
+      registry.hide('jupyternaut-stop');
+
+      const syncVisibility = () => {
+        const jupyternautSelected =
+          (panel.model.input.getMetadata() as any).to_persona ===
+          DEFAULT_PERSONA.username;
+        if (jupyternautSelected) {
+          registry.hide('stop');
+          registry.show('jupyternaut-stop');
+        } else {
+          registry.show('stop');
+          registry.hide('jupyternaut-stop');
+        }
+      };
+
+      syncVisibility();
+      panel.model.input.metadataChanged?.connect(syncVisibility);
+      panel.disposed.connect(() =>
+        panel.model.input.metadataChanged?.disconnect(syncVisibility)
+      );
+    };
+
+    personaRegistry.personaAdded.connect((_, persona) => {
+      const panel = chatTracker.find(p => p.model === persona.model);
+      if (panel) {
+        registerStopButton(persona, panel);
+      }
+    });
+
+    chatTracker.forEach(panel => {
+      const persona = personaRegistry.get(panel.model);
+      if (persona) {
+        registerStopButton(persona, panel);
+      }
+    });
+  }
+};
+
 export default [
   // Provider registry and builtin providers
   providerRegistryPlugin,
@@ -823,6 +1050,8 @@ export default [
   googleProviderPlugin,
   mistralProviderPlugin,
   openaiProviderPlugin,
+  openrouterProviderPlugin,
+  openrouterAuthPlugin,
   genericProviderPlugin,
   // Agent
   agentManagerFactory,
@@ -834,6 +1063,7 @@ export default [
   toolRegistry,
   // Persona
   personaRegistry,
+  stopButtonPlugin,
   persona,
   chatComponentsCallbacks,
   mentionCommandPlugin,

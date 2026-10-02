@@ -32,7 +32,7 @@ import type { ModelMessage, UserContent } from 'ai';
 
 import { processAttachments } from './process-attachments';
 
-import type { IPersona } from './tokens';
+import { DEFAULT_PERSONA, type IPersona } from './tokens';
 
 type ToolStatus =
   | 'pending'
@@ -218,9 +218,16 @@ export class Persona implements IPersona {
   private async _onMessagesUpdated(): Promise<void> {
     const unhandled = this._model.messages.filter(
       m =>
+        // message not yet responded
         !this._respondedToIds.has(m.id) &&
+        // AND message from user
         !m.sender.bot &&
-        (!this.requireMention || m.mentions?.includes(this._persona))
+        // AND set up to respond to all user message (@jupyterlite/ai compatibility)
+        (!this.requireMention ||
+          // OR persona mentioned in the message
+          m.mentions?.includes(this._persona) ||
+          // OR persona explicitly targeted in metadata (jupyter-ai compatibility)
+          (m.metadata as any)?.to_persona === DEFAULT_PERSONA.username)
     );
 
     for (const message of unhandled) {
@@ -230,18 +237,33 @@ export class Persona implements IPersona {
     for (const message of unhandled) {
       const personaMention = `@${this._persona.mention_name}`;
       const body = message.body.replace(personaMention, '').trim();
-      await this._respond(body || message.body, message.attachments);
+      await this._respond(
+        body || message.body,
+        message.attachments,
+        // Model (provider in this @jupyternaut) explicitly targeted in metadata (jupyter-ai compatibility)
+        (message.metadata as any)?.model?.id
+      );
     }
   }
 
   private async _respond(
     body: string,
-    attachments?: IAttachment[]
+    attachments?: IAttachment[],
+    provider?: string
   ): Promise<void> {
     this._busy = true;
     this._busyChanged.emit(true);
     this._model.updateWriters([{ user: this._persona }]);
     try {
+      // Rebuild the agent if the current one is not the expected one.
+      if (
+        provider &&
+        this._agent.activeProvider !== provider &&
+        this._settingsModel.getProvider(provider)
+      ) {
+        await this._agent.setActiveProvider(provider);
+      }
+
       let content: UserContent = body;
       if (attachments && attachments.length > 0) {
         const providerConfig = this._settingsModel.getProvider(
@@ -256,6 +278,7 @@ export class Persona implements IPersona {
           modelSupportsAudio(providerConfig, this._providerRegistry)
         );
       }
+
       await this._agent.generateResponse(content);
     } catch (error) {
       console.error('Persona: error generating response', error);
@@ -362,25 +385,74 @@ export class Persona implements IPersona {
     }
   }
 
+  /**
+   * Wait for a message with the given id to appear in model.messages.
+   * Returns immediately if already present; otherwise waits for messagesUpdated,
+   * ignoring unrelated updates (e.g. peer messages). Times out after 5 s to
+   * avoid leaking the signal connection on error.
+   * This in necessary for chat using web socket, as the model is updated only when
+   * the message is broadcasted from the server.
+   */
+  private _waitForMessage(msgId: string): Promise<IMessage | undefined> {
+    const found = this._model.messages.find(m => m.id === msgId);
+    if (found) {
+      return Promise.resolve(found);
+    }
+    return new Promise<IMessage | undefined>(resolve => {
+      const cleanup = (result: IMessage | undefined) => {
+        clearTimeout(timer);
+        this._model.messagesUpdated.disconnect(onUpdate);
+        resolve(result);
+      };
+      const onUpdate = () => {
+        const msg = this._model.messages.find(m => m.id === msgId);
+        if (msg) {
+          cleanup(msg);
+        }
+      };
+      const timer = setTimeout(() => cleanup(undefined), 5000);
+      this._model.messagesUpdated.connect(onUpdate);
+    });
+  }
+
   private async _handleMessageStart(
     event: IAgentManager.IAgentEvent<'message_start'>
   ): Promise<void> {
+    // Pre-register a buffer so any chunk/complete events that arrive while
+    // sendMessage is in-flight are queued rather than dropped.
+    this._eventBuffer.set(event.data.messageId, []);
+
     const message: INewMessage = {
       body: '',
       sender: this._persona
     };
     const msgId = await this._model.sendMessage(message);
-    const streamingMessage =
-      this._model.messages.find(m => m.id === msgId) ?? null;
-
-    if (streamingMessage) {
-      this._streamingMessage.set(event.data.messageId, streamingMessage);
+    if (msgId) {
+      const streamingMessage = await this._waitForMessage(msgId);
+      if (streamingMessage) {
+        this._streamingMessage.set(event.data.messageId, streamingMessage);
+        const buffered = this._eventBuffer.get(event.data.messageId) ?? [];
+        this._eventBuffer.delete(event.data.messageId);
+        for (const bufferedEvent of buffered) {
+          if (bufferedEvent.type === 'message_chunk') {
+            this._handleMessageChunk(bufferedEvent);
+          } else {
+            this._handleMessageComplete(bufferedEvent);
+          }
+        }
+        return;
+      }
     }
+    this._eventBuffer.delete(event.data.messageId);
   }
 
   private _handleMessageChunk(
     event: IAgentManager.IAgentEvent<'message_chunk'>
   ): void {
+    if (this._eventBuffer.has(event.data.messageId)) {
+      this._eventBuffer.get(event.data.messageId)!.push(event);
+      return;
+    }
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
       if (!this._model.updateMessage) {
@@ -397,6 +469,10 @@ export class Persona implements IPersona {
   private _handleMessageComplete(
     event: IAgentManager.IAgentEvent<'message_complete'>
   ): void {
+    if (this._eventBuffer.has(event.data.messageId)) {
+      this._eventBuffer.get(event.data.messageId)!.push(event);
+      return;
+    }
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
       if (!this._model.updateMessage) {
@@ -415,6 +491,10 @@ export class Persona implements IPersona {
   private async _handleToolCallStart(
     event: IAgentManager.IAgentEvent<'tool_call_start'>
   ): Promise<void> {
+    // Pre-register a buffer so any events that arrive while sendMessage is
+    // in-flight are queued rather than dropped.
+    this._toolEventBuffer.set(event.data.callId, []);
+
     const summary = extractToolSummary(event.data.toolName, event.data.input);
     const shouldAutoRenderMimeBundles =
       this._computeShouldAutoRenderMimeBundles(
@@ -457,14 +537,32 @@ export class Persona implements IPersona {
     });
 
     if (messageId) {
+      await this._waitForMessage(messageId);
       context.messageId = messageId;
       this._toolContexts.set(event.data.callId, context);
+      const buffered = this._toolEventBuffer.get(event.data.callId) ?? [];
+      this._toolEventBuffer.delete(event.data.callId);
+      for (const bufferedEvent of buffered) {
+        if (bufferedEvent.type === 'tool_call_complete') {
+          this._handleToolCallComplete(bufferedEvent);
+        } else if (bufferedEvent.type === 'tool_approval_request') {
+          this._handleToolApprovalRequest(bufferedEvent);
+        } else {
+          this._handleToolApprovalResolved(bufferedEvent);
+        }
+      }
+      return;
     }
+    this._toolEventBuffer.delete(event.data.callId);
   }
 
   private _handleToolCallComplete(
     event: IAgentManager.IAgentEvent<'tool_call_complete'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.callId)) {
+      this._toolEventBuffer.get(event.data.callId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.callId);
     const status = event.data.isError ? 'error' : 'completed';
     this._updateToolCallUI(
@@ -515,6 +613,10 @@ export class Persona implements IPersona {
   private _handleToolApprovalRequest(
     event: IAgentManager.IAgentEvent<'tool_approval_request'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.toolCallId)) {
+      this._toolEventBuffer.get(event.data.toolCallId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
@@ -526,6 +628,10 @@ export class Persona implements IPersona {
   private _handleToolApprovalResolved(
     event: IAgentManager.IAgentEvent<'tool_approval_resolved'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.toolCallId)) {
+      this._toolEventBuffer.get(event.data.toolCallId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
@@ -653,6 +759,26 @@ export class Persona implements IPersona {
   private _busyChanged = new Signal<IPersona, boolean>(this);
   private _streamingMessage = new Map<string, IMessage>();
   private _toolContexts = new Map<string, IToolExecutionContext>();
+
+  // Event buffers used until messages are inserted in the list.
+  // In WebSocket chats, for example, messages are inserted only after they are
+  // broadcast by the server, so updates arriving between sending a message and
+  // its actual insertion would otherwise not be applied.
+  private _eventBuffer = new Map<
+    string,
+    Array<
+      | IAgentManager.IAgentEvent<'message_chunk'>
+      | IAgentManager.IAgentEvent<'message_complete'>
+    >
+  >();
+  private _toolEventBuffer = new Map<
+    string,
+    Array<
+      | IAgentManager.IAgentEvent<'tool_call_complete'>
+      | IAgentManager.IAgentEvent<'tool_approval_request'>
+      | IAgentManager.IAgentEvent<'tool_approval_resolved'>
+    >
+  >();
 }
 
 export namespace Persona {

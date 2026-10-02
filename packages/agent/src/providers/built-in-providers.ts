@@ -5,8 +5,11 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-model-info';
+import { getAppAttribution } from './app-attribution';
 import type { IModelOptions } from './models';
 import type { IProviderInfo } from '../tokens';
+
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
 
 /**
  * Anthropic provider
@@ -206,6 +209,50 @@ export const openaiProvider: IProviderInfo = {
     });
     const modelName = options.model || 'gpt-4o';
     return openai(modelName);
+  }
+};
+
+/**
+ * OpenRouter provider
+ */
+export const openrouterProvider: IProviderInfo = {
+  id: 'openrouter',
+  name: 'OpenRouter',
+  apiKeyRequirement: 'required',
+  defaultModels: [],
+  /**
+   * Models with tool support, the most used first. The `:batch` variants
+   * are left out because only the OpenRouter Batch API serves them.
+   */
+  fetchModels: async () => {
+    const response = await fetch(
+      `${OPENROUTER_API_URL}/models?supported_parameters=tools&sort=top-weekly`
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch the models: HTTP ${response.status}`);
+    }
+    const { data } = (await response.json()) as { data: { id: string }[] };
+    return data.map(model => model.id).filter(id => !id.endsWith(':batch'));
+  },
+  supportsHeaders: true,
+  supportsToolCalling: true,
+  description: 'Access models from many providers with one account',
+  factory: (options: IModelOptions) => {
+    if (!options.apiKey) {
+      throw new Error('API key required for OpenRouter');
+    }
+    const { name, url } = getAppAttribution();
+    const openrouter = createOpenAICompatible({
+      name: 'openrouter',
+      apiKey: options.apiKey,
+      baseURL: OPENROUTER_API_URL,
+      headers: {
+        ...(url && { 'HTTP-Referer': url }),
+        ...(name && { 'X-OpenRouter-Title': name }),
+        ...options.headers
+      }
+    });
+    return openrouter(options.model ?? '');
   }
 };
 
