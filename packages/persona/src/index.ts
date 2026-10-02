@@ -367,28 +367,35 @@ const persona: JupyterFrontEndPlugin<void> = {
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): void => {
-    const attachPersona = (widget: IChatPanel) => {
+    const attachPersona = async (widget: IChatPanel) => {
       if (registry.get(widget.model)) {
         return;
       }
 
+      // Create the agent and add it to the persona registry.
       const agentManager = agentManagerFactory.createAgent({
         settingsModel,
         providerRegistry,
         toolRegistry
       });
-
       registry.register(widget.model, agentManager);
-      widget.disposed.connect(() => {
-        registry.unregister(widget.model);
+
+      // Wait for the model to be ready
+      await widget.model.ready;
+      const id = widget.model.id;
+      if (!id) {
+        return;
+      }
+
+      // Add the persona to the persona selector component.
+      personaSessionRegistry?.registerFrontendPersona(id, {
+        id: DEFAULT_PERSONA.username,
+        name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
+        avatar_url: DEFAULT_PERSONA.avatar_url!
       });
 
-      widget.model.ready.then(id => {
-        personaSessionRegistry?.registerFrontendPersona(id, {
-          id: DEFAULT_PERSONA.username,
-          name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
-          avatar_url: DEFAULT_PERSONA.avatar_url!
-        });
+      // The callback to update the persona selector component.
+      const updatePersonaState = () => {
         personaSessionRegistry?.updatePersonaState(
           id,
           DEFAULT_PERSONA.username,
@@ -402,10 +409,20 @@ const persona: JupyterFrontEndPlugin<void> = {
                   description: provider.description ?? provider.model
                 }))
               ],
+              // TODO: add the token usage
               settings: []
             }
           }
         );
+      };
+
+      updatePersonaState();
+      settingsModel.stateChanged.connect(updatePersonaState);
+
+      widget.model.disposed.connect(model => {
+        registry.unregister(model);
+        personaSessionRegistry?.discard(id);
+        settingsModel.stateChanged.disconnect(updatePersonaState);
       });
     };
 
