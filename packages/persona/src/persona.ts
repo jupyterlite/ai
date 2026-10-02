@@ -412,6 +412,10 @@ export class Persona implements IPersona {
   private async _handleMessageStart(
     event: IAgentManager.IAgentEvent<'message_start'>
   ): Promise<void> {
+    // Pre-register a buffer so any chunk/complete events that arrive while
+    // sendMessage is in-flight are queued rather than dropped.
+    this._eventBuffer.set(event.data.messageId, []);
+
     const message: INewMessage = {
       body: '',
       sender: this._persona
@@ -421,13 +425,28 @@ export class Persona implements IPersona {
       const streamingMessage = await this._waitForMessage(msgId);
       if (streamingMessage) {
         this._streamingMessage.set(event.data.messageId, streamingMessage);
+        const buffered = this._eventBuffer.get(event.data.messageId) ?? [];
+        this._eventBuffer.delete(event.data.messageId);
+        for (const bufferedEvent of buffered) {
+          if (bufferedEvent.type === 'message_chunk') {
+            this._handleMessageChunk(bufferedEvent);
+          } else {
+            this._handleMessageComplete(bufferedEvent);
+          }
+        }
+        return;
       }
     }
+    this._eventBuffer.delete(event.data.messageId);
   }
 
   private _handleMessageChunk(
     event: IAgentManager.IAgentEvent<'message_chunk'>
   ): void {
+    if (this._eventBuffer.has(event.data.messageId)) {
+      this._eventBuffer.get(event.data.messageId)!.push(event);
+      return;
+    }
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
       if (!this._model.updateMessage) {
@@ -444,6 +463,10 @@ export class Persona implements IPersona {
   private _handleMessageComplete(
     event: IAgentManager.IAgentEvent<'message_complete'>
   ): void {
+    if (this._eventBuffer.has(event.data.messageId)) {
+      this._eventBuffer.get(event.data.messageId)!.push(event);
+      return;
+    }
     const streamingMessage = this._streamingMessage.get(event.data.messageId);
     if (streamingMessage) {
       if (!this._model.updateMessage) {
@@ -462,6 +485,10 @@ export class Persona implements IPersona {
   private async _handleToolCallStart(
     event: IAgentManager.IAgentEvent<'tool_call_start'>
   ): Promise<void> {
+    // Pre-register a buffer so any events that arrive while sendMessage is
+    // in-flight are queued rather than dropped.
+    this._toolEventBuffer.set(event.data.callId, []);
+
     const summary = extractToolSummary(event.data.toolName, event.data.input);
     const shouldAutoRenderMimeBundles =
       this._computeShouldAutoRenderMimeBundles(
@@ -507,12 +534,29 @@ export class Persona implements IPersona {
       await this._waitForMessage(messageId);
       context.messageId = messageId;
       this._toolContexts.set(event.data.callId, context);
+      const buffered = this._toolEventBuffer.get(event.data.callId) ?? [];
+      this._toolEventBuffer.delete(event.data.callId);
+      for (const bufferedEvent of buffered) {
+        if (bufferedEvent.type === 'tool_call_complete') {
+          this._handleToolCallComplete(bufferedEvent);
+        } else if (bufferedEvent.type === 'tool_approval_request') {
+          this._handleToolApprovalRequest(bufferedEvent);
+        } else {
+          this._handleToolApprovalResolved(bufferedEvent);
+        }
+      }
+      return;
     }
+    this._toolEventBuffer.delete(event.data.callId);
   }
 
   private _handleToolCallComplete(
     event: IAgentManager.IAgentEvent<'tool_call_complete'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.callId)) {
+      this._toolEventBuffer.get(event.data.callId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.callId);
     const status = event.data.isError ? 'error' : 'completed';
     this._updateToolCallUI(
@@ -563,6 +607,10 @@ export class Persona implements IPersona {
   private _handleToolApprovalRequest(
     event: IAgentManager.IAgentEvent<'tool_approval_request'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.toolCallId)) {
+      this._toolEventBuffer.get(event.data.toolCallId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
@@ -574,6 +622,10 @@ export class Persona implements IPersona {
   private _handleToolApprovalResolved(
     event: IAgentManager.IAgentEvent<'tool_approval_resolved'>
   ): void {
+    if (this._toolEventBuffer.has(event.data.toolCallId)) {
+      this._toolEventBuffer.get(event.data.toolCallId)!.push(event);
+      return;
+    }
     const context = this._toolContexts.get(event.data.toolCallId);
     if (!context) {
       return;
@@ -677,6 +729,26 @@ export class Persona implements IPersona {
   private _busyChanged = new Signal<IPersona, boolean>(this);
   private _streamingMessage = new Map<string, IMessage>();
   private _toolContexts = new Map<string, IToolExecutionContext>();
+
+  // Event buffers, until the message is inserted in the list.
+  // In web socket chat for example, the message are inserted only when they are
+  // broadcasted from the server, updates arriving between the message sent and its
+  // actual insertion would not be applied.
+  private _eventBuffer = new Map<
+    string,
+    Array<
+      | IAgentManager.IAgentEvent<'message_chunk'>
+      | IAgentManager.IAgentEvent<'message_complete'>
+    >
+  >();
+  private _toolEventBuffer = new Map<
+    string,
+    Array<
+      | IAgentManager.IAgentEvent<'tool_call_complete'>
+      | IAgentManager.IAgentEvent<'tool_approval_request'>
+      | IAgentManager.IAgentEvent<'tool_approval_resolved'>
+    >
+  >();
 }
 
 export namespace Persona {
