@@ -115,6 +115,10 @@
         "bundled": false,
         "singleton": true
       }
-    }
+    },
+    "disabledExtensions": [
+      "jupyterlab-chat-extension",
+      "@jupyter-ai/persona-manager"
+    ]
   }
 }

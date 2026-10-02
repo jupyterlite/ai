@@ -2,7 +2,7 @@ import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
 import type { ISkillRegistry } from '@jupyternaut/agent';
 import { CommandRegistry } from '@lumino/commands';
 
-import { CommandIds } from '../tokens';
+import { CommandIds, DEFAULT_PERSONA } from '../tokens';
 
 export class SkillsCommandProvider implements IChatCommandProvider {
   constructor(options: SkillsCommandProvider.IOptions) {
@@ -78,8 +78,12 @@ export class SkillsCommandProvider implements IChatCommandProvider {
   }
 
   private _isActive(inputModel: IInputModel): boolean {
+    const metaPersonaId = (inputModel.getMetadata() as any).to_persona;
     const chatName = inputModel.chatContext?.name;
-    return !!chatName && this._isDefault(chatName);
+    return (
+      metaPersonaId === DEFAULT_PERSONA.username ||
+      (!!chatName && this._isDefault(chatName))
+    );
   }
 
   private _command: ChatCommand = {

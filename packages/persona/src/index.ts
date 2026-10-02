@@ -1,4 +1,9 @@
-import { IChatTracker, IChatPanel, IChatCommandRegistry } from '@jupyter/chat';
+import {
+  IChatTracker,
+  IChatPanel,
+  IChatCommandRegistry,
+  InputToolbarRegistry
+} from '@jupyter/chat';
 
 import {
   ILayoutRestorer,
@@ -25,6 +30,11 @@ import { PathExt } from '@jupyterlab/coreutils';
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 
 import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
+
+import {
+  IPersonaSessionRegistry,
+  PersonaSessionRegistry
+} from '@jupyter-ai/persona-manager';
 
 import {
   anthropicProvider,
@@ -71,7 +81,7 @@ import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
-import { CompletionStatusWidget } from './components';
+import { CompletionStatusWidget, JupyternautStopButton } from './components';
 
 import { DiffManager } from './diff-manager';
 
@@ -81,7 +91,12 @@ import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 
 import { PersonaRegistry } from './persona-registry';
 
-import { CommandIds, IPersonaRegistry, DEFAULT_PERSONA } from './tokens';
+import {
+  CommandIds,
+  IPersona,
+  IPersonaRegistry,
+  DEFAULT_PERSONA
+} from './tokens';
 
 import { AISettingsWidget } from './widgets/ai-settings';
 
@@ -336,35 +351,85 @@ const persona: JupyterFrontEndPlugin<void> = {
   description: 'Attach persona handlers to chat widgets as they are opened',
   autoStart: true,
   requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
-  optional: [IChatTracker, IProviderRegistry, IToolRegistry],
+  optional: [
+    IChatTracker,
+    IPersonaSessionRegistry,
+    IProviderRegistry,
+    IToolRegistry
+  ],
   activate: (
     app: JupyterFrontEnd,
     registry: IPersonaRegistry,
     agentManagerFactory: IAgentManagerFactory,
     settingsModel: IAISettingsModel,
     chatTracker: IChatTracker | null,
+    personaSessionRegistry: PersonaSessionRegistry | null,
     providerRegistry?: IProviderRegistry,
     toolRegistry?: IToolRegistry
   ): void => {
-    const attachPersona = (widget: IChatPanel) => {
+    const attachPersona = async (widget: IChatPanel) => {
       if (registry.get(widget.model)) {
         return;
       }
 
+      // Create the agent and add it to the persona registry.
       const agentManager = agentManagerFactory.createAgent({
         settingsModel,
         providerRegistry,
         toolRegistry
       });
-
       registry.register(widget.model, agentManager);
-      widget.disposed.connect(() => {
-        registry.unregister(widget.model);
+
+      // Wait for the model to be ready
+      await widget.model.ready;
+      const id = widget.model.id;
+      if (!id) {
+        return;
+      }
+
+      // Add the persona to the persona selector component.
+      personaSessionRegistry?.registerFrontendPersona(id, {
+        id: DEFAULT_PERSONA.username,
+        name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
+        avatar_url: DEFAULT_PERSONA.avatar_url!
+      });
+
+      // The callback to update the persona selector component.
+      const updatePersonaState = () => {
+        personaSessionRegistry?.updatePersonaState(
+          id,
+          DEFAULT_PERSONA.username,
+          {
+            model: {
+              current: settingsModel.getDefaultProvider()?.id ?? null,
+              options: [
+                ...settingsModel.providers.map(provider => ({
+                  id: provider.id,
+                  name: provider.name,
+                  description: provider.description ?? provider.model
+                }))
+              ],
+              // TODO: add the token usage
+              settings: []
+            }
+          }
+        );
+      };
+
+      updatePersonaState();
+      settingsModel.stateChanged.connect(updatePersonaState);
+
+      widget.model.disposed.connect(model => {
+        registry.unregister(model);
+        personaSessionRegistry?.discard(id);
+        settingsModel.stateChanged.disconnect(updatePersonaState);
       });
     };
 
     chatTracker?.forEach(widget => attachPersona(widget));
-    chatTracker?.widgetAdded.connect((_, widget) => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => {
+      attachPersona(widget);
+    });
   }
 };
 
@@ -866,6 +931,73 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Update the stop button when the persona is jupyternaut.
+ */
+const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:stop-button',
+  description: 'Add a stop button to the chat input toolbar',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ): void => {
+    if (!chatTracker) {
+      return;
+    }
+
+    const registerStopButton = (persona: IPersona, panel: IChatPanel) => {
+      const registry = panel.widget.inputToolbarRegistry;
+      if (!registry || registry.get('jupyternaut-stop')) {
+        return;
+      }
+
+      registry.addItem('jupyternaut-stop', {
+        element: (itemProps: InputToolbarRegistry.IToolbarItemProps) =>
+          JupyternautStopButton({ ...itemProps, persona }),
+        position: 7
+      });
+      registry.hide('jupyternaut-stop');
+
+      const syncVisibility = () => {
+        const jupyternautSelected =
+          (panel.model.input.getMetadata() as any).to_persona ===
+          DEFAULT_PERSONA.username;
+        if (jupyternautSelected) {
+          registry.hide('stop');
+          registry.show('jupyternaut-stop');
+        } else {
+          registry.show('stop');
+          registry.hide('jupyternaut-stop');
+        }
+      };
+
+      syncVisibility();
+      panel.model.input.metadataChanged?.connect(syncVisibility);
+      panel.disposed.connect(() =>
+        panel.model.input.metadataChanged?.disconnect(syncVisibility)
+      );
+    };
+
+    personaRegistry.personaAdded.connect((_, persona) => {
+      const panel = chatTracker.find(p => p.model === persona.model);
+      if (panel) {
+        registerStopButton(persona, panel);
+      }
+    });
+
+    chatTracker.forEach(panel => {
+      const persona = personaRegistry.get(panel.model);
+      if (persona) {
+        registerStopButton(persona, panel);
+      }
+    });
+  }
+};
+
 export default [
   // Provider registry and builtin providers
   providerRegistryPlugin,
@@ -886,6 +1018,7 @@ export default [
   toolRegistry,
   // Persona
   personaRegistry,
+  stopButtonPlugin,
   persona,
   chatComponentsCallbacks,
   mentionCommandPlugin,
