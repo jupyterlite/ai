@@ -959,6 +959,7 @@ const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
         }
       };
 
+      syncVisibility();
       panel.model.input.metadataChanged?.connect(syncVisibility);
       panel.disposed.connect(() =>
         panel.model.input.metadataChanged?.disconnect(syncVisibility)
