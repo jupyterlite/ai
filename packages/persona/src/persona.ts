@@ -730,10 +730,10 @@ export class Persona implements IPersona {
   private _streamingMessage = new Map<string, IMessage>();
   private _toolContexts = new Map<string, IToolExecutionContext>();
 
-  // Event buffers, until the message is inserted in the list.
-  // In web socket chat for example, the message are inserted only when they are
-  // broadcasted from the server, updates arriving between the message sent and its
-  // actual insertion would not be applied.
+  // Event buffers used until messages are inserted in the list.
+  // In WebSocket chats, for example, messages are inserted only after they are
+  // broadcast by the server, so updates arriving between sending a message and
+  // its actual insertion would otherwise not be applied.
   private _eventBuffer = new Map<
     string,
     Array<
