@@ -721,23 +721,33 @@ export class Persona implements IPersona {
   }
 
   async summarize(): Promise<void> {
-    const history = this._agent.getHistory();
-    if (history.length === 0) {
-      throw new Error('No conversation history to summarize');
+    if (this._busy) {
+      throw new Error('Cannot summarize while a response is in progress');
     }
-    const summary = await this._agent.textResponse([
-      ...history,
-      {
-        role: 'user',
-        content:
-          'Summarize the conversation above concisely. Capture the key topics, decisions, and any important context needed to continue the conversation.'
+    this._busy = true;
+    this._busyChanged.emit(true);
+    try {
+      const history = this._agent.getHistory();
+      if (history.length === 0) {
+        throw new Error('No conversation history to summarize');
       }
-    ]);
-    await this.sendSystemMessage(
-      `**Conversation summary**\n\n${summary}\n\n---\n*Messages above this point have been summarized.*`,
-      { jupyternaut: { type: 'summary' } }
-    );
-    await this._rebuildHistory();
+      const summary = await this._agent.textResponse([
+        ...history,
+        {
+          role: 'user',
+          content:
+            'Summarize the conversation above concisely. Capture the key topics, decisions, and any important context needed to continue the conversation.'
+        }
+      ]);
+      await this.sendSystemMessage(
+        `**Conversation summary**\n\n${summary}\n\n---\n*Messages above this point have been summarized.*`,
+        { jupyternaut: { type: 'summary' } }
+      );
+      await this._rebuildHistory();
+    } finally {
+      this._busy = false;
+      this._busyChanged.emit(false);
+    }
   }
 
   /**
