@@ -52,10 +52,7 @@ import {
 import {
   fileUploadIcon,
   launchIcon,
-  saveIcon,
-  settingsIcon,
-  Toolbar,
-  ToolbarButton
+  saveIcon
 } from '@jupyterlab/ui-components';
 
 import {
@@ -73,8 +70,6 @@ import {
 } from '@jupyternaut/persona';
 
 import { UUID } from '@lumino/coreutils';
-
-import { CommandRegistry } from '@lumino/commands';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
@@ -371,44 +366,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     sidePanel.id = '@jupyterlite/ai:chat-panel';
     sidePanel.title.icon = chatIcon;
     sidePanel.title.caption = trans.__('Chat with AI assistant');
-
-    sidePanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-
-    const addSettingsButton = () => {
-      sidePanel.toolbar.addItem(
-        'settings',
-        new ToolbarButton({
-          icon: settingsIcon,
-          onClick: openSettings,
-          tooltip: trans.__('Open AI Settings')
-        })
-      );
-    };
-
-    if (app.commands.hasCommand(PersonaCommandsIds.openSettings)) {
-      addSettingsButton();
-    } else {
-      const disconnectSettingsButtonListener = () => {
-        app.commands.commandChanged.disconnect(onCommandChanged);
-        sidePanel.disposed.disconnect(disconnectSettingsButtonListener);
-      };
-
-      const onCommandChanged = (
-        _: CommandRegistry,
-        args: CommandRegistry.ICommandChangedArgs
-      ) => {
-        if (
-          args.id === PersonaCommandsIds.openSettings &&
-          args.type === 'added'
-        ) {
-          disconnectSettingsButtonListener();
-          addSettingsButton();
-        }
-      };
-
-      app.commands.commandChanged.connect(onCommandChanged);
-      sidePanel.disposed.connect(disconnectSettingsButtonListener);
-    }
 
     sidePanel.chatOpened.connect((_, panel) => {
       const model = panel.model as IAIChatModel;

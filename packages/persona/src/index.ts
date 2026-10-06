@@ -84,6 +84,7 @@ import { AICompletionProvider } from './completion';
 
 import {
   CompletionStatusWidget,
+  createSettingsButtonControl,
   createToolSelectControl,
   JupyternautStopButton
 } from './components';
@@ -1020,6 +1021,26 @@ const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
+ * Registers the settings button control into the persona manager's control registry.
+ */
+const settingsButtonPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:settings-button',
+  description: 'Register settings button control in the persona manager',
+  autoStart: true,
+  requires: [IPersonaControlRegistry],
+  optional: [ITranslator],
+  activate: (
+    app: JupyterFrontEnd,
+    personaControlRegistry: IPersonaControlRegistry,
+    translator?: ITranslator
+  ): void => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const control = createSettingsButtonControl(app.commands, trans);
+    personaControlRegistry.addControl(control);
+  }
+};
+
+/**
  * Registers the tool select control into the persona manager's control registry.
  */
 const toolSelectPlugin: JupyterFrontEndPlugin<void> = {
@@ -1074,6 +1095,7 @@ export default [
   // Tools
   toolRegistry,
   toolSelectPlugin,
+  settingsButtonPlugin,
   // Persona
   personaRegistry,
   stopButtonPlugin,
