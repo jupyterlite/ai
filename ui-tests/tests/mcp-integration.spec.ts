@@ -6,6 +6,9 @@
 import { expect, galata, test } from '@jupyterlab/galata';
 import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
+const TEST_CHAT_NAME = 'mcp-integration-test';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
+
 const MCP_SERVER_PORT = 8765;
 const MCP_SERVER_URL = `http://0.0.0.0:${MCP_SERVER_PORT}/mcp`;
 
@@ -43,6 +46,16 @@ test.use({
 const PROMPT = 'Use the process_data tool to process the text "hello world"';
 
 test.describe('#mcpIntegration', () => {
+  test.beforeEach(async ({ page }) => {
+    await openChatPanel(page, TEST_CHAT_NAME);
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+      await page.contents.deleteFile(TEST_CHAT_FILE);
+    }
+  });
+
   test('should display tool call from MCP server', async ({ page }) => {
     test.setTimeout(120 * 1000);
 
