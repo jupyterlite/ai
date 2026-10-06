@@ -31,6 +31,10 @@ jobs:
           pip install "jupyterlab>=4.5.0"
           python scripts/dev_install.py test
 
+          # Install jupyter-collaboration while jupyterlab-chat on websocket is
+          # not fixed: https://github.com/jupyterlab/jupyter-chat/pull/558
+          pip install jupyter-collaboration
+
       - name: Setup Ollama
         uses: ai-action/setup-ollama@6dbbafb345a2e0b94c4ade700f24858c927ef250
 

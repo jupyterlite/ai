@@ -6,6 +6,9 @@
 import { expect, galata, test } from '@jupyterlab/galata';
 import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
+const TEST_CHAT_NAME = 'browser-fetch-tool-test';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
+
 const EXPECT_TIMEOUT = 120000;
 const FIXTURE_URL = 'http://localhost:8765/health';
 
@@ -32,6 +35,16 @@ test.use({
 });
 
 test.describe('#browserFetchTool', () => {
+  test.beforeEach(async ({ page }) => {
+    await openChatPanel(page, TEST_CHAT_NAME);
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+      await page.contents.deleteFile(TEST_CHAT_FILE);
+    }
+  });
+
   test('should fetch local CORS-enabled URL with browser_fetch', async ({
     page
   }) => {

@@ -31,9 +31,6 @@ export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
     toolsEnabled: false,
     useSameProviderForChatAndCompleter: true,
     useSecretsManager: false
-  },
-  '@jupyterlite/ai:chat': {
-    showTokenUsage: false
   }
 };
 
@@ -41,12 +38,13 @@ export const TEST_PROVIDERS = [
   { name: 'Generic', settings: DEFAULT_GENERIC_PROVIDER_SETTINGS }
 ];
 
-export const CHAT_PANEL_ID = '@jupyterlite/ai:chat-panel';
+export const CHAT_PANEL_ID = 'JupyterlabChat:sidepanel';
 
-export const CHAT_PANEL_TITLE = 'Chat with AI assistant';
+export const CHAT_PANEL_TITLE = 'Jupyter Chat';
 
 export async function openChatPanel(
-  page: IJupyterLabPageFixture
+  page: IJupyterLabPageFixture,
+  chatName?: string
 ): Promise<Locator> {
   const panel = page.locator(`[id="${CHAT_PANEL_ID}"]`);
   if (!(await panel.isVisible())) {
@@ -54,25 +52,38 @@ export async function openChatPanel(
     await chatIcon.click();
     await page.waitForCondition(() => panel.isVisible());
   }
+  // Create a new chat if the panel is showing the placeholder (no chat open).
+  const chatInput = panel.locator('.jp-chat-input-container');
+  if (!(await chatInput.isVisible())) {
+    if (chatName) {
+      await page.evaluate(async (name: string) => {
+        void window.jupyterapp.commands.execute(
+          'jupyterlab-chat:openWithMessage',
+          { name, inSidePanel: true }
+        );
+      }, chatName);
+    } else {
+      await panel.getByTitle('Create a new chat').first().click();
+    }
+    await page.waitForCondition(() => chatInput.isVisible());
+  }
+  // Wait for the persona selector to appear, ensuring `to_persona` metadata is
+  // stamped on the input model before the test sends its first message.
+  const personaBtn = chatInput.locator('.jp-jai-personaControls-persona-btn');
+  await personaBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
   return panel;
 }
 
 export const openSettings = async (
-  page: IJupyterLabPageFixture,
-  globalSettings?: boolean
+  page: IJupyterLabPageFixture
 ): Promise<Locator> => {
-  const args = globalSettings ? {} : { query: 'AI Chat' };
-  await page.evaluate(async args => {
-    await window.jupyterapp.commands.execute('settingeditor:open', args);
-  }, args);
+  await page.evaluate(async () => {
+    await window.jupyterapp.commands.execute(
+      '@jupyternaut/persona:open-settings'
+    );
+  });
 
-  // Activate the settings tab, sometimes it does not automatically.
-  const settingsTab = page
-    .getByRole('main')
-    .getByRole('tab', { name: 'Settings', exact: true });
-  await settingsTab.click();
-  await page.waitForCondition(
-    async () => (await settingsTab.getAttribute('aria-selected')) === 'true'
-  );
-  return (await page.activity.getPanelLocator('Settings')) as Locator;
+  const settingsWidget = page.locator('#jupyternaut-persona-settings');
+  await page.waitForCondition(() => settingsWidget.isVisible());
+  return settingsWidget;
 };
