@@ -85,7 +85,6 @@ import { ChatModelHandler } from './chat-model-handler';
 import {
   clearItem,
   createModelSelectItem,
-  createToolSelectItem,
   SaveComponentWidget,
   stopItem,
   UsageWidget
@@ -1101,27 +1100,17 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     description: 'The input toolbar registry plugin.',
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
-    requires: [IAISettingsModel, IToolRegistry, IProviderRegistry],
+    requires: [IAISettingsModel],
     optional: [ITranslator, IPersonaRegistry],
     activate: (
       app: JupyterFrontEnd,
       settingsModel: IAISettingsModel,
-      toolRegistry: IToolRegistry,
-      providerRegistry: IProviderRegistry,
       translator?: ITranslator,
       personaHandlerRegistry?: IPersonaRegistry
     ): IInputToolbarRegistryFactory => {
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const stopButton = stopItem(trans);
       const clearButton = clearItem(trans);
-      const toolSelectButton = createToolSelectItem(
-        toolRegistry,
-        settingsModel,
-        providerRegistry,
-        settingsModel.config.toolsEnabled,
-        trans,
-        personaHandlerRegistry
-      );
       const modelSelectButton = createModelSelectItem(
         settingsModel,
         trans,
@@ -1135,17 +1124,6 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
           inputToolbarRegistry.addItem('stop', stopButton);
           inputToolbarRegistry.addItem('clear', clearButton);
           inputToolbarRegistry.addItem('model', modelSelectButton);
-          inputToolbarRegistry.addItem('tools', toolSelectButton);
-
-          // Listen for settings changes to update tool availability
-          settingsModel.stateChanged.connect(() => {
-            const config = settingsModel.config;
-            if (!config.toolsEnabled) {
-              inputToolbarRegistry.hide('tools');
-            } else {
-              inputToolbarRegistry.show('tools');
-            }
-          });
 
           return inputToolbarRegistry;
         }

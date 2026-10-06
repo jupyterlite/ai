@@ -32,6 +32,7 @@ import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
 
 import {
+  IPersonaControlRegistry,
   IPersonaSessionRegistry,
   PersonaSessionRegistry
 } from '@jupyter-ai/persona-manager';
@@ -81,7 +82,11 @@ import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
-import { CompletionStatusWidget, JupyternautStopButton } from './components';
+import {
+  CompletionStatusWidget,
+  createToolSelectControl,
+  JupyternautStopButton
+} from './components';
 
 import { DiffManager } from './diff-manager';
 
@@ -1014,6 +1019,42 @@ const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
+/**
+ * Registers the tool select control into the persona manager's control registry.
+ */
+const toolSelectPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:tool-select',
+  description: 'Register tool select control in the persona manager',
+  autoStart: true,
+  requires: [
+    IPersonaControlRegistry,
+    IAISettingsModel,
+    IToolRegistry,
+    IProviderRegistry,
+    IPersonaRegistry
+  ],
+  optional: [ITranslator],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaControlRegistry: IPersonaControlRegistry,
+    settingsModel: IAISettingsModel,
+    toolRegistry: IToolRegistry,
+    providerRegistry: IProviderRegistry,
+    personaRegistry: IPersonaRegistry,
+    translator?: ITranslator
+  ): void => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const control = createToolSelectControl(
+      toolRegistry,
+      settingsModel,
+      providerRegistry,
+      trans,
+      personaRegistry
+    );
+    personaControlRegistry.addControl(control);
+  }
+};
+
 export default [
   // Provider registry and builtin providers
   providerRegistryPlugin,
@@ -1032,6 +1073,7 @@ export default [
   skillsPlugin,
   // Tools
   toolRegistry,
+  toolSelectPlugin,
   // Persona
   personaRegistry,
   stopButtonPlugin,
