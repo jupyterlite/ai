@@ -1118,7 +1118,9 @@ dependencies = [
     { name = "jupyterlite-ai" },
     { name = "jupyterlite-core" },
     { name = "jupyterlite-pyodide-kernel" },
+    { name = "jupyterlite-terminal" },
     { name = "jupyternaut-persona" },
+    { name = "jupyternaut-terminal" },
 ]
 
 [package.metadata]
@@ -1130,7 +1132,9 @@ requires-dist = [
     { name = "jupyterlite-ai", directory = "../python/jupyterlite-ai" },
     { name = "jupyterlite-core", specifier = ">=0.8.5" },
     { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.5" },
+    { name = "jupyterlite-terminal", specifier = ">=1.6.2" },
     { name = "jupyternaut-persona", directory = "../python/jupyternaut-persona" },
+    { name = "jupyternaut-terminal", directory = "../python/jupyternaut-terminal" },
 ]
 
 [[package]]
@@ -1161,6 +1165,18 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyterlite-terminal"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jupyterlite-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b8/2a/25fd2047bd1cbc4a55f3fe3cca72bee0eeb964f2f6562226075de0ec76db/jupyterlite_terminal-1.7.0.tar.gz", hash = "sha256:196e8399354c77310d3d19248877ef973836af70790e6fd47a0817820cc8b34a", size = 1009770, upload-time = "2026-09-29T09:37:41.513Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/c1/6200de4745e3880479842f4de2dea8d618f1d0d9c8418f541d748877b16c/jupyterlite_terminal-1.7.0-py3-none-any.whl", hash = "sha256:c86b34b209627ec41ee9cb17662182af20885c0a8408fc3fe293b88cbd0effe5", size = 297838, upload-time = "2026-09-29T09:37:39.567Z" },
+]
+
+[[package]]
 name = "jupyternaut-persona"
 source = { directory = "../python/jupyternaut-persona" }
 dependencies = [
@@ -1188,6 +1204,20 @@ requires-dist = [
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
 ]
 provides-extras = ["docs", "jupyter", "test"]
+
+[[package]]
+name = "jupyternaut-terminal"
+source = { directory = "../python/jupyternaut-terminal" }
+dependencies = [
+    { name = "jupyterlite-terminal" },
+    { name = "jupyternaut-persona" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jupyterlite-terminal", specifier = ">=1.6.2,<2" },
+    { name = "jupyternaut-persona", specifier = "==0.20.1" },
+]
 
 [[package]]
 name = "lark"
