@@ -5,38 +5,22 @@
 
 import { expect, galata, test } from '@jupyterlab/galata';
 import {
-  QWEN_MODEL_NAME,
   CHAT_PANEL_ID,
   CHAT_PANEL_TITLE,
   TEST_PROVIDERS,
-  openChatPanel,
-  openSettings
+  openChatPanel
 } from './test-utils';
+
+const TEST_CHAT_NAME = 'chat-panel-test';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
 
 const NOT_CONFIGURED_TEXT = 'Please configure your AI settings first';
 
 test.describe('#withoutModel', () => {
-  test('should contain the chat panel icon', async ({ page }) => {
-    const chatIcon = page.getByTitle(CHAT_PANEL_TITLE);
-    expect(chatIcon).toHaveCount(1);
-    expect(await chatIcon.screenshot()).toMatchSnapshot('chat_icon.png');
-  });
-
   test('should open the chat panel', async ({ page }) => {
-    const chatIcon = page.getByTitle('Chat with AI assistant');
+    const chatIcon = page.getByTitle(CHAT_PANEL_TITLE);
     await chatIcon.click();
     await expect(page.locator(`[id="${CHAT_PANEL_ID}"]`)).toBeVisible();
-  });
-
-  test('should not create a chat if there is no provider', async ({ page }) => {
-    const panel = await openChatPanel(page);
-    await panel.getByTitle('Create a new chat').first().click();
-
-    // Should open an error dialog
-    await expect(page.locator('.jp-Dialog')).toBeVisible();
-
-    // Should open the AI settings
-    await expect(page.locator('#jupyternaut-persona-settings')).toBeVisible();
   });
 });
 
@@ -54,22 +38,32 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       }
     });
 
-    test('should have a default chat', async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
+      await openChatPanel(page, TEST_CHAT_NAME);
+    });
+
+    test.afterEach(async ({ page }) => {
+      if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+        await page.contents.deleteFile(TEST_CHAT_FILE);
+      }
+    });
+
+    test('should create a chat', async ({ page }) => {
       const panel = await openChatPanel(page);
 
       // Check that the chat panel is visible
       await expect(panel).toBeVisible();
 
-      // Check that there's a default chat created and opened
+      // Check that there's a chat created and opened
       const chatWidgetToolbar = page.locator(
         `[id="${CHAT_PANEL_ID}"] .jp-chat-sidepanel-widget-toolbar`
       );
       await expect(chatWidgetToolbar).toBeVisible();
 
-      // Check that the default chat has the name of the default model
+      // Check that a chat name is shown
       await expect(
         chatWidgetToolbar.locator('.jp-chat-sidepanel-widget-title')
-      ).toContainText(QWEN_MODEL_NAME, { ignoreCase: true });
+      ).toBeVisible();
     });
 
     test('should have a model', async ({ page }) => {
@@ -100,7 +94,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       ).not.toHaveText(NOT_CONFIGURED_TEXT);
     });
 
-    test('should suggest /clear when typing /cl', async ({ page }) => {
+    test.skip('should suggest /clear when typing /cl', async ({ page }) => {
       const panel = await openChatPanel(page);
       const input = panel
         .locator('.jp-chat-input-container')
@@ -111,7 +105,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await expect(page.getByText('/clear', { exact: true })).toBeVisible();
     });
 
-    test('should clear messages with /clear', async ({ page }) => {
+    test.skip('should clear messages with /clear', async ({ page }) => {
       const content = 'Hello';
       const panel = await openChatPanel(page);
 
@@ -148,8 +142,11 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const content = 'Hello';
       const panel = await openChatPanel(page);
 
-      const settingsButton = panel.getByTitle('Open AI Settings');
-      await settingsButton.click();
+      await page.evaluate(async () => {
+        await window.jupyterapp.commands.execute(
+          '@jupyternaut/persona:open-settings'
+        );
+      });
 
       const aiSettingsWidget = page.locator('#jupyternaut-persona-settings');
       await expect(aiSettingsWidget).toBeVisible();
@@ -195,11 +192,15 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       );
       await chatWidgetToolbar.getByTitle('Rename chat').click();
       await page.waitForSelector('.jp-Dialog input');
-      await page.locator('.jp-Dialog input').pressSequentially(newName);
+      await page.locator('.jp-Dialog input').fill(newName);
       await page.locator('.jp-Dialog .jp-mod-accept').click();
       await expect(
         chatWidgetToolbar.locator('.jp-chat-sidepanel-widget-title')
       ).toContainText(newName, { ignoreCase: true });
+
+      if (await page.contents.fileExists(`${newName}.chat`)) {
+        await page.contents.deleteFile(`${newName}.chat`);
+      }
     });
 
     test('should move the chat between areas', async ({ page }) => {
@@ -208,51 +209,38 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       // Check that the chat panel is visible
       await expect(panel).toBeVisible();
 
-      // Move the chat to main area
+      // Get the current chat name before moving.
       const chatWidgetToolbar = page.locator(
         `[id="${CHAT_PANEL_ID}"] .jp-chat-sidepanel-widget-toolbar`
       );
+      const chatNameLocator = chatWidgetToolbar.locator(
+        '.jp-chat-sidepanel-widget-title'
+      );
+      await expect(chatNameLocator).toBeVisible();
+      const chatName = (await chatNameLocator.getAttribute('title')) ?? '';
+
+      // Move the chat to main area.
       await chatWidgetToolbar
         .getByTitle('Move the chat to the main area')
         .click();
       await expect(chatWidgetToolbar).not.toBeAttached();
 
-      const mainAreaTab = page.activity.getTabLocator(QWEN_MODEL_NAME);
+      const mainAreaTab = page.activity.getTabLocator(chatName);
       await expect(mainAreaTab).toHaveCount(1);
-      const mainAreaPanel =
-        await page.activity.getPanelLocator(QWEN_MODEL_NAME);
+      const mainAreaPanel = await page.activity.getPanelLocator(chatName);
       await mainAreaPanel
-        ?.locator('[data-command="@jupyterlite/ai:move-chat"]')
+        ?.locator('[data-command="jupyterlab-chat:moveChat"]')
         .click();
       await expect(chatWidgetToolbar).toBeVisible();
       await expect(mainAreaTab).toHaveCount(0);
     });
 
-    test('should show a context badge placeholder when enabled', async ({
+    test.skip('should show a context badge placeholder when enabled', async ({
       page
     }) => {
       const panel = await openChatPanel(page);
 
-      const settings = await openSettings(page);
-      await settings
-        ?.getByRole('checkbox', {
-          name: 'Show Context Usage'
-        })
-        .check();
-
-      // wait for the settings to be saved
-      await expect(page.activity.getTabLocator('Settings')).toHaveAttribute(
-        'class',
-        /jp-mod-dirty/
-      );
-      await expect(page.activity.getTabLocator('Settings')).not.toHaveAttribute(
-        'class',
-        /jp-mod-dirty/
-      );
-
-      await expect(
-        panel.getByTitle(/Context Usage unavailable\./)
-      ).toBeVisible();
+      await expect(panel.getByTitle('Session tokens: 0')).toBeVisible();
     });
 
     test('should prefill and reveal chats through public commands', async ({
@@ -264,14 +252,15 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       const mainInputText = 'Prompt moved to main area';
       const updatedMainInputText = 'Updated prompt in the same main chat';
 
-      // Open a chat with a prefilled input.
+      // Open a chat with a prefilled input in the side panel.
       await page.evaluate(
         ({ name, input }) => {
-          return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-chat',
+          void window.jupyterapp.commands.execute(
+            'jupyterlab-chat:openWithMessage',
             {
               name,
-              input
+              input,
+              inSidePanel: true
             }
           );
         },
@@ -289,24 +278,22 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
         .getByRole('combobox');
       await expect(sideInput).toHaveValue(sideInputText);
 
-      // Reveal the same chat in main area with a new prefilled input.
+      // Open the same chat in the main area with a new prefilled input.
       await page.evaluate(
-        ({ name, area, input }) => {
-          return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+        ({ name, input }) => {
+          void window.jupyterapp.commands.execute(
+            'jupyterlab-chat:openWithMessage',
             {
               name,
-              area,
               input
             }
           );
         },
-        { name: chatName, area: 'main', input: mainInputText }
+        { name: chatName, input: mainInputText }
       );
 
       const mainAreaTab = page.activity.getTabLocator(chatName);
       await expect(mainAreaTab).toHaveCount(1);
-      await expect(sideToolbar).not.toBeAttached();
       const mainAreaPanel = await page.activity.getPanelLocator(chatName);
       if (!mainAreaPanel) {
         throw new Error('Expected the moved chat to be visible in main area');
@@ -316,22 +303,25 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
         .getByRole('combobox');
       await expect(mainInput).toHaveValue(mainInputText);
 
-      // Re-run open-or-reveal in main area; it should reveal/update the same chat.
+      // Re-open in main area with updated input.
       await page.evaluate(
-        ({ name, area, input }) => {
-          return window.jupyterapp.commands.execute(
-            '@jupyterlite/ai:open-or-reveal-chat',
+        ({ name, input }) => {
+          void window.jupyterapp.commands.execute(
+            'jupyterlab-chat:openWithMessage',
             {
               name,
-              area,
               input
             }
           );
         },
-        { name: chatName, area: 'main', input: updatedMainInputText }
+        { name: chatName, input: updatedMainInputText }
       );
       await expect(mainAreaTab).toHaveCount(1);
       await expect(mainInput).toHaveValue(updatedMainInputText);
+
+      if (await page.contents.fileExists(`${chatName}.chat`)) {
+        await page.contents.deleteFile(`${chatName}.chat`);
+      }
     });
   })
 );

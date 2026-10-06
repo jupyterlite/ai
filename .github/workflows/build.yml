@@ -36,7 +36,6 @@ jobs:
           python scripts/dev_install.py test
 
           jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
           jupyter labextension list 2>&1 | grep -ie "@jupyternaut/persona.*OK"
           python -m jupyterlab.browser_check
 
@@ -84,7 +83,6 @@ jobs:
           pip install "jupyterlab>=4.0.0,<5" jupyternaut_persona*.whl jupyterlite_ai*.whl
 
           jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "@jupyterlite/ai.*OK"
           jupyter labextension list 2>&1 | grep -ie "@jupyternaut/persona.*OK"
           python -m jupyterlab.browser_check --no-browser-test
 
