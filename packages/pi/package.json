@@ -58,7 +58,6 @@
     "@jupyterlab/services": "^7.5.8",
     "@jupyterlite/cockle": "^1.7.1",
     "@jupyternaut/agent": "^0.20.1",
-    "@jupyternaut/persona": "^0.20.1",
     "@lumino/commands": "^2.3.2",
     "@lumino/coreutils": "^2.2.1",
     "@lumino/signaling": "^2.1.4",
@@ -125,10 +124,6 @@
         "singleton": true
       },
       "@jupyternaut/agent": {
-        "bundled": false,
-        "singleton": true
-      },
-      "@jupyternaut/persona": {
         "bundled": false,
         "singleton": true
       },

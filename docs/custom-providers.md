@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyterlite/ai';
+import { IProviderRegistry } from '@jupyternaut/agent';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {
