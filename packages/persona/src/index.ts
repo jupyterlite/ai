@@ -43,6 +43,7 @@ import {
   createDiscoverSkillsTool,
   createExecuteCommandTool,
   createLoadSkillTool,
+  forwardAuthCode,
   genericProvider,
   getAppAttribution,
   googleProvider,
@@ -50,10 +51,10 @@ import {
   mistralProvider,
   openaiProvider,
   openrouterProvider,
+  requestApiKey,
   AgentManagerFactory,
   IAgentManagerFactory,
   IAISettingsModel,
-  IDiffManager,
   IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
@@ -85,15 +86,9 @@ import { AICompletionProvider } from './completion';
 
 import { CompletionStatusWidget, JupyternautStopButton } from './components';
 
-import { DiffManager } from './diff-manager';
-
 // The settings model is the value provided by the settings model plugin.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
 import { AISettingsModel } from './models/settings-model';
-
-// The OAuth popup forwards its authorization code as soon as the application starts.
-// eslint-disable-next-line jupyter/prefer-lazy-imports
-import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 
 // The registry is the value provided by the persona registry plugin.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
@@ -731,26 +726,6 @@ const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
 };
 
 /**
- * Diff manager plugin
- */
-const diffManager: JupyterFrontEndPlugin<IDiffManager> = {
-  id: '@jupyternaut/persona:diff-manager',
-  description: 'Provide the diff manager for notebook cell diffs',
-  autoStart: true,
-  provides: IDiffManager,
-  requires: [IAISettingsModel],
-  activate: (
-    app: JupyterFrontEnd,
-    settingsModel: IAISettingsModel
-  ): IDiffManager => {
-    return new DiffManager({
-      commands: app.commands,
-      settingsModel
-    });
-  }
-};
-
-/**
  * Skill registry plugin
  */
 const skillRegistryPlugin: JupyterFrontEndPlugin<ISkillRegistry> = {
@@ -1067,9 +1042,7 @@ export default [
   skillsCommandPlugin,
   // Settings
   settingsModel,
-  settingsPanelPlugin,
-  // Diff manager (to be removed ?)
-  diffManager
+  settingsPanelPlugin
 ];
 
 // Export extension points for other extensions to use
@@ -1077,4 +1050,3 @@ export * from './tokens';
 
 // Export helper functions
 export { processAttachments } from './process-attachments';
-export { requestApiKey } from './oauth/openrouter';

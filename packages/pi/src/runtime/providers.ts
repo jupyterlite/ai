@@ -13,8 +13,7 @@ import {
   Notification,
   showDialog
 } from '@jupyterlab/apputils';
-import { getAppAttribution } from '@jupyternaut/agent';
-import { requestApiKey } from '@jupyternaut/persona';
+import { getAppAttribution, requestApiKey } from '@jupyternaut/agent';
 import fs from 'fs';
 import path from 'path';
 

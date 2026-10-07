@@ -110,4 +110,4 @@ const personaPlugin: JupyterFrontEndPlugin<void> = {
 
 export default [agentPlugin, personaPlugin];
 
-export * from './tokens';
+export { IPiAgent } from './tokens';

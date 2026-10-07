@@ -9,6 +9,7 @@ import type { Model } from '@earendil-works/pi-ai';
 import type { PersonaStatePayload } from '@jupyter-ai/persona-manager';
 import type { IAttachment, IChatModel, IMessage, IUser } from '@jupyter/chat';
 import type { IDocumentManager } from '@jupyterlab/docmanager';
+import { extractMimeBundles } from '@jupyternaut/agent';
 import { Signal, type ISignal } from '@lumino/signaling';
 import fs from 'fs';
 import { findInitialModel } from 'pi-coding-agent-package/dist/core/model-resolver.js';
@@ -17,7 +18,6 @@ import path from 'path';
 
 import type { ApprovalDecision, IApprovalRequest } from './extension';
 import type { PiHost } from './host';
-import { mimeBundles } from './mime';
 import { AGENT_DIR, DRIVE, drivePath } from './vfs';
 
 const CHAT_SESSIONS_FILE = path.join(AGENT_DIR, 'jupyter-chats.json');
@@ -898,7 +898,7 @@ export class PiChatSession {
       return;
     }
     const trusted = new Set(config.trustedMimeTypesForAutoRender);
-    for (const bundle of mimeBundles(details, trusted)) {
+    for (const bundle of extractMimeBundles(details, trusted)) {
       void this._send({ body: '', mime_model: bundle });
     }
   }
