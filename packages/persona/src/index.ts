@@ -642,7 +642,8 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     secretsManager?: ISecretsManager,
     themeManager?: IThemeManager,
     translator?: ITranslator,
-    formRenderer?: IFormRendererRegistry
+    formRenderer?: IFormRendererRegistry,
+    _mcpManager?: IMcpManager
   ): void => {
     const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
@@ -917,6 +918,9 @@ const skillsPlugin: JupyterFrontEndPlugin<void> = {
       ),
       execute: async () => {
         await loadAndRegister();
+      },
+      describedBy: {
+        args: {}
       }
     });
 

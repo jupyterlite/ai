@@ -173,7 +173,7 @@ export const UsageDisplay: React.FC<IUsageDisplayProps> = ({
                           gap: '2px'
                         }}
                       >
-                        <span>ctx</span>
+                        <span>{trans.__('ctx')}</span>
                         <span>{contextLabel}</span>
                       </span>
                     </span>

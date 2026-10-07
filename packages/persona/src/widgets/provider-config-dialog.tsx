@@ -663,7 +663,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   {...params}
                   fullWidth
                   label={trans.__('Base URL')}
-                  placeholder="https://api.example.com/v1"
+                  placeholder={trans.__('https://api.example.com/v1')}
                   onChange={e => setBaseURL(e.target.value)}
                 />
               )}
