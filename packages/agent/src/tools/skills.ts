@@ -1,3 +1,4 @@
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -6,9 +7,13 @@ import type { ISkillRegistry, ITool } from '../tokens';
 /**
  * Create a tool to discover available skills and their summaries.
  */
-export function createDiscoverSkillsTool(skillRegistry: ISkillRegistry): ITool {
+export function createDiscoverSkillsTool(
+  skillRegistry: ISkillRegistry,
+  translator?: ITranslator
+): ITool {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return tool({
-    metadata: { title: 'Discover Skills' },
+    metadata: { title: trans.__('Discover Skills') },
     description:
       'Discover available agent skills with their names and descriptions',
     inputSchema: z.object({
@@ -33,9 +38,13 @@ export function createDiscoverSkillsTool(skillRegistry: ISkillRegistry): ITool {
 /**
  * Create a tool to load skill instructions or a bundled resource.
  */
-export function createLoadSkillTool(skillRegistry: ISkillRegistry): ITool {
+export function createLoadSkillTool(
+  skillRegistry: ISkillRegistry,
+  translator?: ITranslator
+): ITool {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return tool({
-    metadata: { title: 'Load Skill' },
+    metadata: { title: trans.__('Load Skill') },
     description:
       'Load a skill definition or a specific resource file bundled with a skill',
     inputSchema: z.object({

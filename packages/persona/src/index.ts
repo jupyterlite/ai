@@ -79,16 +79,24 @@ import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
 import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
+// The completion provider is registered when the agent manager plugin activates.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { AICompletionProvider } from './completion';
 
 import { CompletionStatusWidget, JupyternautStopButton } from './components';
 
 import { DiffManager } from './diff-manager';
 
+// The settings model is the value provided by the settings model plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { AISettingsModel } from './models/settings-model';
 
+// The OAuth popup forwards its authorization code as soon as the application starts.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 
+// The registry is the value provided by the persona registry plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { PersonaRegistry } from './persona-registry';
 
 import {
@@ -98,6 +106,8 @@ import {
   DEFAULT_PERSONA
 } from './tokens';
 
+// The settings widget is created on activation so the layout restorer can track it.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { AISettingsWidget } from './widgets/ai-settings';
 
 namespace Private {
@@ -758,24 +768,37 @@ const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
   id: '@jupyternaut/persona:tool-registry',
   description: 'Provide the AI tool registry',
   autoStart: true,
-  optional: [ISkillRegistry],
+  optional: [ISkillRegistry, ITranslator],
   provides: IToolRegistry,
-  activate: (app: JupyterFrontEnd, skillRegistry?: ISkillRegistry) => {
+  activate: (
+    app: JupyterFrontEnd,
+    skillRegistry?: ISkillRegistry,
+    translator?: ITranslator
+  ) => {
     const toolRegistry = new ToolRegistry();
 
     // Add command operation tools
-    const discoverCommandsTool = createDiscoverCommandsTool(app.commands);
-    const executeCommandTool = createExecuteCommandTool(app.commands);
+    const discoverCommandsTool = createDiscoverCommandsTool(
+      app.commands,
+      translator
+    );
+    const executeCommandTool = createExecuteCommandTool(
+      app.commands,
+      translator
+    );
 
     toolRegistry.add('discover_commands', discoverCommandsTool);
     toolRegistry.add('execute_command', executeCommandTool);
-    toolRegistry.add('browser_fetch', createBrowserFetchTool());
+    toolRegistry.add('browser_fetch', createBrowserFetchTool(translator));
     if (skillRegistry) {
       toolRegistry.add(
         'discover_skills',
-        createDiscoverSkillsTool(skillRegistry)
+        createDiscoverSkillsTool(skillRegistry, translator)
       );
-      toolRegistry.add('load_skill', createLoadSkillTool(skillRegistry));
+      toolRegistry.add(
+        'load_skill',
+        createLoadSkillTool(skillRegistry, translator)
+      );
     }
 
     return toolRegistry;

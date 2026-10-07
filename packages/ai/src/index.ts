@@ -78,10 +78,17 @@ import { CommandRegistry } from '@lumino/commands';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
+// The provider is registered as soon as the clear command plugin activates.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { ClearCommandProvider } from './chat-commands';
 
+// The handler is the value provided by the chat model handler plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { ChatModelHandler } from './chat-model-handler';
 
+// Toolbar factories must return widgets synchronously and the input toolbar
+// items are created when the toolbar plugins activate.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import {
   clearItem,
   createModelSelectItem,

@@ -1,3 +1,4 @@
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 import { Widget } from '@lumino/widgets';
 import { tool } from 'ai';
@@ -93,9 +94,13 @@ function searchCommands(
 /**
  * Create a tool to discover all available commands and their metadata
  */
-export function createDiscoverCommandsTool(commands: CommandRegistry): ITool {
+export function createDiscoverCommandsTool(
+  commands: CommandRegistry,
+  translator?: ITranslator
+): ITool {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return tool({
-    metadata: { title: 'Discover Commands' },
+    metadata: { title: trans.__('Discover Commands') },
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
     inputSchema: z.object({
@@ -164,9 +169,13 @@ export function createExecuteCommandApprovalPolicy(
  * Approval for commands in the settings' commandsRequiringApproval list is
  * handled at the agent level via `createExecuteCommandApprovalPolicy`.
  */
-export function createExecuteCommandTool(commands: CommandRegistry): ITool {
+export function createExecuteCommandTool(
+  commands: CommandRegistry,
+  translator?: ITranslator
+): ITool {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return tool({
-    metadata: { title: 'Execute Command' },
+    metadata: { title: trans.__('Execute Command') },
     description:
       'Execute a specific JupyterLab command with optional arguments',
     inputSchema: z.object({
