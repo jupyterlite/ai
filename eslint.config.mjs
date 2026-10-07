@@ -19,7 +19,10 @@ export default defineConfig([
       '**/__tests__',
       'ui-tests',
       'demo',
-      'python/jupyternaut-persona/jupyternaut_persona'
+      'python/jupyternaut-persona/jupyternaut_persona',
+      'python/jupyternaut-pi/jupyternaut_pi',
+      'python/jupyternaut-terminal/jupyternaut_terminal',
+      'packages/pi/shims'
     ]
   },
   js.configs.recommended,
