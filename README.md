@@ -32,6 +32,19 @@ To install requirements (JupyterLab, JupyterLite and Notebook):
 pip install jupyterlite-ai[jupyter]
 ```
 
+## Pi coding agent
+
+`jupyternaut-pi` runs the [pi coding agent](https://pi.dev) in the browser: as a second chat
+persona next to Jupyternaut, and with `jupyternaut-terminal` as a `pi` command (alias `ai`) in the
+JupyterLite terminal, with the interactive interface of pi. Pi reads and writes the files of
+JupyterLab; in JupyterLite, it runs shell commands in the in-browser `cockle` shell.
+
+```bash
+pip install jupyternaut-pi jupyternaut-terminal
+```
+
+See the [pi coding agent documentation](docs/pi.md).
+
 ## Documentation
 
 For detailed usage instructions, including how to configure AI providers, see the [documentation](https://jupyterlite-ai.readthedocs.io/).

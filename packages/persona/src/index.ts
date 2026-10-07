@@ -1077,3 +1077,4 @@ export * from './tokens';
 
 // Export helper functions
 export { processAttachments } from './process-attachments';
+export { requestApiKey } from './oauth/openrouter';

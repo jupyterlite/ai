@@ -15,6 +15,7 @@ build:
     pre_build:
       - | # build lite and update doc URL if the doc is for a PR
         if [ "$READTHEDOCS_VERSION_TYPE" = "external" ]; then
+          set -e
           pip install uv
           pip install "jupyterlab>=4.0.0,<5"
           jlpm install
@@ -23,6 +24,9 @@ build:
           uv sync --locked --all-extras --dev --directory=demo
           mkdir -p demo/contents
           cp demo/README.md demo/contents/
+          # micromamba fetches the WebAssembly packages of the terminal
+          curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /tmp bin/micromamba
+          export PATH="/tmp/bin:$PATH"
           uv run --directory=demo jupyter lite build
           sed -i "s|https://jupyterlite.github.io/ai/lab/index.html|/lite/lab/index.html|g" docs/index.md
         fi

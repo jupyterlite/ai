@@ -1,0 +1,7 @@
+{
+  "jupyter-lite-schema-version": 0,
+  "jupyter-config-data": {
+    "terminalsAvailable": true,
+    "jupyter_ai_default_persona": "jupyternaut-frontend"
+  }
+}
