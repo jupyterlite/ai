@@ -34,12 +34,6 @@ class StdStream extends EventEmitter {
   pause() {
     return this;
   }
-  ref() {
-    return this;
-  }
-  unref() {
-    return this;
-  }
 }
 
 const proc = new EventEmitter();
@@ -85,12 +79,6 @@ Object.assign(proc, {
   },
   kill() {
     return true;
-  },
-  getuid() {
-    return 1000;
-  },
-  getgid() {
-    return 1000;
   },
   emitWarning() {},
   stdin: new StdStream(),

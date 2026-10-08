@@ -8,15 +8,6 @@ class NodeTimeout {
   unref() {
     return this;
   }
-  ref() {
-    return this;
-  }
-  hasRef() {
-    return true;
-  }
-  refresh() {
-    return this;
-  }
   [Symbol.toPrimitive]() {
     return this.id;
   }
@@ -32,4 +23,3 @@ export const clearTimeout = timer => globalThis.clearTimeout(unwrap(timer));
 export const clearInterval = timer => globalThis.clearInterval(unwrap(timer));
 export const setImmediate = (callback, ...args) =>
   globalThis.setTimeout(callback, 0, ...args);
-export const clearImmediate = id => globalThis.clearTimeout(id);

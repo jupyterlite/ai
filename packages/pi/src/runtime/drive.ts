@@ -151,12 +151,16 @@ export class DriveOperations
     LsOperations,
     FindOperations
 {
+  /**
+   * `onWrite` is called after each write of a drive file, with its contents
+   * path.
+   */
   constructor(
     contents: Contents.IManager,
-    options: DriveOperations.IOptions = {}
+    onWrite?: (contentsPath: string) => void
   ) {
     this._contents = contents;
-    this._onWrite = options.onWrite;
+    this._onWrite = onWrite;
   }
 
   access = async (absolutePath: string): Promise<void> => {
@@ -416,15 +420,6 @@ export class DriveOperations
     string,
     { time: number; types: Map<string, string> }
   >();
-}
-
-export namespace DriveOperations {
-  export interface IOptions {
-    /**
-     * Called after each write of a drive file, with its contents path.
-     */
-    onWrite?: (contentsPath: string) => void;
-  }
 }
 
 /**

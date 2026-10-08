@@ -71,21 +71,15 @@ export class PiAgent implements IPiAgent {
     this._terminals.get(shellId)?.abort();
   }
 
-  async setApiKey(): Promise<void> {
+  /**
+   * Run one of the credential dialogs of the runtime: an API key, an account
+   * sign-in or an OpenAI-compatible endpoint.
+   */
+  async configure(
+    action: 'setApiKey' | 'signIn' | 'addEndpoint'
+  ): Promise<void> {
     const { runtime } = await this.load();
-    await runtime.setApiKey();
-    this._configChanged.emit();
-  }
-
-  async signIn(): Promise<void> {
-    const { runtime } = await this.load();
-    await runtime.signIn();
-    this._configChanged.emit();
-  }
-
-  async addEndpoint(): Promise<void> {
-    const { runtime } = await this.load();
-    await runtime.addEndpoint();
+    await runtime[action]();
     this._configChanged.emit();
   }
 

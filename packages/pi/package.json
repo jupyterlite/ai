@@ -107,6 +107,7 @@
         "bundled": true,
         "singleton": true
       },
+      "@jupyterlite/cockle": false,
       "@jupyter-ai/persona-manager": {
         "bundled": false,
         "singleton": true

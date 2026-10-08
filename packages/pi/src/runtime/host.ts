@@ -49,17 +49,6 @@ const CONFIG_FILES = new Set(['auth.json', 'models.json', 'settings.json']);
 const MCP_LOG = '/tmp/pi-mcp.log';
 const EXECUTE_IN_KERNEL = 'jupyterlab-ai-commands:execute-in-kernel';
 
-/**
- * The reads of `fs.promises` on the JupyterLab files (see shims/fs.cjs).
- */
-interface IDriveReader {
-  access(absolutePath: string): Promise<void>;
-  readFile(
-    absolutePath: string,
-    options?: BufferEncoding | { encoding?: BufferEncoding | null }
-  ): Promise<Buffer | string>;
-}
-
 export interface IRuntimeOptions {
   cwd: string;
   sessionManager: SessionManager;
@@ -80,19 +69,10 @@ export class PiHost {
     const { contents } = options.app.serviceManager;
     this._options = options;
     this._mirror = new DriveMirror(contents);
-    this._operations = new DriveOperations(contents, {
-      onWrite: contentsPath => this._revert(contentsPath)
-    });
-    const operations = this._operations;
-    (fs as unknown as { drive: IDriveReader }).drive = {
-      access: operations.access,
-      async readFile(absolutePath, options) {
-        const data = await operations.readFile(absolutePath);
-        const encoding =
-          typeof options === 'string' ? options : options?.encoding;
-        return encoding ? data.toString(encoding) : data;
-      }
-    };
+    this._operations = new DriveOperations(contents, contentsPath =>
+      this._revert(contentsPath)
+    );
+    (fs as unknown as { drive: DriveOperations }).drive = this._operations;
     this.ready = restoreAgentDir();
     onRemoteChange(files => {
       if (files.some(file => CONFIG_FILES.has(path.posix.basename(file)))) {
@@ -121,6 +101,17 @@ export class PiHost {
     return this._options.documentManager;
   }
 
+  get toolRegistry(): IToolRegistry | undefined {
+    return this._options.toolRegistry;
+  }
+
+  /**
+   * Its HTTP servers go to pi's MCP extension.
+   */
+  get mcpManager(): IMcpManager | undefined {
+    return this._options.mcpManager;
+  }
+
   /**
    * A shell for the bash tool, when JupyterLite terminals are available.
    */
@@ -143,8 +134,68 @@ export class PiHost {
     });
   }
 
+  /**
+   * Interrupt the kernel of a stopped `execute-in-kernel` call, unless a
+   * notebook or a console uses the kernel: it can run the code of the user.
+   */
+  async interrupt(
+    commandId: string,
+    args: Record<string, unknown>
+  ): Promise<void> {
+    const { kernelId } = args;
+    if (commandId !== EXECUTE_IN_KERNEL || typeof kernelId !== 'string') {
+      return;
+    }
+    const { kernels, sessions } = this._options.app.serviceManager;
+    const model = await kernels.findById(kernelId);
+    if (
+      !model ||
+      [...sessions.running()].some(session => session.kernel?.id === kernelId)
+    ) {
+      return;
+    }
+    const kernel = kernels.connectTo({ model });
+    try {
+      await kernel.interrupt();
+    } catch (error) {
+      console.warn('pi: cannot interrupt the kernel', error);
+    } finally {
+      kernel.dispose();
+    }
+  }
+
+  /**
+   * Reload the open documents without unsaved changes whose file changed,
+   * for example through a shell command.
+   */
+  async revertChanged(): Promise<void> {
+    const { app, documentManager } = this._options;
+    if (!documentManager) {
+      return;
+    }
+    const contexts = new Set(
+      [...app.shell.widgets('main')]
+        .map(widget => documentManager.contextForWidget(widget))
+        .filter(context => context !== undefined)
+    );
+    for (const context of contexts) {
+      try {
+        const model = await app.serviceManager.contents.get(context.path, {
+          content: false
+        });
+        if (
+          !context.model.dirty &&
+          model.last_modified !== context.contentsModel?.last_modified
+        ) {
+          await context.revert();
+        }
+      } catch {
+        // The file may be gone.
+      }
+    }
+  }
+
   private _factory(options: IRuntimeOptions): CreateAgentSessionRuntimeFactory {
-    const { toolRegistry, settingsModel, mcpManager } = this._options;
     return async ({ cwd, agentDir, sessionManager, sessionStartEvent }) => {
       const skillFolders = this._skillFolders();
       await this._mirror.sync(cwd, skillFolders);
@@ -158,15 +209,10 @@ export class PiHost {
               name: 'jupyter',
               hidden: true,
               factory: jupyterExtension({
-                toolRegistry,
-                settingsModel,
+                host: this,
                 shell: options.shell,
-                mcpManager,
                 approve: options.approve,
-                onReload: () => this._mirror.sync(cwd, skillFolders),
-                onBash: () => void this._revertChanged(),
-                interrupt: (commandId, args) =>
-                  void this._interrupt(commandId, args)
+                onReload: () => this._mirror.sync(cwd, skillFolders)
               })
             },
             {
@@ -239,36 +285,6 @@ export class PiHost {
   }
 
   /**
-   * Interrupt the kernel of a stopped `execute-in-kernel` call, unless a
-   * notebook or a console uses the kernel: it can run the code of the user.
-   */
-  private async _interrupt(
-    commandId: string,
-    args: Record<string, unknown>
-  ): Promise<void> {
-    const { kernelId } = args;
-    if (commandId !== EXECUTE_IN_KERNEL || typeof kernelId !== 'string') {
-      return;
-    }
-    const { kernels, sessions } = this._options.app.serviceManager;
-    const model = await kernels.findById(kernelId);
-    if (
-      !model ||
-      [...sessions.running()].some(session => session.kernel?.id === kernelId)
-    ) {
-      return;
-    }
-    const kernel = kernels.connectTo({ model });
-    try {
-      await kernel.interrupt();
-    } catch (error) {
-      console.warn('pi: cannot interrupt the kernel', error);
-    } finally {
-      kernel.dispose();
-    }
-  }
-
-  /**
    * Show what pi wrote in the open document of a file, unless the document
    * has unsaved changes.
    */
@@ -283,37 +299,6 @@ export class PiHost {
         .catch(error =>
           console.warn(`pi: cannot reload the document ${contentsPath}`, error)
         );
-    }
-  }
-
-  /**
-   * Reload the open documents without unsaved changes whose file changed,
-   * for example through a shell command.
-   */
-  private async _revertChanged(): Promise<void> {
-    const { app, documentManager } = this._options;
-    if (!documentManager) {
-      return;
-    }
-    const contexts = new Set(
-      [...app.shell.widgets('main')]
-        .map(widget => documentManager.contextForWidget(widget))
-        .filter(context => context !== undefined)
-    );
-    for (const context of contexts) {
-      try {
-        const model = await app.serviceManager.contents.get(context.path, {
-          content: false
-        });
-        if (
-          !context.model.dirty &&
-          model.last_modified !== context.contentsModel?.last_modified
-        ) {
-          await context.revert();
-        }
-      } catch {
-        // The file may be gone.
-      }
     }
   }
 

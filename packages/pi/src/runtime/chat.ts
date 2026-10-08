@@ -5,7 +5,7 @@ import {
   type AgentSessionEvent,
   type AgentSessionRuntime
 } from '@earendil-works/pi-coding-agent';
-import type { Model } from '@earendil-works/pi-ai';
+import { contentText, type Model } from '@earendil-works/pi-ai';
 import type { PersonaStatePayload } from '@jupyter-ai/persona-manager';
 import type { IAttachment, IChatModel, IMessage, IUser } from '@jupyter/chat';
 import type { IDocumentManager } from '@jupyterlab/docmanager';
@@ -16,7 +16,11 @@ import { findInitialModel } from 'pi-coding-agent-package/dist/core/model-resolv
 import type { IToolCallsEntry } from 'jupyter-chat-components';
 import path from 'path';
 
-import type { ApprovalDecision, IApprovalRequest } from './extension';
+import {
+  summarize,
+  type ApprovalDecision,
+  type IApprovalRequest
+} from './extension';
 import type { PiHost } from './host';
 import { AGENT_DIR, DRIVE, drivePath } from './vfs';
 
@@ -57,11 +61,6 @@ const PERMISSION_OPTIONS = [
   { optionId: 'always', name: 'Always allow', kind: 'allow_always' },
   { optionId: 'reject', name: 'Reject', kind: 'reject_once' }
 ];
-
-interface IAssistantStream {
-  text: string;
-  messageId?: Promise<string | undefined>;
-}
 
 interface IToolCallState {
   toolCallId: string;
@@ -147,19 +146,6 @@ function isPlaceholder(model: Model<any>): boolean {
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function textOf(content: unknown): string {
-  if (typeof content === 'string') {
-    return content;
-  }
-  if (!Array.isArray(content)) {
-    return '';
-  }
-  return content
-    .filter(part => part?.type === 'text')
-    .map(part => part.text as string)
-    .join('');
 }
 
 /**
@@ -627,22 +613,27 @@ export class PiChatSession {
         break;
       case 'message_start':
         if (event.message.role === 'assistant') {
-          this._stream = { text: '' };
+          this._stream = {};
         }
         break;
       case 'message_update':
-        if (this._stream && event.assistantMessageEvent.type === 'text_delta') {
-          this._stream.text += event.assistantMessageEvent.delta;
-          void this._render(this._stream, { body: this._stream.text });
+        if (
+          this._stream &&
+          event.message.role === 'assistant' &&
+          event.assistantMessageEvent.type === 'text_delta'
+        ) {
+          void this._render(this._stream, {
+            body: contentText(event.message.content, '')
+          });
         }
         break;
       case 'message_end':
         if (event.message.role === 'assistant') {
-          const stream = this._stream ?? { text: '' };
+          const stream = this._stream ?? {};
           this._stream = undefined;
-          stream.text = textOf(event.message.content);
-          if (stream.text) {
-            void this._render(stream, { body: stream.text });
+          const text = contentText(event.message.content, '');
+          if (text) {
+            void this._render(stream, { body: text });
           }
         }
         break;
@@ -668,7 +659,7 @@ export class PiChatSession {
         const tool = this._tools.get(event.toolCallId);
         if (tool) {
           this._tools.delete(event.toolCallId);
-          const output = textOf(event.result?.content);
+          const output = contentText(event.result?.content ?? [], '');
           tool.status = event.isError ? 'failed' : 'completed';
           tool.output ??=
             output.length > MAX_DISPLAYED_OUTPUT
@@ -742,7 +733,7 @@ export class PiChatSession {
       !messages.some(
         message =>
           message.role === 'toolResult' ||
-          (message.role === 'assistant' && textOf(message.content))
+          (message.role === 'assistant' && contentText(message.content, ''))
       )
     ) {
       this._notice('pi returned an empty answer.');
@@ -829,7 +820,7 @@ export class PiChatSession {
   }
 
   private async _renderTool(tool: IToolCallState): Promise<void> {
-    const summary = this._summary(tool);
+    const summary = summarize(tool.toolName, tool.input);
     const owner = this._model.user?.username;
     const entry: IToolCallEntry = {
       toolCallId: tool.toolCallId,
@@ -870,22 +861,6 @@ export class PiChatSession {
    */
   private get _editsKeepRichContent(): boolean {
     return !(this._model as { _wsHandler?: unknown })._wsHandler;
-  }
-
-  private _summary(tool: IToolCallState): string {
-    const input = (tool.input ?? {}) as Record<string, unknown>;
-    const text = (value: unknown) => (typeof value === 'string' ? value : '');
-    switch (tool.toolName) {
-      case 'find':
-      case 'grep': {
-        const pattern = text(input.pattern);
-        const where = text(input.path);
-        return where ? `${pattern} in ${where}` : pattern;
-      }
-      case 'discover_commands':
-        return text(input.query);
-    }
-    return text(input.command ?? input.path ?? input.commandId ?? input.url);
   }
 
   private _renderMimeBundles(tool: IToolCallState, details: unknown): void {
@@ -1005,7 +980,7 @@ export class PiChatSession {
   private _runtime?: AgentSessionRuntime;
   private _shell?: ReturnType<PiHost['createShell']>;
   private _unsubscribe?: () => void;
-  private _stream?: IAssistantStream;
+  private _stream?: { messageId?: Promise<string | undefined> };
   private _tools = new Map<string, IToolCallState>();
   private _dispatch = Promise.resolve();
   private _lastRun?: AgentEndEvent['messages'];

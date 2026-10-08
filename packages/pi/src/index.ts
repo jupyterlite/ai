@@ -54,17 +54,17 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
     app.commands.addCommand(CommandIds.setApiKey, {
       label: 'Pi: Set a Model Provider API Key',
       describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.setApiKey()
+      execute: () => agent.configure('setApiKey')
     });
     app.commands.addCommand(CommandIds.signIn, {
       label: 'Pi: Sign In with an Account',
       describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.signIn()
+      execute: () => agent.configure('signIn')
     });
     app.commands.addCommand(CommandIds.addEndpoint, {
       label: 'Pi: Add an OpenAI-Compatible Endpoint',
       describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.addEndpoint()
+      execute: () => agent.configure('addEndpoint')
     });
     for (const command of [
       CommandIds.setApiKey,

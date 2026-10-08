@@ -1,10 +1,8 @@
 const { sha256 } = require('@noble/hashes/sha2.js');
 const { Buffer } = require('buffer');
 
-const HASHES = { sha256 };
-
-function createHash(name) {
-  const hash = HASHES[name.toLowerCase()].create();
+function createHash() {
+  const hash = sha256.create();
   const api = {
     update(data, encoding) {
       hash.update(

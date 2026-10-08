@@ -32,3 +32,7 @@ declare module 'pi-coding-agent-package/dist/core/settings-diagnostics.js' {
 declare module 'pi-coding-agent-package/dist/core/tools/path-utils.js' {
   export function resolveToCwd(filePath: string, cwd: string): string;
 }
+
+declare module 'pi-coding-agent-package/dist/utils/json.js' {
+  export function stripJsonComments(input: string): string;
+}
