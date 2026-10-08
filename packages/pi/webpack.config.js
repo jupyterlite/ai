@@ -68,11 +68,7 @@ const REPLACEMENTS = [
   [/[\\/]utils[\\/]photon\.js$/, shim('photon.js')],
   [/[\\/]utils[\\/]clipboard\.js$/, shim('clipboard.js')],
   [/[\\/]utils[\\/]tools-manager\.js$/, shim('tools-manager.js')],
-  [/[\\/]utils[\\/]open-browser\.js$/, shim('open-browser.js')],
-  [
-    /[\\/]modes[\\/]interactive[\\/]external-editor\.js$/,
-    shim('external-editor.js')
-  ]
+  [/[\\/]utils[\\/]open-browser\.js$/, shim('open-browser.js')]
 ];
 
 const timers = shim('node-timers.js');
@@ -115,8 +111,7 @@ module.exports = {
       setInterval: [timers, 'setInterval'],
       clearTimeout: [timers, 'clearTimeout'],
       clearInterval: [timers, 'clearInterval'],
-      setImmediate: [timers, 'setImmediate'],
-      clearImmediate: [timers, 'clearImmediate']
+      setImmediate: [timers, 'setImmediate']
     })
   ],
   ignoreWarnings: [/Critical dependency/, /Failed to parse source map/]

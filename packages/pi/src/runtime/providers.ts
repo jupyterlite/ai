@@ -16,6 +16,7 @@ import {
 import { getAppAttribution, requestApiKey } from '@jupyternaut/agent';
 import fs from 'fs';
 import path from 'path';
+import { stripJsonComments } from 'pi-coding-agent-package/dist/utils/json.js';
 
 import { AGENT_DIR } from './vfs';
 
@@ -56,16 +57,7 @@ interface IModelsConfig {
  * allowed.
  */
 function parseModels(text: string): IModelsConfig {
-  const json = text
-    .replace(/^\uFEFF/, '')
-    .replace(/"(?:\\.|[^"\\])*"|\/\/[^\n]*/g, match =>
-      match[0] === '"' ? match : ''
-    )
-    .replace(
-      /"(?:\\.|[^"\\])*"|,(\s*[}\]])/g,
-      (match, tail?: string) => tail ?? (match[0] === '"' ? match : '')
-    );
-  const config = JSON.parse(json);
+  const config = JSON.parse(stripJsonComments(text.replace(/^\uFEFF/, '')));
   if (typeof config !== 'object' || config === null || Array.isArray(config)) {
     throw new Error('the file is not a JSON object');
   }
@@ -316,10 +308,7 @@ const dialogInteraction: AuthInteraction = {
  * or the result of an account sign-in.
  */
 async function login(method: 'api_key' | 'oauth'): Promise<void> {
-  const runtime = await ModelRuntime.create({
-    authPath: path.join(AGENT_DIR, 'auth.json'),
-    modelsPath: MODELS_FILE
-  });
+  const runtime = await ModelRuntime.create();
   adaptProviders(runtime);
   const providers = runtime
     .getProviders()

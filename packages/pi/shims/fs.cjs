@@ -14,13 +14,12 @@ const vol = new Volume();
 const fs = createFsFromVolume(vol);
 fs.vol = vol;
 
-const MUTATING =
-  /^(write|append|rename|unlink|rm|copy|truncate|symlink|link|cp)/;
+const MUTATING = /^(write|append|rename|unlink|rm|copy|truncate)/;
 /**
- * Calls that create their second argument (a file or a tree); of their first
- * argument, only a rename changes it.
+ * Calls that create their second argument (a file); a rename also removes
+ * the first.
  */
-const DESTINATION = /^(rename|copy|cp|link|symlink)/;
+const DESTINATION = /^(rename|copy)/;
 
 function resolve(target) {
   return typeof target === 'string' ? path.resolve(target) : undefined;
@@ -33,27 +32,6 @@ function report(target) {
   }
 }
 
-/**
- * Report each file of a tree that was moved or copied.
- */
-function reportTree(target) {
-  const root = resolve(target);
-  if (root === undefined) {
-    return;
-  }
-  try {
-    if (!vol.statSync(root).isDirectory()) {
-      report(root);
-      return;
-    }
-    for (const name of vol.readdirSync(root)) {
-      reportTree(path.join(root, String(name)));
-    }
-  } catch {
-    report(root);
-  }
-}
-
 function track(target) {
   for (const name of Object.keys(target)) {
     const original = target[name];
@@ -61,14 +39,12 @@ function track(target) {
       continue;
     }
     const changed = args => {
-      if (!DESTINATION.test(name)) {
-        report(args[0]);
-        return;
-      }
-      if (name.startsWith('rename')) {
+      if (!name.startsWith('copy')) {
         report(args[0]);
       }
-      reportTree(args[1]);
+      if (DESTINATION.test(name)) {
+        report(args[1]);
+      }
     };
     target[name] = function (...args) {
       const last = args.length - 1;
@@ -111,14 +87,19 @@ fs.openSync = function (file, flags, ...rest) {
 /**
  * pi also reads the JupyterLab files outside its tools, for example for the
  * preview of an edit: the host sets `fs.drive` to read `/drive` with the
- * contents API.
+ * contents API, and the shim applies the Node encoding option.
  */
 for (const name of ['access', 'readFile']) {
   const local = fs.promises[name];
   fs.promises[name] = function (target, ...args) {
     const resolved = resolve(target);
     if (fs.drive && /^\/drive(\/|$)/.test(resolved ?? '')) {
-      return fs.drive[name](resolved, ...args);
+      const result = fs.drive[name](resolved);
+      const encoding =
+        typeof args[0] === 'string' ? args[0] : args[0]?.encoding;
+      return name === 'readFile' && encoding
+        ? result.then(data => data.toString(encoding))
+        : result;
     }
     return local.call(this, target, ...args);
   };

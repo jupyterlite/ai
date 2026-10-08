@@ -185,18 +185,19 @@ function andOrParts(code: string): IShellPart[] | null {
 }
 
 /**
- * Settle with the promise, or reject with `aborted` when the signal aborts
- * first.
+ * Settle with the promise, or reject with `message` (`aborted` by default)
+ * when the signal aborts first.
  */
-function abortable<T>(
+export function abortable<T>(
   promise: Promise<T>,
   signal: AbortSignal | undefined,
-  onAbort: () => void
+  onAbort: () => void,
+  message = 'aborted'
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const abort = () => {
       onAbort();
-      reject(new Error('aborted'));
+      reject(new Error(message));
     };
     if (signal?.aborted) {
       abort();

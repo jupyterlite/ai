@@ -8,15 +8,11 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import type { TSchema } from '@earendil-works/pi-ai';
 import { Text } from '@earendil-works/pi-tui';
-import type {
-  IAISettingsModel,
-  ITool,
-  IToolRegistry
-} from '@jupyternaut/agent';
-import type { IMcpManager } from 'jupyter-mcp-manager';
+import type { ITool } from '@jupyternaut/agent';
 
+import type { PiHost } from './host';
 import { modelView } from './mime';
-import { cockleOperations, type ShellRunner } from './shell';
+import { abortable, cockleOperations, type ShellRunner } from './shell';
 import { toContentsPath } from './vfs';
 
 /**
@@ -40,32 +36,17 @@ export type ApprovalHandler = (
 ) => Promise<ApprovalDecision>;
 
 export interface IJupyterExtensionOptions {
-  toolRegistry?: IToolRegistry;
-  settingsModel?: IAISettingsModel;
-  shell?: ShellRunner;
   /**
-   * Its HTTP servers go to pi's MCP extension.
+   * Its registry tools, settings and MCP servers go to pi.
    */
-  mcpManager?: IMcpManager;
+  host: PiHost;
+  shell?: ShellRunner;
   approve: ApprovalHandler;
   /**
    * Called before pi reloads its resources (`/reload`).
    */
-  onReload?: () => Promise<void>;
-  /**
-   * Called after each bash tool call, which can change files.
-   */
-  onBash?: () => void;
-  /**
-   * Interrupts the kernel of a JupyterLab command that pi stops.
-   */
-  interrupt?: InterruptHandler;
+  onReload: () => Promise<void>;
 }
-
-export type InterruptHandler = (
-  commandId: string,
-  args: Record<string, unknown>
-) => void;
 
 /**
  * Tools of the Jupyternaut registry that pi covers itself (skills).
@@ -105,20 +86,24 @@ const TOOL_GUIDELINES: Record<string, string[]> = {
   ]
 };
 
-function summarize(toolName: string, input: Record<string, unknown>): string {
+/**
+ * The input of a tool call in one line, for the chat card and the terminal
+ * approval prompt.
+ */
+export function summarize(toolName: string, input: unknown): string {
+  const record = (input ?? {}) as Record<string, unknown>;
+  const text = (value: unknown) => (typeof value === 'string' ? value : '');
   switch (toolName) {
-    case 'bash':
-      return String(input.command ?? '');
-    case 'edit':
-    case 'write':
-      return String(input.path ?? '');
-    case 'execute_command':
-      return String(input.commandId ?? '');
-    case 'browser_fetch':
-      return String(input.url ?? '');
+    case 'find':
+    case 'grep': {
+      const pattern = text(record.pattern);
+      const where = text(record.path);
+      return where ? `${pattern} in ${where}` : pattern;
+    }
+    case 'discover_commands':
+      return text(record.query);
   }
-  const text = JSON.stringify(input);
-  return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+  return text(record.command ?? record.path ?? record.commandId ?? record.url);
 }
 
 /**
@@ -209,34 +194,6 @@ function commandList(output: unknown): string | undefined {
 }
 
 /**
- * Settle with the promise, or reject when the signal aborts: a JupyterLab
- * command cannot be cancelled.
- */
-function abortable<T>(
-  promise: Promise<T>,
-  signal: AbortSignal | undefined,
-  onAbort: () => void
-): Promise<T> {
-  if (!signal) {
-    return promise;
-  }
-  return new Promise<T>((resolve, reject) => {
-    const abort = () => {
-      onAbort();
-      reject(new Error('Operation aborted'));
-    };
-    if (signal.aborted) {
-      abort();
-      return;
-    }
-    signal.addEventListener('abort', abort, { once: true });
-    promise
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener('abort', abort));
-  });
-}
-
-/**
  * The result of a registry tool in the terminal: its JSON output is one long
  * line, shown indented and collapsed to a few lines as pi does.
  */
@@ -265,11 +222,7 @@ const renderResult: NonNullable<ToolDefinition['renderResult']> = (
 /**
  * A Jupyternaut registry tool (AI SDK) as a pi tool.
  */
-function bridgeTool(
-  name: string,
-  tool: ITool,
-  interrupt?: InterruptHandler
-): ToolDefinition {
+function bridgeTool(name: string, tool: ITool, host: PiHost): ToolDefinition {
   const title = (tool as { metadata?: { title?: string } }).metadata?.title;
   const description =
     typeof tool.description === 'string' ? tool.description : name;
@@ -297,11 +250,17 @@ function bridgeTool(
             context: {}
           })
         );
-      const output = await abortable(run(), signal, () => {
-        if (name === 'execute_command' && input.commandId) {
-          interrupt?.(input.commandId, input.args ?? {});
-        }
-      });
+      // A JupyterLab command cannot be cancelled.
+      const output = await abortable(
+        run(),
+        signal,
+        () => {
+          if (name === 'execute_command' && input.commandId) {
+            void host.interrupt(input.commandId, input.args ?? {});
+          }
+        },
+        'Operation aborted'
+      );
       const { value, images } = modelView(output);
       let text =
         typeof value === 'string' ? value : (JSON.stringify(value) ?? 'Done');
@@ -351,7 +310,7 @@ export function jupyterExtension(
       }
       if (toolName === 'execute_command') {
         const commands =
-          options.settingsModel?.config.commandsRequiringApproval;
+          options.host.settingsModel?.config.commandsRequiringApproval;
         return commands ? commands.includes(String(input.commandId)) : true;
       }
       if (toolName.startsWith('mcp__')) {
@@ -431,11 +390,11 @@ export function jupyterExtension(
 
     pi.on('tool_result', event => {
       if (event.toolName === 'bash') {
-        options.onBash?.();
+        void options.host.revertChanged();
       }
     });
 
-    const manager = options.mcpManager;
+    const manager = options.host.mcpManager;
     const registerServers = () => {
       const servers = new Map<string, McpServerConfig>();
       for (const server of manager?.getMCPServers() ?? []) {
@@ -475,7 +434,7 @@ export function jupyterExtension(
     pi.on('session_shutdown', async event => {
       manager?.serversChanged.disconnect(registerServers);
       if (event.reason === 'reload') {
-        await options.onReload?.();
+        await options.onReload();
       }
     });
 
@@ -485,14 +444,14 @@ export function jupyterExtension(
     }
 
     for (const [name, tool] of Object.entries(
-      options.toolRegistry?.tools ?? {}
+      options.host.toolRegistry?.tools ?? {}
     )) {
       if (SKIPPED_TOOLS.has(name)) {
         continue;
       }
       try {
         policies.set(name, tool.needsApproval);
-        pi.registerTool(bridgeTool(name, tool, options.interrupt));
+        pi.registerTool(bridgeTool(name, tool, options.host));
       } catch (error) {
         console.warn(`pi: cannot add the ${name} tool`, error);
       }
@@ -504,7 +463,14 @@ export function jupyterExtension(
  * Approvals in pi's own terminal UI.
  */
 export const terminalApproval: ApprovalHandler = async (request, ctx) => {
-  const summary = summarize(request.toolName, request.input);
+  const json = JSON.stringify(request.input);
+  const summary =
+    GUARDED_TOOLS.has(request.toolName) ||
+    request.toolName === 'execute_command'
+      ? summarize(request.toolName, request.input)
+      : json.length > 120
+        ? `${json.slice(0, 117)}...`
+        : json;
   const choice = await ctx.ui.select(
     `Allow ${request.toolName}${summary ? `: ${summary}` : ''}?`,
     [

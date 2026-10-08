@@ -441,11 +441,8 @@ function normalizeDirectory(directory: string): string {
 function ancestors(cwd: string): string[] {
   const result: string[] = [];
   let current = cwd;
-  while (current === DRIVE || current.startsWith(`${DRIVE}/`)) {
+  while (toContentsPath(current) !== null) {
     result.push(current);
-    if (current === DRIVE) {
-      break;
-    }
     current = path.posix.dirname(current);
   }
   return result;

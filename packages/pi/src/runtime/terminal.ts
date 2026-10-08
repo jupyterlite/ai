@@ -5,24 +5,14 @@ import {
   type AgentSessionRuntime
 } from '@earendil-works/pi-coding-agent';
 import { StdinBuffer, type Terminal } from '@earendil-works/pi-tui';
-import type { IExternalRunContext, Termios } from '@jupyterlite/cockle';
+import { Termios, type IExternalRunContext } from '@jupyterlite/cockle';
 
 import { terminalApproval } from './extension';
 import type { PiHost } from './host';
 import { DRIVE } from './vfs';
 
-/**
- * Termios flag bits, as in cockle (and Linux).
- */
-const ICRNL = 0x0100;
-const INLCR = 0x0040;
-const IGNCR = 0x0080;
-const IXON = 0x0400;
-const ISIG = 0x0001;
-const ICANON = 0x0002;
-const ECHO = 0x0008;
-const ECHONL = 0x0040;
-const IEXTEN = 0x8000;
+const { ICRNL, INLCR, IGNCR, IXON } = Termios.InputFlag;
+const { ECHO, ECHONL, ICANON, ISIG, IEXTEN } = Termios.LocalFlag;
 
 const RESIZE_POLL_MS = 250;
 const HANGUP_EXIT_CODE = 129;
@@ -241,9 +231,9 @@ class CockleTerminal implements Terminal {
   private _enterRawMode(): void {
     const { termios } = this._context;
     if (!this._saved) {
-      this._saved = cloneFlags(termios.get());
+      this._saved = Termios.cloneFlags(termios.get());
     }
-    const flags = cloneFlags(this._saved);
+    const flags = Termios.cloneFlags(this._saved);
     flags.c_iflag &= ~(ICRNL | INLCR | IGNCR | IXON);
     flags.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
     termios.set(flags);
@@ -267,10 +257,6 @@ class CockleTerminal implements Terminal {
   private _reading = false;
   private _loop?: Promise<void>;
   private _pending: string[] = [];
-}
-
-function cloneFlags(flags: Termios.IFlags): Termios.IFlags {
-  return { ...flags, c_cc: [...flags.c_cc] };
 }
 
 /**
