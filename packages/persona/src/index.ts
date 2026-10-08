@@ -396,6 +396,7 @@ const persona: JupyterFrontEndPlugin<void> = {
 
       // The callback to update the persona selector component.
       const updatePersonaState = () => {
+        const tokenUsage = agentManager.tokenUsage;
         personaSessionRegistry?.updatePersonaState(
           id,
           DEFAULT_PERSONA.username,
@@ -409,8 +410,20 @@ const persona: JupyterFrontEndPlugin<void> = {
                   description: provider.description ?? provider.model
                 }))
               ],
-              // TODO: add the token usage
               settings: []
+            },
+            usage: {
+              input_tokens: tokenUsage.inputTokens,
+              output_tokens: tokenUsage.outputTokens,
+              context_tokens: tokenUsage.lastRequestInputTokens ?? null,
+              context_size: tokenUsage.contextWindow ?? null,
+              context_percent: null,
+              cached_read_tokens: null,
+              cached_write_tokens: null,
+              thought_tokens: null,
+              total_tokens: tokenUsage.inputTokens + tokenUsage.outputTokens,
+              cost_amount: null,
+              cost_currency: null
             }
           }
         );
@@ -418,11 +431,13 @@ const persona: JupyterFrontEndPlugin<void> = {
 
       updatePersonaState();
       settingsModel.stateChanged.connect(updatePersonaState);
+      agentManager.tokenUsageChanged.connect(updatePersonaState);
 
       widget.model.disposed.connect(model => {
         registry.unregister(model);
         personaSessionRegistry?.discard(id);
         settingsModel.stateChanged.disconnect(updatePersonaState);
+        agentManager.tokenUsageChanged.disconnect(updatePersonaState);
       });
     };
 
