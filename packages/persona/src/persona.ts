@@ -680,7 +680,7 @@ export class Persona implements IPersona {
             status: context.status,
             rawInput: context.input,
             rawOutput: output,
-            sessionId: this._model.name,
+            targetId: this._model.name,
             permissionStatus:
               status === 'awaiting_approval' ? 'pending' : 'resolved',
             ...(status === 'awaiting_approval' && {

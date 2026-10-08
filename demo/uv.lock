@@ -793,11 +793,11 @@ wheels = [
 
 [[package]]
 name = "jupyter-chat-components"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/22/89/8c06d99d1dc077843d4620dcc99c5aa5c6cdde487bf73004d5bb18d4391d/jupyter_chat_components-0.6.0.tar.gz", hash = "sha256:894821160bb28ca60e6eddbbaa7427f14ed9b22cb1c9ab9e2de239f99db98727", size = 333695, upload-time = "2026-06-02T07:09:32.2Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/75/35/46256fa30c8f503bddc750a313566bd998ee9531bdacee23ff36dc930aad/jupyter_chat_components-0.7.0.tar.gz", hash = "sha256:b7f64b34d45408eb63eb72f5bf1646e329c6d837f547eab4f18b9a54df7a89b6", size = 318972, upload-time = "2026-10-01T13:26:21.541Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/20/f865d6b61a47be77c0c1be1917945a0f376ba60a75d4a50f5b4e46b5a3d8/jupyter_chat_components-0.6.0-py3-none-any.whl", hash = "sha256:2e5993e03ab082c2c81d3590e52b0eeccba3deb3c01b1808728e18c385385c65", size = 33945, upload-time = "2026-06-02T07:09:30.521Z" },
+    { url = "https://files.pythonhosted.org/packages/08/72/0fb3317d1b32b88a2832788de35230740fd2ec5ece33a8881737eb093d6c/jupyter_chat_components-0.7.0-py3-none-any.whl", hash = "sha256:c6c4837c9482780dc0d6d1156c42b5d21a5898856dac326adba034b23da4bb4b", size = 35180, upload-time = "2026-10-01T13:26:19.476Z" },
 ]
 
 [[package]]
@@ -1095,7 +1095,7 @@ dependencies = [
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyter-chat-components", specifier = ">=0.6.0,<0.7" },
+    { name = "jupyter-chat-components", specifier = ">=0.7.0,<0.8" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
@@ -1177,7 +1177,7 @@ requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
     { name = "jupyter-ai-persona-manager", specifier = ">=0.3.0a0,<0.4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyter-chat-components", specifier = ">=0.6.0,<0.7" },
+    { name = "jupyter-chat-components", specifier = ">=0.7.0,<0.8" },
     { name = "jupyter-mcp-manager", specifier = ">=0.2.0,<0.3" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },

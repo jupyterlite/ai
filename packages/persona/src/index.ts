@@ -468,21 +468,20 @@ const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
       return;
     }
 
-    const findPersona = (sessionId: string) => {
+    const findPersona = (targetId: string) => {
       const model = chatTracker?.find(
-        chat => chat.model.name === sessionId
+        chat => chat.model.name === targetId
       )?.model;
       return model ? personaRegistry.get(model) : undefined;
     };
 
-    chatComponentsFactory.groupedToolCallCallbacks = {
-      ...chatComponentsFactory.groupedToolCallCallbacks,
+    chatComponentsFactory?.addCallbacks({
       toolCallPermissionDecision: (
-        sessionId: string,
+        targetId: string,
         toolCallId: string,
         optionId: string
       ) => {
-        const agent = findPersona(sessionId)?.agentManager;
+        const agent = findPersona(targetId)?.agentManager;
         if (!agent) {
           return;
         }
@@ -492,7 +491,7 @@ const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
           agent.rejectToolCall(toolCallId);
         }
       }
-    };
+    });
   }
 };
 

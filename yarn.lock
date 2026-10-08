@@ -3180,7 +3180,7 @@ __metadata:
     "@types/react-addons-linked-state-mixin": ^0.14.22
     ai: ^7.0.106
     css-loader: ^6.7.1
-    jupyter-chat-components: ^0.6.0
+    jupyter-chat-components: ^0.7.0
     npm-run-all2: ^7.0.1
     react: ^18.3.1
     rimraf: ^5.0.1
@@ -3256,7 +3256,7 @@ __metadata:
     "@types/react-addons-linked-state-mixin": ^0.14.22
     ai: ^7.0.106
     css-loader: ^6.7.1
-    jupyter-chat-components: ^0.6.0
+    jupyter-chat-components: ^0.7.0
     jupyter-mcp-manager: ^0.2.0
     jupyter-secrets-manager: ^0.5.0
     npm-run-all2: ^7.0.1
@@ -3475,7 +3475,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lumino/disposable@npm:^1.10.0 || ^2.0.0, @lumino/disposable@npm:^2.1.4, @lumino/disposable@npm:^2.1.5, @lumino/disposable@npm:^2.1.6":
+"@lumino/disposable@npm:^1.10.0 || ^2.0.0, @lumino/disposable@npm:^2.1.0, @lumino/disposable@npm:^2.1.4, @lumino/disposable@npm:^2.1.5, @lumino/disposable@npm:^2.1.6":
   version: 2.1.6
   resolution: "@lumino/disposable@npm:2.1.6"
   dependencies:
@@ -8435,9 +8435,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyter-chat-components@npm:^0.6.0":
-  version: 0.6.0
-  resolution: "jupyter-chat-components@npm:0.6.0"
+"jupyter-chat-components@npm:^0.7.0":
+  version: 0.7.0
+  resolution: "jupyter-chat-components@npm:0.7.0"
   dependencies:
     "@jupyterlab/application": ^4.5.0
     "@jupyterlab/coreutils": ^6.5.4
@@ -8446,9 +8446,10 @@ __metadata:
     "@jupyterlab/translation": ^4.5.0
     "@jupyterlab/ui-components": ^4.5.0
     "@lumino/coreutils": ^2.2.2
+    "@lumino/disposable": ^2.1.0
     "@lumino/widgets": ^2.1.0
     diff: ^8.0.0
-  checksum: 9773550ed55e57e8528e66ec0aacfd43c72cfd797d53a2004d7c5c639fcef4b8823825808ab6ac360485022e4ad60c023803e26f5f99210754b685bacd6110f4
+  checksum: 32c35e319140a02bb5dc66dbe4dc967974de33da9a35f5b8a5640f473b56d95f6ecad6b344230f247f1a5968d8cf7f5faa2be49ee43a29c73737a8d672198442
   languageName: node
   linkType: hard
 
