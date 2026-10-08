@@ -77,7 +77,11 @@ import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
 
-import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
+import {
+  MentionCommandProvider,
+  SkillsCommandProvider,
+  SummarizeCommandProvider
+} from './chat-commands';
 
 import { AICompletionProvider } from './completion';
 
@@ -551,6 +555,46 @@ const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
         isDefault,
         sendSystemMessage
       })
+    );
+  }
+};
+
+/*
+ * Summarize chat command plugin.
+ */
+const summarizeCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/persona:summarize',
+  description: 'Register the /summarize chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IChatCommandRegistry,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ) => {
+    const findModel = (chatName: string) =>
+      chatTracker?.find(c => c.model.name === chatName)?.model;
+
+    const isDefault = (chatName: string) => {
+      const model = findModel(chatName);
+      if (!model) {
+        return false;
+      }
+      const persona = personaRegistry.get(model);
+      return persona ? !persona.requireMention : false;
+    };
+
+    const summarize = async (chatName: string) => {
+      const model = findModel(chatName);
+      if (model) {
+        await personaRegistry.get(model)?.summarize();
+      }
+    };
+
+    registry.addProvider(
+      new SummarizeCommandProvider({ isDefault, summarize })
     );
   }
 };
@@ -1039,6 +1083,7 @@ export default [
   chatComponentsCallbacks,
   mentionCommandPlugin,
   skillsCommandPlugin,
+  summarizeCommandPlugin,
   // Settings
   settingsModel,
   settingsPanelPlugin,

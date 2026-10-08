@@ -333,6 +333,10 @@ export class AIChatModel extends AbstractChatModel implements IAIChatModel {
       msg.mentions = message.mentions;
     }
 
+    if (message.metadata) {
+      msg.metadata = message.metadata;
+    }
+
     // Check if we have valid configuration
     if (!this.agentManager?.hasValidConfig()) {
       this.messageAdded(msg);

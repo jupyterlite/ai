@@ -519,6 +519,13 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
+   * Returns the current conversation history.
+   */
+  getHistory(): ModelMessage[] {
+    return [...this._history];
+  }
+
+  /**
    * Sets the history from already-processed model messages.
    * @param messages Pre-built model messages (may include binary content)
    */
