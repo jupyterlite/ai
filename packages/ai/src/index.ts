@@ -52,10 +52,7 @@ import {
 import {
   fileUploadIcon,
   launchIcon,
-  saveIcon,
-  settingsIcon,
-  Toolbar,
-  ToolbarButton
+  saveIcon
 } from '@jupyterlab/ui-components';
 
 import {
@@ -74,8 +71,6 @@ import {
 
 import { UUID } from '@lumino/coreutils';
 
-import { CommandRegistry } from '@lumino/commands';
-
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
 import { ClearCommandProvider } from './chat-commands';
@@ -85,7 +80,6 @@ import { ChatModelHandler } from './chat-model-handler';
 import {
   clearItem,
   createModelSelectItem,
-  createToolSelectItem,
   SaveComponentWidget,
   stopItem,
   UsageWidget
@@ -372,44 +366,6 @@ const chatTracker: JupyterFrontEndPlugin<IChatTracker> = {
     sidePanel.id = '@jupyterlite/ai:chat-panel';
     sidePanel.title.icon = chatIcon;
     sidePanel.title.caption = trans.__('Chat with AI assistant');
-
-    sidePanel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-
-    const addSettingsButton = () => {
-      sidePanel.toolbar.addItem(
-        'settings',
-        new ToolbarButton({
-          icon: settingsIcon,
-          onClick: openSettings,
-          tooltip: trans.__('Open AI Settings')
-        })
-      );
-    };
-
-    if (app.commands.hasCommand(PersonaCommandsIds.openSettings)) {
-      addSettingsButton();
-    } else {
-      const disconnectSettingsButtonListener = () => {
-        app.commands.commandChanged.disconnect(onCommandChanged);
-        sidePanel.disposed.disconnect(disconnectSettingsButtonListener);
-      };
-
-      const onCommandChanged = (
-        _: CommandRegistry,
-        args: CommandRegistry.ICommandChangedArgs
-      ) => {
-        if (
-          args.id === PersonaCommandsIds.openSettings &&
-          args.type === 'added'
-        ) {
-          disconnectSettingsButtonListener();
-          addSettingsButton();
-        }
-      };
-
-      app.commands.commandChanged.connect(onCommandChanged);
-      sidePanel.disposed.connect(disconnectSettingsButtonListener);
-    }
 
     sidePanel.chatOpened.connect((_, panel) => {
       const model = panel.model as IAIChatModel;
@@ -1098,27 +1054,17 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
     description: 'The input toolbar registry plugin.',
     autoStart: true,
     provides: IInputToolbarRegistryFactory,
-    requires: [IAISettingsModel, IToolRegistry, IProviderRegistry],
+    requires: [IAISettingsModel],
     optional: [ITranslator, IPersonaRegistry],
     activate: (
       app: JupyterFrontEnd,
       settingsModel: IAISettingsModel,
-      toolRegistry: IToolRegistry,
-      providerRegistry: IProviderRegistry,
       translator?: ITranslator,
       personaHandlerRegistry?: IPersonaRegistry
     ): IInputToolbarRegistryFactory => {
       const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
       const stopButton = stopItem(trans);
       const clearButton = clearItem(trans);
-      const toolSelectButton = createToolSelectItem(
-        toolRegistry,
-        settingsModel,
-        providerRegistry,
-        settingsModel.config.toolsEnabled,
-        trans,
-        personaHandlerRegistry
-      );
       const modelSelectButton = createModelSelectItem(
         settingsModel,
         trans,
@@ -1132,17 +1078,6 @@ const inputToolbarFactory: JupyterFrontEndPlugin<IInputToolbarRegistryFactory> =
           inputToolbarRegistry.addItem('stop', stopButton);
           inputToolbarRegistry.addItem('clear', clearButton);
           inputToolbarRegistry.addItem('model', modelSelectButton);
-          inputToolbarRegistry.addItem('tools', toolSelectButton);
-
-          // Listen for settings changes to update tool availability
-          settingsModel.stateChanged.connect(() => {
-            const config = settingsModel.config;
-            if (!config.toolsEnabled) {
-              inputToolbarRegistry.hide('tools');
-            } else {
-              inputToolbarRegistry.show('tools');
-            }
-          });
 
           return inputToolbarRegistry;
         }

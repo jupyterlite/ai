@@ -7,11 +7,18 @@ import type {
   IToolRegistry
 } from '@jupyternaut/agent';
 
-import { InputToolbarRegistry, TooltippedButton } from '@jupyter/chat';
+import { TooltippedButton } from '@jupyter/chat';
 
 import type { TranslationBundle } from '@jupyterlab/translation';
 
-import type { IPersonaRegistry } from '@jupyternaut/persona';
+import type {
+  IPersonaControl,
+  IPersonaControlProps
+} from '@jupyter-ai/persona-manager';
+
+import type { IPersonaRegistry } from '../tokens';
+
+import { DEFAULT_PERSONA } from '../tokens';
 
 import BuildIcon from '@mui/icons-material/Build';
 
@@ -21,32 +28,19 @@ import { Divider, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { AIChatModel } from '../chat-model';
-
 const SELECT_ITEM_CLASS = 'jp-AIToolSelect-item';
 
 /**
  * Properties for the tool select component.
  */
-export interface IToolSelectProps
-  extends InputToolbarRegistry.IToolbarItemProps {
+export interface IToolSelectProps extends IPersonaControlProps {
   /**
    * The tool registry to get available tools from.
    */
   toolRegistry: IToolRegistry;
 
   /**
-   * Whether tools are enabled.
-   */
-  toolsEnabled: boolean;
-
-  /**
-   * Function to handle tool selection changes.
-   */
-  onToolSelectionChange: (selectedToolNames: string[]) => void;
-
-  /**
-   * The settings model to compute provider-level web tools.
+   * The settings model to compute provider-level web tools and toolsEnabled.
    */
   settingsModel: IAISettingsModel;
 
@@ -59,10 +53,11 @@ export interface IToolSelectProps
    * The application language translator.
    */
   translator: TranslationBundle;
+
   /**
-   * Optional registry to get the persona's agent manager for this model.
+   * Registry to get the persona's agent manager for this model.
    */
-  personaRegistry?: IPersonaRegistry;
+  personaRegistry: IPersonaRegistry;
 }
 
 /**
@@ -71,19 +66,19 @@ export interface IToolSelectProps
 export function ToolSelect(props: IToolSelectProps): JSX.Element {
   const {
     toolRegistry,
-    onToolSelectionChange,
-    toolsEnabled,
     settingsModel,
     providerRegistry,
-    model,
     chatModel,
     translator: trans,
-    personaRegistry: personaHandlerRegistry
+    personaRegistry
   } = props;
-  const agentManager =
-    (chatModel && personaHandlerRegistry?.get(chatModel)?.agentManager) ??
-    (model.chatContext as AIChatModel.IAIChatContext)?.agentManager;
 
+  const agentManager =
+    chatModel && personaRegistry.get(chatModel)?.agentManager;
+
+  const [toolsEnabled, setToolsEnabled] = useState(
+    settingsModel.config.toolsEnabled
+  );
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [tools, setTools] = useState<INamedTool[]>(
     toolRegistry?.namedTools || []
@@ -101,16 +96,24 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     setMenuOpen(false);
   }, []);
 
+  const onToolSelectionChange = useCallback(
+    (toolNames: string[]) => {
+      if (!agentManager) {
+        return;
+      }
+      agentManager.setSelectedTools(toolNames);
+    },
+    [agentManager]
+  );
+
   const toggleTool = useCallback(
     (toolName: string) => {
       const currentToolNames = [...selectedToolNames];
       const index = currentToolNames.indexOf(toolName);
 
       if (index !== -1) {
-        // Remove tool
         currentToolNames.splice(index, 1);
       } else {
-        // Add tool
         currentToolNames.push(toolName);
       }
 
@@ -119,6 +122,15 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
     },
     [selectedToolNames, onToolSelectionChange]
   );
+
+  // Track toolsEnabled from settings
+  useEffect(() => {
+    const update = () => setToolsEnabled(settingsModel.config.toolsEnabled);
+    settingsModel.stateChanged.connect(update);
+    return () => {
+      settingsModel.stateChanged.disconnect(update);
+    };
+  }, [settingsModel]);
 
   // Update tools when registry changes
   useEffect(() => {
@@ -322,40 +334,32 @@ export function ToolSelect(props: IToolSelectProps): JSX.Element {
 }
 
 /**
- * Factory function returning the toolbar item for tool selection.
+ * Factory function returning an IPersonaControl for tool selection.
  */
-export function createToolSelectItem(
+export function createToolSelectControl(
   toolRegistry: IToolRegistry,
   settingsModel: IAISettingsModel,
   providerRegistry: IProviderRegistry,
-  toolsEnabled: boolean = true,
   translator: TranslationBundle,
-  personaRegistry?: IPersonaRegistry
-): InputToolbarRegistry.IToolbarItem {
-  return {
-    element: (props: InputToolbarRegistry.IToolbarItemProps) => {
-      const onToolSelectionChange = (tools: string[]) => {
-        const agentManager =
-          props.chatModel &&
-          personaRegistry?.get(props.chatModel)?.agentManager;
-        if (!agentManager) {
-          return;
-        }
-        agentManager.setSelectedTools(tools);
-      };
+  personaRegistry: IPersonaRegistry
+): IPersonaControl {
+  const ToolSelectControl: React.FunctionComponent<IPersonaControlProps> = (
+    props: IPersonaControlProps
+  ) => (
+    <ToolSelect
+      {...props}
+      toolRegistry={toolRegistry}
+      settingsModel={settingsModel}
+      providerRegistry={providerRegistry}
+      translator={translator}
+      personaRegistry={personaRegistry}
+    />
+  );
 
-      const toolSelectProps: IToolSelectProps = {
-        ...props,
-        toolRegistry,
-        settingsModel,
-        providerRegistry,
-        onToolSelectionChange,
-        toolsEnabled,
-        translator,
-        personaRegistry
-      };
-      return <ToolSelect {...toolSelectProps} />;
-    },
-    position: 1
+  return {
+    id: 'jupyternaut-tool-select',
+    component: ToolSelectControl,
+    personaId: DEFAULT_PERSONA.username,
+    rank: 10
   };
 }
