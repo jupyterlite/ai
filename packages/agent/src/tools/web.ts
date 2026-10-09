@@ -1,3 +1,4 @@
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -103,9 +104,10 @@ async function readResponseText(
  * This is best-effort and subject to normal browser constraints (CORS, CSP,
  * mixed content, bot protections).
  */
-export function createBrowserFetchTool(): ITool {
+export function createBrowserFetchTool(translator?: ITranslator): ITool {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return tool({
-    metadata: { title: 'Browser Fetch' },
+    metadata: { title: trans.__('Browser Fetch') },
     description:
       'Fetch a URL directly from the browser using HTTP GET for exact URL inspection when CORS/access permits.',
     inputSchema: z.object({

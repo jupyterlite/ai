@@ -663,6 +663,7 @@ export const ProviderConfigDialog: React.FC<IProviderConfigDialogProps> = ({
                   {...params}
                   fullWidth
                   label={trans.__('Base URL')}
+                  // eslint-disable-next-line jupyter/no-untranslated-string -- example URL, not prose
                   placeholder="https://api.example.com/v1"
                   onChange={e => setBaseURL(e.target.value)}
                 />

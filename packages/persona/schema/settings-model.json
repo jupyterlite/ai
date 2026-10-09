@@ -104,7 +104,11 @@
                   },
                   "searchContextSize": {
                     "type": "string",
-                    "enum": ["low", "medium", "high"],
+                    "oneOf": [
+                      { "const": "low", "title": "Low" },
+                      { "const": "medium", "title": "Medium" },
+                      { "const": "high", "title": "High" }
+                    ],
                     "description": "Web search context size for providers that support it."
                   },
                   "externalWebAccess": {
@@ -272,7 +276,10 @@
       "title": "Diff Display Mode",
       "description": "How to display cell diffs (split or unified view)",
       "type": "string",
-      "enum": ["split", "unified"],
+      "oneOf": [
+        { "const": "split", "title": "Split" },
+        { "const": "unified", "title": "Unified" }
+      ],
       "default": "split"
     },
     "skillsPaths": {
