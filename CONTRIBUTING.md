@@ -52,8 +52,9 @@ matching entry for one of our built-in model IDs.
 The UI tests use Playwright and can be configured with environment variables:
 
 ```bash
-# Install Python test dependencies (includes the MCP test server)
-python ./scripts/dev_install.py test
+# Install Python test dependencies (includes the MCP test server), without the
+# packages that only load in JupyterLite
+python ./scripts/dev_install.py test --no-lite
 ```
 
 - `PWVIDEO`: Controls video recording during tests (default: `retain-on-failure`)
@@ -97,12 +98,14 @@ jlpm docs:build
 ```bash
 pip uninstall jupyterlite-ai
 pip uninstall jupyternaut-persona
+pip uninstall jupyternaut-pi
+pip uninstall jupyternaut-terminal
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter-builder develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlinks named `@jupyterlite/ai` and `@jupyternaut/persona`
-within that folder.
+folder is located. Then you can remove the symlinks named `@jupyterlite/ai`, `@jupyternaut/persona`,
+`@jupyternaut/pi` and `@jupyternaut/terminal` within that folder.
 
 ## Packaging the extension
 

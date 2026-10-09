@@ -1,15 +1,10 @@
 import {
   IAttachment,
   IMessage,
-  IMimeModelBody,
   IChatModel,
   IUser,
   INewMessage
 } from '@jupyter/chat';
-
-import * as nbformat from '@jupyterlab/nbformat';
-
-import { IRenderMime } from '@jupyterlab/rendermime';
 
 import type { IDocumentManager } from '@jupyterlab/docmanager';
 
@@ -20,6 +15,7 @@ import type {
 } from '@jupyternaut/agent';
 
 import {
+  extractMimeBundles,
   modelSupportsAudio,
   modelSupportsImages,
   modelSupportsPdf
@@ -34,12 +30,11 @@ import { processAttachments } from './process-attachments';
 import { DEFAULT_PERSONA, type IPersona } from './tokens';
 
 type ToolStatus =
-  | 'pending'
+  | 'in_progress'
   | 'awaiting_approval'
-  | 'approved'
   | 'rejected'
   | 'completed'
-  | 'error';
+  | 'failed';
 
 interface IToolExecutionContext {
   toolCallId: string;
@@ -87,71 +82,6 @@ function formatToolOutput(outputData: unknown): string {
   } catch {
     return '[Complex object - cannot serialize]';
   }
-}
-
-type IDisplayOutput =
-  | nbformat.IDisplayData
-  | nbformat.IDisplayUpdate
-  | nbformat.IExecuteResult;
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isDisplayOutput(value: unknown): value is IDisplayOutput {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  const output = value as nbformat.IOutput;
-  return (
-    nbformat.isDisplayData(output) ||
-    nbformat.isDisplayUpdate(output) ||
-    nbformat.isExecuteResult(output)
-  );
-}
-
-function toDisplayOutputs(value: unknown): IDisplayOutput[] {
-  if (isDisplayOutput(value)) {
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    return value.filter(isDisplayOutput);
-  }
-  if (!isPlainObject(value)) {
-    return [];
-  }
-  if (Array.isArray(value.outputs)) {
-    return value.outputs.filter(isDisplayOutput);
-  }
-  if ('result' in value) {
-    return toDisplayOutputs(value.result);
-  }
-  return [];
-}
-
-function extractMimeBundles(
-  content: unknown,
-  trustedMimeTypes: ReadonlySet<string>
-): IMimeModelBody[] {
-  return toDisplayOutputs(content)
-    .map((output): IMimeModelBody | null => {
-      const data = output.data;
-      if (!isPlainObject(data) || Object.keys(data).length === 0) {
-        return null;
-      }
-      return {
-        data: data as IRenderMime.IMimeModel['data'],
-        ...(isPlainObject(output.metadata)
-          ? {
-              metadata: output.metadata as IRenderMime.IMimeModel['metadata']
-            }
-          : {}),
-        ...(Object.keys(data).some(m => trustedMimeTypes.has(m))
-          ? { trusted: true }
-          : {})
-      };
-    })
-    .filter((b): b is IMimeModelBody => b !== null);
 }
 
 /**
@@ -501,7 +431,7 @@ export class Persona implements IPersona {
       toolName: event.data.toolName,
       title: event.data.title,
       input: event.data.input,
-      status: 'pending',
+      status: 'in_progress',
       summary,
       shouldAutoRenderMimeBundles
     };
@@ -558,7 +488,7 @@ export class Persona implements IPersona {
       return;
     }
     const context = this._toolContexts.get(event.data.callId);
-    const status = event.data.isError ? 'error' : 'completed';
+    const status = event.data.isError ? 'failed' : 'completed';
     this._updateToolCallUI(
       event.data.callId,
       status,
@@ -630,7 +560,7 @@ export class Persona implements IPersona {
     if (!context) {
       return;
     }
-    const status = event.data.approved ? 'approved' : 'rejected';
+    const status = event.data.approved ? 'in_progress' : 'rejected';
     this._updateToolCallUI(event.data.toolCallId, status);
     if (!event.data.approved) {
       this._toolContexts.delete(event.data.toolCallId);
