@@ -79,7 +79,7 @@ export class PiAgent implements IPiAgent {
     action: 'setApiKey' | 'signIn' | 'addEndpoint'
   ): Promise<void> {
     const { runtime } = await this.load();
-    await runtime[action]();
+    await runtime[action](this._options.translator);
     this._configChanged.emit();
   }
 

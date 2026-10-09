@@ -13,6 +13,7 @@ import {
   Notification,
   showDialog
 } from '@jupyterlab/apputils';
+import { nullTranslator, type ITranslator } from '@jupyterlab/translation';
 import { getAppAttribution, requestApiKey } from '@jupyternaut/agent';
 import fs from 'fs';
 import path from 'path';
@@ -307,7 +308,11 @@ const dialogInteraction: AuthInteraction = {
  * Store a credential of a model provider in the pi credentials: an API key,
  * or the result of an account sign-in.
  */
-async function login(method: 'api_key' | 'oauth'): Promise<void> {
+async function login(
+  method: 'api_key' | 'oauth',
+  translator?: ITranslator
+): Promise<void> {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   const runtime = await ModelRuntime.create();
   adaptProviders(runtime);
   const providers = runtime
@@ -329,7 +334,8 @@ async function login(method: 'api_key' | 'oauth'): Promise<void> {
       (provider.name ?? provider.id)
   );
   const choice = await InputDialog.getItem({
-    title: method === 'oauth' ? 'Account' : 'Model provider',
+    title:
+      method === 'oauth' ? trans.__('Account') : trans.__('Model provider'),
     items: labels
   });
   const provider = providers[labels.indexOf(choice.value ?? '')];
@@ -355,22 +361,23 @@ async function login(method: 'api_key' | 'oauth'): Promise<void> {
 /**
  * Store an API key for a model provider in the pi credentials.
  */
-export function setApiKey(): Promise<void> {
-  return login('api_key');
+export function setApiKey(translator?: ITranslator): Promise<void> {
+  return login('api_key', translator);
 }
 
 /**
  * Sign in with an account of a model provider (OpenRouter).
  */
-export function signIn(): Promise<void> {
-  return login('oauth');
+export function signIn(translator?: ITranslator): Promise<void> {
+  return login('oauth', translator);
 }
 
 /**
  * Add an OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, a proxy...) to
  * the pi models.
  */
-export async function addEndpoint(): Promise<void> {
+export async function addEndpoint(translator?: ITranslator): Promise<void> {
+  const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   const readModels = (): IModelsConfig | undefined => {
     if (!fs.existsSync(MODELS_FILE)) {
       return {};
@@ -397,7 +404,7 @@ export async function addEndpoint(): Promise<void> {
       : await InputDialog.getText({ title, text });
     return result.button.accept ? (result.value ?? '').trim() : undefined;
   };
-  const name = await ask('Provider name', 'ollama');
+  const name = await ask(trans.__('Provider name'), 'ollama');
   if (!name) {
     return;
   }
@@ -407,15 +414,18 @@ export async function addEndpoint(): Promise<void> {
   }
   if (current.providers?.[name]) {
     const result = await showDialog({
-      title: 'Replace the provider',
-      body: `pi already has a provider named "${name}". Replace it?`,
-      buttons: [Dialog.cancelButton(), Dialog.warnButton({ label: 'Replace' })]
+      title: trans.__('Replace the provider'),
+      body: trans.__('pi already has a provider named "%1". Replace it?', name),
+      buttons: [
+        Dialog.cancelButton(),
+        Dialog.warnButton({ label: trans.__('Replace') })
+      ]
     });
     if (!result.button.accept) {
       return;
     }
   }
-  const baseUrl = await ask('Base URL', 'http://localhost:11434/v1');
+  const baseUrl = await ask(trans.__('Base URL'), 'http://localhost:11434/v1');
   if (!baseUrl) {
     return;
   }
@@ -423,14 +433,14 @@ export async function addEndpoint(): Promise<void> {
     Notification.error('The base URL must start with http:// or https://.');
     return;
   }
-  const models = (await ask('Model ids (comma separated)'))
+  const models = (await ask(trans.__('Model ids (comma separated)')))
     ?.split(',')
     .map(id => id.trim())
     .filter(Boolean);
   if (!models?.length) {
     return;
   }
-  const apiKey = await ask('API key (leave empty if none)', '', true);
+  const apiKey = await ask(trans.__('API key (leave empty if none)'), '', true);
   // Another tab can change the models while the dialogs are open.
   const config = apiKey === undefined ? undefined : readModels();
   if (!config) {

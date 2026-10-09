@@ -4335,6 +4335,7 @@ __metadata:
     "@jupyterlab/apputils": ^4.6.8
     "@jupyterlab/docmanager": ^4.5.8
     "@jupyterlab/services": ^7.5.8
+    "@jupyterlab/translation": ^4.5.8
     "@jupyterlite/cockle": ^1.7.1
     "@jupyternaut/agent": ^0.20.1
     "@lumino/commands": ^2.3.2
