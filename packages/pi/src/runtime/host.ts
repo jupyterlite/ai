@@ -16,6 +16,7 @@ import {
 import { StreamableHttpTransport } from '@earendil-works/pi-mcp';
 import type { JupyterFrontEnd } from '@jupyterlab/application';
 import type { IDocumentManager } from '@jupyterlab/docmanager';
+import type { ITranslator } from '@jupyterlab/translation';
 import type { IAISettingsModel, IToolRegistry } from '@jupyternaut/agent';
 import fs from 'fs';
 import { Signal, type ISignal } from '@lumino/signaling';
@@ -318,5 +319,6 @@ export namespace PiHost {
      * Reloads the open documents that pi writes.
      */
     documentManager?: IDocumentManager;
+    translator?: ITranslator;
   }
 }

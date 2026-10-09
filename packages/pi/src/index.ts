@@ -7,11 +7,14 @@ import type {
 } from '@jupyterlab/application';
 import { ICommandPalette } from '@jupyterlab/apputils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { IAISettingsModel, IToolRegistry } from '@jupyternaut/agent';
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { PiAgent } from './agent';
+// The chats that are already open get the persona at activation.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
 import { attachPiChat } from './persona';
 import { IPiAgent } from './tokens';
 
@@ -34,7 +37,8 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
     IAISettingsModel,
     IMcpManager,
     ICommandPalette,
-    IDocumentManager
+    IDocumentManager,
+    ITranslator
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -42,27 +46,30 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
     settingsModel: IAISettingsModel | null,
     mcpManager: IMcpManager | null,
     palette: ICommandPalette | null,
-    documentManager: IDocumentManager | null
+    documentManager: IDocumentManager | null,
+    translator: ITranslator | null
   ): IPiAgent => {
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
     const agent = new PiAgent({
       app,
       toolRegistry: toolRegistry ?? undefined,
       settingsModel: settingsModel ?? undefined,
       mcpManager: mcpManager ?? undefined,
-      documentManager: documentManager ?? undefined
+      documentManager: documentManager ?? undefined,
+      translator: translator ?? undefined
     });
     app.commands.addCommand(CommandIds.setApiKey, {
-      label: 'Pi: Set a Model Provider API Key',
+      label: trans.__('Pi: Set a Model Provider API Key'),
       describedBy: { args: { type: 'object', properties: {} } },
       execute: () => agent.configure('setApiKey')
     });
     app.commands.addCommand(CommandIds.signIn, {
-      label: 'Pi: Sign In with an Account',
+      label: trans.__('Pi: Sign In with an Account'),
       describedBy: { args: { type: 'object', properties: {} } },
       execute: () => agent.configure('signIn')
     });
     app.commands.addCommand(CommandIds.addEndpoint, {
-      label: 'Pi: Add an OpenAI-Compatible Endpoint',
+      label: trans.__('Pi: Add an OpenAI-Compatible Endpoint'),
       describedBy: { args: { type: 'object', properties: {} } },
       execute: () => agent.configure('addEndpoint')
     });
@@ -71,7 +78,7 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
       CommandIds.signIn,
       CommandIds.addEndpoint
     ]) {
-      palette?.addItem({ command, category: 'Pi' });
+      palette?.addItem({ command, category: trans.__('Pi') });
     }
     return agent;
   }
