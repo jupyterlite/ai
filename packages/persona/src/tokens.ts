@@ -1,4 +1,10 @@
-import { IChatModel, IUser } from '@jupyter/chat';
+import { IChatModel, IMessageMetadata, IUser } from '@jupyter/chat';
+
+declare module '@jupyter/chat' {
+  interface IMessageMetadata {
+    jupyternaut?: { type: 'summary' };
+  }
+}
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import type {
   IAgentManager,
@@ -70,7 +76,11 @@ export interface IPersona {
   /**
    * Adds an assistant message to the chat (used by chat commands).
    */
-  sendSystemMessage(body: string): void;
+  sendSystemMessage(body: string, metadata?: IMessageMetadata): Promise<void>;
+  /**
+   * Summarizes the conversation history and saves the result as a system message.
+   */
+  summarize(): Promise<void>;
 }
 
 /**
