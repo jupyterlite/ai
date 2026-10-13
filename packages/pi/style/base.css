@@ -1,0 +1,80 @@
+/*
+ * The pi persona renders with the chat components and the pi terminal command
+ * inside xterm.js.
+ */
+
+/*
+ * The form of the "Add a Model Provider" dialog.
+ */
+.jp-pi-ProviderForm,
+.jp-pi-ProviderForm fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jp-pi-ProviderForm {
+  width: 360px;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.jp-pi-ProviderForm fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.jp-pi-ProviderForm [hidden] {
+  display: none;
+}
+
+.jp-pi-ProviderForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-pi-ProviderForm .jp-select-wrapper {
+  margin-bottom: 0;
+}
+
+.jp-pi-ProviderForm input:invalid:not(:placeholder-shown) {
+  border-color: var(--jp-error-color1);
+}
+
+.jp-pi-ProviderForm button.jp-pi-ProviderForm-button {
+  align-self: flex-start;
+  padding: 0 12px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+}
+
+.jp-pi-ProviderForm button.jp-pi-ProviderForm-button:hover:enabled {
+  background: var(--jp-layout-color2);
+}
+
+.jp-pi-ProviderForm-note {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-pi-ProviderForm-note:empty {
+  display: none;
+}
+
+/*
+ * The questions of pi in a dialog (project trust, extensions).
+ */
+.jp-pi-Question {
+  max-width: 480px;
+}
+
+.jp-pi-Question label {
+  margin-bottom: 12px;
+  white-space: pre-line;
+}
