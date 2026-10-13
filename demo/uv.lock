@@ -992,7 +992,7 @@ wheels = [
 
 [[package]]
 name = "jupyterlab-chat"
-version = "0.25.1"
+version = "0.25.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jupyter-events" },
@@ -1000,9 +1000,9 @@ dependencies = [
     { name = "jupyter-ydoc" },
     { name = "pycrdt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/15/7c12759a54308c0d387d0feee6e6573b1fdc1fd2731b8bc2008502e99e08/jupyterlab_chat-0.25.1.tar.gz", hash = "sha256:d68d5018166073553a3721b962c293d96afe4678812c8e8566dd1b8640cf65c6", size = 368714, upload-time = "2026-09-17T09:12:52.189Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/98/d723c21cbc465aaae80b5a120798c61274e8a5c8b81f3c6fa68730665b70/jupyterlab_chat-0.25.2.tar.gz", hash = "sha256:657fa110452e3c5e838c117213ddf6d9934dc73a75f0c39fbaf3e44ee6e738db", size = 370909, upload-time = "2026-10-13T07:28:02.148Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f1/75/d8f628a4b2fe861a4864304c0c05a50d6ce05535e6228854b49f5b048db2/jupyterlab_chat-0.25.1-py3-none-any.whl", hash = "sha256:d7331aa2e0d4a9ccf9a4b2576d26696c4b93a0e5e0ebab35a11c19ab804edc29", size = 216396, upload-time = "2026-09-17T09:12:50.289Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/e3/45b8d402e64a95d6be56174ebfafee254532b3f94111f055adbc42481e22/jupyterlab_chat-0.25.2-py3-none-any.whl", hash = "sha256:e3120c46025fbcab68835071c4a187b0a90ef4300ef9f76cb0102fea0a13c1e9", size = 219784, upload-time = "2026-10-13T07:28:00.428Z" },
 ]
 
 [[package]]
@@ -1085,26 +1085,18 @@ wheels = [
 name = "jupyterlite-ai"
 source = { directory = "../python/jupyterlite-ai" }
 dependencies = [
-    { name = "jupyter-chat-components" },
-    { name = "jupyter-secrets-manager" },
-    { name = "jupyterlab-ai-commands" },
     { name = "jupyternaut-persona" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyter-chat-components", specifier = ">=0.7.0,<0.8" },
-    { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
-    { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
     { name = "jupyternaut-persona", specifier = "==0.20.1" },
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
-    { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },
 ]
-provides-extras = ["docs", "jupyter", "test"]
+provides-extras = ["docs", "jupyter"]
 
 [[package]]
 name = "jupyterlite-ai-demo"
@@ -1182,7 +1174,7 @@ requires-dist = [
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
     { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
-    { name = "jupyterlab-chat", specifier = ">=0.25.0,<0.26" },
+    { name = "jupyterlab-chat", specifier = ">=0.25.2,<0.26" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
     { name = "starlette", marker = "extra == 'test'", specifier = ">=0.48.0,<0.49" },

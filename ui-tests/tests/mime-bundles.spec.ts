@@ -11,6 +11,9 @@ import {
 } from '@jupyterlab/galata';
 import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
+const TEST_CHAT_NAME = 'mime-bundles-test';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
+
 const EXPECT_TIMEOUT = 120000;
 const TEST_MIME_BUNDLE_COMMAND_ID = 'jupyterlite-ai-tests:emit-mime-bundle';
 const BASE_SETTINGS =
@@ -83,6 +86,16 @@ async function registerTestMimeBundleCommand(
 }
 
 test.describe('#mimeBundles', () => {
+  test.beforeEach(async ({ page }) => {
+    await openChatPanel(page, TEST_CHAT_NAME);
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+      await page.contents.deleteFile(TEST_CHAT_FILE);
+    }
+  });
+
   test('should render MIME bundles from configured command outputs in chat', async ({
     page
   }) => {

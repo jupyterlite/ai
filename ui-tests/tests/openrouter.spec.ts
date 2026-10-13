@@ -25,6 +25,8 @@ const MODELS = [
   'openai/gpt-5.6-luna:batch',
   'test/only-from-api'
 ];
+const TEST_CHAT_NAME = 'openrouter';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
 
 /**
  * Open the dialog to add a provider, and select the OpenRouter provider.
@@ -397,16 +399,31 @@ test.describe('#openrouterAppAttribution', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.route('**/lab/', async route => {
-      const response = await route.fetch();
-      const body = (await response.text()).replace(
-        /(<script id="jupyter-config-data" type="application\/json">)([^<]*)/,
-        (match, tag, config) =>
-          tag + JSON.stringify({ ...JSON.parse(config), appAttribution })
-      );
-      await route.fulfill({ response, body });
-    });
+    await page.addInitScript(attr => {
+      const originalGetElementById = document.getElementById.bind(document);
+      let patched = false;
+      document.getElementById = function (id: string) {
+        const el = originalGetElementById(id);
+        if (el && !patched && id === 'jupyter-config-data') {
+          try {
+            const cfg = JSON.parse(el.textContent || '{}');
+            cfg.appAttribution = JSON.stringify(attr);
+            el.textContent = JSON.stringify(cfg);
+            patched = true;
+          } catch {
+            /* ignore */
+          }
+        }
+        return el;
+      };
+    }, appAttribution);
     await page.goto();
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+      await page.contents.deleteFile(TEST_CHAT_FILE);
+    }
   });
 
   test('should label the API key with the app name', async ({ page }) => {
@@ -426,7 +443,7 @@ test.describe('#openrouterAppAttribution', () => {
       })
     );
 
-    const panel = await openChatPanel(page);
+    const panel = await openChatPanel(page, TEST_CHAT_NAME);
     await panel
       .locator('.jp-chat-input-container')
       .getByRole('combobox')

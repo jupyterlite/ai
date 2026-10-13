@@ -6,6 +6,9 @@
 import { expect, galata, test } from '@jupyterlab/galata';
 import { DEFAULT_GENERIC_PROVIDER_SETTINGS, openChatPanel } from './test-utils';
 
+const TEST_CHAT_NAME = 'commands-tool-test';
+const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
+
 const EXPECT_TIMEOUT = 120000;
 
 test.use({
@@ -31,6 +34,16 @@ test.use({
 });
 
 test.describe('#commandsTool', () => {
+  test.beforeEach(async ({ page }) => {
+    await openChatPanel(page, TEST_CHAT_NAME);
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (await page.contents.fileExists(TEST_CHAT_FILE)) {
+      await page.contents.deleteFile(TEST_CHAT_FILE);
+    }
+  });
+
   test('should filter commands using query parameter', async ({ page }) => {
     test.setTimeout(120 * 1000);
 
