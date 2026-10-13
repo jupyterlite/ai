@@ -33,7 +33,7 @@ dependencies = [
     "jupyterlab-ai-commands >=0.3.1,<0.4",
     "jupyter-mcp-manager >=0.2.0, <0.3",
     "jupyter-ai-persona-manager >= 0.3.0a0, <0.4",
-    "jupyterlab-chat>= 0.25.0, <0.26"
+    "jupyterlab-chat>= 0.25.2, <0.26"
 ]
 dynamic = ["version"]
 

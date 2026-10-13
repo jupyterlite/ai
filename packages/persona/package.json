@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@jupyter-ai/persona-manager": "0.3.0-a0",
-    "@jupyter/chat": "^0.25.0",
+    "@jupyter/chat": "^0.25.2",
     "@jupyter/ydoc": "^4.0.0",
     "@jupyterlab/application": "^4.5.8",
     "@jupyterlab/apputils": "^4.6.8",
