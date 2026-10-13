@@ -63,24 +63,11 @@ export class PiAgent implements IPiAgent {
       if (this._terminals.get(context.shellId) === controller) {
         this._terminals.delete(context.shellId);
       }
-      this._configChanged.emit();
     }
   }
 
   stopTerminal(shellId: string): void {
     this._terminals.get(shellId)?.abort();
-  }
-
-  /**
-   * Run one of the credential dialogs of the runtime: an API key, an account
-   * sign-in or an OpenAI-compatible endpoint.
-   */
-  async configure(
-    action: 'setApiKey' | 'signIn' | 'addEndpoint'
-  ): Promise<void> {
-    const { runtime } = await this.load();
-    await runtime[action](this._options.translator);
-    this._configChanged.emit();
   }
 
   private _options: Runtime.PiHost.IOptions;

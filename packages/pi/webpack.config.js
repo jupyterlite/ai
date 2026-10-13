@@ -63,10 +63,31 @@ const PACKAGES = {
   undici: shim('undici.cjs')
 };
 
+const EXPORT_HTML_FILES = [
+  'dist/core/export-html/template.html',
+  'dist/core/export-html/template.css',
+  'dist/core/export-html/template.js',
+  'dist/core/export-html/vendor/marked.min.js',
+  'dist/core/export-html/vendor/highlight.min.js'
+];
+
+/**
+ * The changelog entries of the major version of pi, for `/changelog` and the
+ * "What's New" of pi: the whole file is large.
+ */
+function currentChangelog() {
+  const text = fs.readFileSync(path.join(piPackageDir, 'CHANGELOG.md'), 'utf8');
+  const major = require(path.join(piPackageDir, 'package.json')).version.split(
+    '.'
+  )[0];
+  const older = text.search(new RegExp(`^## \\[(?!${major}\\.)`, 'm'));
+  return older === -1 ? text : text.slice(0, older);
+}
+
 const PI_DIST = /pi-coding-agent[\\/]dist[\\/]/;
 const REPLACEMENTS = [
   [/[\\/]utils[\\/]photon\.js$/, shim('photon.js')],
-  [/[\\/]utils[\\/]clipboard\.js$/, shim('clipboard.js')],
+  [/[\\/]utils[\\/]clipboard(-image)?\.js$/, shim('clipboard.js')],
   [/[\\/]utils[\\/]tools-manager\.js$/, shim('tools-manager.js')],
   [/[\\/]utils[\\/]open-browser\.js$/, shim('open-browser.js')]
 ];
@@ -103,7 +124,17 @@ module.exports = {
       }
     }),
     new DefinePlugin({
-      'import.meta.url': JSON.stringify('file:///pi/dist/index.js')
+      'import.meta.url': JSON.stringify('file:///pi/dist/index.js'),
+      // The fs shim seeds them, by path: pi reads them with readFileSync.
+      __PI_FILES__: JSON.stringify({
+        '/pi/CHANGELOG.md': currentChangelog(),
+        ...Object.fromEntries(
+          EXPORT_HTML_FILES.map(file => [
+            `/pi/${file}`,
+            fs.readFileSync(path.join(piPackageDir, file), 'utf8')
+          ])
+        )
+      })
     }),
     new ProvidePlugin({
       Buffer: [require.resolve('buffer/'), 'Buffer'],

@@ -8,11 +8,13 @@ import {
 import { contentText, type Model } from '@earendil-works/pi-ai';
 import type { PersonaStatePayload } from '@jupyter-ai/persona-manager';
 import type { IAttachment, IChatModel, IMessage, IUser } from '@jupyter/chat';
+import { Notification } from '@jupyterlab/apputils';
 import type { IDocumentManager } from '@jupyterlab/docmanager';
 import { extractMimeBundles } from '@jupyternaut/agent';
 import { Signal, type ISignal } from '@lumino/signaling';
 import fs from 'fs';
 import { findInitialModel } from 'pi-coding-agent-package/dist/core/model-resolver.js';
+import { BUILTIN_SLASH_COMMANDS } from 'pi-coding-agent-package/dist/core/slash-commands.js';
 import type { IToolCallsEntry } from 'jupyter-chat-components';
 import path from 'path';
 
@@ -22,6 +24,7 @@ import {
   type IApprovalRequest
 } from './extension';
 import type { PiHost } from './host';
+import { DIALOG_UI } from './dialogs';
 import { AGENT_DIR, DRIVE, drivePath } from './vfs';
 
 const CHAT_SESSIONS_FILE = path.join(AGENT_DIR, 'jupyter-chats.json');
@@ -38,7 +41,7 @@ const CHAT_INSTRUCTIONS =
   'You run in pi, the coding agent, as a persona of a Jupyter chat. Your answers are rendered as markdown in the chat panel. The rich outputs (plots, tables, HTML) of jupyterlab-ai-commands:execute-in-kernel are shown in the chat: to show one, run the code that makes it.';
 
 const NO_MODEL_MESSAGE =
-  'pi has no model to use. Add an API key with the "Pi: Set a Model Provider API Key" command, or a model server with the "Pi: Add an OpenAI-Compatible Endpoint" command (in the command palette).';
+  'pi has no model to use. Run "Pi: Add a Model Provider" in the command palette to add an API key, sign in with OpenRouter or add an OpenAI-compatible endpoint.';
 
 /**
  * pi errors of `/compact` that are not failures.
@@ -47,6 +50,22 @@ const COMPACT_NOTICES: [RegExp, string][] = [
   [/^Nothing to compact/, 'Nothing to compact yet.'],
   [/^Already compacted/, 'The conversation is already compacted.']
 ];
+
+/**
+ * The commands of pi's terminal interface: the chat runs some of them and
+ * does not send the others to the model.
+ */
+const BUILTIN_COMMANDS = new Set(
+  BUILTIN_SLASH_COMMANDS.map(command => command.name)
+);
+
+const COMMAND_NOTICES: Record<string, string> = {
+  login:
+    'In the chat, run "Pi: Add a Model Provider" in the command palette to add a model provider.',
+  model: 'In the chat, select the model in the menu next to the persona.',
+  thinking:
+    'In the chat, select the thinking level in the menu next to the persona.'
+};
 
 const TOOL_KINDS: Record<string, string> = {
   bash: 'execute',
@@ -224,6 +243,14 @@ export class PiChatSession {
     return this._stateChanged;
   }
 
+  /**
+   * Emitted with true when a tool call starts to wait for an approval, and
+   * with false when no call waits.
+   */
+  get approvalChanged(): ISignal<this, boolean> {
+    return this._approvalChanged;
+  }
+
   get busy(): boolean {
     return this._busy;
   }
@@ -329,6 +356,17 @@ export class PiChatSession {
       slash_commands: [
         { name: 'new', description: 'Start a new pi session' },
         { name: 'compact', description: 'Summarize the conversation' },
+        {
+          name: 'reload',
+          description:
+            'Load the extensions, skills, prompts and context files again'
+        },
+        { name: 'name', description: 'Set the session name' },
+        { name: 'session', description: 'Show the session info and stats' },
+        ...session.extensionRunner.getRegisteredCommands().map(command => ({
+          name: command.invocationName,
+          description: command.description ?? null
+        })),
         ...session.promptTemplates.map(template => ({
           name: template.name,
           description: template.description
@@ -344,9 +382,19 @@ export class PiChatSession {
 
   /**
    * Load the models and credentials of pi again, and select a default model
-   * when the session has none that works (as pi does after a login).
+   * when the session has none that works (as pi does after a login). The
+   * calls run one after the other: pi drops the model availability of a
+   * refresh that another refresh overtakes.
    */
-  async refreshModels(): Promise<void> {
+  refreshModels(): Promise<void> {
+    const refresh = this._refreshing
+      .catch(() => undefined)
+      .then(() => this._refreshModels());
+    this._refreshing = refresh;
+    return refresh;
+  }
+
+  private async _refreshModels(): Promise<void> {
     const session = this._runtime?.session;
     if (!session || this._disposed) {
       return;
@@ -392,7 +440,7 @@ export class PiChatSession {
   /**
    * Answer a chat message sent to the pi persona, in the model of the
    * message. Messages start one after the other; a message sent during a run
-   * is queued in that run.
+   * steers that run, as Enter does in pi's terminal interface.
    */
   async respond(
     message: IMessage,
@@ -403,10 +451,15 @@ export class PiChatSession {
       return;
     }
     const previous = this._dispatch;
+    const stops = this._stops;
     let release = () => {};
     this._dispatch = new Promise<void>(resolve => (release = resolve));
     try {
       await previous;
+      if (this._stops !== stops) {
+        this._notice('Stopped: pi did not read this message.');
+        return;
+      }
       if (model !== this._model && !this._runtime?.session.isStreaming) {
         this.setModel(model);
       }
@@ -422,6 +475,7 @@ export class PiChatSession {
       return;
     }
     this._stopRequested = true;
+    this._stops++;
     // pi keeps queued messages after an abort and sends them with the next
     // prompt.
     const { steering, followUp } = session.clearQueue();
@@ -462,20 +516,20 @@ export class PiChatSession {
       metadata.to_persona === this._persona.username
         ? metadata.model
         : undefined;
-    const command = text.match(/^\/(new|compact)(?:\s+(.*))?$/s);
+    const command = text.match(/^\/(\S+)(?:\s+(.*))?$/s);
+    const compact = command?.[1] === 'compact';
     const prompt =
       text + attachmentsPrompt(message.attachments, this._host.documentManager);
     try {
-      if (command?.[1] === 'new') {
-        await runtime.newSession();
-        this._notice('Started a new pi session.');
+      if (
+        command &&
+        (await this._command(runtime, text, command[1], command[2]?.trim()))
+      ) {
         return;
       }
-      if (!command && session.isStreaming) {
-        await session.prompt(prompt, { streamingBehavior: 'followUp' });
-        this._notice(
-          'Queued: pi reads this message when the current run is complete.'
-        );
+      if (!compact && session.isStreaming) {
+        await session.prompt(prompt, { streamingBehavior: 'steer' });
+        this._notice('Queued: pi reads this message after its current step.');
         return;
       }
       this._stopRequested = false;
@@ -485,11 +539,14 @@ export class PiChatSession {
       if (this._disposed || this._stopRequested) {
         return;
       }
+      if (!this._hasUsableModel(session) && (await this._host.addProvider())) {
+        await this.refreshModels();
+      }
       if (!this._hasUsableModel(session)) {
         throw new Error(NO_MODEL_MESSAGE);
       }
-      if (command?.[1] === 'compact') {
-        await this._compact(session, command[2]);
+      if (compact) {
+        await this._compact(session, command?.[2]);
         return;
       }
       this._saveSessionFile(session.sessionFile);
@@ -499,17 +556,102 @@ export class PiChatSession {
         this._error(errorText(error));
       }
     } finally {
-      if (!this._disposed && !this._runtime?.session.isStreaming) {
+      if (
+        !this._disposed &&
+        !this._compacting &&
+        !this._runtime?.session.isStreaming
+      ) {
+        this._stopRequested = false;
         this._setBusy(false);
         this._resumeQueue();
       }
     }
   }
 
+  /**
+   * Run a command that needs no model: the built-in commands of pi that the
+   * chat supports, and the extension commands. The other built-in commands
+   * of pi's terminal interface are not sent to the model. Resolves with
+   * whether the command was handled.
+   */
+  private async _command(
+    runtime: AgentSessionRuntime,
+    text: string,
+    name: string,
+    args = ''
+  ): Promise<boolean> {
+    const session = runtime.session;
+    switch (name) {
+      case 'compact':
+        return false;
+      case 'new':
+        await runtime.newSession();
+        this._notice('Started a new pi session.');
+        return true;
+      case 'reload':
+        if (session.isStreaming || session.isCompacting) {
+          this._notice('Wait for the current run to finish before reloading.');
+          return true;
+        }
+        this._setBusy(true);
+        await session.reload();
+        this._notice(
+          'Loaded the extensions, skills, prompts and context files again.'
+        );
+        return true;
+      case 'name':
+        if (args) {
+          session.setSessionName(args);
+        }
+        this._notice(
+          session.sessionName
+            ? `Session name: ${session.sessionName}`
+            : 'Usage: /name <name>'
+        );
+        return true;
+      case 'session':
+        this._showSession(session);
+        return true;
+    }
+    if (BUILTIN_COMMANDS.has(name)) {
+      this._notice(
+        COMMAND_NOTICES[name] ?? `/${name} works in pi in a terminal.`
+      );
+      return true;
+    }
+    if (session.extensionRunner.getCommand(name)) {
+      this._stopRequested = false;
+      this._setBusy(true);
+      await session.prompt(text);
+      return true;
+    }
+    return false;
+  }
+
+  private _showSession(session: AgentSession): void {
+    const stats = session.getSessionStats();
+    const { input, output, cacheRead, cacheWrite, total } = stats.tokens;
+    const lines = [
+      ...(session.sessionName ? [`Name: ${session.sessionName}`] : []),
+      `File: ${stats.sessionFile ?? 'in memory'}`,
+      `ID: ${stats.sessionId}`,
+      `Messages: ${stats.userMessages} from the user, ${stats.assistantMessages} from pi, ${stats.toolCalls} tool calls`,
+      `Tokens: ${(input + cacheRead + cacheWrite).toLocaleString()} input (${cacheRead.toLocaleString()} cached), ${output.toLocaleString()} output, ${total.toLocaleString()} total`,
+      ...(stats.cost ? [`Cost: $${stats.cost.toFixed(3)}`] : [])
+    ];
+    void this._send({
+      body: `**pi session**\n\n${lines.map(line => `- ${line}`).join('\n')}`
+    });
+  }
+
   private async _compact(
     session: AgentSession,
     instructions?: string
   ): Promise<void> {
+    // The compaction aborts the current run, whose end must not clear the
+    // busy state.
+    this._compacting = true;
+    this._setBusy(true);
     try {
       await session.compact(instructions || undefined);
       this._notice('The conversation was compacted.');
@@ -521,6 +663,8 @@ export class PiChatSession {
         throw error;
       }
       this._notice(notice[1]);
+    } finally {
+      this._compacting = false;
     }
   }
 
@@ -537,7 +681,15 @@ export class PiChatSession {
     this._unsubscribe?.();
     this._unsubscribe = session.subscribe(event => this._onEvent(event));
     await session.bindExtensions({
-      onError: error => console.warn('pi extension error', error)
+      uiContext: {
+        ...session.extensionRunner.getUIContext(),
+        ...DIALOG_UI,
+        notify: (message, type) => this._notify(message, type)
+      },
+      onError: error => {
+        console.warn('pi extension error', error);
+        this._notify(`${error.extensionPath}: ${error.error}`, 'error');
+      }
     });
     if (rebound) {
       this._saveSessionFile(session.sessionFile);
@@ -576,8 +728,13 @@ export class PiChatSession {
 
   private _approve(request: IApprovalRequest): Promise<ApprovalDecision> {
     const key = approvalKey(this._targetId, request.toolCallId);
+    this._approvals++;
+    this._approvalChanged.emit(true);
     return new Promise(resolve => {
       pendingApprovals.set(key, (decision, stopped) => {
+        if (--this._approvals === 0) {
+          this._approvalChanged.emit(false);
+        }
         const tool = this._tools.get(request.toolCallId);
         if (tool && !this._disposed) {
           tool.permission = 'resolved';
@@ -609,7 +766,17 @@ export class PiChatSession {
   private _onEvent(event: AgentSessionEvent): void {
     switch (event.type) {
       case 'agent_start':
+        // Also for the runs that extensions start: Stop needs the busy state.
+        this._setBusy(true);
         this._reportRun();
+        // pi ignores an abort that comes before the run starts (an MCP
+        // server that connects, a compaction).
+        if (this._stopRequested) {
+          void this._runtime?.session.abort();
+        }
+        break;
+      case 'turn_end':
+        this._stateChanged.emit();
         break;
       case 'message_start':
         if (event.message.role === 'assistant') {
@@ -666,8 +833,16 @@ export class PiChatSession {
               ? `${output.slice(0, MAX_DISPLAYED_OUTPUT)}\n…`
               : output;
           void this._renderTool(tool);
-          if (!event.isError) {
-            this._renderMimeBundles(tool, event.result?.details);
+          // The extension sets details for the auto-render commands only.
+          if (!event.isError && tool.toolName === 'execute_command') {
+            const config = this._host.settingsModel?.config;
+            const bundles = extractMimeBundles(
+              event.result?.details,
+              new Set(config?.trustedMimeTypesForAutoRender)
+            );
+            for (const bundle of bundles) {
+              void this._send({ body: '', mime_model: bundle });
+            }
           }
         }
         break;
@@ -681,6 +856,17 @@ export class PiChatSession {
         if (event.willRetry) {
           this._lastRun = undefined;
         }
+        // _compact reports the manual compaction.
+        if (event.reason !== 'manual' && event.errorMessage) {
+          // pi's message replaces the provider error of the overflow.
+          if (event.reason === 'overflow') {
+            this._lastRun = undefined;
+          }
+          this._error(event.errorMessage);
+        } else if (event.reason !== 'manual' && event.result) {
+          this._notice('The conversation was compacted.');
+        }
+        this._stateChanged.emit();
         break;
       case 'auto_retry_start':
         this._notice(
@@ -690,7 +876,10 @@ export class PiChatSession {
       case 'agent_settled':
         this._reportRun();
         this._finishTools(this._stopRequested ? 'Stopped' : 'Interrupted');
-        this._setBusy(false);
+        this._stopRequested = false;
+        if (!this._compacting) {
+          this._setBusy(false);
+        }
         this._saveSessionFile(this._runtime?.session.sessionFile);
         break;
     }
@@ -863,23 +1052,31 @@ export class PiChatSession {
     return !(this._model as { _wsHandler?: unknown })._wsHandler;
   }
 
-  private _renderMimeBundles(tool: IToolCallState, details: unknown): void {
-    const input = (tool.input ?? {}) as { commandId?: string };
-    const config = this._host.settingsModel?.config;
-    if (
-      tool.toolName !== 'execute_command' ||
-      !config?.commandsAutoRenderMimeBundles.includes(input.commandId ?? '')
-    ) {
-      return;
-    }
-    const trusted = new Set(config.trustedMimeTypesForAutoRender);
-    for (const bundle of extractMimeBundles(details, trusted)) {
-      void this._send({ body: '', mime_model: bundle });
-    }
-  }
-
   private _notice(text: string): void {
     void this._send({ body: `_${text}_` });
+  }
+
+  /**
+   * Show a message of an extension: in the chat while pi works there, else
+   * as a JupyterLab notification. The messages of a session start (MCP
+   * problems) would otherwise be added to the chat each time it opens.
+   */
+  private _notify(
+    message: string,
+    type: 'info' | 'warning' | 'error' = 'info'
+  ): void {
+    if (this._disposed) {
+      return;
+    }
+    if (!this._busy) {
+      Notification.emit(`pi: ${message}`, type);
+    } else if (type === 'error') {
+      this._error(message);
+    } else if (message.includes('\n')) {
+      void this._send({ body: `\`\`\`\n${message}\n\`\`\`` });
+    } else {
+      this._notice(message);
+    }
   }
 
   private _error(text: string): void {
@@ -980,11 +1177,20 @@ export class PiChatSession {
   private _runtime?: AgentSessionRuntime;
   private _shell?: ReturnType<PiHost['createShell']>;
   private _unsubscribe?: () => void;
+  private _refreshing: Promise<void> = Promise.resolve();
+  private _approvals = 0;
+  private _approvalChanged = new Signal<this, boolean>(this);
   private _stream?: { messageId?: Promise<string | undefined> };
   private _tools = new Map<string, IToolCallState>();
   private _dispatch = Promise.resolve();
   private _lastRun?: AgentEndEvent['messages'];
   private _stopRequested = false;
+  /**
+   * The number of Stops: the messages that wait for a stopped run are not
+   * sent.
+   */
+  private _stops = 0;
+  private _compacting = false;
   private _busy = false;
   private _disposed = false;
   private _stateChanged = new Signal<this, void>(this);

@@ -1,7 +1,11 @@
+import { Notification } from '@jupyterlab/apputils';
 import type { Contents } from '@jupyterlab/services';
+import { nullTranslator, type ITranslator } from '@jupyterlab/translation';
 import fs from 'fs';
 import type { Volume } from 'memfs';
 import path from 'path';
+
+import type { DriveOperations } from './drive';
 
 /**
  * The pi agent folder (settings, credentials, sessions) in the in-memory file
@@ -38,9 +42,27 @@ const DATABASE = 'jupyternaut-pi';
 const FILES = 'files';
 const SAVE_DELAY_MS = 500;
 
+/**
+ * Outside macOS, the browser keeps keys such as Ctrl+T, Ctrl+N and Ctrl+W,
+ * JupyterLab pastes text on Ctrl+V, and xterm.js 5 sends Alt+Up as Ctrl+Up:
+ * these actions take the keys of pi on Windows, or other free keys.
+ */
+const BROWSER_KEYBINDINGS = {
+  'app.thinking.toggle': ['alt+t'],
+  'app.tree.filter.noTools': ['alt+t'],
+  'app.session.toggleNamedFilter': ['alt+n'],
+  'app.message.dequeue': ['alt+q'],
+  'app.model.cycleBackward': ['alt+p'],
+  'app.clipboard.pasteImage': ['alt+v'],
+  'app.models.reorderUp': ['shift+alt+up'],
+  'app.models.reorderDown': ['shift+alt+down'],
+  'tui.editor.deleteWordBackward': ['alt+backspace']
+};
+
 const KEYBINDINGS = {
   'app.suspend': [],
-  'app.editor.external': []
+  'app.editor.external': [],
+  ...(/Mac/i.test(navigator.platform) ? {} : BROWSER_KEYBINDINGS)
 };
 
 const CONTEXT_FILES = new Set([
@@ -55,20 +77,36 @@ const SKIPPED_RESOURCES = new Set(['extensions', 'sessions', 'node_modules']);
 const MAX_MIRRORED_FILES = 500;
 const MAX_MIRRORED_SIZE = 512 * 1024;
 
-const volume = (fs as unknown as { vol: Volume }).vol;
+export const volume = (fs as unknown as { vol: Volume }).vol;
 
 /**
- * File contents by path, null for a removed file.
+ * A saved file: pi orders the sessions by modification time.
  */
-type FileChanges = Record<string, string | null>;
+interface IStoredFile {
+  data: string;
+  mtime: number;
+}
+
+/**
+ * Saved files by path, null for a removed file.
+ */
+type FileChanges = Record<string, IStoredFile | null>;
 
 let database: IDBDatabase | undefined;
 let opening: Promise<IDBDatabase> | undefined;
 let channel: BroadcastChannel | undefined;
 let restoring: Promise<void> | undefined;
 let reloading = Promise.resolve();
+/**
+ * A tab that cannot load the agent folder does not save it: its files would
+ * replace the saved ones.
+ */
+let loaded = false;
+let trans = nullTranslator.load('jupyterlite_ai');
 let saveTimer: number | undefined;
 const dirty = new Set<string>();
+let uploadTimer: number | undefined;
+const uploads = new Set<string>();
 
 function isAgentPath(file: string): boolean {
   return file === AGENT_DIR || file.startsWith(`${AGENT_DIR}/`);
@@ -139,28 +177,38 @@ async function readFiles(): Promise<FileChanges> {
 }
 
 /**
- * Write a file into the in-memory file system, without saving it again.
+ * Write a file into the in-memory file system, without saving it again. The
+ * first builds saved the text of a file only.
  */
-function applyFile(file: string, content: string | null): void {
+function applyFile(file: string, stored: IStoredFile | string | null): void {
   try {
-    if (content === null) {
+    if (stored === null) {
       volume.rmSync(file, { force: true, recursive: true });
-    } else {
-      volume.mkdirSync(path.posix.dirname(file), { recursive: true });
-      volume.writeFileSync(file, content);
+      return;
+    }
+    const data = typeof stored === 'string' ? stored : stored.data;
+    if (typeof data !== 'string') {
+      console.warn(`pi: cannot restore ${file}: unknown record`, stored);
+      return;
+    }
+    volume.mkdirSync(path.posix.dirname(file), { recursive: true });
+    volume.writeFileSync(file, data);
+    if (typeof stored !== 'string' && Number.isFinite(stored.mtime)) {
+      const time = new Date(stored.mtime);
+      volume.utimesSync(file, time, time);
     }
   } catch (error) {
     console.warn(`pi: cannot restore ${file}`, error);
   }
 }
 
-const remoteListeners = new Set<(files: string[]) => void>();
+const listeners = new Set<(files: string[]) => void>();
 
 /**
- * Call a function with the agent files that another tab saved.
+ * Call a function with the agent files that change, in this tab or another.
  */
-export function onRemoteChange(listener: (files: string[]) => void): void {
-  remoteListeners.add(listener);
+export function onAgentFilesChange(listener: (files: string[]) => void): void {
+  listeners.add(listener);
 }
 
 /**
@@ -181,12 +229,9 @@ function reloadFiles(files: unknown): void {
       );
       for (const [file, request] of requests) {
         dirty.delete(file);
-        applyFile(
-          file,
-          typeof request.result === 'string' ? request.result : null
-        );
+        applyFile(file, request.result ?? null);
       }
-      for (const listener of remoteListeners) {
+      for (const listener of listeners) {
         listener(paths);
       }
     })
@@ -194,17 +239,35 @@ function reloadFiles(files: unknown): void {
 }
 
 /**
- * The content of a changed path: null when it is gone, undefined for a
- * directory.
+ * A changed path: null when it is gone, undefined for a directory.
  */
-function readChange(file: string): string | null | undefined {
+function readChange(file: string): IStoredFile | null | undefined {
   try {
-    if (!volume.statSync(file).isFile()) {
+    const stats = volume.statSync(file);
+    if (!stats.isFile()) {
       return undefined;
     }
-    return volume.readFileSync(file, 'utf8') as string;
+    return {
+      data: volume.readFileSync(file, 'utf8') as string,
+      mtime: Number(stats.mtimeMs)
+    };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Add the changes of a path; a changed directory (a renamed folder) changes
+ * the files below it.
+ */
+function readChanges(file: string, changes: FileChanges): void {
+  const content = readChange(file);
+  if (content !== undefined) {
+    changes[file] = content;
+    return;
+  }
+  for (const name of volume.readdirSync(file) as string[]) {
+    readChanges(path.posix.join(file, name), changes);
   }
 }
 
@@ -217,14 +280,18 @@ function save(): void {
   saveTimer = undefined;
   const changes: FileChanges = {};
   for (const file of dirty) {
-    const content = readChange(file);
-    if (content !== undefined) {
-      changes[file] = content;
-    }
+    readChanges(file, changes);
   }
   dirty.clear();
   const files = Object.keys(changes);
   if (!files.length) {
+    return;
+  }
+  // A tab does not get its own messages on the channel.
+  for (const listener of listeners) {
+    listener(files);
+  }
+  if (!loaded) {
     return;
   }
   const write = (db: IDBDatabase) =>
@@ -252,10 +319,44 @@ function save(): void {
   );
 }
 
+/**
+ * Save the drive files that pi wrote outside its tools (an HTML export, the
+ * project settings) with the contents API.
+ */
+function upload(): void {
+  uploadTimer = undefined;
+  const { drive } = fs as unknown as {
+    drive?: Pick<DriveOperations, 'mkdir' | 'writeFile'>;
+  };
+  for (const file of uploads) {
+    const content = readChange(file);
+    if (content && drive) {
+      // pi already reported the write: show a failure.
+      drive
+        .mkdir(path.posix.dirname(file))
+        .then(() => drive.writeFile(file, content.data))
+        .catch(error => {
+          console.warn(`pi: cannot save ${file}`, error);
+          Notification.error(
+            trans.__(
+              'Cannot save %1 to the drive: %2',
+              toContentsPath(file),
+              error instanceof Error ? error.message : String(error)
+            )
+          );
+        });
+    }
+  }
+  uploads.clear();
+}
+
 function onChange(changed: string): void {
   if (isAgentPath(changed)) {
     dirty.add(changed);
     saveTimer ??= window.setTimeout(save, SAVE_DELAY_MS);
+  } else if (toContentsPath(changed) !== null) {
+    uploads.add(changed);
+    uploadTimer ??= window.setTimeout(upload, SAVE_DELAY_MS);
   }
 }
 
@@ -266,12 +367,23 @@ async function restore(): Promise<void> {
   }
   // The files that other tabs save while the folder loads are loaded after it.
   reloading = readFiles()
-    .then(files => {
-      for (const [file, content] of Object.entries(files)) {
-        applyFile(file, content);
+    .catch(() => readFiles())
+    .then(
+      files => {
+        for (const [file, content] of Object.entries(files)) {
+          applyFile(file, content);
+        }
+        loaded = true;
+      },
+      error => {
+        console.warn('pi: cannot load the agent folder', error);
+        Notification.warning(
+          trans.__(
+            'Cannot load the pi settings and sessions: the changes in this tab are not saved.'
+          )
+        );
       }
-    })
-    .catch(error => console.warn('pi: cannot load the agent folder', error));
+    );
   await reloading;
   (fs as unknown as { onChange: (changed: string) => void }).onChange =
     onChange;
@@ -292,14 +404,16 @@ async function restore(): Promise<void> {
  * Load the saved agent folder into the in-memory file system, then save each
  * changed file and take the files that other tabs save.
  */
-export function restoreAgentDir(): Promise<void> {
+export function restoreAgentDir(translator?: ITranslator): Promise<void> {
+  trans = (translator ?? nullTranslator).load('jupyterlite_ai');
   return (restoring ??= restore());
 }
 
 /**
  * Copies the project resources of the drive (context files, `.pi` and
  * `.agents` folders, skills) into the in-memory file system, where pi
- * discovers them. Tools still read and write the drive itself.
+ * discovers them. Tools still read and write the drive itself, and the other
+ * writes of pi below the drive are saved to it.
  */
 export class DriveMirror {
   constructor(contents: Contents.IManager) {
@@ -315,10 +429,11 @@ export class DriveMirror {
     return this._run(async () => {
       fs.mkdirSync(directory, { recursive: true });
       const files = await this._collect(directory, folders);
+      // The copies go through the volume: they are not saved to the drive.
       for (const [target, content] of files) {
         try {
-          fs.mkdirSync(path.posix.dirname(target), { recursive: true });
-          fs.writeFileSync(target, content);
+          volume.mkdirSync(path.posix.dirname(target), { recursive: true });
+          volume.writeFileSync(target, content);
         } catch (error) {
           console.warn(`pi: cannot mirror ${target}`, error);
           files.delete(target);
@@ -336,7 +451,7 @@ export class DriveMirror {
           directories.includes(path.posix.dirname(file)) ||
           roots.some(root => file.startsWith(root));
         if (scanned && !files.has(file)) {
-          fs.rmSync(file, { force: true });
+          volume.rmSync(file, { force: true });
           this._mirrored.delete(file);
         }
       }

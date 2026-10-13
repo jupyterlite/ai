@@ -1,15 +1,29 @@
+import type { ImageContent } from '@earendil-works/pi-ai';
 import {
+  ExtensionSelectorComponent,
   initTheme,
   InteractiveMode,
+  parseArgs,
   SessionManager,
-  type AgentSessionRuntime
+  VERSION,
+  type AgentSessionRuntime,
+  type Args,
+  type ProjectTrustContext
 } from '@earendil-works/pi-coding-agent';
-import { StdinBuffer, type Terminal } from '@earendil-works/pi-tui';
+import {
+  StdinBuffer,
+  TuiMainScreen,
+  type Terminal
+} from '@earendil-works/pi-tui';
 import { Termios, type IExternalRunContext } from '@jupyterlite/cockle';
+import fs from 'fs';
+import { resolveToCwd } from 'pi-coding-agent-package/dist/core/tools/path-utils.js';
+import path from 'path';
 
+import type { DriveOperations } from './drive';
 import { terminalApproval } from './extension';
-import type { PiHost } from './host';
-import { DRIVE } from './vfs';
+import type { IRuntimeOptions, PiHost } from './host';
+import { DRIVE, toContentsPath, volume } from './vfs';
 
 const { ICRNL, INLCR, IGNCR, IXON } = Termios.InputFlag;
 const { ECHO, ECHONL, ICANON, ISIG, IEXTEN } = Termios.LocalFlag;
@@ -28,14 +42,51 @@ const ESCAPE_TIMEOUT_MS = 50;
  */
 const COLOR_SCHEME_REPORTS = { dark: '\x1b[?997;1n', light: '\x1b[?997;2n' };
 
-const USAGE = `Usage: pi [options] [message...]
+const USAGE = `Usage: pi [options] [@files...] [messages...]
 
 Run the pi coding agent in this terminal.
 
 Options:
-  -c, --continue   Continue the most recent session of this directory
-  -h, --help       Show this help
+  -c, --continue        Continue the most recent session of this directory
+  -r, --resume          Select a session to resume
+  --session <path|id>   Use a session file, or the session with this ID
+  --no-session          Do not save the session
+  -n, --name <name>     Set the session name
+  --model <pattern>     Model pattern or ID, with an optional ":<thinking>"
+  --provider <name>     Provider to search for --model
+  --thinking <level>    Thinking level, from off to max
+  --tui-mode <mode>     TUI mode: fullscreen (default) or regular
+  --verbose             Show all the startup information
+  --                    End of the options: the next arguments are messages
+  -h, --help            Show this help
+  -v, --version         Show the version
+
+pi sends the messages one after the other. @file puts the content of a file
+in the first message.
 `;
+
+/**
+ * The options of pi that work in the browser, by their parsed name.
+ */
+const BROWSER_OPTIONS = new Set([
+  'continue',
+  'resume',
+  'session',
+  'noSession',
+  'name',
+  'model',
+  'provider',
+  'thinking',
+  'tuiMode',
+  'verbose',
+  'offline',
+  'help',
+  'version',
+  'messages',
+  'fileArgs',
+  'unknownFlags',
+  'diagnostics'
+]);
 
 const TERMINAL_INSTRUCTIONS =
   'You run in pi, the coding agent, inside a JupyterLite terminal. Answers are rendered as markdown in the terminal: rich MIME outputs and images are not displayed.';
@@ -47,11 +98,76 @@ type ProcessShim = typeof process & {
 const processShim = process as ProcessShim;
 
 /**
+ * The project trust question in the terminal, as pi asks it before its
+ * interactive mode starts.
+ */
+function terminalTrustContext(
+  terminal: CockleTerminal,
+  cwd: string,
+  signal?: AbortSignal
+): ProjectTrustContext {
+  const select = (title: string, options: string[]) =>
+    new Promise<string | undefined>((resolve, reject) => {
+      // A closed terminal does not answer: its run fails and nothing is kept.
+      if (signal?.aborted) {
+        reject(new Error('The terminal is closed'));
+        return;
+      }
+      const ui = new TuiMainScreen(terminal);
+      let done = false;
+      const finish = (settle: () => void) => {
+        if (done) {
+          return;
+        }
+        done = true;
+        signal?.removeEventListener('abort', cancel);
+        ui.clear();
+        ui.requestRender();
+        window.setTimeout(() => {
+          ui.stop();
+          settle();
+        }, 25);
+      };
+      const cancel = () =>
+        finish(() => reject(new Error('The terminal is closed')));
+      signal?.addEventListener('abort', cancel, { once: true });
+      const selector = new ExtensionSelectorComponent(
+        title,
+        options,
+        option => finish(() => resolve(option)),
+        () => finish(() => resolve(undefined)),
+        { tui: ui }
+      );
+      ui.addChild(selector);
+      ui.setFocus(selector);
+      ui.start();
+    });
+  return {
+    cwd,
+    mode: 'tui',
+    hasUI: true,
+    ui: {
+      select,
+      confirm: async (title, message) =>
+        (await select(`${title}\n${message}`, ['Yes', 'No'])) === 'Yes',
+      input: async () => undefined,
+      notify: () => undefined
+    }
+  };
+}
+
+/**
  * pi-tui terminal over a cockle external command context.
  */
 class CockleTerminal implements Terminal {
-  constructor(context: IExternalRunContext) {
+  /**
+   * `cwd` is the directory where pi started. The page has one process cwd
+   * for all the terminals: each input sets it, because pi resolves the paths
+   * of commands such as `/export` against it.
+   */
+  constructor(context: IExternalRunContext, cwd: string) {
     this._context = context;
+    this._cwd = cwd;
   }
 
   start(onInput: (data: string) => void, onResize: () => void): void {
@@ -61,12 +177,16 @@ class CockleTerminal implements Terminal {
     this._enterRawMode();
     this._running = true;
     this._size = this._readSize();
+    const input = (data: string) => {
+      if (this._running) {
+        processShim.chdir(this._cwd);
+        onInput(data);
+      }
+    };
     const buffer = new StdinBuffer({ escapeTimeout: ESCAPE_TIMEOUT_MS });
-    buffer.on('data', (sequence: string) => this._running && onInput(sequence));
-    buffer.on(
-      'paste',
-      (content: string) =>
-        this._running && onInput(`\x1b[200~${content}\x1b[201~`)
+    buffer.on('data', input);
+    buffer.on('paste', (content: string) =>
+      input(`\x1b[200~${content}\x1b[201~`)
     );
     this._buffer = buffer;
     this._resizeTimer = window.setInterval(() => {
@@ -80,10 +200,8 @@ class CockleTerminal implements Terminal {
       }
     }, RESIZE_POLL_MS);
     this._themeObserver = new MutationObserver(() => {
-      if (this._running) {
-        const light = document.body.dataset.jpThemeLight !== 'false';
-        onInput(COLOR_SCHEME_REPORTS[light ? 'light' : 'dark']);
-      }
+      const light = document.body.dataset.jpThemeLight !== 'false';
+      input(COLOR_SCHEME_REPORTS[light ? 'light' : 'dark']);
     });
     this._themeObserver.observe(document.body, {
       attributes: true,
@@ -172,6 +290,10 @@ class CockleTerminal implements Terminal {
     // No progress indicator in xterm.js.
   }
 
+  setProgramStatus(): void {
+    // xterm.js does not support the program status protocol.
+  }
+
   /**
    * Stop reading stdin and do not start again.
    */
@@ -247,6 +369,7 @@ class CockleTerminal implements Terminal {
   }
 
   private _context: IExternalRunContext;
+  private _cwd: string;
   private _buffer?: StdinBuffer;
   private _saved?: Termios.IFlags;
   private _size = { rows: 24, columns: 80 };
@@ -269,16 +392,21 @@ export async function runTerminal(
   context: IExternalRunContext,
   signal?: AbortSignal
 ): Promise<number> {
-  const flags = context.args.filter(arg => arg.startsWith('-'));
-  const words = context.args.filter(arg => !arg.startsWith('-'));
-  if (flags.some(flag => flag === '-h' || flag === '--help')) {
-    context.stdout.write(USAGE.replace(/\n/g, '\r\n'));
+  const args = parseArgs(context.args);
+  const errors = argumentErrors(context.args, args);
+  if (errors.length) {
+    for (const error of errors) {
+      context.stderr.write(`pi: ${error}\r\n`);
+    }
+    return 1;
+  }
+  if (args.version) {
+    context.stdout.write(`${VERSION}\r\n`);
     return 0;
   }
-  const unknown = flags.find(flag => !['-c', '--continue'].includes(flag));
-  if (unknown) {
-    context.stderr.write(`pi: unknown option ${unknown}\r\n`);
-    return 2;
+  if (args.help) {
+    context.stdout.write(USAGE.replace(/\n/g, '\r\n'));
+    return 0;
   }
   if (context.shellId.startsWith('headless-')) {
     context.stderr.write('pi: cannot run in a headless shell\r\n');
@@ -296,29 +424,67 @@ export async function runTerminal(
   }
   processShim.chdir(cwd);
 
+  const files = await readFileArgs(args.fileArgs, cwd);
+  const sessionManager = await openSession(args, cwd);
+  if (args.name !== undefined) {
+    sessionManager.appendSessionInfo(args.name.trim());
+  }
+  const [message, ...messages] = args.messages;
   const shell = host.createShell();
 
-  const terminal = new CockleTerminal(context);
+  const terminal = new CockleTerminal(context, cwd);
   let runtime: AgentSessionRuntime | undefined;
   let exit: IExit = { code: 1, disposed: false };
   try {
-    runtime = await host.createRuntime({
-      cwd,
-      sessionManager: flags.some(flag => flag === '-c' || flag === '--continue')
-        ? SessionManager.continueRecent(cwd)
-        : SessionManager.create(cwd),
+    // pi's theme for the trust question, before the settings of the session.
+    initTheme(undefined, false);
+    // pi runs a --session file in the folder of the session. A missing folder
+    // stays pi's error: createRuntime would create it.
+    const sessionCwd = sessionManager.getCwd();
+    const options: IRuntimeOptions = {
+      cwd: fs.existsSync(sessionCwd) ? sessionCwd : cwd,
+      sessionManager,
       approve: terminalApproval,
       instructions: TERMINAL_INSTRUCTIONS,
-      shell
-    });
+      shell,
+      args,
+      trustContext: terminalTrustContext(terminal, cwd, signal)
+    };
+    runtime = await host.createRuntime(options);
+    // Once pi's interface runs, a second one cannot take the terminal.
+    delete options.trustContext;
+    // pi stops before its interface on an error, for example a --model that
+    // it cannot find.
+    const errors = runtime.diagnostics.filter(({ type }) => type === 'error');
+    if (errors.length) {
+      for (const { message } of errors) {
+        context.stderr.write(`pi: ${message}\r\n`);
+      }
+      return 1;
+    }
+    const importFromJsonl = runtime.importFromJsonl.bind(runtime);
+    runtime.importFromJsonl = async (inputPath, cwdOverride) => {
+      const file = resolveToCwd(inputPath, cwd);
+      // pi reports a file that it cannot read.
+      await loadDriveFile(file).catch(() => undefined);
+      return importFromJsonl(file, cwdOverride);
+    };
     initTheme(runtime.services.settingsManager.getTheme(), false);
     const mode = new InteractiveMode(runtime, {
       terminal,
-      startupDiagnostics: [...runtime.diagnostics],
+      startupDiagnostics: [...args.diagnostics, ...runtime.diagnostics],
       modelFallbackMessage: runtime.modelFallbackMessage,
-      initialMessage: words.join(' ')
+      initialMessage: `${files.text}${message ?? ''}`,
+      initialImages: files.images,
+      initialMessages: messages,
+      verbose: args.verbose,
+      tuiMode: args.tuiMode
     });
-    exit = await runUntilExit(mode, signal);
+    exit = await runUntilExit(
+      mode,
+      signal,
+      args.resume && !args.session && !args.noSession
+    );
     return exit.code;
   } finally {
     terminal.halt();
@@ -331,6 +497,142 @@ export async function runTerminal(
     }
     await shell?.dispose();
     await terminal.close(signal);
+  }
+}
+
+/**
+ * The errors of the command line: pi's own, and the options that do not work
+ * in the browser.
+ */
+function argumentErrors(argv: string[], args: Args): string[] {
+  const errors = args.diagnostics
+    .filter(diagnostic => diagnostic.type === 'error')
+    .map(diagnostic => diagnostic.message);
+  for (const key of Object.keys(args)) {
+    if (!BROWSER_OPTIONS.has(key)) {
+      // The argument that sets this option, as typed.
+      const option = argv.find(
+        (arg, index) =>
+          arg.startsWith('-') && key in parseArgs(argv.slice(index, index + 2))
+      );
+      errors.push(`${option ?? key} is not available in the browser`);
+    }
+  }
+  for (const name of args.unknownFlags.keys()) {
+    errors.push(`Unknown option: --${name}`);
+  }
+  if (args.provider && !args.model) {
+    errors.push('--provider requires --model');
+  }
+  if (args.name !== undefined && !args.name.trim()) {
+    errors.push('--name requires a non-empty value');
+  }
+  if (
+    args.resume &&
+    (args.messages.length || args.fileArgs.length || args.name !== undefined)
+  ) {
+    errors.push('--resume does not take messages or --name in the browser');
+  }
+  return errors;
+}
+
+/**
+ * The session of the command line, in the order of pi. With `--resume`, pi
+ * starts in a new session and shows its session selector.
+ */
+async function openSession(args: Args, cwd: string): Promise<SessionManager> {
+  if (args.noSession) {
+    return SessionManager.inMemory(cwd);
+  }
+  if (args.session) {
+    return SessionManager.open(await findSession(args.session, cwd));
+  }
+  return args.continue && !args.resume
+    ? SessionManager.continueRecent(cwd)
+    : SessionManager.create(cwd);
+}
+
+/**
+ * The file of a `--session` argument: a path, or the ID (or the start of the
+ * ID) of a session of the directory.
+ */
+async function findSession(session: string, cwd: string): Promise<string> {
+  if (session.includes('/') || session.endsWith('.jsonl')) {
+    const file = resolveToCwd(session, cwd);
+    await loadDriveFile(file);
+    return file;
+  }
+  const file =
+    SessionManager.findById(cwd, session) ??
+    (await SessionManager.list(cwd)).find(info => info.id.startsWith(session))
+      ?.path;
+  if (!file) {
+    throw new Error(`No session found matching '${session}'`);
+  }
+  return file;
+}
+
+/**
+ * The text and images of the `@file` arguments, which pi puts in the first
+ * message.
+ */
+async function readFileArgs(
+  fileArgs: string[],
+  cwd: string
+): Promise<{ text: string; images: ImageContent[] }> {
+  const { drive } = fs as unknown as { drive: DriveOperations };
+  let text = '';
+  const images: ImageContent[] = [];
+  for (const fileArg of fileArgs) {
+    const file = resolveToCwd(fileArg, cwd);
+    const data = await drive.readFile(file);
+    if (!data.length) {
+      continue;
+    }
+    const mimeType = await drive.detectImageMimeType(file);
+    if (mimeType) {
+      images.push({ type: 'image', mimeType, data: data.toString('base64') });
+      text += `<file name="${file}"></file>\n`;
+    } else {
+      const content = data.toString('utf-8').replace(/^\uFEFF/, '');
+      text += `<file name="${file}">\n${content}\n</file>\n`;
+    }
+  }
+  return { text, images };
+}
+
+/**
+ * Copy a session file of the drive into memfs, where pi opens it, with the
+ * folder of the session, which pi checks. A missing file is not an error:
+ * pi starts a new session at its path.
+ */
+async function loadDriveFile(file: string): Promise<void> {
+  if (toContentsPath(file) === null) {
+    return;
+  }
+  const { drive } = fs as unknown as { drive: DriveOperations };
+  let data: Buffer;
+  try {
+    data = await drive.readFile(file);
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+  volume.mkdirSync(path.posix.dirname(file), { recursive: true });
+  volume.writeFileSync(file, data);
+  try {
+    const { cwd } = JSON.parse(data.toString('utf-8').split('\n', 1)[0]);
+    if (
+      typeof cwd === 'string' &&
+      toContentsPath(cwd) !== null &&
+      (await drive.stat(cwd)).isDirectory()
+    ) {
+      volume.mkdirSync(cwd, { recursive: true });
+    }
+  } catch {
+    // pi reports a session file without a valid header.
   }
 }
 
@@ -357,7 +659,8 @@ function stopMode(mode: InteractiveMode): void {
  */
 function runUntilExit(
   mode: InteractiveMode,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  resume = false
 ): Promise<IExit> {
   return new Promise<IExit>((resolve, reject) => {
     let done = false;
@@ -398,6 +701,16 @@ function runUntilExit(
       return;
     }
     signal?.addEventListener('abort', hangup, { once: true });
-    mode.run().catch(error => settle(error, 'run'));
+    const run = async () => {
+      if (resume) {
+        // run() does not initialize the mode again.
+        await mode.init();
+        (
+          mode as unknown as { showSessionSelector(): void }
+        ).showSessionSelector();
+      }
+      await mode.run();
+    };
+    run().catch(error => settle(error, 'run'));
   });
 }

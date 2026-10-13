@@ -8,8 +8,10 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import type { TSchema } from '@earendil-works/pi-ai';
 import { Text } from '@earendil-works/pi-tui';
-import type { ITool } from '@jupyternaut/agent';
+import { extractMimeBundles, type ITool } from '@jupyternaut/agent';
 
+import { driveAutocomplete } from './autocomplete';
+import { checkDrive } from './drive';
 import type { PiHost } from './host';
 import { modelView } from './mime';
 import { abortable, cockleOperations, type ShellRunner } from './shell';
@@ -66,6 +68,7 @@ const PREVIEW_LINES = 10;
  */
 export const JUPYTER_INSTRUCTIONS = `You are running inside JupyterLab (or JupyterLite), in the web browser of the user.
 - ${'`'}/drive${'`'} is the root of the JupyterLab file browser. The read, write, edit, ls, find and grep tools work on these files; use paths under /drive or relative to the working directory.
+- Only /drive is shared by the file tools, bash, the kernels and JupyterLab. The file tools keep the other paths (/tmp, ~) in the memory of the page: bash, the kernels and JupyterLab do not see them, and a reload removes them (except ~/.pi/agent). Put the files to keep or to share under /drive.
 - The MCP servers come from the MCP settings of JupyterLab: pi does not read mcp.json.
 - The pi docs describe pi in Node.js. In the browser, the pi examples are not available, and pi extensions and packages from files, the account sign-in of /login (except OpenRouter), /share and /bug do not work.`;
 
@@ -162,19 +165,22 @@ const PATH_ARGUMENT = /^cwd$|path$/i;
 
 /**
  * The arguments of a JupyterLab command with contents paths: commands do not
- * know the /drive paths of the pi tools.
+ * know the /drive paths of the pi tools. As the tools, they cannot reach the
+ * agent folder drive.
  */
 function commandInput(params: unknown): unknown {
   const { args } = (params ?? {}) as { args?: unknown };
   if (!args || typeof args !== 'object' || Array.isArray(args)) {
     return params;
   }
-  const converted = Object.entries(args).map(([key, value]) => [
-    key,
-    PATH_ARGUMENT.test(key) && typeof value === 'string'
-      ? (toContentsPath(value) ?? value)
-      : value
-  ]);
+  const converted = Object.entries(args).map(([key, value]) => {
+    if (!PATH_ARGUMENT.test(key) || typeof value !== 'string') {
+      return [key, value];
+    }
+    const contentsPath = toContentsPath(value) ?? value;
+    checkDrive(value, contentsPath);
+    return [key, contentsPath];
+  });
   return { ...(params as object), args: Object.fromEntries(converted) };
 }
 
@@ -218,6 +224,21 @@ const renderResult: NonNullable<ToolDefinition['renderResult']> = (
   }
   return new Text(text, 0, 0);
 };
+
+/**
+ * The outputs of a command result that the chat renders, as the details of
+ * the tool result: pi saves the details in the session file.
+ */
+function renderedOutputs(host: PiHost, commandId: unknown, output: unknown) {
+  const commands = host.settingsModel?.config.commandsAutoRenderMimeBundles;
+  if (!commands?.includes(String(commandId))) {
+    return undefined;
+  }
+  const bundles = extractMimeBundles(output, new Set());
+  return {
+    outputs: bundles.map(bundle => ({ output_type: 'display_data', ...bundle }))
+  };
+}
 
 /**
  * A Jupyternaut registry tool (AI SDK) as a pi tool.
@@ -268,12 +289,16 @@ function bridgeTool(name: string, tool: ITool, host: PiHost): ToolDefinition {
         text = commandList(output) ?? text;
       }
       if (text.length > MAX_OUTPUT_CHARS) {
-        text = `${text.slice(0, MAX_OUTPUT_CHARS)}\n\n[Output truncated: ${text.length} characters]`;
+        // The error of a kernel result comes after its stream outputs.
+        const half = MAX_OUTPUT_CHARS / 2;
+        text = `${text.slice(0, half)}\n[... ${text.length - MAX_OUTPUT_CHARS} characters removed ...]\n${text.slice(-half)}`;
       }
       return {
         content: [{ type: 'text', text }, ...images],
-        // The chat renders the MIME bundles of execute_command.
-        details: name === 'execute_command' ? output : undefined,
+        details:
+          name === 'execute_command'
+            ? renderedOutputs(host, input.commandId, output)
+            : undefined,
         isError: (output as { success?: unknown } | null)?.success === false
       };
     }
@@ -392,6 +417,12 @@ export function jupyterExtension(
       if (event.toolName === 'bash') {
         void options.host.revertChanged();
       }
+    });
+
+    pi.on('session_start', (event, ctx) => {
+      ctx.ui.addAutocompleteProvider(
+        driveAutocomplete(options.host.operations)
+      );
     });
 
     const manager = options.host.mcpManager;

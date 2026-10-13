@@ -7,25 +7,29 @@ import type {
 } from '@jupyterlab/application';
 import { ICommandPalette } from '@jupyterlab/apputils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
+import { IFileBrowserFactory, type FileBrowser } from '@jupyterlab/filebrowser';
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+import { folderFavoriteIcon } from '@jupyterlab/ui-components';
 import { IAISettingsModel, IToolRegistry } from '@jupyternaut/agent';
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { PiAgent } from './agent';
+import { AgentFolderDrive } from './folder';
 // The chats that are already open get the persona at activation.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
 import { attachPiChat } from './persona';
-import { IPiAgent } from './tokens';
+import { AGENT_DRIVE, IPiAgent } from './tokens';
 
 namespace CommandIds {
-  export const setApiKey = '@jupyternaut/pi:set-api-key';
-  export const signIn = '@jupyternaut/pi:sign-in';
-  export const addEndpoint = '@jupyternaut/pi:add-endpoint';
+  export const addProvider = '@jupyternaut/pi:add-provider';
+  export const openAgentFolder = '@jupyternaut/pi:open-agent-folder';
 }
 
+const SETTINGS_FILE = `${AGENT_DRIVE}:settings.json`;
+
 /**
- * The pi agent, and the commands to configure its model providers.
+ * The pi agent, and the command to add a model provider.
  */
 const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
   id: '@jupyternaut/pi:agent',
@@ -58,28 +62,18 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
       documentManager: documentManager ?? undefined,
       translator: translator ?? undefined
     });
-    app.commands.addCommand(CommandIds.setApiKey, {
-      label: trans.__('Pi: Set a Model Provider API Key'),
+    app.commands.addCommand(CommandIds.addProvider, {
+      label: trans.__('Pi: Add a Model Provider'),
+      caption: trans.__(
+        'Add an API key, sign in with OpenRouter, or add an OpenAI-compatible endpoint'
+      ),
       describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.configure('setApiKey')
+      execute: async () => (await agent.load()).host.addProvider()
     });
-    app.commands.addCommand(CommandIds.signIn, {
-      label: trans.__('Pi: Sign In with an Account'),
-      describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.configure('signIn')
+    palette?.addItem({
+      command: CommandIds.addProvider,
+      category: trans.__('Pi')
     });
-    app.commands.addCommand(CommandIds.addEndpoint, {
-      label: trans.__('Pi: Add an OpenAI-Compatible Endpoint'),
-      describedBy: { args: { type: 'object', properties: {} } },
-      execute: () => agent.configure('addEndpoint')
-    });
-    for (const command of [
-      CommandIds.setApiKey,
-      CommandIds.signIn,
-      CommandIds.addEndpoint
-    ]) {
-      palette?.addItem({ command, category: trans.__('Pi') });
-    }
     return agent;
   }
 };
@@ -92,18 +86,26 @@ const personaPlugin: JupyterFrontEndPlugin<void> = {
   description: 'Add pi to the personas of the chats',
   autoStart: true,
   requires: [IPiAgent],
-  optional: [IChatTracker, IPersonaSessionRegistry, IComponentsRendererFactory],
+  optional: [
+    IChatTracker,
+    IPersonaSessionRegistry,
+    IComponentsRendererFactory,
+    ITranslator
+  ],
   activate: (
     app: JupyterFrontEnd,
     agent: IPiAgent,
     chatTracker: IChatTracker | null,
     registry: PersonaSessionRegistry | null,
-    componentsFactory: IComponentsRendererFactory | null
+    componentsFactory: IComponentsRendererFactory | null,
+    translator: ITranslator | null
   ): void => {
     if (!chatTracker || !registry || !(agent instanceof PiAgent)) {
       return;
     }
-    const attach = (panel: IChatPanel) => attachPiChat(panel, agent, registry);
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const attach = (panel: IChatPanel) =>
+      attachPiChat(panel, agent, registry, { shell: app.shell, trans });
     chatTracker.forEach(attach);
     chatTracker.widgetAdded.connect((sender, panel) => attach(panel));
 
@@ -115,6 +117,72 @@ const personaPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-export default [agentPlugin, personaPlugin];
+/**
+ * The pi agent folder as the `pi` drive, and the command to show it in a file
+ * browser.
+ */
+const agentFolderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyternaut/pi:agent-folder',
+  description: 'Show the pi agent folder in a file browser',
+  autoStart: true,
+  requires: [IPiAgent],
+  optional: [
+    IFileBrowserFactory,
+    IDocumentManager,
+    ICommandPalette,
+    ITranslator
+  ],
+  activate: (
+    app: JupyterFrontEnd,
+    agent: IPiAgent,
+    browserFactory: IFileBrowserFactory | null,
+    documentManager: IDocumentManager | null,
+    palette: ICommandPalette | null,
+    translator: ITranslator | null
+  ): void => {
+    if (!(agent instanceof PiAgent)) {
+      return;
+    }
+    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
+    const { contents, serverSettings } = app.serviceManager;
+    contents.addDrive(new AgentFolderDrive(agent, serverSettings));
+    let browser: FileBrowser | undefined;
+    app.commands.addCommand(CommandIds.openAgentFolder, {
+      label: trans.__('Pi: Open the Agent Folder'),
+      caption: trans.__(
+        'Show the settings, credentials, sessions and skills of pi'
+      ),
+      describedBy: { args: { type: 'object', properties: {} } },
+      execute: async () => {
+        if (browserFactory) {
+          if (!browser || browser.isDisposed) {
+            browser = browserFactory.createFileBrowser('pi-agent-folder', {
+              driveName: AGENT_DRIVE
+            });
+            browser.title.caption = trans.__('Pi Agent Folder');
+            browser.title.icon = folderFavoriteIcon;
+            app.shell.add(browser, 'left', { rank: 300 });
+          }
+          app.shell.activateById(browser.id);
+        } else if (documentManager) {
+          await contents.get(SETTINGS_FILE, { content: false }).catch(() =>
+            contents.save(SETTINGS_FILE, {
+              type: 'file',
+              format: 'text',
+              content: '{}\n'
+            })
+          );
+          documentManager.openOrReveal(SETTINGS_FILE);
+        }
+      }
+    });
+    palette?.addItem({
+      command: CommandIds.openAgentFolder,
+      category: trans.__('Pi')
+    });
+  }
+};
+
+export default [agentPlugin, personaPlugin, agentFolderPlugin];
 
 export { IPiAgent } from './tokens';

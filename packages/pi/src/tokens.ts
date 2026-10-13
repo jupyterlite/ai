@@ -28,3 +28,8 @@ export const IPiAgent = new Token<IPiAgent>(
  * The chat user of the pi persona.
  */
 export const PI_PERSONA_ID = 'pi-frontend';
+
+/**
+ * The JupyterLab drive of the pi agent folder (`~/.pi/agent`).
+ */
+export const AGENT_DRIVE = 'pi';

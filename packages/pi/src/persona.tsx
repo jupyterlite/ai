@@ -6,8 +6,10 @@ import {
   type IMessage,
   type IUser
 } from '@jupyter/chat';
+import type { JupyterFrontEnd } from '@jupyterlab/application';
+import { Notification } from '@jupyterlab/apputils';
+import type { TranslationBundle } from '@jupyterlab/translation';
 import { Signal, type ISignal } from '@lumino/signaling';
-import StopIcon from '@mui/icons-material/Stop';
 import React, { useEffect, useState } from 'react';
 
 import type { PiAgent } from './agent';
@@ -82,7 +84,16 @@ class PiChat {
   }
 
   /**
-   * Answer the messages of another model of the chat.
+   * Emitted with true when pi waits for an approval, false when it stops
+   * waiting.
+   */
+  get approvalChanged(): ISignal<this, boolean> {
+    return this._approvalChanged;
+  }
+
+  /**
+   * Answer the messages of another model of the chat. The persona-manager
+   * can drop the state of the chat when a model closes: publish it again.
    */
   addModel(model: IChatModel): void {
     if (this._models.has(model)) {
@@ -93,6 +104,7 @@ class PiChat {
       this._handled.add(message.id);
     }
     model.messagesUpdated.connect(this._onMessages, this);
+    void this._publish();
   }
 
   /**
@@ -174,6 +186,10 @@ class PiChat {
       throw new Error('The chat is closed.');
     }
     session.stateChanged.connect(this._onStateChanged, this);
+    session.approvalChanged.connect(
+      (sender, waiting) => this._approvalChanged.emit(waiting),
+      this
+    );
     this._onStateChanged();
     return session;
   }
@@ -247,12 +263,13 @@ class PiChat {
     if (!this._current || this._disposed) {
       return;
     }
+    // A slow state() must not overwrite the state of a later publish.
+    const publish = ++this._publishes;
     try {
-      this._registry.updatePersonaState(
-        this._chatId,
-        PI_PERSONA_ID,
-        await this._current.state()
-      );
+      const state = await this._current.state();
+      if (publish === this._publishes && !this._disposed) {
+        this._registry.updatePersonaState(this._chatId, PI_PERSONA_ID, state);
+      }
     } catch (error) {
       console.warn('pi: cannot publish the persona state', error);
     }
@@ -270,9 +287,11 @@ class PiChat {
    * share message ids: pi answers each message once.
    */
   private _handled = new Set<string>();
+  private _publishes = 0;
   private _busy = false;
   private _disposed = false;
   private _busyChanged = new Signal<this, boolean>(this);
+  private _approvalChanged = new Signal<this, boolean>(this);
 }
 
 namespace PiChat {
@@ -283,6 +302,24 @@ namespace PiChat {
     registry: PersonaSessionRegistry;
   }
 }
+
+/**
+ * The Material stop icon, at the size that the chat theme gives to the
+ * other toolbar icons.
+ */
+const STOP_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="currentColor"
+    style={{ fontSize: 'medium' }}
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M6 6h12v12H6z" />
+  </svg>
+);
 
 /**
  * Stop button of the pi persona in the chat input toolbar.
@@ -308,7 +345,7 @@ function PiStopButton({ chat }: { chat: PiChat }): JSX.Element {
       buttonProps={{ title: tooltip }}
       aria-label={tooltip}
     >
-      <StopIcon />
+      {STOP_ICON}
     </TooltippedIconButton>
   );
 }
@@ -327,7 +364,8 @@ const attached = new WeakSet<IChatPanel>();
 export async function attachPiChat(
   panel: IChatPanel,
   agent: PiAgent,
-  registry: PersonaSessionRegistry
+  registry: PersonaSessionRegistry,
+  ui: { shell: JupyterFrontEnd.IShell; trans: TranslationBundle }
 ): Promise<void> {
   if (attached.has(panel)) {
     return;
@@ -337,18 +375,43 @@ export async function attachPiChat(
   if (!chatId || panel.isDisposed || panel.model.isDisposed) {
     return;
   }
+  // On each view: the persona-manager drops the personas of a chat when one
+  // of its models closes.
+  registry.registerFrontendPersona(chatId, {
+    id: PI_PERSONA_ID,
+    name: PI_USER.display_name!,
+    avatar_url: PI_AVATAR
+  });
   let entry = chats.get(chatId);
   if (!entry) {
-    registry.registerFrontendPersona(chatId, {
-      id: PI_PERSONA_ID,
-      name: PI_USER.display_name!,
-      avatar_url: PI_AVATAR
-    });
-    entry = {
-      chat: new PiChat({ agent, model: panel.model, chatId, registry }),
-      panels: new Set()
-    };
+    const chat = new PiChat({ agent, model: panel.model, chatId, registry });
+    const panels = new Set<IChatPanel>();
+    entry = { chat, panels };
     chats.set(chatId, entry);
+    // pi can open a notebook over its chat, then wait for an approval there.
+    let notice: string | undefined;
+    chat.approvalChanged.connect((sender, waiting) => {
+      if (notice) {
+        Notification.dismiss(notice);
+        notice = undefined;
+      }
+      const shown = [...panels].find(item => item.isVisible);
+      const target = [...panels][0];
+      if (waiting && !shown && target) {
+        notice = Notification.warning(
+          ui.trans.__('Pi waits for your approval in %1.', target.title.label),
+          {
+            autoClose: false,
+            actions: [
+              {
+                label: ui.trans.__('Show'),
+                callback: () => ui.shell.activateById(target.id)
+              }
+            ]
+          }
+        );
+      }
+    });
   }
   const { chat, panels } = entry;
   panels.add(panel);
@@ -388,7 +451,9 @@ export async function attachPiChat(
     panel.model.input.metadataChanged?.disconnect(onInputMetadata);
     if (!panels.size) {
       chats.delete(chatId);
-      registry.unregisterFrontendPersona(chatId, PI_PERSONA_ID);
+      if (registry.has(chatId)) {
+        registry.unregisterFrontendPersona(chatId, PI_PERSONA_ID);
+      }
       chat.dispose();
       return;
     }

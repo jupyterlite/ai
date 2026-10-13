@@ -105,6 +105,23 @@ for (const name of ['access', 'readFile']) {
   };
 }
 
+/**
+ * pi's editor completes paths with readdirSync: while the host sets
+ * `fs.listDrive`, it lists the directories of `/drive`.
+ */
+const { readdirSync } = fs;
+fs.readdirSync = function (target, ...args) {
+  const resolved = resolve(target);
+  if (
+    fs.listDrive &&
+    args[0]?.withFileTypes &&
+    /^\/drive(\/|$)/.test(resolved ?? '')
+  ) {
+    return fs.listDrive(resolved);
+  }
+  return readdirSync.call(this, target, ...args);
+};
+
 vol.fromJSON({
   '/pi/package.json': JSON.stringify({
     name: piPackage.name,
@@ -116,7 +133,8 @@ vol.fromJSON({
   '/pi/dist/modes/interactive/theme/light.json': JSON.stringify(lightTheme),
   ...Object.fromEntries(
     docs.keys().map(key => [`/pi/docs/${key.slice(2)}`, docs(key)])
-  )
+  ),
+  ...__PI_FILES__
 });
 vol.mkdirSync('/tmp', { recursive: true });
 

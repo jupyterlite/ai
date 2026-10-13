@@ -1,11 +1,15 @@
 import {
   createBashToolDefinition,
+  DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_LINES,
   type BashOperations,
   type ToolDefinition
 } from '@earendil-works/pi-coding-agent';
 import type { CommandRegistry } from '@lumino/commands';
+import path from 'path';
 
-import { DRIVE } from './vfs';
+import type { DriveOperations } from './drive';
+import { DRIVE, toContentsPath } from './vfs';
 
 const SHELL_COMMANDS = {
   execute: '@jupyterlite/terminal:execute-shell',
@@ -23,10 +27,30 @@ export const ANSI_PATTERN =
 const COCKLE_DESCRIPTION =
   'Execute a command line in cockle, the in-browser shell of JupyterLite (WebAssembly builds of common tools), in the current working directory. ' +
   'Pipes (|), command lists (;, && and ||) and file redirections (>, >>, 2>, <) are supported. ' +
-  'Not supported: command substitution ($(...) or backticks), $VAR expansion, 2>&1, python, node, pip or network access. ' +
+  'Not supported: command substitution ($(...) or backticks), $VAR expansion, python, node, pip or network access. ' +
+  'stdout and stderr both go to the output (2>&1 has no effect). ' +
   'Commands read an empty stdin. ' +
+  'Only /drive is shared with the file tools, the kernels and JupyterLab. ' +
   'Available commands include the coreutils (ls, cat, head, tail, wc, mkdir, cp, mv, rm, touch, sort, uniq, tr, cut, seq, date, stat...), grep, sed, tree and git; run "cockle-config command" to list them all. ' +
-  'Returns stdout and stderr. Optionally provide a timeout in seconds.';
+  `Returns stdout and stderr. Output is truncated to the last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first); the full output is then saved to a /tmp file that only the read and grep tools can open. ` +
+  'Optionally provide a timeout in seconds.';
+
+/**
+ * TAB, Ctrl-D, Ctrl-L, ESC and DEL, which cockle's line editor reads as keys.
+ */
+// eslint-disable-next-line no-control-regex
+const KEYS = /[\t\x04\x0c\x1b\x7f]/;
+const NON_ASCII = /[\u0080-\uffff]/;
+const WORD = / *((?:'[^']*'|"[^"]*"|[^\s;&|<>'"])*)/y;
+/**
+ * cockle writes each byte above 0x7f of a redirected output as a character
+ * from U+FF80 to U+FFFF.
+ */
+const BYTE_RUNS = /[\uff80-\uffff]+/g;
+/**
+ * Spaces and line continuations around a part.
+ */
+const PADDING = /^(?:\s|\\\n)+|(?:\s|\\\n)+$/g;
 
 interface IShellPart {
   /**
@@ -35,6 +59,10 @@ interface IShellPart {
    */
   operator: ';' | '&&' | '||';
   code: string;
+  /**
+   * The files that the part writes with `>` or `>>`.
+   */
+  targets?: string[];
 }
 
 interface IShellResult {
@@ -61,127 +89,180 @@ function quote(value: string): string {
 }
 
 /**
- * cockle echoes the lines of a multi-line command: show them as written.
+ * The word after the spaces at `start`, without its quotes, the index after
+ * it, and the word as written.
  */
-function restoreEcho(output: string, code: string, rewritten: string): string {
-  const original = code.split('\n');
-  return rewritten
-    .split('\n')
-    .reduce(
-      (text, line, index) =>
-        line === original[index]
-          ? text
-          : text.split(line).join(original[index]),
-      output
-    );
+function readWord(text: string, start: number): [string, number, string] {
+  WORD.lastIndex = start;
+  const raw = WORD.exec(text)![1];
+  return [raw.replace(/'([^']*)'|"([^"]*)"/g, '$1$2'), WORD.lastIndex, raw];
 }
 
 /**
- * The command line with `< /dev/null` on the first command of each pipeline
- * without an input redirect: a headless command that reads stdin would wait
- * until the timeout, as no keyboard answers it. The text from the first
- * heredoc on stays as written.
+ * The exit code of an `exit` command (null: the code of the command before),
+ * or undefined for another command.
  */
-function withEmptyStdin(code: string): string {
-  let result = '';
-  let command = '';
+function exitCode(code: string): number | null | undefined {
+  const [name, after] = readWord(code, 0);
+  if (name !== 'exit') {
+    return undefined;
+  }
+  const [status] = readWord(code, after);
+  if (!status) {
+    return null;
+  }
+  return /^-?\d+$/.test(status) ? ((Number(status) % 256) + 256) % 256 : 2;
+}
+
+/**
+ * The pipelines of a command line, each run on its own: cockle has no `&&`,
+ * `||` or `#` comments, and echoes the lines of a multi-line command. A
+ * heredoc body stays as written with its command. Throws for what cockle
+ * would run wrong, or wait on until the timeout.
+ */
+function commandParts(code: string): IShellPart[] {
+  if (KEYS.test(code)) {
+    throw new Error(
+      'cockle reads a TAB or a control character in a command as a key, so it cannot keep it. ' +
+        'Use the write tool for files that contain tabs; sed and printf understand \\t, and cut splits on TAB by default.'
+    );
+  }
+  const text = `${code.replace(/\r\n?/g, '\n')}\n`;
+  const parts: IShellPart[] = [];
+  const heredocs: { part: IShellPart; delimiter: string }[] = [];
+  let part: IShellPart = { operator: ';', code: '' };
   let quoted = '';
-  let first = true;
+  let piped = false;
   let input = false;
-  const close = (separator: string) => {
-    const body = command.replace(/(?:\s|\\\n)+$/, '');
-    if (first && !input && !quoted && body.trim()) {
-      command = `${body} < /dev/null${command.slice(body.length)}`;
+  const endCommand = () => {
+    if (!piped && !input) {
+      // A headless command that reads stdin would wait until the timeout.
+      part.code = part.code.replace(/(?:\s|\\\n)*$/, ' < /dev/null$&');
     }
-    result += command + separator;
-    command = '';
-    input = false;
-    first = separator !== '|';
+    piped = true;
   };
-  for (let i = 0; i < code.length; i++) {
-    const char = code[i];
+  const close = (next: IShellPart['operator']) => {
+    if (part.code.trim()) {
+      endCommand();
+      part.code = part.code.replace(PADDING, '');
+      if (part.code.endsWith('|')) {
+        throw new Error('The command ends with |');
+      }
+      parts.push(part);
+      part = { operator: next, code: '' };
+    } else {
+      part = { operator: next === ';' ? part.operator : next, code: '' };
+    }
+    piped = input = false;
+  };
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
     if (quoted) {
       quoted = char === quoted ? '' : quoted;
     } else if (char === "'" || char === '"') {
       quoted = char;
-    } else if (
-      char === '\n' &&
-      !command.endsWith('\\') &&
-      (first || command.trim())
-    ) {
-      // A newline after `\` or `|` continues the command.
-      close(char);
+    } else if (char === '#' && /[\s;&|()<>]/.test(text[i - 1] ?? ' ')) {
+      i = text.indexOf('\n', i) - 1;
       continue;
-    } else if (char === '&' && /[<>]$/.test(command)) {
-      // cockle rejects 2>&1: keep it whole for a clear error.
-      command += char;
-      continue;
-    } else if (code.startsWith('<<', i)) {
-      // cockle reads the next lines as the heredoc.
-      return result + command + code.slice(i);
-    } else if (';&|<>'.includes(char)) {
-      let token = char;
-      while (code[i + 1] === char) {
-        token += code[++i];
-      }
-      if (token === ';' || token === '&' || token === '|') {
-        close(token);
+    } else if (char === '\n') {
+      if (/(?:\\|\|\s*)$/.test(part.code)) {
+        // A newline after `\` or `|` continues the command.
+        if (heredocs.length) {
+          throw new Error(
+            'cockle runs a here document at the end of its line: put the rest of the pipeline on the line of the <<'
+          );
+        }
+        part.code += char;
         continue;
       }
-      input ||= char === '<';
-      command += token;
+      close(';');
+      for (const { part: target, delimiter } of heredocs.splice(0)) {
+        const start = text.indexOf(`\n${delimiter}\n`, i);
+        if (start < 0 || delimiter.includes('\n')) {
+          throw new Error(`The here document has no ${delimiter} end line`);
+        }
+        const end = start + delimiter.length + 1;
+        target.code += text.slice(i, end);
+        if (NON_ASCII.test(target.code)) {
+          throw new Error(
+            'cockle corrupts text that is not ASCII in a here document. Write such files with the write or edit tool.'
+          );
+        }
+        i = end;
+      }
+      continue;
+    } else if (text.startsWith('&>', i)) {
+      const append = text[i + 2] === '>';
+      const [word, end] = readWord(text, i + (append ? 3 : 2));
+      if (word !== '/dev/null') {
+        throw new Error(
+          'cockle has no &> redirect: use > FILE 2> FILE2, or > /dev/null 2> /dev/null'
+        );
+      }
+      part.code += '> /dev/null 2> /dev/null';
+      i = end - 1;
+      continue;
+    } else if (text.startsWith('&&', i) || text.startsWith('||', i)) {
+      close(text.slice(i, i + 2) as IShellPart['operator']);
+      i++;
+      continue;
+    } else if (char === ';' || char === '&') {
+      close(';');
+      continue;
+    } else if (char === '|') {
+      endCommand();
+    } else if (char === '<' || char === '>') {
+      const duplicate = /^&\d+/.exec(text.slice(i + 1));
+      if (duplicate) {
+        // stdout and stderr both go to the output: drop 2>&1 or >&2.
+        part.code = part.code.replace(/\d+$/, '');
+        i += duplicate[0].length;
+        continue;
+      }
+      const [token] = /^(?:<<-|<+|>+)/.exec(text.slice(i))!;
+      i += token.length - 1;
+      const [word, end, raw] = readWord(text, i + 1);
+      if (char === '<') {
+        input ||= !piped;
+      } else if (word && word !== '/dev/null') {
+        (part.targets ??= []).push(word);
+      }
+      if (token === '<<' || token === '<<-') {
+        if (!word) {
+          throw new Error('cockle needs a here document delimiter word');
+        }
+        // cockle reads `<<'EOF'` as one word, not as a heredoc.
+        part.code += `${token} ${raw}`;
+        heredocs.push({ part, delimiter: word });
+        i = end - 1;
+      } else {
+        // cockle reads `>'f'` as one word, not as a redirect.
+        part.code += /\s/.test(text[i + 1]) ? token : `${token} `;
+      }
       continue;
     }
-    command += char;
+    part.code += char;
   }
-  close('');
-  return result;
+  if (quoted) {
+    throw new Error(
+      `The command has no closing ${quoted} quote (cockle has no \\ escapes)`
+    );
+  }
+  close(';');
+  return parts;
 }
 
 /**
- * The parts of a command line with `&&` or `||`, which cockle does not run:
- * each part runs on its own, after the operator that joins it to the part
- * before. Null for a line without them, or with a heredoc.
+ * The output without the echo of a command that cockle reads over several
+ * lines (heredoc, quote, `\` or `|` continuation): the exec plugin removes
+ * the echo of one line only, and cockle shows the next lines after a `> `.
  */
-function andOrParts(code: string): IShellPart[] | null {
-  const parts: IShellPart[] = [];
-  let part = '';
-  let operator: IShellPart['operator'] = ';';
-  let quoted = '';
-  let found = false;
-  const end = (next: IShellPart['operator']) => {
-    if (part.trim()) {
-      parts.push({ operator, code: part });
-      part = '';
-      operator = next;
-    } else if (next !== ';') {
-      operator = next;
-    }
-  };
-  for (let i = 0; i < code.length; i++) {
-    const char = code[i];
-    if (quoted) {
-      quoted = char === quoted ? '' : quoted;
-    } else if (char === "'" || char === '"') {
-      quoted = char;
-    } else if (code.startsWith('<<', i)) {
-      return null;
-    } else if (code.startsWith('&&', i) || code.startsWith('||', i)) {
-      end(code.slice(i, i + 2) as IShellPart['operator']);
-      found = true;
-      i++;
-      continue;
-    } else if (
-      char === ';' ||
-      (char === '\n' && !part.endsWith('\\') && !/\|\s*$/.test(part))
-    ) {
-      end(';');
-      continue;
-    }
-    part += char;
-  }
-  end(';');
-  return found ? parts : null;
+function withoutEcho(output: string, code: string): string {
+  const lines = code.trim().split('\n');
+  const echo = `${lines.join('\n> ')}\n`;
+  return lines.length > 1 && output.startsWith(echo)
+    ? output.slice(echo.length)
+    : output;
 }
 
 /**
@@ -215,8 +296,13 @@ export function abortable<T>(
  * commands wait in a queue.
  */
 export class ShellRunner {
-  constructor(commands: CommandRegistry) {
+  /**
+   * `files` reads and writes the drive, to repair the files that commands
+   * write with `>`.
+   */
+  constructor(commands: CommandRegistry, files: DriveOperations) {
     this._commands = commands;
+    this._files = files;
   }
 
   /**
@@ -263,52 +349,54 @@ export class ShellRunner {
   ): Promise<IShellResult> {
     const previous = this._queue;
     let shellName: string | undefined;
-    const check = () => {
-      if (signal?.aborted) {
-        throw new Error('aborted');
-      }
-    };
     const run = async () => {
-      check();
+      const parts = commandParts(code);
+      signal?.throwIfAborted();
       shellName = await this.start();
-      check();
+      signal?.throwIfAborted();
       const moved = await this._run(
         shellName,
         `cd ${quote(cwd)}`,
         CD_TIMEOUT_MS
       );
-      check();
+      signal?.throwIfAborted();
       if (!moved.success) {
         throw new Error(
           `Cannot change to the working directory ${cwd}: ${moved.output.trim() || moved.message}`
         );
       }
-      const parts = andOrParts(code) ?? [{ operator: ';', code }];
       const deadline = Date.now() + timeoutMs;
       let output = '';
-      let last: IShellResult | undefined;
+      let last = moved;
       for (const part of parts) {
-        const failed = last?.exitCode !== 0;
+        const failed = last.exitCode !== 0;
         if (
-          last &&
-          ((part.operator === '&&' && failed) ||
-            (part.operator === '||' && !failed))
+          (part.operator === '&&' && failed) ||
+          (part.operator === '||' && !failed)
         ) {
           continue;
         }
-        check();
-        const rewritten = withEmptyStdin(part.code);
+        const exit = exitCode(part.code);
+        if (exit !== undefined) {
+          // cockle's exit stops the shell: the command would never finish.
+          last = { ...last, exitCode: exit ?? last.exitCode };
+          break;
+        }
+        signal?.throwIfAborted();
         last = await this._run(
           shellName,
-          rewritten,
+          part.code,
           Math.max(1, deadline - Date.now())
         );
-        output += restoreEcho(last.output, part.code, rewritten);
+        output += withoutEcho(last.output, part.code);
         if (last.status === 'timeout') {
           break;
         }
+        for (const target of part.targets ?? []) {
+          await this._repair(path.posix.resolve(cwd, target));
+        }
       }
-      return { ...last!, output };
+      return { ...last, output };
     };
     const result = abortable(previous.then(run), signal, () => {
       if (shellName) {
@@ -350,6 +438,28 @@ export class ShellRunner {
   }
 
   /**
+   * Decode the text that is not ASCII of a drive file written by cockle.
+   */
+  private async _repair(file: string): Promise<void> {
+    if (toContentsPath(file) === null) {
+      return;
+    }
+    try {
+      const text = (await this._files.readFile(file)).toString('utf8');
+      const repaired = text.replace(BYTE_RUNS, run =>
+        new TextDecoder().decode(
+          Uint8Array.from(run, char => char.charCodeAt(0) & 0xff)
+        )
+      );
+      if (repaired !== text) {
+        await this._files.writeFile(file, repaired);
+      }
+    } catch {
+      // The command did not write the file.
+    }
+  }
+
+  /**
    * Shut down a shell; the next command starts a new one.
    */
   private async _abandon(shellName: string): Promise<void> {
@@ -364,6 +474,7 @@ export class ShellRunner {
   }
 
   private _commands: CommandRegistry;
+  private _files: DriveOperations;
   private _shellName?: string;
   private _starting?: Promise<string>;
   private _generation = 0;

@@ -17,7 +17,8 @@ import { minimatch } from 'minimatch';
 import { resolveToCwd } from 'pi-coding-agent-package/dist/core/tools/path-utils.js';
 import path from 'path';
 
-import { AGENT_DIR, drivePath, toContentsPath } from './vfs';
+import { AGENT_DRIVE } from '../tokens';
+import { AGENT_DIR, DRIVE, drivePath, toContentsPath } from './vfs';
 
 const IMAGE_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
@@ -33,6 +34,11 @@ const SKIPPED_DIRECTORIES = new Set([
   '__pycache__',
   'node_modules'
 ]);
+/**
+ * Entries of a Python environment (venv, conda): the walk does not go below
+ * one, as pi's ripgrep skips them through .gitignore.
+ */
+const ENVIRONMENT_MARKERS = new Set(['conda-meta', 'pyvenv.cfg']);
 const MAX_WALK_ENTRIES = 20000;
 /**
  * The find tool of pi cannot stop a glob: it ends on its own after this time.
@@ -45,6 +51,16 @@ const GLOB_TIMEOUT_MS = 20000;
 const LISTING_TTL_MS = 2000;
 const MAX_GREP_FILE_SIZE = 1024 * 1024;
 const DEFAULT_GREP_LIMIT = 100;
+/**
+ * grep lists the files, then reads them, each for at most this time: on a
+ * remote server, a large tree takes minutes.
+ */
+const GREP_TIMEOUT_MS = 20000;
+/**
+ * The files that grep reads at the same time: browsers open 6 connections to
+ * a server.
+ */
+const GREP_READERS = 6;
 
 /**
  * Files of the pi agent folder with credentials, which the tools cannot reach.
@@ -104,6 +120,16 @@ function localPath(absolutePath: string): string {
     throw fsError('EACCES', absolutePath);
   }
   return normalized;
+}
+
+/**
+ * Refuse a path of the agent folder drive: the tools cannot reach the
+ * credentials through it.
+ */
+export function checkDrive(absolutePath: string, contentsPath: string): void {
+  if (contentsPath.startsWith(`${AGENT_DRIVE}:`)) {
+    throw fsError('EACCES', absolutePath);
+  }
 }
 
 /**
@@ -178,12 +204,21 @@ export class DriveOperations
       return (await fs.promises.readFile(localPath(absolutePath))) as Buffer;
     }
     if (isNotebook(absolutePath)) {
-      const model = await this._get(absolutePath, contentsPath, {
-        content: true,
-        type: 'notebook',
-        format: 'json'
-      });
-      return Buffer.from(JSON.stringify(model.content, null, 1), 'utf-8');
+      try {
+        const model = await this._get(absolutePath, contentsPath, {
+          content: true,
+          type: 'notebook',
+          format: 'json'
+        });
+        return Buffer.from(JSON.stringify(model.content, null, 1), 'utf-8');
+      } catch (error) {
+        // A notebook that is not valid JSON (merge conflict markers) is read
+        // and written as text until it is valid again.
+        if (errorCode(error)) {
+          throw error;
+        }
+        this._textNotebooks.add(contentsPath);
+      }
     }
     const model = await this._get(absolutePath, contentsPath, {
       content: true,
@@ -210,12 +245,24 @@ export class DriveOperations
     if (!contentsPath) {
       throw fsError('EISDIR', absolutePath);
     }
+    checkDrive(absolutePath, contentsPath);
     this._listings.clear();
+    let notebook: unknown;
+    if (isNotebook(absolutePath)) {
+      try {
+        notebook = JSON.parse(content);
+        this._textNotebooks.delete(contentsPath);
+      } catch (error) {
+        if (!this._textNotebooks.has(contentsPath)) {
+          throw error;
+        }
+      }
+    }
     await this._contents.save(
       contentsPath,
-      isNotebook(absolutePath)
-        ? { type: 'notebook', format: 'json', content: JSON.parse(content) }
-        : { type: 'file', format: 'text', content }
+      notebook === undefined
+        ? { type: 'file', format: 'text', content }
+        : { type: 'notebook', format: 'json', content: notebook }
     );
     this._onWrite?.(contentsPath);
   };
@@ -238,7 +285,18 @@ export class DriveOperations
         }
       });
       if (!model) {
-        await this._contents.save(current, { type: 'directory' });
+        await this._contents
+          .save(current, { type: 'directory' })
+          .catch(async error => {
+            // A parallel write can create the folder first: a Jupyter server
+            // then fails.
+            const created = await this._get(drivePath(current), current, {
+              content: false
+            }).catch(() => undefined);
+            if (created?.type !== 'directory') {
+              throw error;
+            }
+          });
       } else if (model.type !== 'directory') {
         throw fsError('ENOTDIR', drivePath(current));
       }
@@ -276,7 +334,7 @@ export class DriveOperations
     if (contentsPath === null) {
       return (await fs.promises.readdir(localPath(absolutePath))) as string[];
     }
-    const entries = await this._list(absolutePath, contentsPath);
+    const entries = await this.list(contentsPath);
     const now = Date.now();
     for (const [key, listing] of this._listings) {
       if (now - listing.time >= LISTING_TTL_MS) {
@@ -339,41 +397,76 @@ export class DriveOperations
     }
     const deadline = Date.now() + (options.timeout ?? Infinity);
     const queue: string[] = [rootContentsPath];
+    const skipped: string[] = [];
+    const notice = (stop?: string) => {
+      const notices = stop ? [stop] : [];
+      if (skipped.length) {
+        notices.push(
+          `did not search inside the Python environments ${skipped.join(', ')} (give one as the path to search it)`
+        );
+      }
+      return notices.join('. ') || undefined;
+    };
     let count = 0;
     while (queue.length) {
       if (options.signal?.aborted) {
         throw new Error('Operation aborted');
       }
       if (count >= MAX_WALK_ENTRIES) {
-        return `walk limit of ${MAX_WALK_ENTRIES} entries reached, results may be incomplete`;
+        return notice(
+          `walk limit of ${MAX_WALK_ENTRIES} entries reached, results may be incomplete`
+        );
       }
       if (Date.now() > deadline) {
-        return `walk time limit of ${options.timeout! / 1000} s reached, results may be incomplete`;
+        return notice(
+          `walk time limit of ${options.timeout! / 1000} s reached, results may be incomplete`
+        );
       }
       const current = queue.shift()!;
       let entries: Contents.IModel[];
       try {
-        entries = await this._list(drivePath(current), current);
+        entries = await this.list(current);
       } catch (error) {
         if (current === rootContentsPath) {
           throw error;
         }
         continue;
       }
+      const environment =
+        current !== rootContentsPath &&
+        entries.some(entry => ENVIRONMENT_MARKERS.has(entry.name));
+      if (environment) {
+        skipped.push(current);
+      }
       for (const entry of entries) {
         count++;
         if (
           entry.type === 'directory' &&
+          !environment &&
           !SKIPPED_DIRECTORIES.has(entry.name)
         ) {
           queue.push(entry.path);
         }
         if (visit(drivePath(entry.path), entry)) {
-          return undefined;
+          return notice();
         }
       }
     }
-    return undefined;
+    return notice();
+  }
+
+  /**
+   * The entries of a drive directory, with their types, in one request.
+   */
+  async list(contentsPath: string): Promise<Contents.IModel[]> {
+    const absolutePath = drivePath(contentsPath);
+    const model = await this._get(absolutePath, contentsPath, {
+      content: true
+    });
+    if (model.type !== 'directory') {
+      throw fsError('ENOTDIR', absolutePath);
+    }
+    return (model.content ?? []) as Contents.IModel[];
   }
 
   /**
@@ -389,24 +482,12 @@ export class DriveOperations
     return listing.types.get(path.posix.basename(contentsPath));
   }
 
-  private async _list(
-    absolutePath: string,
-    contentsPath: string
-  ): Promise<Contents.IModel[]> {
-    const model = await this._get(absolutePath, contentsPath, {
-      content: true
-    });
-    if (model.type !== 'directory') {
-      throw fsError('ENOTDIR', absolutePath);
-    }
-    return (model.content ?? []) as Contents.IModel[];
-  }
-
   private async _get(
     absolutePath: string,
     contentsPath: string,
     options: Contents.IFetchOptions
   ): Promise<Contents.IModel> {
+    checkDrive(absolutePath, contentsPath);
     try {
       return await this._contents.get(contentsPath, options);
     } catch (error) {
@@ -416,10 +497,89 @@ export class DriveOperations
 
   private _contents: Contents.IManager;
   private _onWrite?: (contentsPath: string) => void;
+  private _textNotebooks = new Set<string>();
   private _listings = new Map<
     string,
     { time: number; types: Map<string, string> }
   >();
+}
+
+/**
+ * The file suggestions of pi's editor (`@`, Tab) list the drive at most this
+ * often.
+ */
+export const SUGGESTION_TTL_MS = 5000;
+const MAX_SUGGESTION_ENTRIES = 5000;
+const SUGGESTION_TIMEOUT_MS = 3000;
+
+/**
+ * The `fd` command of pi's file suggestions, on the drive: the options that
+ * pi passes, a regular expression on the name (on the path with
+ * `--full-path`), smart case, and directories with a trailing slash.
+ */
+export function fdCommand(
+  operations: DriveOperations
+): (args: string[]) => Promise<string> {
+  let cache: { root: string; time: number; entries: Promise<string[]> };
+  const list = (root: string) => {
+    if (cache?.root !== root || Date.now() - cache.time > SUGGESTION_TTL_MS) {
+      const entries: string[] = [];
+      cache = {
+        root,
+        time: Date.now(),
+        entries: operations
+          .walk(
+            root,
+            (absolutePath, entry) => {
+              const relative = path.posix.relative(root, absolutePath);
+              entries.push(
+                entry.type === 'directory' ? `${relative}/` : relative
+              );
+              return entries.length >= MAX_SUGGESTION_ENTRIES;
+            },
+            { timeout: SUGGESTION_TIMEOUT_MS }
+          )
+          .then(() => entries)
+      };
+    }
+    return cache.entries;
+  };
+  return async args => {
+    let root = DRIVE;
+    let maxResults = Infinity;
+    let maxDepth = Infinity;
+    let fullPath = false;
+    let pattern = '';
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if (arg === '--base-directory') {
+        root = path.posix.resolve(DRIVE, args[++i]);
+      } else if (arg === '--max-results') {
+        maxResults = Number(args[++i]);
+      } else if (arg === '--max-depth') {
+        maxDepth = Number(args[++i]);
+      } else if (arg === '--type' || arg === '--exclude') {
+        i++;
+      } else if (arg === '--full-path') {
+        fullPath = true;
+      } else if (!arg.startsWith('-')) {
+        pattern = arg;
+      }
+    }
+    const matches = new RegExp(pattern, /[A-Z]/.test(pattern) ? '' : 'i');
+    return (await list(root))
+      .filter(entry => {
+        const relative = entry.replace(/\/$/, '');
+        return (
+          relative.split('/').length <= maxDepth &&
+          matches.test(
+            fullPath ? `${root}/${relative}` : path.posix.basename(relative)
+          )
+        );
+      })
+      .slice(0, maxResults)
+      .join('\n');
+  };
 }
 
 /**
@@ -482,28 +642,38 @@ export function createGrepTool(
               files.push(absolutePath);
             }
           },
-          { signal }
+          { signal, timeout: GREP_TIMEOUT_MS }
         );
       }
+      const read = (file: string): Promise<string | undefined> =>
+        imageType(file)
+          ? Promise.resolve(undefined)
+          : operations.readFile(file).then(
+              data => data.toString('utf-8'),
+              () => undefined
+            );
+      // The reads run ahead of the search, which keeps the order of the files.
+      const reads = files.slice(0, GREP_READERS).map(read);
+      const deadline = Date.now() + GREP_TIMEOUT_MS;
+      let timedOut = false;
       const output: string[] = [];
       let matches = 0;
-      for (const file of files) {
+      for (const [position, file] of files.entries()) {
         if (signal?.aborted) {
           throw new Error('Operation aborted');
         }
         if (matches >= limit) {
           break;
         }
-        if (imageType(file)) {
-          continue;
+        if (Date.now() > deadline) {
+          timedOut = true;
+          break;
         }
-        let text: string;
-        try {
-          text = (await operations.readFile(file)).toString('utf-8');
-        } catch {
-          continue;
+        const text = await reads.shift();
+        if (position + GREP_READERS < files.length) {
+          reads.push(read(files[position + GREP_READERS]));
         }
-        if (text.includes('\u0000')) {
+        if (text === undefined || text.includes('\u0000')) {
           continue;
         }
         const lines = text.split('\n');
@@ -538,6 +708,11 @@ export function createGrepTool(
       }
       if (walkNotice) {
         notices.push(walkNotice);
+      }
+      if (timedOut) {
+        notices.push(
+          `read time limit of ${GREP_TIMEOUT_MS / 1000} s reached, results may be incomplete`
+        );
       }
       const text = output.length ? truncation.content : 'No matches found';
       const suffix = notices.length ? `\n\n[${notices.join('. ')}]` : '';

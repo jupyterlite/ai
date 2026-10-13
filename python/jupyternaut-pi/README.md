@@ -10,5 +10,7 @@ command of `jupyternaut-terminal`.
 pip install jupyternaut-pi
 ```
 
-Select **Pi** in the persona menu of a chat. Run **Pi: Set a Model Provider API
-Key** from the command palette to add a key.
+Select **Pi** in the persona menu of a chat. Run **Pi: Add a Model Provider**
+from the command palette to add, change or remove an API key, the OpenRouter
+sign-in or an OpenAI-compatible endpoint. A message to pi with no model opens
+the same dialog.
