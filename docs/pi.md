@@ -220,10 +220,10 @@ the OpenRouter key list.
   and kernel commands.
 - Shell commands run one at a time, read an empty input, and show their
   output when they end. They time out after 2 minutes unless pi asks for
-  another timeout; stopping a command restarts the shell. `&&`, `||`, `#`
-  comments, here documents and `exit` work. A command with a TAB character,
-  or a here document with text that is not ASCII, stops with a message: pi
-  writes these files with its file tools.
+  another timeout; stopping a command restarts the shell. `#` comments, here
+  documents and `exit` work. A command with `&&`, `||` or a TAB character, or
+  a here document with text that is not ASCII, stops with a message: pi runs
+  the commands one by one, and writes these files with its file tools.
 - Of the account sign-ins of `/login`, only OpenRouter works in the browser:
   the providers of the others do not accept requests from a web page (for
   ChatGPT, the model calls). `/share` and `/bug` do not work.

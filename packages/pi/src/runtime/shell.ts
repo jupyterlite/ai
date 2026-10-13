@@ -26,8 +26,8 @@ export const ANSI_PATTERN =
 
 const COCKLE_DESCRIPTION =
   'Execute a command line in cockle, the in-browser shell of JupyterLite (WebAssembly builds of common tools), in the current working directory. ' +
-  'Pipes (|), command lists (;, && and ||) and file redirections (>, >>, 2>, <) are supported. ' +
-  'Not supported: command substitution ($(...) or backticks), $VAR expansion, python, node, pip or network access. ' +
+  'Pipes (|), command lists (; or newlines) and file redirections (>, >>, 2>, <) are supported. ' +
+  'Not supported: && and || (run the commands in separate calls), command substitution ($(...) or backticks), $VAR expansion, python, node, pip or network access. ' +
   'stdout and stderr both go to the output (2>&1 has no effect). ' +
   'Commands read an empty stdin. ' +
   'Only /drive is shared with the file tools, the kernels and JupyterLab. ' +
@@ -53,11 +53,6 @@ const BYTE_RUNS = /[\uff80-\uffff]+/g;
 const PADDING = /^(?:\s|\\\n)+|(?:\s|\\\n)+$/g;
 
 interface IShellPart {
-  /**
-   * How the part runs after the part before: always, on success or on
-   * failure.
-   */
-  operator: ';' | '&&' | '||';
   code: string;
   /**
    * The files that the part writes with `>` or `>>`.
@@ -115,10 +110,10 @@ function exitCode(code: string): number | null | undefined {
 }
 
 /**
- * The pipelines of a command line, each run on its own: cockle has no `&&`,
- * `||` or `#` comments, and echoes the lines of a multi-line command. A
- * heredoc body stays as written with its command. Throws for what cockle
- * would run wrong, or wait on until the timeout.
+ * The pipelines of a command line, each run on its own: cockle has no `#`
+ * comments and echoes the lines of a multi-line command. A heredoc body stays
+ * as written with its command. Throws for what cockle would run wrong, or
+ * wait on until the timeout.
  */
 function commandParts(code: string): IShellPart[] {
   if (KEYS.test(code)) {
@@ -130,7 +125,7 @@ function commandParts(code: string): IShellPart[] {
   const text = `${code.replace(/\r\n?/g, '\n')}\n`;
   const parts: IShellPart[] = [];
   const heredocs: { part: IShellPart; delimiter: string }[] = [];
-  let part: IShellPart = { operator: ';', code: '' };
+  let part: IShellPart = { code: '' };
   let quoted = '';
   let piped = false;
   let input = false;
@@ -141,7 +136,7 @@ function commandParts(code: string): IShellPart[] {
     }
     piped = true;
   };
-  const close = (next: IShellPart['operator']) => {
+  const close = () => {
     if (part.code.trim()) {
       endCommand();
       part.code = part.code.replace(PADDING, '');
@@ -149,10 +144,8 @@ function commandParts(code: string): IShellPart[] {
         throw new Error('The command ends with |');
       }
       parts.push(part);
-      part = { operator: next, code: '' };
-    } else {
-      part = { operator: next === ';' ? part.operator : next, code: '' };
     }
+    part = { code: '' };
     piped = input = false;
   };
   for (let i = 0; i < text.length; i++) {
@@ -175,7 +168,7 @@ function commandParts(code: string): IShellPart[] {
         part.code += char;
         continue;
       }
-      close(';');
+      close();
       for (const { part: target, delimiter } of heredocs.splice(0)) {
         const start = text.indexOf(`\n${delimiter}\n`, i);
         if (start < 0 || delimiter.includes('\n')) {
@@ -203,11 +196,12 @@ function commandParts(code: string): IShellPart[] {
       i = end - 1;
       continue;
     } else if (text.startsWith('&&', i) || text.startsWith('||', i)) {
-      close(text.slice(i, i + 2) as IShellPart['operator']);
-      i++;
-      continue;
+      // cockle reads them as arguments of the command before.
+      throw new Error(
+        `cockle has no ${text.slice(i, i + 2)}: run the commands in separate calls`
+      );
     } else if (char === ';' || char === '&') {
-      close(';');
+      close();
       continue;
     } else if (char === '|') {
       endCommand();
@@ -248,7 +242,7 @@ function commandParts(code: string): IShellPart[] {
       `The command has no closing ${quoted} quote (cockle has no \\ escapes)`
     );
   }
-  close(';');
+  close();
   return parts;
 }
 
@@ -369,13 +363,6 @@ export class ShellRunner {
       let output = '';
       let last = moved;
       for (const part of parts) {
-        const failed = last.exitCode !== 0;
-        if (
-          (part.operator === '&&' && failed) ||
-          (part.operator === '||' && !failed)
-        ) {
-          continue;
-        }
         const exit = exitCode(part.code);
         if (exit !== undefined) {
           // cockle's exit stops the shell: the command would never finish.
