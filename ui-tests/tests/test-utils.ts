@@ -70,7 +70,7 @@ export async function openChatPanel(
   // Wait for the persona selector to appear, ensuring `to_persona` metadata is
   // stamped on the input model before the test sends its first message.
   const personaBtn = chatInput.locator('.jp-jai-personaControls-persona-btn');
-  await personaBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  await personaBtn.waitFor({ state: 'visible', timeout: 30_000 });
   return panel;
 }
 
