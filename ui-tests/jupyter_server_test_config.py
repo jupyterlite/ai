@@ -18,5 +18,8 @@ c.ContentsManager.allow_hidden = True
 # Ensure the server root is the ui-tests directory so `.agents/skills` is found.
 c.ServerApp.root_dir = str(Path(__file__).parent.resolve())
 
+# Select Jupyternaut in new chats: with the pi persona, a chat has two personas.
+c.PersonaManager.default_persona_id = "jupyternaut-frontend"
+
 # Uncomment to set server log level to debug level
 # c.ServerApp.log_level = "DEBUG"

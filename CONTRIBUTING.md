@@ -104,8 +104,8 @@ pip uninstall jupyternaut-terminal
 
 In development mode, you will also need to remove the symlink created by `jupyter-builder develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlinks named `@jupyterlite/ai`, `@jupyternaut/persona`,
-`@jupyternaut/pi` and `@jupyternaut/terminal` within that folder.
+folder is located. Then you can remove the symlinks named `@jupyternaut/persona`, `@jupyternaut/pi`
+and `@jupyternaut/terminal` within that folder.
 
 ## Packaging the extension
 

@@ -45,6 +45,13 @@ for JupyterLite):
 }
 ```
 
+In JupyterLab, the persona manager sets this option from the server
+configuration (for example in `jupyter_server_config.py`):
+
+```python
+c.PersonaManager.default_persona_id = "jupyternaut-frontend"
+```
+
 ## Choose a model
 
 Pi has its own model configuration, separate from the Jupyternaut settings. Pi

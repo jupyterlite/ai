@@ -1082,6 +1082,23 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyterlite-ai"
+source = { directory = "../python/jupyterlite-ai" }
+dependencies = [
+    { name = "jupyternaut-persona" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jupyter-book", marker = "extra == 'docs'" },
+    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
+    { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
+    { name = "jupyternaut-persona", specifier = "==0.20.1" },
+    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
+]
+provides-extras = ["docs", "jupyter"]
+
+[[package]]
 name = "jupyterlite-ai-demo"
 version = "0.1.0"
 source = { virtual = "." }
@@ -1090,6 +1107,7 @@ dependencies = [
     { name = "jupyterlab" },
     { name = "jupyterlab-day" },
     { name = "jupyterlab-night" },
+    { name = "jupyterlite-ai" },
     { name = "jupyterlite-core" },
     { name = "jupyterlite-pyodide-kernel" },
     { name = "jupyterlite-terminal" },
@@ -1104,6 +1122,7 @@ requires-dist = [
     { name = "jupyterlab", specifier = ">=4.5.0" },
     { name = "jupyterlab-day", specifier = ">=0.2.0" },
     { name = "jupyterlab-night", specifier = ">=0.5.2" },
+    { name = "jupyterlite-ai", directory = "../python/jupyterlite-ai" },
     { name = "jupyterlite-core", specifier = ">=0.8.6" },
     { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.5" },
     { name = "jupyterlite-terminal", specifier = ">=1.6.2" },
