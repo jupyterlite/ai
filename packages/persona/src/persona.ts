@@ -220,7 +220,7 @@ export class Persona implements IPersona {
         !this._respondedToIds.has(m.id) &&
         // AND message from user
         !m.sender.bot &&
-        // AND set up to respond to all user message (@jupyterlite/ai compatibility)
+        // AND set up to respond to all user messages
         (!this.requireMention ||
           // OR persona mentioned in the message
           m.mentions?.includes(this._persona) ||

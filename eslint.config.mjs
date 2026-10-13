@@ -19,7 +19,6 @@ export default defineConfig([
       '**/__tests__',
       'ui-tests',
       'demo',
-      'python/jupyterlite-ai/jupyterlite_ai',
       'python/jupyternaut-persona/jupyternaut_persona'
     ]
   },

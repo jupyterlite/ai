@@ -76,8 +76,8 @@ export interface IPersona {
 /**
  * Registry mapping chat models to their persona.
  *
- * Provided by `@jupyternaut/persona`. Other extensions (e.g. `@jupyterlite/ai`)
- * can consume this token to access the agent manager associated with a given chat.
+ * Provided by `@jupyternaut/persona`. Other extensions can consume this token to
+ * access the agent manager associated with a given chat.
  */
 export interface IPersonaRegistry {
   /**
