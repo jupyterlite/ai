@@ -1,3 +1,4 @@
+import { getBuiltinProviders } from '@earendil-works/pi-ai/providers/all';
 import {
   CredentialSynchronizationError,
   ModelRuntime
@@ -18,6 +19,11 @@ import { stripJsonComments } from 'pi-coding-agent-package/dist/utils/json.js';
 import { AGENT_DIR } from './vfs';
 
 const MODELS_FILE = path.join(AGENT_DIR, 'models.json');
+/**
+ * The keys of the endpoints go to auth.json, which stays in the browser, as
+ * the other keys: models.json is in the drive.
+ */
+const AUTH_FILE = path.join(AGENT_DIR, 'auth.json');
 
 /**
  * Provider ids whose API is reachable from a web page (CORS).
@@ -443,14 +449,18 @@ class ProviderDialog extends Dialog<Setup> {
 }
 
 /**
- * Read models.json as pi does: `//` comments and trailing commas are allowed.
+ * Read models.json or auth.json as pi does: `//` comments and trailing commas
+ * are allowed.
  */
-function readModels(trans: TranslationBundle): IModelsConfig | undefined {
-  if (!fs.existsSync(MODELS_FILE)) {
+function readConfig(
+  file: string,
+  trans: TranslationBundle
+): Record<string, unknown> | undefined {
+  if (!fs.existsSync(file)) {
     return {};
   }
   try {
-    const text = fs.readFileSync(MODELS_FILE, 'utf-8').replace(/^\uFEFF/, '');
+    const text = fs.readFileSync(file, 'utf-8').replace(/^\uFEFF/, '');
     const config = JSON.parse(stripJsonComments(text));
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
       throw new Error('the file is not a JSON object');
@@ -459,12 +469,27 @@ function readModels(trans: TranslationBundle): IModelsConfig | undefined {
   } catch (error) {
     Notification.error(
       trans.__(
-        'Cannot read the pi models (%1): %2',
-        MODELS_FILE,
+        'Cannot read %1: %2',
+        file,
         error instanceof Error ? error.message : String(error)
       )
     );
   }
+}
+
+/**
+ * The API key of auth.json for a provider.
+ */
+function storedKey(
+  auth: Record<string, unknown>,
+  providerId: string
+): string | undefined {
+  const credential = auth[providerId] as
+    | { type?: unknown; key?: unknown }
+    | undefined;
+  return credential?.type === 'api_key' && typeof credential.key === 'string'
+    ? credential.key
+    : undefined;
 }
 
 /**
@@ -475,13 +500,19 @@ function readModels(trans: TranslationBundle): IModelsConfig | undefined {
  */
 export async function addProvider(translator?: ITranslator): Promise<boolean> {
   const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-  const config = readModels(trans);
-  if (!config) {
+  const config: IModelsConfig | undefined = readConfig(MODELS_FILE, trans);
+  const auth = readConfig(AUTH_FILE, trans);
+  if (!config || !auth) {
     return false;
   }
   const runtime = await ModelRuntime.create();
   const endpoints = new Map(
-    Object.entries(config.providers ?? {}) as [string, IEndpointConfig][]
+    (Object.entries(config.providers ?? {}) as [string, IEndpointConfig][]).map(
+      ([name, endpoint]) => [
+        name,
+        { ...endpoint, apiKey: storedKey(auth, name) ?? endpoint.apiKey }
+      ]
+    )
   );
   const builtIns = new Set(
     runtime
@@ -563,17 +594,25 @@ export async function addProvider(translator?: ITranslator): Promise<boolean> {
   }
 
   // Another tab can change the models while the dialog is open.
-  const current = readModels(trans);
-  if (!current) {
+  const current: IModelsConfig | undefined = readConfig(MODELS_FILE, trans);
+  const currentAuth = readConfig(AUTH_FILE, trans);
+  if (!current || !currentAuth) {
     return false;
   }
+  // models.json can change a built-in provider: its key or sign-in stays.
+  const builtIn = (getBuiltinProviders() as string[]).includes(setup.name);
   if (setup.kind === 'remove') {
     delete current.providers?.[setup.name];
+    if (!builtIn) {
+      delete currentAuth[setup.name];
+    }
   } else {
     // Keep the settings that the form does not show (headers, model data).
-    const previous = (current.providers?.[setup.name] ?? {}) as {
+    const previous = { ...(current.providers?.[setup.name] as object) } as {
+      apiKey?: unknown;
       models?: { id: string }[];
     };
+    delete previous.apiKey;
     const models = new Map(previous.models?.map(model => [model.id, model]));
     current.providers = {
       ...current.providers,
@@ -581,11 +620,21 @@ export async function addProvider(translator?: ITranslator): Promise<boolean> {
         api: 'openai-completions',
         ...previous,
         baseUrl: setup.baseUrl,
-        apiKey: setup.apiKey ? escapeConfigValue(setup.apiKey) : 'none',
+        // pi uses the models of an endpoint that has a key.
+        ...(setup.apiKey ? {} : { apiKey: 'none' }),
         models: setup.models.map(id => models.get(id) ?? { id })
       }
     };
+    if (setup.apiKey) {
+      currentAuth[setup.name] = {
+        type: 'api_key',
+        key: escapeConfigValue(setup.apiKey)
+      };
+    } else if (!builtIn) {
+      delete currentAuth[setup.name];
+    }
   }
+  fs.writeFileSync(AUTH_FILE, JSON.stringify(currentAuth, null, 2));
   fs.writeFileSync(MODELS_FILE, JSON.stringify(current, null, 2));
   Notification.success(
     setup.kind === 'remove'

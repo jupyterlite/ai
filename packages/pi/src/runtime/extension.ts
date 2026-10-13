@@ -11,11 +11,11 @@ import { Text } from '@earendil-works/pi-tui';
 import { extractMimeBundles, type ITool } from '@jupyternaut/agent';
 
 import { driveAutocomplete } from './autocomplete';
-import { checkDrive } from './drive';
+import { checkPrivate } from './drive';
 import type { PiHost } from './host';
 import { modelView } from './mime';
 import { abortable, cockleOperations, type ShellRunner } from './shell';
-import { toContentsPath } from './vfs';
+import { drivePath, toContentsPath } from './vfs';
 
 /**
  * A user decision on a tool call.
@@ -68,7 +68,8 @@ const PREVIEW_LINES = 10;
  */
 export const JUPYTER_INSTRUCTIONS = `You are running inside JupyterLab (or JupyterLite), in the web browser of the user.
 - ${'`'}/drive${'`'} is the root of the JupyterLab file browser. The read, write, edit, ls, find and grep tools work on these files; use paths under /drive or relative to the working directory.
-- Only /drive is shared by the file tools, bash, the kernels and JupyterLab. The file tools keep the other paths (/tmp, ~) in the memory of the page: bash, the kernels and JupyterLab do not see them, and a reload removes them (except ~/.pi/agent). Put the files to keep or to share under /drive.
+- Only /drive is shared by the file tools, bash, the kernels and JupyterLab. The file tools keep the other paths (/tmp, ~) in the memory of the page: bash, the kernels and JupyterLab do not see them, and a reload removes them. Put the files to keep or to share under /drive.
+- The pi agent folder (~/.pi/agent in the pi docs) is /drive/.pi/agent: settings.json, models.json, sessions, skills, prompts. The keys of auth.json stay in the browser: the tools cannot read them.
 - The MCP servers come from the MCP settings of JupyterLab: pi does not read mcp.json.
 - The pi docs describe pi in Node.js. In the browser, the pi examples are not available, and pi extensions and packages from files, the account sign-in of /login (except OpenRouter), /share and /bug do not work.`;
 
@@ -166,7 +167,7 @@ const PATH_ARGUMENT = /^cwd$|path$/i;
 /**
  * The arguments of a JupyterLab command with contents paths: commands do not
  * know the /drive paths of the pi tools. As the tools, they cannot reach the
- * agent folder drive.
+ * credentials of the agent folder.
  */
 function commandInput(params: unknown): unknown {
   const { args } = (params ?? {}) as { args?: unknown };
@@ -178,7 +179,7 @@ function commandInput(params: unknown): unknown {
       return [key, value];
     }
     const contentsPath = toContentsPath(value) ?? value;
-    checkDrive(value, contentsPath);
+    checkPrivate(drivePath(contentsPath));
     return [key, contentsPath];
   });
   return { ...(params as object), args: Object.fromEntries(converted) };

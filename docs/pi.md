@@ -13,6 +13,14 @@ Pi brings its own agent loop: sessions saved to files, automatic retries,
 context compaction, skills, prompt templates, steering and follow-up messages,
 and the model providers of `@earendil-works/pi-ai`.
 
+We recommend `jupyternaut-pi` for JupyterLite, where no server can run pi.
+The `pi` command needs the JupyterLite terminal. With a Jupyter server, you can
+run pi itself on the server:
+[jupyter-ai-acp-client](https://github.com/jupyter-ai-contrib/jupyter-ai-acp-client)
+connects Jupyter AI to agents with the Agent Client Protocol (ACP). It has no
+pi persona, but a persona that derives from its `BaseAcpPersona` can start the
+[pi-acp](https://github.com/svkozak/pi-acp) adapter.
+
 ## Install
 
 ```bash
@@ -197,16 +205,26 @@ On a Jupyter server, the contents API hides dotfiles by default: set
 
 ## Where pi keeps its data
 
-The pi settings, credentials (`auth.json`), custom models (`models.json`) and
-sessions are kept in the browser (IndexedDB) for the origin of the page: the
-sites of one origin (for example the JupyterLite sites of one GitHub Pages
-account) share them. They are not written to the JupyterLab files.
+The pi agent folder (`~/.pi/agent` on a computer) is the hidden folder
+`.pi/agent` of the JupyterLab files (`/drive/.pi/agent` for pi). It has the
+settings (`settings.json`, `keybindings.json`), the custom models
+(`models.json`), the sessions, and the global `AGENTS.md`, prompts, skills and
+themes. Run **Pi: Open the Agent Folder** to open it in the file browser, and
+edit its files as on a computer: pi reads the changes. Pi can also change
+these files with its tools, after your approval.
 
-Run **Pi: Open the Agent Folder** to see this folder (`~/.pi/agent`) in a file
-browser: edit `settings.json`, `keybindings.json`, `models.json`, a global
-`AGENTS.md`, prompts, skills and themes, as on a computer. `auth.json` is not
-shown: the provider dialog and `/login` manage the keys. The folder keeps text
-files only, and an empty folder is not kept.
+The credentials (`auth.json`: the API keys, also the keys of the
+OpenAI-compatible endpoints, and the OpenRouter sign-in) are not in the files.
+They are kept in the browser (IndexedDB) for the origin of the page: the sites
+of one origin (for example the JupyterLite sites of one GitHub Pages account)
+share them. The pi tools cannot read them. The provider dialog, `/login` and
+`/logout` manage them. Do not put keys in `models.json`, which is in the
+files.
+
+With a Jupyter server, `.pi/agent` is in the root folder of the server. The
+server must allow the hidden files, as the server extension of the Jupyter AI
+persona manager does. Else pi keeps its settings and sessions only in the
+memory of the page, and shows a warning.
 
 The API keys are stored unencrypted: all the code of the origin can read them,
 also the JupyterLite kernels. Use keys with a spending limit, and remove them
@@ -230,8 +248,8 @@ the OpenRouter key list.
 - Pi extensions and packages from files (`.pi/extensions`, the packages of the
   settings) do not load in the browser, and the pi examples are not included.
 - The browser keeps some keys (Ctrl+T, Ctrl+N, Ctrl+W), so outside macOS pi
-  uses Alt+T, Alt+N, Alt+Q, Alt+P and Shift+Alt+Up/Down for them. This applies
-  when pi writes `keybindings.json`, the first time.
+  uses Alt+T, Alt+N, Alt+Q, Alt+P and Shift+Alt+Up/Down for them, until
+  `.pi/agent/keybindings.json` exists.
 - Two fast presses on Escape move the focus out of the terminal in JupyterLab
   4.6: type `/tree` in place of Escape Escape.
 - In chats that a Jupyter server synchronizes, jupyterlab-chat 0.25 drops the

@@ -1,4 +1,5 @@
 import { Notification } from '@jupyterlab/apputils';
+import { PageConfig } from '@jupyterlab/coreutils';
 import type { Contents } from '@jupyterlab/services';
 import { nullTranslator, type ITranslator } from '@jupyterlab/translation';
 import fs from 'fs';
@@ -8,8 +9,9 @@ import path from 'path';
 import type { DriveOperations } from './drive';
 
 /**
- * The pi agent folder (settings, credentials, sessions) in the in-memory file
- * system. Each of its files is saved in the IndexedDB of the page.
+ * The pi agent folder (settings, sessions, skills, extensions) in the
+ * in-memory file system, where pi reads it. It is saved to `.pi/agent` in the
+ * drive, except the credentials.
  */
 export const AGENT_DIR = process.env.PI_CODING_AGENT_DIR!;
 
@@ -35,12 +37,36 @@ export function drivePath(contentsPath: string): string {
   return contentsPath ? `${DRIVE}/${contentsPath}` : DRIVE;
 }
 
+/**
+ * Files of the agent folder that stay in the IndexedDB of the page: the API
+ * keys do not go to the drive, which the tools, the kernels and a Jupyter
+ * server read.
+ */
+const PRIVATE_FILES = new Set(['auth.json']);
+
+export function isAgentPath(file: string): boolean {
+  return file === AGENT_DIR || file.startsWith(`${AGENT_DIR}/`);
+}
+
+export function isPrivateFile(file: string): boolean {
+  const normalized = path.posix.normalize(file);
+  return (
+    path.posix.dirname(normalized) === AGENT_DIR &&
+    PRIVATE_FILES.has(path.posix.basename(normalized))
+  );
+}
+
 const DATABASE = 'jupyternaut-pi';
 /**
- * One record for each file of the agent folder, keyed by its path.
+ * One record for each private file, keyed by its name.
  */
 const FILES = 'files';
 const SAVE_DELAY_MS = 500;
+/**
+ * The drive files that load at the same time: browsers open 6 connections to
+ * a server.
+ */
+const LOADERS = 6;
 
 /**
  * Outside macOS, the browser keeps keys such as Ctrl+T, Ctrl+N and Ctrl+W,
@@ -65,6 +91,8 @@ const KEYBINDINGS = {
   ...(/Mac/i.test(navigator.platform) ? {} : BROWSER_KEYBINDINGS)
 };
 
+const KEYBINDINGS_FILE = path.posix.join(AGENT_DIR, 'keybindings.json');
+
 const CONTEXT_FILES = new Set([
   'AGENTS.override.md',
   'AGENTS.md',
@@ -80,7 +108,7 @@ const MAX_MIRRORED_SIZE = 512 * 1024;
 export const volume = (fs as unknown as { vol: Volume }).vol;
 
 /**
- * A saved file: pi orders the sessions by modification time.
+ * A file of the agent folder: pi orders the sessions by modification time.
  */
 interface IStoredFile {
   data: string;
@@ -88,28 +116,43 @@ interface IStoredFile {
 }
 
 /**
- * Saved files by path, null for a removed file.
+ * Files by path, null for a removed file.
  */
 type FileChanges = Record<string, IStoredFile | null>;
 
+let drive: DriveOperations;
 let database: IDBDatabase | undefined;
 let opening: Promise<IDBDatabase> | undefined;
 let channel: BroadcastChannel | undefined;
 let restoring: Promise<void> | undefined;
 let reloading = Promise.resolve();
 /**
- * A tab that cannot load the agent folder does not save it: its files would
- * replace the saved ones.
+ * A tab that cannot load the credentials or the files of the drive does not
+ * save them: its files would replace the saved ones.
  */
-let loaded = false;
+let privateLoaded = false;
+let driveLoaded = false;
 let trans = nullTranslator.load('jupyterlite_ai');
 let saveTimer: number | undefined;
 const dirty = new Set<string>();
 let uploadTimer: number | undefined;
 const uploads = new Set<string>();
+let writes = Promise.resolve();
+let pendingWrites = 0;
+/**
+ * The contents paths that this tab writes: their changes are not changes
+ * from outside.
+ */
+const writing = new Set<string>();
+/**
+ * The agent files that are in the drive, to delete the removed ones.
+ */
+const savedFiles = new Set<string>();
+let saveFailed = false;
 
-function isAgentPath(file: string): boolean {
-  return file === AGENT_DIR || file.startsWith(`${AGENT_DIR}/`);
+function isMissing(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return code === 'ENOENT' || code === 'ENOTDIR';
 }
 
 /**
@@ -165,35 +208,27 @@ function transact<T>(
   });
 }
 
-async function readFiles(): Promise<FileChanges> {
-  const { keys, values } = await transact(
-    await openDatabase(),
-    'readonly',
-    store => ({ keys: store.getAllKeys(), values: store.getAll() })
+async function readPrivateFiles(files: string[]): Promise<FileChanges> {
+  const requests = await transact(await openDatabase(), 'readonly', store =>
+    files.map(file => store.get(path.posix.basename(file)))
   );
   return Object.fromEntries(
-    keys.result.map((key, index) => [String(key), values.result[index]])
+    files.map((file, index) => [file, requests[index].result ?? null])
   );
 }
 
 /**
- * Write a file into the in-memory file system, without saving it again. The
- * first builds saved the text of a file only.
+ * Write a file into the in-memory file system, without saving it again.
  */
-function applyFile(file: string, stored: IStoredFile | string | null): void {
+function applyFile(file: string, stored: IStoredFile | null): void {
   try {
     if (stored === null) {
       volume.rmSync(file, { force: true, recursive: true });
       return;
     }
-    const data = typeof stored === 'string' ? stored : stored.data;
-    if (typeof data !== 'string') {
-      console.warn(`pi: cannot restore ${file}: unknown record`, stored);
-      return;
-    }
     volume.mkdirSync(path.posix.dirname(file), { recursive: true });
-    volume.writeFileSync(file, data);
-    if (typeof stored !== 'string' && Number.isFinite(stored.mtime)) {
+    volume.writeFileSync(file, stored.data);
+    if (Number.isFinite(stored.mtime)) {
       const time = new Date(stored.mtime);
       volume.utimesSync(file, time, time);
     }
@@ -202,18 +237,134 @@ function applyFile(file: string, stored: IStoredFile | string | null): void {
   }
 }
 
+/**
+ * pi reads the keys of the browser from keybindings.json: they stay in memory
+ * until the drive has this file.
+ */
+function applyDefaults(): void {
+  if (!volume.existsSync(KEYBINDINGS_FILE)) {
+    volume.mkdirSync(AGENT_DIR, { recursive: true });
+    volume.writeFileSync(
+      KEYBINDINGS_FILE,
+      JSON.stringify(KEYBINDINGS, null, 2)
+    );
+  }
+}
+
+/**
+ * The files below a folder of the drive, with their modification times.
+ */
+async function listDriveFiles(folder: string): Promise<Map<string, number>> {
+  const files = new Map<string, number>();
+  const queue = [folder];
+  while (queue.length) {
+    const current = queue.shift()!;
+    let entries: Contents.IModel[];
+    try {
+      entries = await drive.list(toContentsPath(current)!);
+    } catch (error) {
+      if (isMissing(error)) {
+        continue;
+      }
+      throw error;
+    }
+    for (const entry of entries) {
+      const file = drivePath(entry.path);
+      if (entry.type === 'directory') {
+        queue.push(file);
+      } else if (!isPrivateFile(file)) {
+        files.set(file, Date.parse(entry.last_modified));
+      }
+    }
+  }
+  return files;
+}
+
+/**
+ * Copy files of the drive into the in-memory file system.
+ */
+async function loadDriveFiles(files: Map<string, number>): Promise<void> {
+  const queue = [...files];
+  const load = async () => {
+    for (let item = queue.shift(); item; item = queue.shift()) {
+      const [file, mtime] = item;
+      try {
+        const data = await drive.readFile(file);
+        applyFile(file, { data: data.toString('utf-8'), mtime });
+        savedFiles.add(file);
+      } catch (error) {
+        if (!isMissing(error)) {
+          throw error;
+        }
+        applyFile(file, null);
+        savedFiles.delete(file);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: LOADERS }, load));
+}
+
+/**
+ * The files of the in-memory file system at or below a path.
+ */
+function localFiles(file: string): string[] {
+  try {
+    if (!volume.statSync(file).isDirectory()) {
+      return [file];
+    }
+  } catch {
+    return [];
+  }
+  return (volume.readdirSync(file) as string[]).flatMap(name =>
+    localFiles(path.posix.join(file, name))
+  );
+}
+
+/**
+ * Load a file or a folder of the drive again; the saved files that are gone
+ * from it are removed. Resolves with the changed files.
+ */
+async function reloadFromDrive(file: string): Promise<string[]> {
+  let files = new Map<string, number>();
+  try {
+    files = (await drive.stat(file)).isDirectory()
+      ? await listDriveFiles(file)
+      : new Map([[file, Date.now()]]);
+  } catch (error) {
+    if (!isMissing(error)) {
+      throw error;
+    }
+  }
+  const removed = localFiles(file).filter(
+    local => savedFiles.has(local) && !files.has(local)
+  );
+  for (const local of removed) {
+    volume.rmSync(local, { force: true });
+    savedFiles.delete(local);
+  }
+  await loadDriveFiles(files);
+  return [...removed, ...files.keys()];
+}
+
 const listeners = new Set<(files: string[]) => void>();
 
 /**
- * Call a function with the agent files that change, in this tab or another.
+ * Call a function with the agent files that change, in this tab or outside.
  */
 export function onAgentFilesChange(listener: (files: string[]) => void): void {
   listeners.add(listener);
 }
 
+function notify(files: string[]): void {
+  for (const listener of listeners) {
+    listener(files);
+  }
+}
+
 /**
- * Load the files that another tab saved. The database has the last version
- * of each file, the messages of the tabs can arrive in another order.
+ * Load the agent files that changed outside the pi of this tab: in another
+ * tab, in a JupyterLab editor or with a tool. These changes replace the
+ * changes that this tab did not save yet.
  */
 function reloadFiles(files: unknown): void {
   if (!Array.isArray(files)) {
@@ -222,20 +373,52 @@ function reloadFiles(files: unknown): void {
   const paths = files.filter(
     (file): file is string => typeof file === 'string' && isAgentPath(file)
   );
+  if (!paths.length) {
+    return;
+  }
   reloading = reloading
     .then(async () => {
-      const requests = await transact(await openDatabase(), 'readonly', store =>
-        paths.map(file => [file, store.get(file)] as const)
-      );
-      for (const [file, request] of requests) {
+      const changed: string[] = [];
+      for (const file of paths) {
         dirty.delete(file);
-        applyFile(file, request.result ?? null);
+        if (isPrivateFile(file)) {
+          const stored = await readPrivateFiles([file]);
+          applyFile(file, stored[file]);
+          changed.push(file);
+        } else {
+          changed.push(...(await reloadFromDrive(file)));
+        }
       }
-      for (const listener of listeners) {
-        listener(paths);
-      }
+      applyDefaults();
+      notify(changed);
     })
     .catch(error => console.warn('pi: cannot load the changed files', error));
+}
+
+/**
+ * Load the agent files that a JupyterLab editor or a tool changes, also in
+ * the other tabs. A new folder changes no file.
+ */
+function onDriveChange(
+  sender: Contents.IManager,
+  change: Contents.IChangedArgs
+): void {
+  if (change.type !== 'rename' && change.newValue?.type === 'directory') {
+    return;
+  }
+  const files = [change.oldValue?.path, change.newValue?.path]
+    .filter(
+      (contentsPath): contentsPath is string =>
+        typeof contentsPath === 'string' && !writing.has(contentsPath)
+    )
+    .map(drivePath)
+    // A deleted or renamed `.pi` folder changes the whole agent folder.
+    .map(file => (AGENT_DIR.startsWith(`${file}/`) ? AGENT_DIR : file))
+    .filter(file => isAgentPath(file) && !isPrivateFile(file));
+  if (files.length) {
+    reloadFiles(files);
+    channel?.postMessage(files);
+  }
 }
 
 /**
@@ -272,8 +455,107 @@ function readChanges(file: string, changes: FileChanges): void {
 }
 
 /**
- * Save the changed files. The transaction starts at once when the database
- * is open, also while the page closes.
+ * Save the credentials. The transaction starts at once when the database is
+ * open, also while the page closes.
+ */
+function savePrivateFiles(files: string[], changes: FileChanges): void {
+  const write = (db: IDBDatabase) =>
+    transact(db, 'readwrite', store => {
+      for (const file of files) {
+        const content = changes[file];
+        const key = path.posix.basename(file);
+        if (content === null) {
+          store.delete(key);
+        } else {
+          store.put(content, key);
+        }
+      }
+    });
+  (database ? write(database) : openDatabase().then(write)).then(
+    () => channel?.postMessage(files),
+    error => {
+      console.error('pi: cannot save the credentials', error);
+      // The next save tries again.
+      for (const file of files) {
+        dirty.add(file);
+      }
+    }
+  );
+}
+
+async function writeDriveFile(file: string, data: string): Promise<void> {
+  try {
+    await drive.writeFile(file, data);
+  } catch {
+    // The first file of a folder creates the folder.
+    await drive.mkdir(path.posix.dirname(file));
+    await drive.writeFile(file, data);
+  }
+}
+
+/**
+ * Delete a removed file or folder from the drive, when it was saved.
+ */
+async function removeDriveFiles(file: string): Promise<void> {
+  const saved = [...savedFiles].filter(
+    savedFile => savedFile === file || savedFile.startsWith(`${file}/`)
+  );
+  if (!saved.length) {
+    return;
+  }
+  try {
+    await drive.remove(file);
+  } catch (error) {
+    if (!isMissing(error)) {
+      throw error;
+    }
+  }
+  for (const savedFile of saved) {
+    savedFiles.delete(savedFile);
+  }
+}
+
+/**
+ * Save files of the agent folder to the drive, as they are when their turn
+ * comes: a change from outside can load a newer file meanwhile. A failed file
+ * is saved with its next change, as pi writes whole files.
+ */
+async function writeDrive(files: string[]): Promise<void> {
+  for (const file of files) {
+    const contentsPath = toContentsPath(file)!;
+    const content = readChange(file);
+    if (content === undefined) {
+      continue;
+    }
+    writing.add(contentsPath);
+    try {
+      if (content) {
+        await writeDriveFile(file, content.data);
+        savedFiles.add(file);
+      } else {
+        await removeDriveFiles(file);
+      }
+      saveFailed = false;
+    } catch (error) {
+      console.warn(`pi: cannot save ${file}`, error);
+      if (!saveFailed) {
+        saveFailed = true;
+        Notification.error(
+          trans.__(
+            'Cannot save the pi files to %1: %2',
+            toContentsPath(AGENT_DIR),
+            error instanceof Error ? error.message : String(error)
+          )
+        );
+      }
+    } finally {
+      writing.delete(contentsPath);
+    }
+  }
+}
+
+/**
+ * Save the changed files of the agent folder.
  */
 function save(): void {
   window.clearTimeout(saveTimer);
@@ -288,35 +570,30 @@ function save(): void {
     return;
   }
   // A tab does not get its own messages on the channel.
-  for (const listener of listeners) {
-    listener(files);
+  notify(files);
+  const privateFiles = files.filter(isPrivateFile);
+  const driveFiles = files.filter(file => !isPrivateFile(file));
+  if (privateFiles.length && privateLoaded) {
+    savePrivateFiles(privateFiles, changes);
   }
-  if (!loaded) {
-    return;
+  if (driveFiles.length && driveLoaded) {
+    pendingWrites++;
+    writes = writes
+      .then(() => writeDrive(driveFiles))
+      .then(() => channel?.postMessage(driveFiles))
+      .finally(() => pendingWrites--);
   }
-  const write = (db: IDBDatabase) =>
-    transact(db, 'readwrite', store => {
-      for (const file of files) {
-        // Drop the files below a path that was a directory.
-        store.delete(IDBKeyRange.bound(`${file}/`, `${file}0`, false, true));
-        const content = changes[file];
-        if (content === null) {
-          store.delete(file);
-        } else {
-          store.put(content, file);
-        }
-      }
-    });
-  (database ? write(database) : openDatabase().then(write)).then(
-    () => channel?.postMessage(files),
-    error => {
-      console.error('pi: cannot save the agent folder', error);
-      // The next save tries again.
-      for (const file of files) {
-        dirty.add(file);
-      }
-    }
-  );
+}
+
+/**
+ * Ask before the page closes while files of the agent folder are not saved:
+ * the contents requests stop with the page.
+ */
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  save();
+  if (pendingWrites) {
+    event.preventDefault();
+  }
 }
 
 /**
@@ -325,12 +602,9 @@ function save(): void {
  */
 function upload(): void {
   uploadTimer = undefined;
-  const { drive } = fs as unknown as {
-    drive?: Pick<DriveOperations, 'mkdir' | 'writeFile'>;
-  };
   for (const file of uploads) {
     const content = readChange(file);
-    if (content && drive) {
+    if (content) {
       // pi already reported the write: show a failure.
       drive
         .mkdir(path.posix.dirname(file))
@@ -360,53 +634,95 @@ function onChange(changed: string): void {
   }
 }
 
-async function restore(): Promise<void> {
+async function restore(options: IRestoreOptions): Promise<void> {
+  drive = options.drive;
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel(DATABASE);
     channel.onmessage = event => reloadFiles(event.data);
   }
-  // The files that other tabs save while the folder loads are loaded after it.
-  reloading = readFiles()
-    .catch(() => readFiles())
+  const privateFiles = [...PRIVATE_FILES].map(name =>
+    path.posix.join(AGENT_DIR, name)
+  );
+  const loadPrivate = readPrivateFiles(privateFiles)
+    .catch(() => readPrivateFiles(privateFiles))
     .then(
-      files => {
-        for (const [file, content] of Object.entries(files)) {
+      stored => {
+        for (const [file, content] of Object.entries(stored)) {
           applyFile(file, content);
         }
-        loaded = true;
+        privateLoaded = true;
+      },
+      error => {
+        console.warn('pi: cannot load the credentials', error);
+        Notification.warning(
+          trans.__(
+            'Cannot load the pi keys: the keys added in this tab are not saved.'
+          )
+        );
+      }
+    );
+  // A Jupyter server that refuses the hidden files saves them, then hides
+  // them on the next load: pi would replace its saved settings.
+  const hiddenAllowed = PageConfig.getOption('allow_hidden_files') !== 'false';
+  const loadDrive = (
+    hiddenAllowed
+      ? listDriveFiles(AGENT_DIR)
+      : Promise.reject(
+          new Error(
+            trans.__(
+              'the server does not allow hidden files (c.ContentsManager.allow_hidden)'
+            )
+          )
+        )
+  )
+    .then(loadDriveFiles)
+    .then(
+      () => {
+        driveLoaded = true;
       },
       error => {
         console.warn('pi: cannot load the agent folder', error);
         Notification.warning(
           trans.__(
-            'Cannot load the pi settings and sessions: the changes in this tab are not saved.'
+            'Cannot load the pi settings and sessions from %1: %2. The changes in this tab are not saved.',
+            toContentsPath(AGENT_DIR),
+            error instanceof Error ? error.message : String(error)
           )
         );
       }
     );
+  // The files that change while the folder loads are loaded after it.
+  reloading = Promise.all([loadPrivate, loadDrive]).then(() => undefined);
+  options.contents.fileChanged.connect(onDriveChange);
   await reloading;
   (fs as unknown as { onChange: (changed: string) => void }).onChange =
     onChange;
+  window.addEventListener('beforeunload', onBeforeUnload);
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       save();
     }
   });
-  fs.mkdirSync(AGENT_DIR, { recursive: true });
-  const keybindings = path.join(AGENT_DIR, 'keybindings.json');
-  if (!fs.existsSync(keybindings)) {
-    fs.writeFileSync(keybindings, JSON.stringify(KEYBINDINGS, null, 2));
-  }
+  applyDefaults();
+}
+
+interface IRestoreOptions {
+  contents: Contents.IManager;
+  /**
+   * The file operations on the drive.
+   */
+  drive: DriveOperations;
+  translator?: ITranslator;
 }
 
 /**
- * Load the saved agent folder into the in-memory file system, then save each
- * changed file and take the files that other tabs save.
+ * Load the agent folder into the in-memory file system, then save each
+ * changed file and take the files that change outside pi.
  */
-export function restoreAgentDir(translator?: ITranslator): Promise<void> {
-  trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-  return (restoring ??= restore());
+export function restoreAgentDir(options: IRestoreOptions): Promise<void> {
+  trans = (options.translator ?? nullTranslator).load('jupyterlite_ai');
+  return (restoring ??= restore(options));
 }
 
 /**
@@ -513,7 +829,11 @@ export class DriveMirror {
     }
     for (const entry of await this._list(contentsPath)) {
       if (entry.type === 'directory') {
-        if (!SKIPPED_RESOURCES.has(entry.name)) {
+        // The agent folder is already in memory, with its unsaved changes.
+        if (
+          !SKIPPED_RESOURCES.has(entry.name) &&
+          !isAgentPath(drivePath(entry.path))
+        ) {
           await this._copyTree(entry.path, depth + 1, files);
         }
       } else if ((entry.size ?? 0) <= MAX_MIRRORED_SIZE) {

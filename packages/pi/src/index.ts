@@ -7,29 +7,27 @@ import type {
 } from '@jupyterlab/application';
 import { ICommandPalette } from '@jupyterlab/apputils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { IFileBrowserFactory, type FileBrowser } from '@jupyterlab/filebrowser';
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
-import { folderFavoriteIcon } from '@jupyterlab/ui-components';
 import { IAISettingsModel, IToolRegistry } from '@jupyternaut/agent';
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { PiAgent } from './agent';
-import { AgentFolderDrive } from './folder';
 // The chats that are already open get the persona at activation.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
 import { attachPiChat } from './persona';
-import { AGENT_DRIVE, IPiAgent } from './tokens';
+import { IPiAgent } from './tokens';
 
 namespace CommandIds {
   export const addProvider = '@jupyternaut/pi:add-provider';
   export const openAgentFolder = '@jupyternaut/pi:open-agent-folder';
 }
 
-const SETTINGS_FILE = `${AGENT_DRIVE}:settings.json`;
+const GO_TO_PATH = 'filebrowser:go-to-path';
 
 /**
- * The pi agent, and the command to add a model provider.
+ * The pi agent, and the commands to add a model provider and to show the
+ * agent folder.
  */
 const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
   id: '@jupyternaut/pi:agent',
@@ -70,10 +68,24 @@ const agentPlugin: JupyterFrontEndPlugin<IPiAgent> = {
       describedBy: { args: { type: 'object', properties: {} } },
       execute: async () => (await agent.load()).host.addProvider()
     });
-    palette?.addItem({
-      command: CommandIds.addProvider,
-      category: trans.__('Pi')
+    app.commands.addCommand(CommandIds.openAgentFolder, {
+      label: trans.__('Pi: Open the Agent Folder'),
+      caption: trans.__(
+        'Show the settings, sessions, skills and extensions of pi in the file browser'
+      ),
+      describedBy: { args: { type: 'object', properties: {} } },
+      isEnabled: () => app.commands.hasCommand(GO_TO_PATH),
+      execute: async () => {
+        const path = await (await agent.load()).host.createAgentFolder();
+        await app.commands.execute(GO_TO_PATH, { path });
+      }
     });
+    for (const command of [
+      CommandIds.addProvider,
+      CommandIds.openAgentFolder
+    ]) {
+      palette?.addItem({ command, category: trans.__('Pi') });
+    }
     return agent;
   }
 };
@@ -117,72 +129,6 @@ const personaPlugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-/**
- * The pi agent folder as the `pi` drive, and the command to show it in a file
- * browser.
- */
-const agentFolderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyternaut/pi:agent-folder',
-  description: 'Show the pi agent folder in a file browser',
-  autoStart: true,
-  requires: [IPiAgent],
-  optional: [
-    IFileBrowserFactory,
-    IDocumentManager,
-    ICommandPalette,
-    ITranslator
-  ],
-  activate: (
-    app: JupyterFrontEnd,
-    agent: IPiAgent,
-    browserFactory: IFileBrowserFactory | null,
-    documentManager: IDocumentManager | null,
-    palette: ICommandPalette | null,
-    translator: ITranslator | null
-  ): void => {
-    if (!(agent instanceof PiAgent)) {
-      return;
-    }
-    const trans = (translator ?? nullTranslator).load('jupyterlite_ai');
-    const { contents, serverSettings } = app.serviceManager;
-    contents.addDrive(new AgentFolderDrive(agent, serverSettings));
-    let browser: FileBrowser | undefined;
-    app.commands.addCommand(CommandIds.openAgentFolder, {
-      label: trans.__('Pi: Open the Agent Folder'),
-      caption: trans.__(
-        'Show the settings, credentials, sessions and skills of pi'
-      ),
-      describedBy: { args: { type: 'object', properties: {} } },
-      execute: async () => {
-        if (browserFactory) {
-          if (!browser || browser.isDisposed) {
-            browser = browserFactory.createFileBrowser('pi-agent-folder', {
-              driveName: AGENT_DRIVE
-            });
-            browser.title.caption = trans.__('Pi Agent Folder');
-            browser.title.icon = folderFavoriteIcon;
-            app.shell.add(browser, 'left', { rank: 300 });
-          }
-          app.shell.activateById(browser.id);
-        } else if (documentManager) {
-          await contents.get(SETTINGS_FILE, { content: false }).catch(() =>
-            contents.save(SETTINGS_FILE, {
-              type: 'file',
-              format: 'text',
-              content: '{}\n'
-            })
-          );
-          documentManager.openOrReveal(SETTINGS_FILE);
-        }
-      }
-    });
-    palette?.addItem({
-      command: CommandIds.openAgentFolder,
-      category: trans.__('Pi')
-    });
-  }
-};
-
-export default [agentPlugin, personaPlugin, agentFolderPlugin];
+export default [agentPlugin, personaPlugin];
 
 export { IPiAgent } from './tokens';

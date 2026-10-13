@@ -3520,32 +3520,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/docmanager@npm:^4.6.4":
-  version: 4.6.4
-  resolution: "@jupyterlab/docmanager@npm:4.6.4"
-  dependencies:
-    "@jupyterlab/apputils": ^4.7.4
-    "@jupyterlab/coreutils": ^6.6.4
-    "@jupyterlab/docregistry": ^4.6.4
-    "@jupyterlab/rendermime": ^4.6.4
-    "@jupyterlab/services": ^7.6.4
-    "@jupyterlab/statedb": ^4.6.4
-    "@jupyterlab/statusbar": ^4.6.4
-    "@jupyterlab/translation": ^4.6.4
-    "@jupyterlab/ui-components": ^4.6.4
-    "@lumino/algorithm": ^2.0.4
-    "@lumino/coreutils": ^2.2.2
-    "@lumino/disposable": ^2.1.5
-    "@lumino/messaging": ^2.0.4
-    "@lumino/polling": ^2.1.5
-    "@lumino/properties": ^2.0.4
-    "@lumino/signaling": ^2.1.5
-    "@lumino/widgets": ^2.8.0
-    react: ^18.2.0
-  checksum: 07988640d0eec3f7c1eac3b79879dfd702e8d02cd59b5cb0ae3f76cddb66cb914592e860115e3ddc9859ae33a748e21cea2d3d3dae19f1448c51307e31893589
-  languageName: node
-  linkType: hard
-
 "@jupyterlab/docregistry@npm:^4.5.0, @jupyterlab/docregistry@npm:^4.5.8, @jupyterlab/docregistry@npm:^4.6.3":
   version: 4.6.3
   resolution: "@jupyterlab/docregistry@npm:4.6.3"
@@ -3642,34 +3616,6 @@ __metadata:
     "@lumino/widgets": ^2.8.0
     react: ^18.2.0
   checksum: 5853ea95eaa98e2a13abbdad2f669a5e3dbf506e5915761242f7761fae46118788e966a5a84c714250bfa61c190e565547635d9911eb38e3e08e549bd5f5ecb8
-  languageName: node
-  linkType: hard
-
-"@jupyterlab/filebrowser@npm:^4.5.8":
-  version: 4.6.4
-  resolution: "@jupyterlab/filebrowser@npm:4.6.4"
-  dependencies:
-    "@jupyterlab/apputils": ^4.7.4
-    "@jupyterlab/coreutils": ^6.6.4
-    "@jupyterlab/docmanager": ^4.6.4
-    "@jupyterlab/docregistry": ^4.6.4
-    "@jupyterlab/services": ^7.6.4
-    "@jupyterlab/statedb": ^4.6.4
-    "@jupyterlab/statusbar": ^4.6.4
-    "@jupyterlab/translation": ^4.6.4
-    "@jupyterlab/ui-components": ^4.6.4
-    "@lumino/algorithm": ^2.0.4
-    "@lumino/coreutils": ^2.2.2
-    "@lumino/disposable": ^2.1.5
-    "@lumino/domutils": ^2.0.4
-    "@lumino/dragdrop": ^2.1.8
-    "@lumino/messaging": ^2.0.4
-    "@lumino/polling": ^2.1.5
-    "@lumino/signaling": ^2.1.5
-    "@lumino/virtualdom": ^2.0.4
-    "@lumino/widgets": ^2.8.0
-    react: ^18.2.0
-  checksum: 0f77fa6b73696f33f747dea7f80e30e2c4d0a7e87598018453ded76adbd1e422350bb97ac582e4e8ff849c15025a91a70fcb4b42af6533686111fbba9cac6b9d
   languageName: node
   linkType: hard
 
@@ -4436,11 +4382,10 @@ __metadata:
     "@jupyter/chat": ^0.25.0
     "@jupyterlab/application": ^4.5.8
     "@jupyterlab/apputils": ^4.6.8
+    "@jupyterlab/coreutils": ^6.5.8
     "@jupyterlab/docmanager": ^4.5.8
-    "@jupyterlab/filebrowser": ^4.5.8
     "@jupyterlab/services": ^7.5.8
     "@jupyterlab/translation": ^4.5.8
-    "@jupyterlab/ui-components": ^4.5.8
     "@jupyterlite/cockle": ^1.7.1
     "@jupyternaut/agent": ^0.20.1
     "@lumino/commands": ^2.3.2

@@ -61,7 +61,8 @@ import {
   DRIVE,
   DriveMirror,
   onAgentFilesChange,
-  restoreAgentDir
+  restoreAgentDir,
+  toContentsPath
 } from './vfs';
 
 /**
@@ -69,7 +70,7 @@ import {
  */
 const CONFIG_FILES = new Set(['auth.json', 'models.json', 'settings.json']);
 /**
- * Outside the agent folder: the folder is saved in IndexedDB.
+ * Outside the agent folder: the folder is saved to the drive.
  */
 const MCP_LOG = '/tmp/pi-mcp.log';
 const EXECUTE_IN_KERNEL = 'jupyterlab-ai-commands:execute-in-kernel';
@@ -151,7 +152,11 @@ export class PiHost {
         commands: Map<string, ReturnType<typeof fdCommand>>;
       }
     ).commands.set('fd', fdCommand(this._operations));
-    this.ready = restoreAgentDir(options.translator);
+    this.ready = restoreAgentDir({
+      contents,
+      drive: this._operations,
+      translator: options.translator
+    });
     onAgentFilesChange(files => {
       if (files.some(file => CONFIG_FILES.has(path.posix.basename(file)))) {
         this._configChanged.emit();
@@ -204,6 +209,14 @@ export class PiHost {
    */
   addProvider(): Promise<boolean> {
     return addProvider(this._options.translator);
+  }
+
+  /**
+   * Create the agent folder in the drive; resolves with its contents path.
+   */
+  async createAgentFolder(): Promise<string> {
+    await this._operations.mkdir(AGENT_DIR);
+    return toContentsPath(AGENT_DIR)!;
   }
 
   /**

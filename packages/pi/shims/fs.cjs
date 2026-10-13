@@ -4,6 +4,7 @@
  */
 const { Volume, createFsFromVolume } = require('memfs');
 const path = require('path');
+const { env } = require('process');
 const piPackage = require('pi-coding-agent-package/package.json');
 const darkTheme = require('pi-coding-agent-package/dist/modes/interactive/theme/dark.json');
 const lightTheme = require('pi-coding-agent-package/dist/modes/interactive/theme/light.json');
@@ -85,6 +86,20 @@ fs.openSync = function (file, flags, ...rest) {
 };
 
 /**
+ * Whether a path is a JupyterLab file that is not in memory: the agent
+ * folder, below `/drive`, is. The credentials go to the drive, which refuses
+ * them: the edit preview of a tool cannot show them.
+ */
+function onDrive(resolved) {
+  const agentDir = env.PI_CODING_AGENT_DIR;
+  return (
+    /^\/drive(\/|$)/.test(resolved ?? '') &&
+    (resolved === `${agentDir}/auth.json` ||
+      (resolved !== agentDir && !resolved.startsWith(`${agentDir}/`)))
+  );
+}
+
+/**
  * pi also reads the JupyterLab files outside its tools, for example for the
  * preview of an edit: the host sets `fs.drive` to read `/drive` with the
  * contents API, and the shim applies the Node encoding option.
@@ -93,7 +108,7 @@ for (const name of ['access', 'readFile']) {
   const local = fs.promises[name];
   fs.promises[name] = function (target, ...args) {
     const resolved = resolve(target);
-    if (fs.drive && /^\/drive(\/|$)/.test(resolved ?? '')) {
+    if (fs.drive && onDrive(resolved)) {
       const result = fs.drive[name](resolved);
       const encoding =
         typeof args[0] === 'string' ? args[0] : args[0]?.encoding;
@@ -112,11 +127,7 @@ for (const name of ['access', 'readFile']) {
 const { readdirSync } = fs;
 fs.readdirSync = function (target, ...args) {
   const resolved = resolve(target);
-  if (
-    fs.listDrive &&
-    args[0]?.withFileTypes &&
-    /^\/drive(\/|$)/.test(resolved ?? '')
-  ) {
+  if (fs.listDrive && args[0]?.withFileTypes && onDrive(resolved)) {
     return fs.listDrive(resolved);
   }
   return readdirSync.call(this, target, ...args);

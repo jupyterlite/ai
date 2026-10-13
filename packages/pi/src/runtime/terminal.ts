@@ -23,7 +23,7 @@ import path from 'path';
 import type { DriveOperations } from './drive';
 import { terminalApproval } from './extension';
 import type { IRuntimeOptions, PiHost } from './host';
-import { DRIVE, toContentsPath, volume } from './vfs';
+import { DRIVE, isAgentPath, toContentsPath, volume } from './vfs';
 
 const { ICRNL, INLCR, IGNCR, IXON } = Termios.InputFlag;
 const { ECHO, ECHONL, ICANON, ISIG, IEXTEN } = Termios.LocalFlag;
@@ -604,10 +604,10 @@ async function readFileArgs(
 /**
  * Copy a session file of the drive into memfs, where pi opens it, with the
  * folder of the session, which pi checks. A missing file is not an error:
- * pi starts a new session at its path.
+ * pi starts a new session at its path. The agent folder is already in memfs.
  */
 async function loadDriveFile(file: string): Promise<void> {
-  if (toContentsPath(file) === null) {
+  if (toContentsPath(file) === null || isAgentPath(file)) {
     return;
   }
   const { drive } = fs as unknown as { drive: DriveOperations };

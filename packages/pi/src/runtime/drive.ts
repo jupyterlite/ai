@@ -17,8 +17,13 @@ import { minimatch } from 'minimatch';
 import { resolveToCwd } from 'pi-coding-agent-package/dist/core/tools/path-utils.js';
 import path from 'path';
 
-import { AGENT_DRIVE } from '../tokens';
-import { AGENT_DIR, DRIVE, drivePath, toContentsPath } from './vfs';
+import {
+  DRIVE,
+  drivePath,
+  isAgentPath,
+  isPrivateFile,
+  toContentsPath
+} from './vfs';
 
 const IMAGE_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
@@ -62,15 +67,6 @@ const GREP_TIMEOUT_MS = 20000;
  */
 const GREP_READERS = 6;
 
-/**
- * Files of the pi agent folder with credentials, which the tools cannot reach.
- */
-const PROTECTED_FILES = new Set([
-  'auth.json',
-  'models.json',
-  'models-store.json'
-]);
-
 const FS_ERRORS = {
   EACCES: 'permission denied',
   EISDIR: 'illegal operation on a directory',
@@ -84,7 +80,7 @@ function fsError(code: keyof typeof FS_ERRORS, target: string): Error {
   });
 }
 
-function errorCode(error: unknown): string | undefined {
+export function errorCode(error: unknown): string | undefined {
   return (error as { code?: string } | null)?.code;
 }
 
@@ -112,22 +108,16 @@ function contentsError(error: unknown, absolutePath: string): unknown {
  * A path of the in-memory file system, unless it holds credentials.
  */
 function localPath(absolutePath: string): string {
-  const normalized = path.posix.normalize(absolutePath);
-  if (
-    path.posix.dirname(normalized) === AGENT_DIR &&
-    PROTECTED_FILES.has(path.posix.basename(normalized))
-  ) {
-    throw fsError('EACCES', absolutePath);
-  }
-  return normalized;
+  checkPrivate(absolutePath);
+  return path.posix.normalize(absolutePath);
 }
 
 /**
- * Refuse a path of the agent folder drive: the tools cannot reach the
- * credentials through it.
+ * Refuse the credentials of the agent folder: they stay in the browser, and
+ * the tools cannot read them or write a file in their place.
  */
-export function checkDrive(absolutePath: string, contentsPath: string): void {
-  if (contentsPath.startsWith(`${AGENT_DRIVE}:`)) {
+export function checkPrivate(absolutePath: string): void {
+  if (isPrivateFile(absolutePath)) {
     throw fsError('EACCES', absolutePath);
   }
 }
@@ -245,7 +235,7 @@ export class DriveOperations
     if (!contentsPath) {
       throw fsError('EISDIR', absolutePath);
     }
-    checkDrive(absolutePath, contentsPath);
+    checkPrivate(absolutePath);
     this._listings.clear();
     let notebook: unknown;
     if (isNotebook(absolutePath)) {
@@ -265,6 +255,22 @@ export class DriveOperations
         : { type: 'notebook', format: 'json', content: notebook }
     );
     this._onWrite?.(contentsPath);
+  };
+
+  /**
+   * Delete a file or a folder of the drive.
+   */
+  remove = async (absolutePath: string): Promise<void> => {
+    const contentsPath = toContentsPath(absolutePath);
+    if (!contentsPath) {
+      throw fsError('EACCES', absolutePath);
+    }
+    this._listings.clear();
+    try {
+      await this._contents.delete(contentsPath);
+    } catch (error) {
+      throw contentsError(error, absolutePath);
+    }
   };
 
   mkdir = async (directory: string): Promise<void> => {
@@ -384,7 +390,8 @@ export class DriveOperations
   /**
    * Visit the files and directories below a drive directory, breadth first,
    * until `visit` returns true. Resolves with a notice when the walk stopped
-   * at its entry limit or after `timeout` milliseconds.
+   * at its entry limit or after `timeout` milliseconds. The walk enters the
+   * agent folder (its sessions) only from a root inside it.
    */
   async walk(
     root: string,
@@ -396,6 +403,7 @@ export class DriveOperations
       throw fsError('ENOENT', root);
     }
     const deadline = Date.now() + (options.timeout ?? Infinity);
+    const inAgentDir = isAgentPath(path.posix.normalize(root));
     const queue: string[] = [rootContentsPath];
     const skipped: string[] = [];
     const notice = (stop?: string) => {
@@ -443,7 +451,8 @@ export class DriveOperations
         if (
           entry.type === 'directory' &&
           !environment &&
-          !SKIPPED_DIRECTORIES.has(entry.name)
+          !SKIPPED_DIRECTORIES.has(entry.name) &&
+          (inAgentDir || !isAgentPath(drivePath(entry.path)))
         ) {
           queue.push(entry.path);
         }
@@ -487,7 +496,7 @@ export class DriveOperations
     contentsPath: string,
     options: Contents.IFetchOptions
   ): Promise<Contents.IModel> {
-    checkDrive(absolutePath, contentsPath);
+    checkPrivate(absolutePath);
     try {
       return await this._contents.get(contentsPath, options);
     } catch (error) {

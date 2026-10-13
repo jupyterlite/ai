@@ -48,7 +48,8 @@ Object.assign(proc, {
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     PI_PACKAGE_DIR: '/pi',
-    PI_CODING_AGENT_DIR: `${HOME}/.pi/agent`,
+    // In the JupyterLab files, hidden as `~/.pi/agent` on a computer.
+    PI_CODING_AGENT_DIR: '/drive/.pi/agent',
     PI_OFFLINE: '1',
     PI_SKIP_VERSION_CHECK: '1'
   },
