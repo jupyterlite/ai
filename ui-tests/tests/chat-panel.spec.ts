@@ -235,9 +235,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
       await expect(mainAreaTab).toHaveCount(0);
     });
 
-    test.skip('should show a context badge placeholder when enabled', async ({
-      page
-    }) => {
+    test('should show the token usage', async ({ page }) => {
       const panel = await openChatPanel(page);
 
       await expect(panel.getByTitle('Session tokens: 0')).toBeVisible();
