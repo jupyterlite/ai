@@ -128,7 +128,10 @@ test.describe('#CompletionStatus', () => {
 
     // Open the settings panel
     const settingsPanel = page.locator('#jupyternaut-persona-settings');
-    await page.keyboard.press('Control+Shift+c');
+    // The palette command works on every platform, unlike the shortcut.
+    await page.evaluate(() =>
+      window.jupyterapp.commands.execute('apputils:activate-command-palette')
+    );
     await page
       .locator(
         '#modal-command-palette li[data-command="@jupyter-ai/jupyternaut-frontend:open-settings"]'
