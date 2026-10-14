@@ -117,11 +117,7 @@ By default, skills are loaded from two directories (in order of priority):
 1. `.agents/skills` — follows the convention used by other AI coding tools
 2. `_agents/skills` — visible by default in the Jupyter file browser
 
-You can add, remove, or reorder paths in the JupyterLite AI settings:
-
-1. Open **Settings** > **Settings Editor**
-2. Search for **JupyterLite AI**
-3. Edit the **Skills Paths** list
+You can add, remove, or reorder paths in the AI settings: open the AI settings, go to the **Behavior** tab and edit the **Skills Paths** list. The list is also in **Settings** > **Settings Editor** > **AI Persona Kit**.
 
 This is useful if you keep skills in additional locations, such as `.claude/skills/` for compatibility with Claude Code. When the same skill name appears in multiple directories, the first occurrence wins (based on the order of the paths list).
 

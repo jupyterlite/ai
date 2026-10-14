@@ -52,16 +52,15 @@ The OpenRouter provider always offers the **Connect with OpenRouter** button. A 
 - **Model**: a [model ID supported by OpenRouter](https://openrouter.ai/models), for example `openrouter/auto`
 - **API Key**: the OpenRouter API key
 
-To also remove the OpenRouter provider from the list of providers, disable the `@jupyter-ai/jupyternaut-frontend:openrouter-provider` and `@jupyter-ai/jupyternaut-frontend:openrouter-auth` plugins, for example in your `jupyter-config-data` or `page_config.json`:
+To also remove the OpenRouter provider from the list of providers, disable the `@jupyter-ai/jupyternaut-frontend:openrouter-provider` plugin, for example in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": [
-    "@jupyter-ai/jupyternaut-frontend:openrouter-provider",
-    "@jupyter-ai/jupyternaut-frontend:openrouter-auth"
-  ]
+  "disabledExtensions": ["@jupyter-ai/jupyternaut-frontend:openrouter-provider"]
 }
 ```
+
+Keep the `@jupyter-ai/persona-kit:openrouter-auth` plugin enabled: it completes the sign-in of the other personas built on the kit.
 
 :::{note}
 The Generic provider does not fetch the list of models and does not send the [app attribution](#app-attribution). With the secrets manager, its API key is shared by all the Generic provider configurations.

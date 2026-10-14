@@ -27,6 +27,7 @@ project:
         - file: docs/web-retrieval.md
         - file: docs/skills.md
     - file: docs/custom-providers.md
+    - file: docs/personas.md
     - file: docs/api-keys.md
     - title: Development
       children:

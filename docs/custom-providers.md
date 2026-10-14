@@ -1,6 +1,6 @@
 # Custom Providers
 
-`jupyterlite-ai` supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
+Jupyternaut supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
 
 Providers are based on the [AI SDK](https://ai-sdk.dev/), which provides a unified interface for working with different AI models.
 
@@ -65,7 +65,22 @@ The provider configuration object requires the following properties:
   prompt caching
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
-A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function. See [App attribution](./openrouter.md#app-attribution) to set them.
+A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function of `@jupyter-ai/persona-kit`. See [App attribution](./openrouter.md#app-attribution) to set them.
+
+The provider registry token must be the same object in the Jupyternaut extension and in the provider extension. The provider extension consumes `@jupyter-ai/jupyternaut-frontend` as a shared singleton in its `package.json`, and its Python package depends on `jupyter-ai-jupyternaut-frontend`:
+
+```json
+{
+  "jupyterlab": {
+    "sharedPackages": {
+      "@jupyter-ai/jupyternaut-frontend": {
+        "bundled": false,
+        "singleton": true
+      }
+    }
+  }
+}
+```
 
 ## Hiding the Built-In Settings UI
 

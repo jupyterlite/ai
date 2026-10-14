@@ -10,7 +10,7 @@ AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
 
 ## Requirements
 
-- JupyterLab >= 4.4.0 or Notebook >= 7.4.0
+- JupyterLab >= 4.5.0 or Notebook >= 7.5.0
 
 ## Try it in your browser
 
@@ -41,7 +41,7 @@ For detailed usage instructions, including how to configure AI providers, see th
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyterlite-ai
+pip uninstall jupyterlite-ai jupyter-ai-jupyternaut-frontend jupyter-ai-persona-kit
 ```
 
 ## Contributing

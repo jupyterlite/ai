@@ -1,59 +1,52 @@
 # @jupyter-ai/persona-kit
 
-AI agent implementation for Jupyter using AI SDK.
+A kit to build in-browser AI personas for [Jupyter AI](https://github.com/jupyterlab/jupyter-ai), in JupyterLab, Notebook 7 and JupyterLite. The Python package is [`jupyter-ai-persona-kit`](https://pypi.org/project/jupyter-ai-persona-kit/).
 
-This package provides the core agent functionality including:
+The kit is a JupyterLab extension that provides:
 
-- Agent manager and factory
-- Tool registry and tool implementations
-- Provider registry and model management
-- MCP server integration
-- Skills registry
+- `IToolRegistry`: the tools a persona offers to a model, with the built-in `discover_commands`, `execute_command`, `browser_fetch`, `discover_skills` and `load_skill` tools
+- `ISkillRegistry`: the agent skills loaded from the skills paths or registered by extensions
+- `IPersonaKitSettings`: the settings shared by the personas (`@jupyter-ai/persona-kit:settings`): the commands that require an approval, the commands whose outputs render in the chat, the trusted MIME types and the skills paths
+- helpers: `getToolInputSchema`, `parseToolInput`, `createExecuteCommandApprovalPolicy`, `extractMimeBundles`, `requestApiKey` and `forwardAuthCode` (OpenRouter sign-in), `getAppAttribution`
 
-## Installation
-
-```bash
-npm install @jupyter-ai/persona-kit
-```
+The kit has no dependency on the AI SDK.
 
 ## Usage
 
-```typescript
-import {
-  AgentManagerFactory,
-  IProviderRegistry,
-  IToolRegistry
-} from '@jupyter-ai/persona-kit';
+A persona extension consumes the kit as a shared singleton:
 
-// Create a provider registry
-const providerRegistry = new ProviderRegistry();
-
-// Create a tool registry
-const toolRegistry = new ToolRegistry();
-
-// Create settings model (you'll need to implement IAISettingsModel)
-const settingsModel = {
-  /* ... */
-};
-
-// Create agent manager factory
-const agentManagerFactory = new AgentManagerFactory({
-  settingsModel,
-  token: null
-});
-
-// Create an agent
-const agentManager = agentManagerFactory.createAgent({
-  settingsModel,
-  providerRegistry,
-  toolRegistry
-});
-
-// Use the agent
-const userMessage = 'Hello, how can you help me?';
-await agentManager.generateResponse(userMessage);
+```json
+{
+  "dependencies": {
+    "@jupyter-ai/persona-kit": "^0.21.0"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "sharedPackages": {
+      "@jupyter-ai/persona-kit": {
+        "bundled": false,
+        "singleton": true
+      }
+    }
+  }
+}
 ```
 
-## License
+Its Python package depends on `jupyter-ai-persona-kit`, so that the kit extension is installed.
 
-BSD-3-Clause
+```typescript
+import { IToolRegistry } from '@jupyter-ai/persona-kit';
+
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: 'my-persona:tools',
+  autoStart: true,
+  requires: [IToolRegistry],
+  activate: (app: JupyterFrontEnd, tools: IToolRegistry) => {
+    for (const { name, tool } of tools.namedTools) {
+      console.log(name, tool.description);
+    }
+  }
+};
+```
+
+See [Building an in-browser persona](https://jupyterlite-ai.readthedocs.io/en/latest/personas/) for the complete guide.

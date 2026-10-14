@@ -43,7 +43,7 @@ jlpm sync:model-info
 ```
 
 This script fetches the latest metadata, rewrites
-`src/providers/generated-model-info.ts`, then runs `prettier` and `eslint`
+`packages/jupyternaut/src/providers/generated-model-info.ts`, then runs `prettier` and `eslint`
 on the generated file. The command will warn if `models.dev` does not expose a
 matching entry for one of our built-in model IDs.
 
