@@ -1,6 +1,10 @@
 import { IChatModel, IUser } from '@jupyter/chat';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import type { ISkillRegistry, IToolRegistry } from '@jupyter-ai/persona-kit';
+import type {
+  IPersonaKitSettings,
+  ISkillRegistry,
+  IToolRegistry
+} from '@jupyter-ai/persona-kit';
 import { VDomRenderer } from '@jupyterlab/apputils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { Token } from '@lumino/coreutils';
@@ -31,8 +35,6 @@ export const DEFAULT_PERSONA: IUser = {
  */
 export namespace CommandIds {
   export const openSettings = '@jupyter-ai/jupyternaut-frontend:open-settings';
-  export const refreshSkills =
-    '@jupyter-ai/jupyternaut-frontend:refresh-skills';
 }
 
 /**
@@ -118,6 +120,10 @@ export interface IPersonaRegistryOptions {
    * The agent settings model, used to process attachments in persona.
    */
   settingsModel: IAISettingsModel;
+  /**
+   * The persona kit settings, used to render command outputs in the chat.
+   */
+  kitSettings: IPersonaKitSettings;
   /**
    * The optional provider registry, used to process attachments in persona.
    */
@@ -394,23 +400,9 @@ export interface IAIConfig {
   // When true, use the same provider for chat and completions
   useSameProviderForChatAndCompleter: boolean;
   // Global settings
-  contextAwareness: boolean;
-  codeExecution: boolean;
   systemPrompt: string;
   completionSystemPrompt: string;
   toolsEnabled: boolean;
-  // Commands that require approval before execution
-  commandsRequiringApproval: string[];
-  // Commands whose execute_command outputs may auto-render MIME bundles in chat
-  commandsAutoRenderMimeBundles: string[];
-  // MIME types that are trusted when auto-rendering execute_command outputs
-  trustedMimeTypesForAutoRender: string[];
-  // Diff display settings
-  showCellDiff: boolean;
-  showFileDiff: boolean;
-  diffDisplayMode: 'split' | 'unified';
-  // Paths to directories containing agent skills
-  skillsPaths: string[];
 }
 
 /**
@@ -478,6 +470,11 @@ export namespace IAgentManager {
      * The secrets manager.
      */
     secretsManager?: ISecretsManager;
+
+    /**
+     * The persona kit settings, for the commands that require an approval.
+     */
+    kitSettings?: IPersonaKitSettings;
 
     /**
      * The active provider to use with this agent.

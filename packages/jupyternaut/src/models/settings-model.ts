@@ -11,31 +11,7 @@ export class AISettingsModel extends VDomModel implements IAISettingsModel {
     defaultProvider: '',
     activeCompleterProvider: undefined,
     useSameProviderForChatAndCompleter: true,
-    contextAwareness: true,
-    codeExecution: false,
     toolsEnabled: true,
-    showCellDiff: true,
-    showFileDiff: true,
-    diffDisplayMode: 'split',
-    skillsPaths: ['.agents/skills', '_agents/skills'],
-    commandsRequiringApproval: [
-      'notebook:restart-run-all',
-      'notebook:run-cell',
-      'notebook:run-cell-and-select-next',
-      'notebook:run-cell-and-insert-below',
-      'notebook:run-all-cells',
-      'notebook:run-all-above',
-      'notebook:run-all-below',
-      'console:execute',
-      'console:execute-forced',
-      'fileeditor:run-code',
-      'kernelmenu:run',
-      'kernelmenu:restart-and-run-all',
-      'runmenu:run-all',
-      'jupyterlab-ai-commands:run-cell'
-    ],
-    commandsAutoRenderMimeBundles: ['jupyterlab-ai-commands:execute-in-kernel'],
-    trustedMimeTypesForAutoRender: ['text/html'],
     systemPrompt: `You are Jupyternaut, an AI coding assistant built specifically for the JupyterLab environment.
 
 ## Your Core Mission

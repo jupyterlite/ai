@@ -14,7 +14,10 @@ import type {
   IProviderRegistry
 } from './tokens';
 
-import { extractMimeBundles } from '@jupyter-ai/persona-kit';
+import {
+  extractMimeBundles,
+  type IPersonaKitSettings
+} from '@jupyter-ai/persona-kit';
 import {
   modelSupportsAudio,
   modelSupportsImages,
@@ -98,6 +101,7 @@ export class Persona implements IPersona {
     this._agent = options.agentManager;
     this._persona = options.persona;
     this._settingsModel = options.settingsModel;
+    this._kitSettings = options.kitSettings;
     this._providerRegistry = options.providerRegistry;
     this._documentManager = options.documentManager;
 
@@ -497,7 +501,7 @@ export class Persona implements IPersona {
 
     if (!event.data.isError && context?.shouldAutoRenderMimeBundles) {
       const trustedMimeTypes = new Set(
-        this._settingsModel.config.trustedMimeTypesForAutoRender
+        this._kitSettings.config.trustedMimeTypesForAutoRender
       );
       for (const bundle of extractMimeBundles(
         event.data.outputData,
@@ -525,7 +529,7 @@ export class Persona implements IPersona {
       const parsed = JSON.parse(input);
       return (
         typeof parsed.commandId === 'string' &&
-        this._settingsModel.config.commandsAutoRenderMimeBundles.includes(
+        this._kitSettings.config.commandsAutoRenderMimeBundles.includes(
           parsed.commandId
         )
       );
@@ -651,6 +655,7 @@ export class Persona implements IPersona {
   private readonly _agent: IAgentManager;
   private readonly _persona: IUser;
   private readonly _settingsModel: IAISettingsModel;
+  private readonly _kitSettings: IPersonaKitSettings;
   private readonly _providerRegistry: IProviderRegistry | undefined;
   private readonly _documentManager: IDocumentManager | undefined;
   private _respondedToIds = new Set<string>();
@@ -687,6 +692,7 @@ export namespace Persona {
     agentManager: IAgentManager;
     persona: IUser;
     settingsModel: IAISettingsModel;
+    kitSettings: IPersonaKitSettings;
     providerRegistry?: IProviderRegistry;
     documentManager?: IDocumentManager;
   }

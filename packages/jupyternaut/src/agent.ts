@@ -29,6 +29,7 @@ import {
 } from './providers/provider-tools';
 import {
   createExecuteCommandApprovalPolicy,
+  type IPersonaKitSettings,
   type ISkillRegistry,
   type ISkillSummary,
   type ITool,
@@ -88,6 +89,10 @@ export namespace AgentManagerFactory {
      */
     settingsModel: IAISettingsModel;
     /**
+     * The persona kit settings.
+     */
+    kitSettings: IPersonaKitSettings;
+    /**
      * The skill registry for discovering skills.
      */
     skillRegistry?: ISkillRegistry;
@@ -113,6 +118,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
   constructor(options: AgentManagerFactory.IOptions) {
     Private.setToken(options.token);
     this._settingsModel = options.settingsModel;
+    this._kitSettings = options.kitSettings;
     this._skillRegistry = options.skillRegistry;
     this._mcpManager = options.mcpManager;
     this._secretsManager = options.secretsManager;
@@ -148,6 +154,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
   createAgent(options: IAgentManager.IOptions): IAgentManager {
     const agentManager = new AgentManager({
       ...options,
+      kitSettings: this._kitSettings,
       skillRegistry: this._skillRegistry,
       secretsManager: this._secretsManager
     });
@@ -301,6 +308,7 @@ export class AgentManagerFactory implements IAgentManagerFactory {
 
   private _agentManagers: IAgentManager[] = [];
   private _settingsModel: IAISettingsModel;
+  private _kitSettings: IPersonaKitSettings;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;
   private _mcpManager?: IMcpManager;
@@ -342,6 +350,7 @@ export class AgentManager implements IAgentManager {
    */
   constructor(options: IAgentManager.IOptions) {
     this._settingsModel = options.settingsModel;
+    this._kitSettings = options.kitSettings;
     this._toolRegistry = options.toolRegistry;
     this._providerRegistry = options.providerRegistry;
     this._skillRegistry = options.skillRegistry;
@@ -954,7 +963,7 @@ ${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._ad
       stopWhen: isStepCount(maxTurns),
       toolApproval: {
         execute_command: createExecuteCommandApprovalPolicy(
-          () => this._settingsModel.config.commandsRequiringApproval ?? []
+          () => this._kitSettings?.config.commandsRequiringApproval ?? []
         )
       }
     });
@@ -1344,6 +1353,7 @@ WEB RETRIEVAL POLICY:
   // Private attributes
   private _settingsModel: IAISettingsModel;
   private _toolRegistry?: IToolRegistry;
+  private _kitSettings?: IPersonaKitSettings;
   private _providerRegistry?: IProviderRegistry;
   private _skillRegistry?: ISkillRegistry;
   private _secretsManager?: ISecretsManager;

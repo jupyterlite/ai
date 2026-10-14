@@ -7,7 +7,7 @@ const KEYS_URL = 'https://openrouter.ai/api/v1/auth/keys';
  * The name of the messages between the windows, and of the session storage
  * entry that marks the popup window.
  */
-const CHANNEL = '@jupyter-ai/jupyternaut-frontend:openrouter-auth';
+const CHANNEL = '@jupyter-ai/persona-kit:openrouter-auth';
 const POPUP_WIDTH = 600;
 const POPUP_HEIGHT = 800;
 const POPUP_POLL_INTERVAL = 500;

@@ -305,7 +305,7 @@ test.describe('#openrouter', () => {
     await connect(page, dialog, 'test-code', () =>
       page.evaluate(() => {
         const channel = new BroadcastChannel(
-          '@jupyter-ai/jupyternaut-frontend:openrouter-auth'
+          '@jupyter-ai/persona-kit:openrouter-auth'
         );
         channel.postMessage({ type: channel.name, id: 'other', code: 'other' });
         channel.close();

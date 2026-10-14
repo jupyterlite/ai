@@ -27,8 +27,9 @@ skip = ["check-python"]
 [tool.jupyter-releaser.options]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
 python_packages = [
-    "python/jupyterlite-ai",
-    "python/jupyter-ai-jupyternaut-frontend"
+    "python/jupyter-ai-persona-kit",
+    "python/jupyter-ai-jupyternaut-frontend",
+    "python/jupyterlite-ai"
 ]
 
 [tool.jupyter-releaser.hooks]

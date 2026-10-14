@@ -10,6 +10,7 @@ dependencies = [
     "jupyterlab-day>=0.2.0",
     "jupyterlab-night>=0.5.2",
     "jupyterlite-ai",
+    "jupyter-ai-persona-kit",
     "jupyter-ai-jupyternaut-frontend",
     "jupyterlite-core>=0.8.5",
     "jupyterlite-pyodide-kernel>=0.8.5",
@@ -17,4 +18,5 @@ dependencies = [
 
 [tool.uv.sources]
 jupyterlite-ai = { path = "../python/jupyterlite-ai" }
+jupyter-ai-persona-kit = { path = "../python/jupyter-ai-persona-kit" }
 jupyter-ai-jupyternaut-frontend = { path = "../python/jupyter-ai-jupyternaut-frontend" }

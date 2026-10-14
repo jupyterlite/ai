@@ -28,12 +28,13 @@ classifiers = [
     "Programming Language :: Python :: 3.14"
 ]
 dependencies = [
+    "jupyter-ai-persona-kit ==0.20.1",
+    "jupyter-ai-persona-manager >=0.3.0a0,<0.4",
     "jupyter-chat-components >=0.7.0,<0.8",
+    "jupyter-mcp-manager >=0.2.0,<0.3",
     "jupyter-secrets-manager >=0.5,<0.6",
-    "jupyterlab-ai-commands >=0.3.1,<0.4",
-    "jupyter-mcp-manager >=0.2.0, <0.3",
-    "jupyter-ai-persona-manager >= 0.3.0a0, <0.4",
-    "jupyterlab-chat>= 0.25.2, <0.26"
+    "jupyterlab-ai-commands >=0.4.0,<0.5",
+    "jupyterlab-chat >=0.25.2,<0.26"
 ]
 dynamic = ["version"]
 

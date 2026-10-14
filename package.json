@@ -2,7 +2,7 @@
   "name": "jupyterlite-ai-monorepo",
   "version": "0.20.1",
   "private": true,
-  "description": "Monorepo for JupyterLite AI - Agent and JupyterLab extension",
+  "description": "Monorepo for the Jupyter AI persona kit and the Jupyternaut persona",
   "workspaces": [
     "packages/*"
   ],
@@ -12,7 +12,7 @@
     "build:prod": "jlpm workspace @jupyter-ai/persona-kit build:prod && jlpm workspace @jupyter-ai/jupyternaut-frontend build:prod",
     "clean": "jlpm workspace @jupyter-ai/persona-kit clean && jlpm workspace @jupyter-ai/jupyternaut-frontend clean",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-    "clean:labextension": "rimraf python/jupyter-ai-jupyternaut-frontend/jupyter_ai_jupyternaut_frontend/labextension",
+    "clean:labextension": "rimraf python/jupyter-ai-persona-kit/jupyter_ai_persona_kit/labextension python/jupyter-ai-jupyternaut-frontend/jupyter_ai_jupyternaut_frontend/labextension",
     "clean:all": "jlpm clean && jlpm clean:labextension && jlpm clean:lintcache",
     "docs": "jupyter book start",
     "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
@@ -25,7 +25,9 @@
     "stylelint": "jlpm stylelint:check --fix",
     "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
     "sync:model-info": "jlpm workspace @jupyter-ai/jupyternaut-frontend run sync:model-info",
-    "watch": "jlpm workspace @jupyter-ai/jupyternaut-frontend run watch"
+    "watch": "run-p watch:kit watch:jupyternaut",
+    "watch:kit": "jlpm workspace @jupyter-ai/persona-kit run watch",
+    "watch:jupyternaut": "jlpm workspace @jupyter-ai/jupyternaut-frontend run watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",
@@ -35,6 +37,7 @@
     "eslint-config-prettier": "^10.1.0",
     "eslint-plugin-prettier": "^5.0.0",
     "globals": "^16.0.0",
+    "npm-run-all2": "^7.0.1",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
     "style-loader": "^3.3.1",

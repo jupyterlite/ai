@@ -25,8 +25,6 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { IStatusBar } from '@jupyterlab/statusbar';
 
-import { PathExt } from '@jupyterlab/coreutils';
-
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 
 import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
@@ -37,22 +35,12 @@ import {
 } from '@jupyter-ai/persona-manager';
 
 import {
-  createBrowserFetchTool,
-  createDiscoverCommandsTool,
-  createDiscoverSkillsTool,
-  createExecuteCommandTool,
-  createLoadSkillTool,
-  forwardAuthCode,
   getAppAttribution,
-  loadSkillsFromPaths,
   requestApiKey,
+  IPersonaKitSettings,
   IToolRegistry,
-  ISkillRegistry,
-  SkillRegistry,
-  ToolRegistry
+  ISkillRegistry
 } from '@jupyter-ai/persona-kit';
-
-import { DisposableSet } from '@lumino/disposable';
 
 import { IComponentsRendererFactory } from 'jupyter-chat-components';
 
@@ -303,20 +291,6 @@ const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * The "Connect with OpenRouter" flow runs in a popup window, which loads the
- * application again when OpenRouter redirects back. In that window, send the
- * authorization code to the main window.
- */
-const openrouterAuthPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:openrouter-auth',
-  description: 'Complete the OpenRouter authorization in the popup window',
-  autoStart: true,
-  activate: (): void => {
-    forwardAuthCode();
-  }
-};
-
-/**
  * Generic provider plugin
  */
 const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
@@ -338,17 +312,19 @@ const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
   description: 'Registry mapping chat models to their persona handlers',
   autoStart: true,
   provides: IPersonaRegistry,
-  requires: [IAISettingsModel],
+  requires: [IAISettingsModel, IPersonaKitSettings],
   optional: [IProviderRegistry, IDocumentManager],
   activate: (
     app: JupyterFrontEnd,
     settingsModel: IAISettingsModel,
+    kitSettings: IPersonaKitSettings,
     providerRegistry?: IProviderRegistry,
     documentManager?: IDocumentManager
   ): IPersonaRegistry => {
     return new PersonaRegistry({
       persona: DEFAULT_PERSONA,
       settingsModel,
+      kitSettings,
       providerRegistry,
       documentManager
     });
@@ -582,7 +558,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
       description: 'Provide the AI agent manager',
       autoStart: true,
       provides: IAgentManagerFactory,
-      requires: [IAISettingsModel, IProviderRegistry],
+      requires: [IAISettingsModel, IProviderRegistry, IPersonaKitSettings],
       optional: [
         ISkillRegistry,
         ICompletionProviderManager,
@@ -593,6 +569,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
         app: JupyterFrontEnd,
         settingsModel: IAISettingsModel,
         providerRegistry: IProviderRegistry,
+        kitSettings: IPersonaKitSettings,
         skillRegistry?: ISkillRegistry,
         completionManager?: ICompletionProviderManager,
         secretsManager?: ISecretsManager,
@@ -600,6 +577,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
       ): IAgentManagerFactory => {
         const agentManagerFactory = new AgentManagerFactory({
           settingsModel,
+          kitSettings,
           skillRegistry,
           mcpManager,
           secretsManager,
@@ -634,7 +612,12 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyter-ai/jupyternaut-frontend:settings-panel',
   description: 'Provide the AI settings panel',
   autoStart: true,
-  requires: [IAISettingsModel, IAgentManagerFactory, IProviderRegistry],
+  requires: [
+    IAISettingsModel,
+    IAgentManagerFactory,
+    IProviderRegistry,
+    IPersonaKitSettings
+  ],
   optional: [
     ICommandPalette,
     ILayoutRestorer,
@@ -651,6 +634,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     settingsModel: IAISettingsModel,
     agentManagerFactory: IAgentManagerFactory,
     providerRegistry: IProviderRegistry,
+    kitSettings: IPersonaKitSettings,
     palette?: ICommandPalette,
     restorer?: ILayoutRestorer,
     secretsManager?: ISecretsManager,
@@ -671,6 +655,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
 
     const settingsWidget = new AISettingsWidget({
       settingsModel,
+      kitSettings,
       agentManagerFactory,
       themeManager,
       providerRegistry,
@@ -737,60 +722,6 @@ const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
   }
 };
 
-/**
- * Skill registry plugin
- */
-const skillRegistryPlugin: JupyterFrontEndPlugin<ISkillRegistry> = {
-  id: '@jupyter-ai/jupyternaut-frontend:skill-registry',
-  description: 'Provide the skill registry',
-  autoStart: true,
-  provides: ISkillRegistry,
-  activate: () => {
-    return new SkillRegistry();
-  }
-};
-
-const toolRegistry: JupyterFrontEndPlugin<IToolRegistry> = {
-  id: '@jupyter-ai/jupyternaut-frontend:tool-registry',
-  description: 'Provide the AI tool registry',
-  autoStart: true,
-  optional: [ISkillRegistry, ITranslator],
-  provides: IToolRegistry,
-  activate: (
-    app: JupyterFrontEnd,
-    skillRegistry?: ISkillRegistry,
-    translator?: ITranslator
-  ) => {
-    const toolRegistry = new ToolRegistry();
-
-    // Add command operation tools
-    const discoverCommandsTool = createDiscoverCommandsTool(
-      app.commands,
-      translator
-    );
-    const executeCommandTool = createExecuteCommandTool(
-      app.commands,
-      translator
-    );
-
-    toolRegistry.add('discover_commands', discoverCommandsTool);
-    toolRegistry.add('execute_command', executeCommandTool);
-    toolRegistry.add('browser_fetch', createBrowserFetchTool(translator));
-    if (skillRegistry) {
-      toolRegistry.add(
-        'discover_skills',
-        createDiscoverSkillsTool(skillRegistry, translator)
-      );
-      toolRegistry.add(
-        'load_skill',
-        createLoadSkillTool(skillRegistry, translator)
-      );
-    }
-
-    return toolRegistry;
-  }
-};
-
 const completionStatus: JupyterFrontEndPlugin<void> = {
   id: '@jupyter-ai/jupyternaut-frontend:completion-status',
   description: 'The completion status displayed in the status bar',
@@ -817,149 +748,6 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
       item,
       align: 'right',
       rank: 10
-    });
-  }
-};
-
-/**
- * Skills plugin: discovers and registers agent skills from the filesystem.
- */
-const skillsPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:skills',
-  description: 'Discover and register agent skills',
-  autoStart: true,
-  requires: [IAISettingsModel, IDocumentManager, ISkillRegistry],
-  optional: [ICommandPalette, ITranslator],
-  activate: async (
-    app: JupyterFrontEnd,
-    settingsModel: IAISettingsModel,
-    docManager: IDocumentManager,
-    skillRegistry: ISkillRegistry,
-    palette?: ICommandPalette,
-    translator?: ITranslator
-  ) => {
-    const trans = (translator ?? nullTranslator).load(
-      'jupyter_ai_jupyternaut_frontend'
-    );
-    const validateResourcePath = (resourcePath: string): string | null => {
-      if (resourcePath.startsWith('/')) {
-        return null;
-      }
-
-      const normalized = PathExt.normalize(resourcePath);
-      if (normalized.startsWith('..') || normalized === '') {
-        return null;
-      }
-
-      return normalized;
-    };
-
-    let currentSkillsPaths = settingsModel.config.skillsPaths;
-    let currentSkillDisposables = new DisposableSet();
-
-    const loadAndRegister = async () => {
-      const skillsPaths = settingsModel.config.skillsPaths;
-      const skills = await loadSkillsFromPaths(
-        docManager.services.contents,
-        skillsPaths
-      );
-
-      const registrations = skills.map(skill => ({
-        name: skill.name,
-        description: skill.description,
-        instructions: skill.instructions,
-        resources: skill.resources,
-        loadResource: async (resource: string) => {
-          const validatedPath = validateResourcePath(resource);
-          if (validatedPath === null) {
-            return {
-              name: skill.name,
-              resource,
-              error: 'Invalid resource path: path traversal not allowed'
-            };
-          }
-
-          if (!skill.resources.includes(validatedPath)) {
-            return {
-              name: skill.name,
-              resource,
-              error: `Resource not found: ${resource}`
-            };
-          }
-
-          const resourcePath = `${skill.path}/${validatedPath}`;
-          try {
-            const fileModel = await docManager.services.contents.get(
-              resourcePath,
-              {
-                content: true
-              }
-            );
-            if (typeof fileModel.content !== 'string') {
-              return {
-                name: skill.name,
-                resource,
-                error: 'Resource content is not a string'
-              };
-            }
-            return {
-              name: skill.name,
-              resource,
-              content: fileModel.content
-            };
-          } catch (error) {
-            return {
-              name: skill.name,
-              resource,
-              error: `Failed to read resource: ${error}`
-            };
-          }
-        }
-      }));
-
-      currentSkillDisposables.dispose();
-      currentSkillDisposables = new DisposableSet();
-      for (const registration of registrations) {
-        currentSkillDisposables.add(skillRegistry.registerSkill(registration));
-      }
-    };
-
-    app.commands.addCommand(CommandIds.refreshSkills, {
-      label: trans.__('Refresh Agents Skills'),
-      caption: trans.__(
-        'Re-scan the agents skills directory and update the registry'
-      ),
-      execute: async () => {
-        await loadAndRegister();
-      },
-      describedBy: {
-        args: {}
-      }
-    });
-
-    if (palette) {
-      palette.addItem({
-        command: CommandIds.refreshSkills,
-        category: trans.__('AI Assistant')
-      });
-    }
-
-    loadAndRegister().catch(error =>
-      console.warn('Failed to load skills on activation:', error)
-    );
-
-    settingsModel.stateChanged.connect(() => {
-      const newPaths = settingsModel.config.skillsPaths;
-      if (
-        newPaths.length === currentSkillsPaths.length &&
-        newPaths.every((p, i) => p === currentSkillsPaths[i])
-      ) {
-        return;
-      }
-      currentSkillsPaths = newPaths;
-      loadAndRegister().catch(error =>
-        console.warn('Failed to reload skills:', error)
-      );
     });
   }
 };
@@ -1039,16 +827,10 @@ export default [
   mistralProviderPlugin,
   openaiProviderPlugin,
   openrouterProviderPlugin,
-  openrouterAuthPlugin,
   genericProviderPlugin,
   // Agent
   agentManagerFactory,
   completionStatus,
-  // Skills
-  skillRegistryPlugin,
-  skillsPlugin,
-  // Tools
-  toolRegistry,
   // Persona
   personaRegistry,
   stopButtonPlugin,

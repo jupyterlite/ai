@@ -1,7 +1,21 @@
 // Persona kit public API
 
-export { ISkillRegistry, IToolRegistry } from './tokens';
-export type { INamedTool, ITool, IToolCallOptions, ToolMap } from './tokens';
+import plugins from './plugins';
+
+export {
+  CommandIds,
+  IPersonaKitSettings,
+  ISkillRegistry,
+  IToolRegistry,
+  KIT_SETTINGS_ID
+} from './tokens';
+export type {
+  INamedTool,
+  IPersonaKitConfig,
+  ITool,
+  IToolCallOptions,
+  ToolMap
+} from './tokens';
 export { getAppAttribution } from './app-attribution';
 export { forwardAuthCode, requestApiKey } from './oauth/openrouter';
 export { ToolRegistry } from './tools/tool-registry';
@@ -22,3 +36,5 @@ export {
   type ISkillResourceResult,
   type ISkillSummary
 } from './skills';
+
+export default plugins;

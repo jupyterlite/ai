@@ -41,10 +41,12 @@ test.use({
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,
-      skillsPaths: ['.agents/skills'],
       defaultProvider: 'generic-functiongemma',
       systemPrompt:
         'Call the load_skill tool with name "agent-helper" to get skill information. Do not ask follow-up questions.'
+    },
+    '@jupyter-ai/persona-kit:settings': {
+      skillsPaths: ['.agents/skills']
     }
   }
 });

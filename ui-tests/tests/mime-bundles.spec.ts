@@ -47,9 +47,11 @@ test.use({
       providers: PROVIDERS,
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
-      commandsAutoRenderMimeBundles: [TEST_MIME_BUNDLE_COMMAND_ID],
       systemPrompt:
         'When asked to execute a command, call execute_command exactly once with this input shape: {"commandId":"jupyterlite-ai-tests:emit-mime-bundle"} and no args. Do not call any other tools and do not ask follow-up questions.'
+    },
+    '@jupyter-ai/persona-kit:settings': {
+      commandsAutoRenderMimeBundles: [TEST_MIME_BUNDLE_COMMAND_ID]
     }
   }
 });

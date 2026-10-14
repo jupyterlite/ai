@@ -1,8 +1,8 @@
 import { ChatCommand, IChatCommandProvider, IInputModel } from '@jupyter/chat';
-import type { ISkillRegistry } from '@jupyter-ai/persona-kit';
+import { CommandIds, type ISkillRegistry } from '@jupyter-ai/persona-kit';
 import { CommandRegistry } from '@lumino/commands';
 
-import { CommandIds, DEFAULT_PERSONA } from '../tokens';
+import { DEFAULT_PERSONA } from '../tokens';
 
 export class SkillsCommandProvider implements IChatCommandProvider {
   constructor(options: SkillsCommandProvider.IOptions) {

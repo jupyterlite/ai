@@ -8,6 +8,10 @@ import type {
   IProviderConfig,
   IProviderRegistry
 } from '../tokens';
+import type {
+  IPersonaKitConfig,
+  IPersonaKitSettings
+} from '@jupyter-ai/persona-kit';
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';
@@ -80,6 +84,7 @@ export class AISettingsWidget extends ReactWidget {
   constructor(options: AISettingsWidget.IOptions) {
     super();
     this._settingsModel = options.settingsModel;
+    this._kitSettings = options.kitSettings;
     this._agentManagerFactory = options.agentManagerFactory;
     this._themeManager = options.themeManager;
     this._providerRegistry = options.providerRegistry;
@@ -107,6 +112,7 @@ export class AISettingsWidget extends ReactWidget {
     return (
       <AISettingsComponent
         model={this._settingsModel}
+        kitSettings={this._kitSettings}
         agentManagerFactory={this._agentManagerFactory}
         themeManager={this._themeManager}
         providerRegistry={this._providerRegistry}
@@ -118,6 +124,7 @@ export class AISettingsWidget extends ReactWidget {
   }
 
   private _settingsModel: IAISettingsModel;
+  private _kitSettings: IPersonaKitSettings;
   private _agentManagerFactory?: IAgentManagerFactory;
   private _themeManager?: IThemeManager;
   private _providerRegistry: IProviderRegistry;
@@ -131,6 +138,7 @@ export class AISettingsWidget extends ReactWidget {
  */
 interface IAISettingsComponentProps {
   model: IAISettingsModel;
+  kitSettings: IPersonaKitSettings;
   agentManagerFactory?: IAgentManagerFactory;
   themeManager?: IThemeManager;
   providerRegistry: IProviderRegistry;
@@ -146,6 +154,7 @@ interface IAISettingsComponentProps {
  */
 const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   model,
+  kitSettings,
   agentManagerFactory,
   themeManager,
   providerRegistry,
@@ -158,6 +167,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   }
 
   const [config, setConfig] = useState(model.config || {});
+  const [kitConfig, setKitConfig] = useState(kitSettings.config);
   const [theme, setTheme] = useState(() => createJupyterLabTheme(themeManager));
   const [activeTab, setActiveTab] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -192,6 +202,14 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
       model.stateChanged.disconnect(onStateChanged);
     };
   }, [model]);
+
+  useEffect(() => {
+    const onKitChanged = () => setKitConfig(kitSettings.config);
+    kitSettings.changed.connect(onKitChanged);
+    return () => {
+      kitSettings.changed.disconnect(onKitChanged);
+    };
+  }, [kitSettings]);
 
   /**
    * Effect to listen for theme changes and update the Material-UI theme
@@ -393,6 +411,12 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
   const handleMenuClose = () => {
     setMenuAnchor(null);
     setMenuProviderId('');
+  };
+
+  const handleKitUpdate = (updates: Partial<IPersonaKitConfig>) => {
+    kitSettings.update(updates).catch(error => {
+      console.error('Failed to update the persona kit settings:', error);
+    });
   };
 
   /**
@@ -821,80 +845,6 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   }
                 />
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.showCellDiff}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          showCellDiff: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Show Cell Diff')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Show diff view when AI modifies cell content'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                {config.showCellDiff && (
-                  <FormControl sx={{ ml: 4 }}>
-                    <InputLabel>{trans.__('Diff Display Mode')}</InputLabel>
-                    <Select
-                      value={config.diffDisplayMode}
-                      label={trans.__('Diff Display Mode')}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          diffDisplayMode: e.target.value as 'split' | 'unified'
-                        })
-                      }
-                    >
-                      <MenuItem value="split">
-                        {trans.__('Split View')}
-                      </MenuItem>
-                      <MenuItem value="unified">
-                        {trans.__('Unified View')}
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                )}
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.showFileDiff}
-                      onChange={e =>
-                        handleConfigUpdate({
-                          showFileDiff: e.target.checked
-                        })
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1">
-                        {trans.__('Show File Diff')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {trans.__(
-                          'Show diff view when AI modifies file content'
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                />
-
                 <Divider sx={{ my: 1 }} />
 
                 <TextField
@@ -950,16 +900,16 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   </Typography>
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
-                    {(config.skillsPaths ?? []).map((skillPath, index) => (
+                    {(kitConfig.skillsPaths ?? []).map((skillPath, index) => (
                       <ListItem
                         key={index}
                         divider
                         secondaryAction={
                           <IconButton
                             onClick={() => {
-                              const newPaths = [...config.skillsPaths];
+                              const newPaths = [...kitConfig.skillsPaths];
                               newPaths.splice(index, 1);
-                              handleConfigUpdate({ skillsPaths: newPaths });
+                              handleKitUpdate({ skillsPaths: newPaths });
                             }}
                             size="small"
                           >
@@ -983,13 +933,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         ).value.trim();
                         if (
                           value &&
-                          !(config.skillsPaths ?? []).includes(value)
+                          !(kitConfig.skillsPaths ?? []).includes(value)
                         ) {
                           const newPaths = [
-                            ...(config.skillsPaths ?? []),
+                            ...(kitConfig.skillsPaths ?? []),
                             value
                           ];
-                          handleConfigUpdate({ skillsPaths: newPaths });
+                          handleKitUpdate({ skillsPaths: newPaths });
                           (e.target as HTMLInputElement).value = '';
                         }
                       }
@@ -1018,30 +968,32 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   </Typography>
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
-                    {config.commandsRequiringApproval.map((command, index) => (
-                      <ListItem
-                        key={index}
-                        divider
-                        secondaryAction={
-                          <IconButton
-                            onClick={() => {
-                              const newCommands = [
-                                ...config.commandsRequiringApproval
-                              ];
-                              newCommands.splice(index, 1);
-                              handleConfigUpdate({
-                                commandsRequiringApproval: newCommands
-                              });
-                            }}
-                            size="small"
-                          >
-                            <Delete />
-                          </IconButton>
-                        }
-                      >
-                        <ListItemText primary={command} />
-                      </ListItem>
-                    ))}
+                    {kitConfig.commandsRequiringApproval.map(
+                      (command, index) => (
+                        <ListItem
+                          key={index}
+                          divider
+                          secondaryAction={
+                            <IconButton
+                              onClick={() => {
+                                const newCommands = [
+                                  ...kitConfig.commandsRequiringApproval
+                                ];
+                                newCommands.splice(index, 1);
+                                handleKitUpdate({
+                                  commandsRequiringApproval: newCommands
+                                });
+                              }}
+                              size="small"
+                            >
+                              <Delete />
+                            </IconButton>
+                          }
+                        >
+                          <ListItemText primary={command} />
+                        </ListItem>
+                      )
+                    )}
                   </List>
 
                   <TextField
@@ -1055,13 +1007,13 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                         ).value.trim();
                         if (
                           value &&
-                          !config.commandsRequiringApproval.includes(value)
+                          !kitConfig.commandsRequiringApproval.includes(value)
                         ) {
                           const newCommands = [
-                            ...config.commandsRequiringApproval,
+                            ...kitConfig.commandsRequiringApproval,
                             value
                           ];
-                          handleConfigUpdate({
+                          handleKitUpdate({
                             commandsRequiringApproval: newCommands
                           });
                           (e.target as HTMLInputElement).value = '';
@@ -1092,7 +1044,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   </Typography>
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
-                    {(config.commandsAutoRenderMimeBundles ?? []).map(
+                    {(kitConfig.commandsAutoRenderMimeBundles ?? []).map(
                       (command, index) => (
                         <ListItem
                           key={index}
@@ -1101,11 +1053,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                             <IconButton
                               onClick={() => {
                                 const newCommands = [
-                                  ...(config.commandsAutoRenderMimeBundles ??
+                                  ...(kitConfig.commandsAutoRenderMimeBundles ??
                                     [])
                                 ];
                                 newCommands.splice(index, 1);
-                                handleConfigUpdate({
+                                handleKitUpdate({
                                   commandsAutoRenderMimeBundles: newCommands
                                 });
                               }}
@@ -1133,10 +1085,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           e.target as HTMLInputElement
                         ).value.trim();
                         const existingCommands =
-                          config.commandsAutoRenderMimeBundles ?? [];
+                          kitConfig.commandsAutoRenderMimeBundles ?? [];
                         if (value && !existingCommands.includes(value)) {
                           const newCommands = [...existingCommands, value];
-                          handleConfigUpdate({
+                          handleKitUpdate({
                             commandsAutoRenderMimeBundles: newCommands
                           });
                           (e.target as HTMLInputElement).value = '';
@@ -1167,7 +1119,7 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                   </Typography>
 
                   <List sx={{ mb: 2, maxHeight: 200, overflow: 'auto' }}>
-                    {(config.trustedMimeTypesForAutoRender ?? []).map(
+                    {(kitConfig.trustedMimeTypesForAutoRender ?? []).map(
                       (mimeType, index) => (
                         <ListItem
                           key={index}
@@ -1176,11 +1128,11 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                             <IconButton
                               onClick={() => {
                                 const newMimeTypes = [
-                                  ...(config.trustedMimeTypesForAutoRender ??
+                                  ...(kitConfig.trustedMimeTypesForAutoRender ??
                                     [])
                                 ];
                                 newMimeTypes.splice(index, 1);
-                                handleConfigUpdate({
+                                handleKitUpdate({
                                   trustedMimeTypesForAutoRender: newMimeTypes
                                 });
                               }}
@@ -1206,10 +1158,10 @@ const AISettingsComponent: React.FC<IAISettingsComponentProps> = ({
                           e.target as HTMLInputElement
                         ).value.trim();
                         const existingMimeTypes =
-                          config.trustedMimeTypesForAutoRender ?? [];
+                          kitConfig.trustedMimeTypesForAutoRender ?? [];
                         if (value && !existingMimeTypes.includes(value)) {
                           const newMimeTypes = [...existingMimeTypes, value];
-                          handleConfigUpdate({
+                          handleKitUpdate({
                             trustedMimeTypesForAutoRender: newMimeTypes
                           });
                           (e.target as HTMLInputElement).value = '';
@@ -1287,6 +1239,10 @@ export namespace AISettingsWidget {
    */
   export interface IOptions {
     settingsModel: IAISettingsModel;
+    /**
+     * The persona kit settings, edited in the Behavior tab.
+     */
+    kitSettings: IPersonaKitSettings;
     agentManagerFactory?: IAgentManagerFactory;
     themeManager?: IThemeManager;
     providerRegistry: IProviderRegistry;

@@ -19,6 +19,7 @@ export default defineConfig([
       '**/__tests__',
       'ui-tests',
       'demo',
+      'python/jupyter-ai-persona-kit/jupyter_ai_persona_kit',
       'python/jupyter-ai-jupyternaut-frontend/jupyter_ai_jupyternaut_frontend'
     ]
   },

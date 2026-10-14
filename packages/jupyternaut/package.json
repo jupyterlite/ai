@@ -1,7 +1,7 @@
 {
   "name": "@jupyter-ai/jupyternaut-frontend",
   "version": "0.20.1",
-  "description": "AI code completions and chat for JupyterLite",
+  "description": "The Jupyternaut persona for JupyterLab and JupyterLite: AI chat and code completions in the browser",
   "keywords": [
     "jupyter",
     "jupyterlab",
@@ -69,7 +69,6 @@
     "@jupyterlab/ui-components": "^4.5.8",
     "@lumino/commands": "^2.3.2",
     "@lumino/coreutils": "^2.2.1",
-    "@lumino/disposable": "^2.1.4",
     "@lumino/polling": "^2.1.4",
     "@lumino/signaling": "^2.1.4",
     "@mui/icons-material": "^7",
@@ -111,7 +110,7 @@
         "bundled": true,
         "singleton": true
       },
-      "@jupyter/chat": {
+      "@jupyter-ai/persona-kit": {
         "bundled": false,
         "singleton": true
       },
@@ -119,8 +118,8 @@
         "bundled": false,
         "singleton": true
       },
-      "@jupyter-ai/persona-kit": {
-        "bundled": true,
+      "@jupyter/chat": {
+        "bundled": false,
         "singleton": true
       },
       "jupyter-chat-components": {
@@ -128,6 +127,10 @@
         "singleton": true
       },
       "jupyter-mcp-manager": {
+        "bundled": false,
+        "singleton": true
+      },
+      "jupyter-secrets-manager": {
         "bundled": false,
         "singleton": true
       }

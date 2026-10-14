@@ -141,3 +141,71 @@ export const ISkillRegistry = new Token<ISkillRegistry>(
   '@jupyter-ai/persona-kit:ISkillRegistry',
   'Skill registry for AI agent functionality'
 );
+
+/* THE SETTINGS */
+
+/**
+ * The settings shared by the in-browser personas.
+ */
+export interface IPersonaKitConfig {
+  /**
+   * The JupyterLab commands that need the approval of the user before a
+   * persona runs them.
+   */
+  commandsRequiringApproval: string[];
+  /**
+   * The commands whose `execute_command` outputs may render MIME bundles in
+   * the chat.
+   */
+  commandsAutoRenderMimeBundles: string[];
+  /**
+   * The MIME types marked as trusted when command outputs render in the chat.
+   */
+  trustedMimeTypesForAutoRender: string[];
+  /**
+   * The directories that hold agent skills, relative to the server root.
+   */
+  skillsPaths: string[];
+}
+
+/**
+ * The settings model of the persona kit.
+ */
+export interface IPersonaKitSettings {
+  /**
+   * The current settings, with the defaults applied.
+   */
+  readonly config: IPersonaKitConfig;
+  /**
+   * A signal emitted when the settings change.
+   */
+  readonly changed: ISignal<IPersonaKitSettings, void>;
+  /**
+   * A promise that resolves once the settings are loaded.
+   */
+  readonly ready: Promise<void>;
+  /**
+   * Save new values for some settings.
+   */
+  update(updates: Partial<IPersonaKitConfig>): Promise<void>;
+}
+
+/**
+ * The persona kit settings token.
+ */
+export const IPersonaKitSettings = new Token<IPersonaKitSettings>(
+  '@jupyter-ai/persona-kit:IPersonaKitSettings',
+  'Settings shared by the in-browser personas'
+);
+
+/**
+ * The id of the persona kit settings plugin, which is also the settings id.
+ */
+export const KIT_SETTINGS_ID = '@jupyter-ai/persona-kit:settings';
+
+/**
+ * The commands of the persona kit.
+ */
+export namespace CommandIds {
+  export const refreshSkills = '@jupyter-ai/persona-kit:refresh-skills';
+}
