@@ -1,6 +1,6 @@
 import type { IChatModel } from '@jupyter/chat';
 
-import { IAgentManager } from '@jupyternaut/agent';
+import type { IAgentManager } from '@jupyternaut/agent';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
