@@ -172,7 +172,7 @@ import type {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ISkillRegistry } from '@jupyternaut/agent';
+import { ISkillRegistry } from '@jupyter-ai/persona-kit';
 
 // Bundled resource files (scripts, references, templates)
 const resources: Record<string, string> = {

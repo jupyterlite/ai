@@ -144,7 +144,7 @@ TEST_PROVIDERS.forEach(({ name, settings }) =>
 
       await page.evaluate(async () => {
         await window.jupyterapp.commands.execute(
-          '@jupyternaut/persona:open-settings'
+          '@jupyter-ai/jupyternaut-frontend:open-settings'
         );
       });
 

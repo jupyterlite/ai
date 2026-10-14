@@ -36,7 +36,7 @@ async function openOpenRouterDialog(
 ): Promise<Locator> {
   await page.evaluate(async () => {
     await window.jupyterapp.commands.execute(
-      '@jupyternaut/persona:open-settings'
+      '@jupyter-ai/jupyternaut-frontend:open-settings'
     );
   });
   await page.getByRole('button', { name: 'Add Provider' }).click();
@@ -305,7 +305,7 @@ test.describe('#openrouter', () => {
     await connect(page, dialog, 'test-code', () =>
       page.evaluate(() => {
         const channel = new BroadcastChannel(
-          '@jupyternaut/persona:openrouter-auth'
+          '@jupyter-ai/jupyternaut-frontend:openrouter-auth'
         );
         channel.postMessage({ type: channel.name, id: 'other', code: 'other' });
         channel.close();
@@ -382,7 +382,7 @@ test.describe('#openrouterAppAttribution', () => {
     autoGoto: false,
     mockSettings: {
       ...galata.DEFAULT_SETTINGS,
-      '@jupyternaut/persona:settings-model': {
+      '@jupyter-ai/jupyternaut-frontend:settings-model': {
         defaultProvider: 'openrouter-test',
         providers: [
           {

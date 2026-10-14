@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyternaut/agent';
+import { IProviderRegistry } from '@jupyter-ai/persona-kit';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -70,7 +70,7 @@ A provider that supports app attribution can get the application `name` and `url
 ## Hiding the Built-In Settings UI
 
 If your extension ships a fully configured provider and you do not want users to
-edit provider settings, disable the `@jupyternaut/persona:settings-panel` plugin.
+edit provider settings, disable the `@jupyter-ai/jupyternaut-frontend:settings-panel` plugin.
 This hides the AI settings panel and its command without disabling the rest of
 Jupyternaut.
 
@@ -78,7 +78,7 @@ For example, in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": ["@jupyternaut/persona:settings-panel"]
+  "disabledExtensions": ["@jupyter-ai/jupyternaut-frontend:settings-panel"]
 }
 ```
 

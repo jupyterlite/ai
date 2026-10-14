@@ -26,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14"
 ]
 dependencies = [
-    "jupyternaut-persona ==0.20.1",
+    "jupyter-ai-jupyternaut-frontend ==0.20.1",
 ]
 dynamic = ["version"]
 

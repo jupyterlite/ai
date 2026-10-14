@@ -8,11 +8,11 @@
   ],
   "scripts": {
     "build": "jlpm build:all",
-    "build:all": "jlpm workspace @jupyternaut/agent build && jlpm workspace @jupyternaut/persona build",
-    "build:prod": "jlpm workspace @jupyternaut/agent build:prod && jlpm workspace @jupyternaut/persona build:prod",
-    "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyternaut/persona clean",
+    "build:all": "jlpm workspace @jupyter-ai/persona-kit build && jlpm workspace @jupyter-ai/jupyternaut-frontend build",
+    "build:prod": "jlpm workspace @jupyter-ai/persona-kit build:prod && jlpm workspace @jupyter-ai/jupyternaut-frontend build:prod",
+    "clean": "jlpm workspace @jupyter-ai/persona-kit clean && jlpm workspace @jupyter-ai/jupyternaut-frontend clean",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-    "clean:labextension": "rimraf python/jupyternaut-persona/jupyternaut_persona/labextension",
+    "clean:labextension": "rimraf python/jupyter-ai-jupyternaut-frontend/jupyter_ai_jupyternaut_frontend/labextension",
     "clean:all": "jlpm clean && jlpm clean:labextension && jlpm clean:lintcache",
     "docs": "jupyter book start",
     "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
@@ -24,8 +24,8 @@
     "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.mjs,.css,.json,.md,.yml}\"",
     "stylelint": "jlpm stylelint:check --fix",
     "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
-    "sync:model-info": "jlpm workspace @jupyternaut/agent run sync:model-info",
-    "watch": "jlpm workspace @jupyternaut/persona run watch"
+    "sync:model-info": "jlpm workspace @jupyter-ai/persona-kit run sync:model-info",
+    "watch": "jlpm workspace @jupyter-ai/jupyternaut-frontend run watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",

@@ -20,9 +20,9 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyternaut/persona:settings-model': {
+    '@jupyter-ai/jupyternaut-frontend:settings-model': {
       ...DEFAULT_GENERIC_PROVIDER_SETTINGS[
-        '@jupyternaut/persona:settings-model'
+        '@jupyter-ai/jupyternaut-frontend:settings-model'
       ],
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',

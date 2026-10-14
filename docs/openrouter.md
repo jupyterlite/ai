@@ -52,13 +52,13 @@ The OpenRouter provider always offers the **Connect with OpenRouter** button. A 
 - **Model**: a [model ID supported by OpenRouter](https://openrouter.ai/models), for example `openrouter/auto`
 - **API Key**: the OpenRouter API key
 
-To also remove the OpenRouter provider from the list of providers, disable the `@jupyternaut/persona:openrouter-provider` and `@jupyternaut/persona:openrouter-auth` plugins, for example in your `jupyter-config-data` or `page_config.json`:
+To also remove the OpenRouter provider from the list of providers, disable the `@jupyter-ai/jupyternaut-frontend:openrouter-provider` and `@jupyter-ai/jupyternaut-frontend:openrouter-auth` plugins, for example in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
   "disabledExtensions": [
-    "@jupyternaut/persona:openrouter-provider",
-    "@jupyternaut/persona:openrouter-auth"
+    "@jupyter-ai/jupyternaut-frontend:openrouter-provider",
+    "@jupyter-ai/jupyternaut-frontend:openrouter-auth"
   ]
 }
 ```
