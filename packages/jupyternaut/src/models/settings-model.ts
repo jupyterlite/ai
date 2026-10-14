@@ -1,8 +1,4 @@
-import type {
-  IAIConfig,
-  IAISettingsModel,
-  IProviderConfig
-} from '@jupyter-ai/persona-kit';
+import type { IAIConfig, IAISettingsModel, IProviderConfig } from '../tokens';
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 

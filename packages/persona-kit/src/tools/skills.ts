@@ -1,5 +1,4 @@
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { ISkillRegistry, ITool } from '../tokens';
@@ -12,7 +11,7 @@ export function createDiscoverSkillsTool(
   translator?: ITranslator
 ): ITool {
   const trans = (translator ?? nullTranslator).load('jupyter_ai_persona_kit');
-  return tool({
+  return {
     metadata: { title: trans.__('Discover Skills') },
     description:
       'Discover available agent skills with their names and descriptions',
@@ -32,7 +31,7 @@ export function createDiscoverSkillsTool(
         skills: filtered
       };
     }
-  });
+  };
 }
 
 /**
@@ -43,7 +42,7 @@ export function createLoadSkillTool(
   translator?: ITranslator
 ): ITool {
   const trans = (translator ?? nullTranslator).load('jupyter_ai_persona_kit');
-  return tool({
+  return {
     metadata: { title: trans.__('Load Skill') },
     description:
       'Load a skill definition or a specific resource file bundled with a skill',
@@ -90,5 +89,5 @@ export function createLoadSkillTool(
         ...(skill.resources.length > 0 && { resources: skill.resources })
       };
     }
-  });
+  };
 }

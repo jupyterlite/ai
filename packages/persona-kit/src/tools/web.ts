@@ -1,5 +1,4 @@
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { ITool } from '../tokens';
@@ -106,7 +105,7 @@ async function readResponseText(
  */
 export function createBrowserFetchTool(translator?: ITranslator): ITool {
   const trans = (translator ?? nullTranslator).load('jupyter_ai_persona_kit');
-  return tool({
+  return {
     metadata: { title: trans.__('Browser Fetch') },
     description:
       'Fetch a URL directly from the browser using HTTP GET for exact URL inspection when CORS/access permits.',
@@ -237,5 +236,5 @@ export function createBrowserFetchTool(translator?: ITranslator): ITool {
         clearTimeout(timeoutHandle);
       }
     }
-  });
+  };
 }

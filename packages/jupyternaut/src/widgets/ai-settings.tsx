@@ -1,7 +1,5 @@
-import {
-  getEffectiveContextWindow,
-  SECRETS_REPLACEMENT
-} from '@jupyter-ai/persona-kit';
+import { getEffectiveContextWindow } from '../providers/model-info';
+import { SECRETS_REPLACEMENT } from '../tokens';
 import type {
   IAgentManagerFactory,
   IAIConfig,
@@ -9,7 +7,7 @@ import type {
   IAISettingsModel,
   IProviderConfig,
   IProviderRegistry
-} from '@jupyter-ai/persona-kit';
+} from '../tokens';
 import { IThemeManager } from '@jupyterlab/apputils';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { TranslationBundle } from '@jupyterlab/translation';

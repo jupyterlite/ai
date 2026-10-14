@@ -3,7 +3,7 @@ import { LabIcon } from '@jupyterlab/ui-components';
 import jupyternautSvg from '../style/icons/jupyternaut-lite.svg';
 
 export const jupyternautIcon = new LabIcon({
-  name: '@jupyter-ai/persona-kit:jupyternaut',
+  name: '@jupyter-ai/jupyternaut-frontend:jupyternaut',
   svgstr: jupyternautSvg
 });
 

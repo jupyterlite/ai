@@ -12,14 +12,14 @@ import type {
   IAgentManager,
   IAISettingsModel,
   IProviderRegistry
-} from '@jupyter-ai/persona-kit';
+} from './tokens';
 
+import { extractMimeBundles } from '@jupyter-ai/persona-kit';
 import {
-  extractMimeBundles,
   modelSupportsAudio,
   modelSupportsImages,
   modelSupportsPdf
-} from '@jupyter-ai/persona-kit';
+} from './providers/model-info';
 
 import { ISignal, Signal } from '@lumino/signaling';
 

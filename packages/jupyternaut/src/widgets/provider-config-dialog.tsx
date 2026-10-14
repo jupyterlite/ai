@@ -1,10 +1,10 @@
-import { getProviderModelInfo } from '@jupyter-ai/persona-kit';
+import { getProviderModelInfo } from '../providers/model-info';
 import type {
   IProviderConfig,
   IProviderParameters,
   IProviderRegistry,
   IProviderToolCapabilities
-} from '@jupyter-ai/persona-kit';
+} from '../tokens';
 import type { TranslationBundle } from '@jupyterlab/translation';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Delete from '@mui/icons-material/Delete';

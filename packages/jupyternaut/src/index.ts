@@ -37,37 +37,19 @@ import {
 } from '@jupyter-ai/persona-manager';
 
 import {
-  anthropicProvider,
   createBrowserFetchTool,
   createDiscoverCommandsTool,
   createDiscoverSkillsTool,
   createExecuteCommandTool,
   createLoadSkillTool,
   forwardAuthCode,
-  genericProvider,
   getAppAttribution,
-  googleProvider,
   loadSkillsFromPaths,
-  mistralProvider,
-  openaiProvider,
-  openrouterProvider,
   requestApiKey,
-  AgentManagerFactory,
-  IAgentManagerFactory,
-  IAISettingsModel,
-  IProviderRegistry,
   IToolRegistry,
   ISkillRegistry,
-  ProviderRegistry,
-  SECRETS_NAMESPACE,
-  SECRETS_REPLACEMENT,
   SkillRegistry,
   ToolRegistry
-} from '@jupyter-ai/persona-kit';
-
-import type {
-  IAISecretsAccess,
-  IConnectAccountOptions
 } from '@jupyter-ai/persona-kit';
 
 import { DisposableSet } from '@lumino/disposable';
@@ -77,6 +59,10 @@ import { IComponentsRendererFactory } from 'jupyter-chat-components';
 import { IMcpManager } from 'jupyter-mcp-manager';
 
 import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
+
+// The factory is the value provided by the agent manager plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { AgentManagerFactory } from './agent';
 
 import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
 
@@ -94,12 +80,32 @@ import { AISettingsModel } from './models/settings-model';
 // eslint-disable-next-line jupyter/prefer-lazy-imports
 import { PersonaRegistry } from './persona-registry';
 
+// The built-in providers register when their plugins activate.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import {
+  anthropicProvider,
+  genericProvider,
+  googleProvider,
+  mistralProvider,
+  openaiProvider,
+  openrouterProvider
+} from './providers/built-in-providers';
+
+import { ProviderRegistry } from './providers/provider-registry';
+
 import {
   CommandIds,
+  DEFAULT_PERSONA,
+  IAgentManagerFactory,
+  IAISettingsModel,
   IPersona,
   IPersonaRegistry,
-  DEFAULT_PERSONA
+  IProviderRegistry,
+  SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT
 } from './tokens';
+
+import type { IAISecretsAccess, IConnectAccountOptions } from './tokens';
 
 // The settings widget is created on activation so the layout restorer can track it.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
@@ -570,6 +576,8 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
     Private.setAISecretsToken(token);
 
     return {
+      // The secrets manager requires the plugin id to be the namespace.
+      // eslint-disable-next-line jupyter/plugin-id-convention
       id: SECRETS_NAMESPACE,
       description: 'Provide the AI agent manager',
       autoStart: true,

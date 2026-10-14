@@ -1,9 +1,6 @@
-import {
-  createCompletionModel,
-  IProviderRegistry,
-  SECRETS_NAMESPACE
-} from '@jupyter-ai/persona-kit';
-import type { IAISettingsModel } from '@jupyter-ai/persona-kit';
+import { createCompletionModel } from '../providers/models';
+import { IProviderRegistry, SECRETS_NAMESPACE } from '../tokens';
+import type { IAISettingsModel } from '../tokens';
 import {
   CompletionHandler,
   IInlineCompletionContext,

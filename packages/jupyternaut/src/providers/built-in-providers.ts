@@ -5,7 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 import { BUILT_IN_PROVIDER_MODEL_INFO } from './generated-model-info';
-import { getAppAttribution } from './app-attribution';
+import { getAppAttribution } from '@jupyter-ai/persona-kit';
 import type { IModelOptions } from './models';
 import type { IProviderInfo } from '../tokens';
 

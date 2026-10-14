@@ -15,28 +15,31 @@ import {
   type TypedToolResult,
   type UserContent,
   type AssistantModelMessage,
+  type Tool,
   APICallError
 } from 'ai';
 import { IMcpManager } from 'jupyter-mcp-manager';
 import { ISecretsManager } from 'jupyter-secrets-manager';
 
 import { createModel } from './providers/models';
-import { createExecuteCommandApprovalPolicy } from './tools/commands';
 import { getEffectiveContextWindow } from './providers/model-info';
 import {
   createProviderTools,
   type IProviderCustomSettings
 } from './providers/provider-tools';
-import type { ISkillSummary } from './skills';
+import {
+  createExecuteCommandApprovalPolicy,
+  type ISkillRegistry,
+  type ISkillSummary,
+  type ITool,
+  type IToolRegistry
+} from '@jupyter-ai/persona-kit';
 import {
   type IAgentManager,
   type IAgentManagerFactory,
   type IAISettingsModel,
   type IProviderInfo,
   type IProviderRegistry,
-  type ISkillRegistry,
-  type ITool,
-  type IToolRegistry,
   type ITokenUsage,
   type ToolMap,
   SECRETS_NAMESPACE
@@ -463,7 +466,8 @@ export class AgentManager implements IAgentManager {
     for (const name of this._selectedToolNames) {
       const tool: ITool | null = this._toolRegistry.get(name);
       if (tool) {
-        result[name] = tool;
+        // The registry tools have the AI SDK tool shape (see the kit ITool).
+        result[name] = tool as Tool;
       }
     }
 
@@ -949,7 +953,9 @@ ${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._ad
       }),
       stopWhen: isStepCount(maxTurns),
       toolApproval: {
-        execute_command: createExecuteCommandApprovalPolicy(this._settingsModel)
+        execute_command: createExecuteCommandApprovalPolicy(
+          () => this._settingsModel.config.commandsRequiringApproval ?? []
+        )
       }
     });
   }
@@ -1237,7 +1243,7 @@ ${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._ad
       if (!token) {
         // This should never happen, the secrets manager should be disabled.
         console.error(
-          '@jupyterlite/ai::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
+          '@jupyter-ai/jupyternaut-frontend::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
         );
         apiKey = '';
       } else {

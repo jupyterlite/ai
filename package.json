@@ -24,7 +24,7 @@
     "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.mjs,.css,.json,.md,.yml}\"",
     "stylelint": "jlpm stylelint:check --fix",
     "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
-    "sync:model-info": "jlpm workspace @jupyter-ai/persona-kit run sync:model-info",
+    "sync:model-info": "jlpm workspace @jupyter-ai/jupyternaut-frontend run sync:model-info",
     "watch": "jlpm workspace @jupyter-ai/jupyternaut-frontend run watch"
   },
   "devDependencies": {

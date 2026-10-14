@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyter-ai/persona-kit';
+import { IProviderRegistry } from '@jupyter-ai/jupyternaut-frontend';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {

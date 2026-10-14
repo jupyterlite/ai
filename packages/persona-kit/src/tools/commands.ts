@@ -1,10 +1,9 @@
 import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { CommandRegistry } from '@lumino/commands';
 import { Widget } from '@lumino/widgets';
-import { tool } from 'ai';
 import { z } from 'zod';
 
-import type { IAISettingsModel, ITool } from '../tokens';
+import type { ITool } from '../tokens';
 
 interface ICommandEntry {
   id: string;
@@ -99,7 +98,7 @@ export function createDiscoverCommandsTool(
   translator?: ITranslator
 ): ITool {
   const trans = (translator ?? nullTranslator).load('jupyter_ai_persona_kit');
-  return tool({
+  return {
     metadata: { title: trans.__('Discover Commands') },
     description:
       'Discover all available JupyterLab commands with their metadata, arguments, and descriptions',
@@ -144,37 +143,34 @@ export function createDiscoverCommandsTool(
         commands: commandList
       };
     }
-  });
+  };
 }
 
 /**
  * Create the approval policy for the execute command tool, to be used with the
  * `toolApproval` option of a `generateText`/`streamText` call or agent.
- * Commands in the settings' commandsRequiringApproval list will need approval.
+ * The commands returned by `commandsRequiringApproval` need approval.
  */
 export function createExecuteCommandApprovalPolicy(
-  settingsModel: IAISettingsModel
+  commandsRequiringApproval: () => readonly string[]
 ): (input: { commandId: string; args?: any }) => 'user-approval' | undefined {
-  return input => {
-    const commandsRequiringApproval =
-      settingsModel.config.commandsRequiringApproval || [];
-    return commandsRequiringApproval.includes(input.commandId)
+  return input =>
+    commandsRequiringApproval().includes(input.commandId)
       ? 'user-approval'
       : undefined;
-  };
 }
 
 /**
  * Create a tool to execute a specific JupyterLab command.
- * Approval for commands in the settings' commandsRequiringApproval list is
- * handled at the agent level via `createExecuteCommandApprovalPolicy`.
+ * Approval for the commands that require it is handled at the agent level via
+ * `createExecuteCommandApprovalPolicy`.
  */
 export function createExecuteCommandTool(
   commands: CommandRegistry,
   translator?: ITranslator
 ): ITool {
   const trans = (translator ?? nullTranslator).load('jupyter_ai_persona_kit');
-  return tool({
+  return {
     metadata: { title: trans.__('Execute Command') },
     description:
       'Execute a specific JupyterLab command with optional arguments',
@@ -226,5 +222,5 @@ export function createExecuteCommandTool(
         result: serializedResult
       };
     }
-  });
+  };
 }

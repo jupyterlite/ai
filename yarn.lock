@@ -2368,6 +2368,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyter-ai/jupyternaut-frontend@workspace:packages/jupyternaut"
   dependencies:
+    "@ai-sdk/anthropic": ^4.0.57
+    "@ai-sdk/google": ^4.0.75
+    "@ai-sdk/mcp": ^2.0.53
+    "@ai-sdk/mistral": ^4.0.47
+    "@ai-sdk/openai": ^4.0.70
+    "@ai-sdk/openai-compatible": ^3.0.52
     "@jupyter-ai/persona-kit": ^0.20.1
     "@jupyter-ai/persona-manager": 0.3.0-a0
     "@jupyter/builder": ^1.2.2
@@ -2408,6 +2414,7 @@ __metadata:
     rimraf: ^5.0.1
     source-map-loader: ^1.0.2
     typescript: ~5.8.0
+    zod: ^4.3.6
   languageName: unknown
   linkType: soft
 
@@ -2415,27 +2422,16 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyter-ai/persona-kit@workspace:packages/persona-kit"
   dependencies:
-    "@ai-sdk/anthropic": ^4.0.57
-    "@ai-sdk/google": ^4.0.75
-    "@ai-sdk/mcp": ^2.0.53
-    "@ai-sdk/mistral": ^4.0.47
-    "@ai-sdk/openai": ^4.0.70
-    "@ai-sdk/openai-compatible": ^3.0.52
-    "@jupyterlab/apputils": ^4.6.8
     "@jupyterlab/coreutils": ^6.5.8
     "@jupyterlab/rendermime": ^4.5.8
     "@jupyterlab/services": ^7.5.8
     "@jupyterlab/translation": ^4.5.8
-    "@jupyterlab/ui-components": ^4.5.8
     "@lumino/commands": ^2.3.2
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4
     "@lumino/signaling": ^2.1.4
     "@lumino/widgets": ^2.7.1
     "@types/node": ^24.3.0
-    ai: ^7.0.106
-    jupyter-mcp-manager: ^0.2.0
-    jupyter-secrets-manager: ^0.5.0
     rimraf: ^5.0.1
     typescript: ~5.8.0
     yaml: ^2.8.1

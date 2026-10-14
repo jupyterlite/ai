@@ -1,6 +1,6 @@
 import type { IChatModel } from '@jupyter/chat';
 
-import type { IAgentManager } from '@jupyter-ai/persona-kit';
+import type { IAgentManager } from './tokens';
 
 import { ISignal, Signal } from '@lumino/signaling';
 
