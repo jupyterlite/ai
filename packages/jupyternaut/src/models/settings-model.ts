@@ -2,7 +2,7 @@ import type { IAIConfig, IAISettingsModel, IProviderConfig } from '../tokens';
 import { VDomModel } from '@jupyterlab/ui-components';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-const PLUGIN_ID = '@jupyter-ai/jupyternaut-frontend:settings-model';
+const PLUGIN_ID = '@jupyter-ai/jupyternaut:settings-model';
 
 export class AISettingsModel extends VDomModel implements IAISettingsModel {
   private _config: IAIConfig = {

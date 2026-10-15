@@ -10,7 +10,7 @@ import React from 'react';
 import { DEFAULT_PERSONA } from '../tokens';
 
 export class MentionCommandProvider implements IChatCommandProvider {
-  public id: string = '@jupyter-ai/jupyternaut-frontend:mention';
+  public id: string = '@jupyter-ai/jupyternaut:mention';
 
   async listCommandCompletions(
     inputModel: IInputModel

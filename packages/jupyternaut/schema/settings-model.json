@@ -1,6 +1,6 @@
 {
   "jupyter.lab.shortcuts": [],
-  "jupyter.lab.setting-icon": "@jupyter-ai/jupyternaut-frontend:jupyternaut",
+  "jupyter.lab.setting-icon": "@jupyter-ai/jupyternaut:jupyternaut",
   "title": "Jupyternaut Persona",
   "description": "Configuration for Jupyternaut persona extension providers, models, and behavior",
   "jupyter.lab.menus": {
@@ -13,7 +13,7 @@
             "rank": 110
           },
           {
-            "command": "@jupyter-ai/jupyternaut-frontend:open-settings",
+            "command": "@jupyter-ai/jupyternaut:open-settings",
             "rank": 110
           },
           {

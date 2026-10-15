@@ -1,6 +1,6 @@
 # Building an in-browser persona
 
-[Jupyter AI](https://github.com/jupyterlab/jupyter-ai) personas run on the Jupyter server. The `jupyter-ai-persona-kit` package is a kit to build personas that run in the browser instead, so they also work in JupyterLite. [Jupyternaut](https://pypi.org/project/jupyter-ai-jupyternaut-frontend/), in this repository, is built on it. A persona built on the kit lives in its own repository and does not depend on Jupyternaut.
+[Jupyter AI](https://github.com/jupyterlab/jupyter-ai) personas run on the Jupyter server. The `jupyter-ai-persona-kit` package is a kit to build personas that run in the browser instead, so they also work in JupyterLite. [Jupyternaut](https://pypi.org/project/jupyternaut/), in this repository, is built on it. A persona built on the kit lives in its own repository and does not depend on Jupyternaut.
 
 ## What the kit provides
 

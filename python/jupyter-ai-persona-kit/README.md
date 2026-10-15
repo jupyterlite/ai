@@ -4,7 +4,7 @@ A kit to build in-browser AI personas for [Jupyter AI](https://github.com/jupyte
 
 The kit provides the pieces an in-browser persona needs: a registry of tools (JupyterLab commands, web fetch, skills), a registry of agent skills, the settings shared by the personas (command approvals, chat rendering of command outputs, skills paths) and the OpenRouter sign-in helpers.
 
-The [Jupyternaut persona](https://pypi.org/project/jupyter-ai-jupyternaut-frontend/) is built on this kit.
+The [Jupyternaut persona](https://pypi.org/project/jupyternaut/) is built on this kit.
 
 ## Install
 

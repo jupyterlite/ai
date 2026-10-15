@@ -12,7 +12,7 @@ export class SkillsCommandProvider implements IChatCommandProvider {
     this._isDefault = options.isDefault;
   }
 
-  public id: string = '@jupyter-ai/jupyternaut-frontend:skills-command';
+  public id: string = '@jupyter-ai/jupyternaut:skills-command';
 
   async listCommandCompletions(
     inputModel: IInputModel

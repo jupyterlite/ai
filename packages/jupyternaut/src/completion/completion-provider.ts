@@ -171,7 +171,7 @@ export class AICompletionProvider implements IInlineCompletionProvider {
       if (!token) {
         // This should never happen, the secrets manager should be disabled.
         console.error(
-          '@jupyter-ai/jupyternaut-frontend::AICompletionProvider error: the settings manager token is not set.\nYou should disable the secrets manager from the AI settings.'
+          '@jupyter-ai/jupyternaut::AICompletionProvider error: the settings manager token is not set.\nYou should disable the secrets manager from the AI settings.'
         );
         apiKey = '';
       } else {

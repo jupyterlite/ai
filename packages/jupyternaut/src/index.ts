@@ -158,7 +158,7 @@ namespace Private {
  * Provider registry plugin
  */
 const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
-  id: '@jupyter-ai/jupyternaut-frontend:provider-registry',
+  id: '@jupyter-ai/jupyternaut:provider-registry',
   description: 'AI provider registry',
   autoStart: true,
   provides: IProviderRegistry,
@@ -171,7 +171,7 @@ const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
  * Anthropic provider plugin
  */
 const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:anthropic-provider',
+  id: '@jupyter-ai/jupyternaut:anthropic-provider',
   description: 'Register Anthropic provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -184,7 +184,7 @@ const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Google provider plugin
  */
 const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:google-provider',
+  id: '@jupyter-ai/jupyternaut:google-provider',
   description: 'Register Google Generative AI provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -197,7 +197,7 @@ const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Mistral provider plugin
  */
 const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:mistral-provider',
+  id: '@jupyter-ai/jupyternaut:mistral-provider',
   description: 'Register Mistral provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -210,7 +210,7 @@ const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
  * OpenAI provider plugin
  */
 const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:openai-provider',
+  id: '@jupyter-ai/jupyternaut:openai-provider',
   description: 'Register OpenAI provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -223,7 +223,7 @@ const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
  * OpenRouter provider plugin
  */
 const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:openrouter-provider',
+  id: '@jupyter-ai/jupyternaut:openrouter-provider',
   description: 'Register OpenRouter provider',
   autoStart: true,
   requires: [IProviderRegistry, IAISettingsModel],
@@ -235,9 +235,7 @@ const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
     secretsManager?: ISecretsManager,
     translator?: ITranslator
   ) => {
-    const trans = (translator ?? nullTranslator).load(
-      'jupyter_ai_jupyternaut_frontend'
-    );
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
 
     const connectAccount = async (
@@ -294,7 +292,7 @@ const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
  * Generic provider plugin
  */
 const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:generic-provider',
+  id: '@jupyter-ai/jupyternaut:generic-provider',
   description: 'Register Generic OpenAI-compatible provider',
   autoStart: true,
   requires: [IProviderRegistry],
@@ -308,7 +306,7 @@ const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
  * so it can be consumed by the toolbar factory without creating a plugin cycle.
  */
 const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
-  id: '@jupyter-ai/jupyternaut-frontend:registry',
+  id: '@jupyter-ai/jupyternaut:registry',
   description: 'Registry mapping chat models to their persona handlers',
   autoStart: true,
   provides: IPersonaRegistry,
@@ -336,7 +334,7 @@ const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
  * PersonaHandler for each chat widget that is opened.
  */
 const persona: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:plugin',
+  id: '@jupyter-ai/jupyternaut:plugin',
   description: 'Attach persona handlers to chat widgets as they are opened',
   autoStart: true,
   requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
@@ -442,7 +440,7 @@ const persona: JupyterFrontEndPlugin<void> = {
  * to the correct persona's agent manager.
  */
 const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:chat-components-callbacks',
+  id: '@jupyter-ai/jupyternaut:chat-components-callbacks',
   description: 'Register chat components callbacks for the persona.',
   autoStart: true,
   requires: [IPersonaRegistry],
@@ -488,7 +486,7 @@ const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
  * Clear chat command plugin.
  */
 const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:mention',
+  id: '@jupyter-ai/jupyternaut:mention',
   description: 'Register the Jupyternaut mention chat command.',
   autoStart: true,
   requires: [IChatCommandRegistry],
@@ -501,7 +499,7 @@ const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
  * Skills chat command plugin.
  */
 const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:skills-command',
+  id: '@jupyter-ai/jupyternaut:skills-command',
   description: 'Register the /skills chat command.',
   autoStart: true,
   requires: [IChatCommandRegistry, ISkillRegistry, IPersonaRegistry],
@@ -609,7 +607,7 @@ const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
  * AI settings panel plugin.
  */
 const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:settings-panel',
+  id: '@jupyter-ai/jupyternaut:settings-panel',
   description: 'Provide the AI settings panel',
   autoStart: true,
   requires: [
@@ -643,9 +641,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
     formRenderer?: IFormRendererRegistry,
     _mcpManager?: IMcpManager
   ): void => {
-    const trans = (translator ?? nullTranslator).load(
-      'jupyter_ai_jupyternaut_frontend'
-    );
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
     const secretsAccess = Private.createAISecretsAccess(secretsManager);
 
     // Get the renderer for MCP servers settings
@@ -709,7 +705,7 @@ const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
  * Built-in completion providers plugin
  */
 const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
-  id: '@jupyter-ai/jupyternaut-frontend:settings-model',
+  id: '@jupyter-ai/jupyternaut:settings-model',
   description: 'Provide the AI settings model',
   autoStart: true,
   provides: IAISettingsModel,
@@ -723,7 +719,7 @@ const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
 };
 
 const completionStatus: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:completion-status',
+  id: '@jupyter-ai/jupyternaut:completion-status',
   description: 'The completion status displayed in the status bar',
   autoStart: true,
   requires: [IAISettingsModel],
@@ -737,9 +733,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
     if (!statusBar) {
       return;
     }
-    const trans = (translator ?? nullTranslator).load(
-      'jupyter_ai_jupyternaut_frontend'
-    );
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
     const item = new CompletionStatusWidget({
       settingsModel,
       translator: trans
@@ -756,7 +750,7 @@ const completionStatus: JupyterFrontEndPlugin<void> = {
  * Update the stop button when the persona is jupyternaut.
  */
 const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyter-ai/jupyternaut-frontend:stop-button',
+  id: '@jupyter-ai/jupyternaut:stop-button',
   description: 'Add a stop button to the chat input toolbar',
   autoStart: true,
   requires: [IPersonaRegistry],

@@ -5,7 +5,7 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, with the Jupyternaut persona of [Jupyter AI](https://github.com/jupyterlab/jupyter-ai) running in the browser.
 
-The repository holds two packages: `jupyter-ai-persona-kit`, a [kit to build in-browser personas](./personas.md), and `jupyter-ai-jupyternaut-frontend`, the Jupyternaut persona built on it. `jupyterlite-ai` installs both.
+The repository holds two packages: `jupyter-ai-persona-kit`, a [kit to build in-browser personas](./personas.md), and `jupyternaut`, the Jupyternaut persona built on it. `jupyterlite-ai` installs both.
 
 :::{iframe} https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b
 :width: 100%

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.5.0", "jupyter-builder>=1.2.2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyter_ai_jupyternaut_frontend"
+name = "jupyternaut"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -61,24 +61,24 @@ docs = [
 ]
 
 [tool.hatch.version]
-path = "jupyter_ai_jupyternaut_frontend/_version.py"
+path = "jupyternaut/_version.py"
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["jupyter_ai_jupyternaut_frontend/labextension"]
+artifacts = ["jupyternaut/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyter_ai_jupyternaut_frontend/labextension" = "share/jupyter/labextensions/@jupyter-ai/jupyternaut-frontend"
-"install.json" = "share/jupyter/labextensions/@jupyter-ai/jupyternaut-frontend/install.json"
+"jupyternaut/labextension" = "share/jupyter/labextensions/@jupyter-ai/jupyternaut"
+"install.json" = "share/jupyter/labextensions/@jupyter-ai/jupyternaut/install.json"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "jupyter_ai_jupyternaut_frontend/labextension/static/style.js",
-    "jupyter_ai_jupyternaut_frontend/labextension/package.json",
+    "jupyternaut/labextension/static/style.js",
+    "jupyternaut/labextension/package.json",
 ]
-skip-if-exists = ["jupyter_ai_jupyternaut_frontend/labextension/static/style.js"]
+skip-if-exists = ["jupyternaut/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
@@ -89,7 +89,7 @@ path = "../.."
 npm = ["jlpm"]
 build_cmd = "build:prod"
 editable_build_cmd = "build"
-build_dir = "jupyter_ai_jupyternaut_frontend/labextension"
+build_dir = "jupyternaut/labextension"
 path = "../.."
 
 [tool.check-wheel-contents]

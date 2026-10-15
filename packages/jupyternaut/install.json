@@ -1,5 +1,5 @@
 {
   "packageManager": "python",
-  "packageName": "jupyter_ai_jupyternaut_frontend",
-  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package jupyter_ai_jupyternaut_frontend"
+  "packageName": "jupyternaut",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package jupyternaut"
 }

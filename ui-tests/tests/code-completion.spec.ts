@@ -101,7 +101,7 @@ test.describe('#CompletionStatus', () => {
   test('completion status indicator should be enabled', async ({ page }) => {
     const model =
       DEFAULT_GENERIC_PROVIDER_SETTINGS[
-        '@jupyter-ai/jupyternaut-frontend:settings-model'
+        '@jupyter-ai/jupyternaut:settings-model'
       ].providers[0].model;
     const component = page.locator(
       '.jp-ai-completion-status > div:first-child'
@@ -116,11 +116,11 @@ test.describe('#CompletionStatus', () => {
   test('completion status should toggle', async ({ page }) => {
     const model =
       DEFAULT_GENERIC_PROVIDER_SETTINGS[
-        '@jupyter-ai/jupyternaut-frontend:settings-model'
+        '@jupyter-ai/jupyternaut:settings-model'
       ].providers[0].model;
     const name =
       DEFAULT_GENERIC_PROVIDER_SETTINGS[
-        '@jupyter-ai/jupyternaut-frontend:settings-model'
+        '@jupyter-ai/jupyternaut:settings-model'
       ].providers[0].name;
     const component = page.locator(
       '.jp-ai-completion-status > div:first-child'
@@ -134,7 +134,7 @@ test.describe('#CompletionStatus', () => {
     );
     await page
       .locator(
-        '#modal-command-palette li[data-command="@jupyter-ai/jupyternaut-frontend:open-settings"]'
+        '#modal-command-palette li[data-command="@jupyter-ai/jupyternaut:open-settings"]'
       )
       .click();
     // Do not use the same provider for chat and completion

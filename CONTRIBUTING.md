@@ -96,13 +96,13 @@ jlpm docs:build
 
 ```bash
 pip uninstall jupyterlite-ai
-pip uninstall jupyter-ai-jupyternaut-frontend
+pip uninstall jupyternaut
 pip uninstall jupyter-ai-persona-kit
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter-builder develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlinks named `@jupyter-ai/persona-kit` and `@jupyter-ai/jupyternaut-frontend`
+folder is located. Then you can remove the symlinks named `@jupyter-ai/persona-kit` and `@jupyter-ai/jupyternaut`
 within that folder.
 
 ## Packaging the extension

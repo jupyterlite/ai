@@ -13,7 +13,7 @@ from pathlib import Path
 # Packages that include a JupyterLab extension (require jupyter-builder develop)
 EXTENSION_PACKAGES = [
     "python/jupyter-ai-persona-kit",
-    "python/jupyter-ai-jupyternaut-frontend",
+    "python/jupyternaut",
 ]
 
 # Meta-packages with no labextension

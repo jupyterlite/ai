@@ -28,7 +28,7 @@ skip = ["check-python"]
 version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
 python_packages = [
     "python/jupyter-ai-persona-kit",
-    "python/jupyter-ai-jupyternaut-frontend",
+    "python/jupyternaut",
     "python/jupyterlite-ai"
 ]
 

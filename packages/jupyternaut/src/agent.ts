@@ -1252,7 +1252,7 @@ ${richOutputWorkflowInstruction}${this._additionalInstructions ? `\n\n${this._ad
       if (!token) {
         // This should never happen, the secrets manager should be disabled.
         console.error(
-          '@jupyter-ai/jupyternaut-frontend::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
+          '@jupyter-ai/jupyternaut::AgentManager error: the settings manager token is not set.\nYou should disable the the secrets manager from the AI settings.'
         );
         apiKey = '';
       } else {

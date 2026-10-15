@@ -1,4 +1,4 @@
-# jupyter-ai-jupyternaut-frontend
+# jupyternaut
 
 The Jupyternaut persona of [Jupyter AI](https://github.com/jupyterlab/jupyter-ai), running in the browser.
 
@@ -25,13 +25,13 @@ You can try the extension in your browser using JupyterLite:
 To install the extension, execute:
 
 ```bash
-pip install jupyter-ai-jupyternaut-frontend
+pip install jupyternaut
 ```
 
 To install requirements (JupyterLab, JupyterLite and Notebook):
 
 ```bash
-pip install jupyter-ai-jupyternaut-frontend[jupyter]
+pip install jupyternaut[jupyter]
 ```
 
 ## Documentation
@@ -43,7 +43,7 @@ For detailed usage instructions, including how to configure AI providers, see th
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyter-ai-jupyternaut-frontend
+pip uninstall jupyternaut
 ```
 
 ## Contributing

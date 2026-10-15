@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyter-ai/jupyternaut-frontend';
+import { IProviderRegistry } from '@jupyter-ai/jupyternaut';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -67,13 +67,13 @@ The provider configuration object requires the following properties:
 
 A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function of `@jupyter-ai/persona-kit`. See [App attribution](./openrouter.md#app-attribution) to set them.
 
-The provider registry token must be the same object in the Jupyternaut extension and in the provider extension. The provider extension consumes `@jupyter-ai/jupyternaut-frontend` as a shared singleton in its `package.json`, and its Python package depends on `jupyter-ai-jupyternaut-frontend`:
+The provider registry token must be the same object in the Jupyternaut extension and in the provider extension. The provider extension consumes `@jupyter-ai/jupyternaut` as a shared singleton in its `package.json`, and its Python package depends on `jupyternaut`:
 
 ```json
 {
   "jupyterlab": {
     "sharedPackages": {
-      "@jupyter-ai/jupyternaut-frontend": {
+      "@jupyter-ai/jupyternaut": {
         "bundled": false,
         "singleton": true
       }
@@ -85,7 +85,7 @@ The provider registry token must be the same object in the Jupyternaut extension
 ## Hiding the Built-In Settings UI
 
 If your extension ships a fully configured provider and you do not want users to
-edit provider settings, disable the `@jupyter-ai/jupyternaut-frontend:settings-panel` plugin.
+edit provider settings, disable the `@jupyter-ai/jupyternaut:settings-panel` plugin.
 This hides the AI settings panel and its command without disabling the rest of
 Jupyternaut.
 
@@ -93,7 +93,7 @@ For example, in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": ["@jupyter-ai/jupyternaut-frontend:settings-panel"]
+  "disabledExtensions": ["@jupyter-ai/jupyternaut:settings-panel"]
 }
 ```
 

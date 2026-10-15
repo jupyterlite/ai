@@ -10,7 +10,7 @@ export const QWEN_MODEL_NAME = 'Qwen2.5';
 export const FUNCTIONGEMMA_MODEL_NAME = 'Functiongemma';
 
 export const DEFAULT_GENERIC_PROVIDER_SETTINGS = {
-  '@jupyter-ai/jupyternaut-frontend:settings-model': {
+  '@jupyter-ai/jupyternaut:settings-model': {
     defaultProvider: 'generic-qwen',
     providers: [
       {
@@ -79,7 +79,7 @@ export const openSettings = async (
 ): Promise<Locator> => {
   await page.evaluate(async () => {
     await window.jupyterapp.commands.execute(
-      '@jupyter-ai/jupyternaut-frontend:open-settings'
+      '@jupyter-ai/jupyternaut:open-settings'
     );
   });
 
