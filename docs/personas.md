@@ -26,7 +26,7 @@ The kit has no dependency on the AI SDK: a persona can use any agent runtime.
 
 ## Depending on the kit
 
-A persona extension consumes the kit as a shared singleton, so that the tokens are the same objects in every extension. In `package.json`:
+A persona extension, or an extension that only adds tools or skills, consumes the kit as a shared singleton, so that the tokens are the same objects in every extension. In `package.json`:
 
 ```json
 {
@@ -53,7 +53,7 @@ dependencies = [
 ]
 ```
 
-The kit follows the `0.x` convention: a new minor version may change the API. Pin the minor version and bump it when the kit changes.
+The kit follows the `0.x` convention: a new minor version may change the API. The kit is released with Jupyternaut, so each minor release of Jupyternaut is also a minor release of the kit. Pin the minor version, and test and bump the pin at each minor release of the kit.
 
 ## Registering a persona in the chat
 

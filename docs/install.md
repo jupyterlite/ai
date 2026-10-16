@@ -36,4 +36,4 @@ pip uninstall jupyternaut-persona
 
 If you have `jupyter-ai-jupyternaut` (the server Jupyternaut), uninstall it first: the two packages install the same labextension folder.
 
-The settings ids change (`@jupyter-ai/jupyternaut:settings-model` and `@jupyter-ai/persona-kit:settings`), so the providers, the model choice and the settings of the Behavior tab must be entered again. The API keys stored in the secrets manager are kept. With the secrets manager disabled, the API keys stored in the settings must be entered again.
+The settings ids change (`@jupyter-ai/jupyternaut:settings-model` and `@jupyter-ai/persona-kit:settings`), so the providers, the model choice and the settings of the Behavior tab must be entered again. The API keys stored in the secrets manager are kept. With the secrets manager disabled, the API keys stored in the settings must be entered again. The options of the Jupyternaut inline completer (provider `@jupyter-ai/jupyternaut:completer` in the `@jupyterlab/completer-extension:inline-completer` settings) must also be set again.

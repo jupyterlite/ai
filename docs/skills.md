@@ -117,7 +117,7 @@ By default, skills are loaded from two directories (in order of priority):
 1. `.agents/skills` — follows the convention used by other AI coding tools
 2. `_agents/skills` — visible by default in the Jupyter file browser
 
-You can add, remove, or reorder paths in the AI settings: open the AI settings, go to the **Behavior** tab and edit the **Skills Paths** list. The list is also in **Settings** > **Settings Editor** > **AI Persona Kit**.
+You can add or remove paths in the AI settings: open the AI settings, go to the **Behavior** tab and edit the **Skills Paths** list. To change the order of the paths, open **Settings** > **Settings Editor** > **AI Persona Kit**.
 
 This is useful if you keep skills in additional locations, such as `.claude/skills/` for compatibility with Claude Code. When the same skill name appears in multiple directories, the first occurrence wins (based on the order of the paths list).
 
@@ -201,6 +201,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
   }
 };
 ```
+
+The extension must consume `@jupyter-ai/persona-kit` as a shared singleton, and its Python package must depend on `jupyter-ai-persona-kit`. Otherwise the extension bundles its own copy of the kit, and the tokens do not match. See [Depending on the kit](./personas.md#depending-on-the-kit).
 
 The registry follows progressive disclosure: `load_skill` returns instructions and a list of resource **paths**, and the agent loads individual resources on demand via the `resource` argument. This keeps token usage low for skills with large bundled files.
 

@@ -9,7 +9,9 @@ import type {
   ISkillSummary
 } from './skills';
 
-/* THE TOOL REGISTRY */
+/*
+ * THE TOOL REGISTRY
+ */
 /**
  * The options a tool call receives, a subset of the AI SDK tool call options.
  */
@@ -99,7 +101,9 @@ export const IToolRegistry = new Token<IToolRegistry>(
   'Tool registry for AI agent functionality'
 );
 
-/* THE SKILL REGISTRY */
+/*
+ * THE SKILL REGISTRY
+ */
 
 /**
  * Registry for skills available to the AI agent.
@@ -142,7 +146,9 @@ export const ISkillRegistry = new Token<ISkillRegistry>(
   'Skill registry for AI agent functionality'
 );
 
-/* THE SETTINGS */
+/*
+ * THE SETTINGS
+ */
 
 /**
  * The settings shared by the in-browser personas.

@@ -697,8 +697,8 @@ export interface ITokenUsage {
 
 /**
  * The secrets namespace of the provider API keys, and the id of the plugin
- * that signs it. Kept from the old package name: the keys of users are stored
- * under it.
+ * that signs it. The stored API keys of users use this namespace, so it must
+ * not change.
  */
 export const SECRETS_NAMESPACE = '@jupyternaut/agent:providers';
 /**
