@@ -15,9 +15,9 @@ const TEST_CHAT_NAME = 'mime-bundles-test';
 const TEST_CHAT_FILE = `${TEST_CHAT_NAME}.chat`;
 
 const EXPECT_TIMEOUT = 120000;
-const TEST_MIME_BUNDLE_COMMAND_ID = 'jupyterlite-ai-tests:emit-mime-bundle';
+const TEST_MIME_BUNDLE_COMMAND_ID = 'jupyter-ai-lite-tests:emit-mime-bundle';
 const BASE_SETTINGS =
-  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyternaut/persona:settings-model'];
+  DEFAULT_GENERIC_PROVIDER_SETTINGS['@jupyter-ai/jupyternaut:settings-model'];
 const PROVIDERS = BASE_SETTINGS.providers.map(provider => {
   if (provider.id !== 'generic-functiongemma') {
     return provider;
@@ -40,14 +40,16 @@ test.use({
       fetchNews: 'false',
       doNotDisturbMode: true
     },
-    '@jupyternaut/persona:settings-model': {
+    '@jupyter-ai/jupyternaut:settings-model': {
       ...BASE_SETTINGS,
       providers: PROVIDERS,
       toolsEnabled: true,
       defaultProvider: 'generic-functiongemma',
-      commandsAutoRenderMimeBundles: [TEST_MIME_BUNDLE_COMMAND_ID],
       systemPrompt:
-        'When asked to execute a command, call execute_command exactly once with this input shape: {"commandId":"jupyterlite-ai-tests:emit-mime-bundle"} and no args. Do not call any other tools and do not ask follow-up questions.'
+        'When asked to execute a command, call execute_command exactly once with this input shape: {"commandId":"jupyter-ai-lite-tests:emit-mime-bundle"} and no args. Do not call any other tools and do not ask follow-up questions.'
+    },
+    '@jupyter-ai/persona-kit:settings': {
+      commandsAutoRenderMimeBundles: [TEST_MIME_BUNDLE_COMMAND_ID]
     }
   }
 });

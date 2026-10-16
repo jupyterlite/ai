@@ -1,6 +1,6 @@
 # Custom Providers
 
-`jupyterlite-ai` supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
+Jupyternaut supports custom AI providers through its provider registry system. Third-party providers can be registered programmatically in a JupyterLab extension.
 
 Providers are based on the [AI SDK](https://ai-sdk.dev/), which provides a unified interface for working with different AI models.
 
@@ -13,7 +13,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { IProviderRegistry } from '@jupyternaut/agent';
+import { IProviderRegistry } from '@jupyter-ai/jupyternaut';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -65,12 +65,27 @@ The provider configuration object requires the following properties:
   prompt caching
 - `factory`: Function that creates and returns a language model (the registry automatically wraps it for chat usage)
 
-A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function. See [App attribution](./openrouter.md#app-attribution) to set them.
+A provider that supports app attribution can get the application `name` and `url` with the `getAppAttribution` function of `@jupyter-ai/persona-kit`. See [App attribution](./openrouter.md#app-attribution) to set them.
+
+The provider registry token must be the same object in the Jupyternaut extension and in the provider extension. The provider extension consumes `@jupyter-ai/jupyternaut` as a shared singleton in its `package.json`, and its Python package depends on `jupyternaut`:
+
+```json
+{
+  "jupyterlab": {
+    "sharedPackages": {
+      "@jupyter-ai/jupyternaut": {
+        "bundled": false,
+        "singleton": true
+      }
+    }
+  }
+}
+```
 
 ## Hiding the Built-In Settings UI
 
 If your extension ships a fully configured provider and you do not want users to
-edit provider settings, disable the `@jupyternaut/persona:settings-panel` plugin.
+edit provider settings, disable the `@jupyter-ai/jupyternaut:settings-panel` plugin.
 This hides the AI settings panel and its command without disabling the rest of
 Jupyternaut.
 
@@ -78,7 +93,7 @@ For example, in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": ["@jupyternaut/persona:settings-panel"]
+  "disabledExtensions": ["@jupyter-ai/jupyternaut:settings-panel"]
 }
 ```
 
@@ -117,7 +132,7 @@ In AI SDK terms, this can be either:
 - **Provider-defined tools** (declared as provider tools in AI SDK), or
 - **Provider-executed tools** (tool helpers exposed directly by provider SDKs).
 
-In `jupyterlite-ai`, provider-hosted web tools are wired through
+In `jupyter-ai-lite`, provider-hosted web tools are wired through
 `IProviderInfo.providerToolCapabilities`. This means custom providers can opt in
 without relying on hardcoded provider IDs.
 

@@ -1,7 +1,7 @@
 {
-  "name": "jupyterlite-ai-ui-tests",
+  "name": "jupyter-ai-lite-ui-tests",
   "version": "1.0.0",
-  "description": "jupyterlite-ai Integration Tests",
+  "description": "jupyter-ai-lite Integration Tests",
   "private": true,
   "scripts": {
     "start": "jupyter lab --config jupyter_server_test_config.py",

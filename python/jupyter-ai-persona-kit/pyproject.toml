@@ -1,0 +1,85 @@
+[build-system]
+requires = ["hatchling>=1.5.0", "jupyter-builder>=1.2.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jupyter_ai_persona_kit"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+description = "A kit to build in-browser AI personas for Jupyter AI: tools, skills, settings and sign-in helpers"
+authors = [
+    { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
+]
+keywords = ["jupyter", "jupyterlab", "jupyterlite", "jupyterlab-extension"]
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
+]
+dependencies = [
+    "jupyterlab-ai-commands >=0.4.0,<0.5",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://jupyterlite-ai.readthedocs.io/en/latest/"
+Repository = "https://github.com/jupyterlite/ai"
+Changelog = "https://jupyterlite-ai.readthedocs.io/en/latest/changelog/"
+Source = "https://github.com/jupyterlite/ai/tree/main"
+Issues = "https://github.com/jupyterlite/ai/issues/new/choose"
+"Try it" = "https://jupyterlite.github.io/ai/lab/index.html"
+
+[project.optional-dependencies]
+jupyter = [
+    "jupyterlab>=4.5.0",
+    "jupyterlite>=0.8.0",
+    "notebook>=7.5.0"
+]
+test = []
+docs = []
+
+[tool.hatch.version]
+path = "jupyter_ai_persona_kit/_version.py"
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["jupyter_ai_persona_kit/labextension"]
+exclude = [".github", "binder"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"jupyter_ai_persona_kit/labextension" = "share/jupyter/labextensions/@jupyter-ai/persona-kit"
+"install.json" = "share/jupyter/labextensions/@jupyter-ai/persona-kit/install.json"
+
+[tool.hatch.build.hooks.jupyter-builder]
+dependencies = ["hatch-jupyter-builder>=0.5"]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "jupyter_ai_persona_kit/labextension/static/style.js",
+    "jupyter_ai_persona_kit/labextension/package.json",
+]
+skip-if-exists = ["jupyter_ai_persona_kit/labextension/static/style.js"]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build:prod"
+npm = ["jlpm"]
+path = "../.."
+
+[tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
+npm = ["jlpm"]
+build_cmd = "build:prod"
+editable_build_cmd = "build"
+build_dir = "jupyter_ai_persona_kit/labextension"
+path = "../.."
+
+[tool.check-wheel-contents]
+ignore = ["W002"]

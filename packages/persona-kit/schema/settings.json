@@ -1,0 +1,59 @@
+{
+  "title": "AI Persona Kit",
+  "description": "Settings shared by the in-browser AI personas: command approvals, chat rendering of command outputs and agent skills",
+  "type": "object",
+  "properties": {
+    "commandsRequiringApproval": {
+      "title": "Commands Requiring Approval",
+      "description": "List of commands that require user approval before AI can execute them",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "notebook:restart-run-all",
+        "notebook:run-cell",
+        "notebook:run-cell-and-select-next",
+        "notebook:run-cell-and-insert-below",
+        "notebook:run-all-cells",
+        "notebook:run-all-above",
+        "notebook:run-all-below",
+        "console:execute",
+        "console:execute-forced",
+        "fileeditor:run-code",
+        "kernelmenu:run",
+        "kernelmenu:restart-and-run-all",
+        "runmenu:run-all",
+        "jupyterlab-ai-commands:run-cell"
+      ]
+    },
+    "commandsAutoRenderMimeBundles": {
+      "title": "Commands Auto-Rendering MIME Bundles",
+      "description": "List of execute_command command IDs whose outputs can auto-render MIME bundles in chat",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["jupyterlab-ai-commands:execute-in-kernel"]
+    },
+    "trustedMimeTypesForAutoRender": {
+      "title": "Trusted MIME Types for Auto-Render",
+      "description": "MIME types to mark as trusted when auto-rendering execute_command outputs in chat",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["text/html"]
+    },
+    "skillsPaths": {
+      "title": "Skills Paths",
+      "description": "Paths to directories containing agent skills, relative to the server root. Skills are loaded from all paths; the first occurrence of a skill name takes priority.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [".agents/skills", "_agents/skills"]
+    }
+  },
+  "additionalProperties": false
+}

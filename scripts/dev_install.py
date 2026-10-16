@@ -12,12 +12,13 @@ from pathlib import Path
 
 # Packages that include a JupyterLab extension (require jupyter-builder develop)
 EXTENSION_PACKAGES = [
-    "python/jupyternaut-persona",
+    "python/jupyter-ai-persona-kit",
+    "python/jupyternaut",
 ]
 
 # Meta-packages with no labextension
 META_PACKAGES = [
-    "python/jupyterlite-ai",
+    "python/jupyter-ai-lite",
 ]
 
 

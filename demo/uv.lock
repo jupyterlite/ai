@@ -763,6 +763,68 @@ wheels = [
 ]
 
 [[package]]
+name = "jupyter-ai-lite"
+source = { directory = "../python/jupyter-ai-lite" }
+dependencies = [
+    { name = "jupyternaut" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jupyter-book", marker = "extra == 'docs'" },
+    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
+    { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
+    { name = "jupyternaut", specifier = "==0.20.1" },
+    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
+]
+provides-extras = ["docs", "jupyter"]
+
+[[package]]
+name = "jupyter-ai-lite-demo"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "ipywidgets" },
+    { name = "jupyter-ai-lite" },
+    { name = "jupyter-ai-persona-kit" },
+    { name = "jupyterlab" },
+    { name = "jupyterlab-day" },
+    { name = "jupyterlab-night" },
+    { name = "jupyterlite-core" },
+    { name = "jupyterlite-pyodide-kernel" },
+    { name = "jupyternaut" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ipywidgets", specifier = ">=8.1.7" },
+    { name = "jupyter-ai-lite", directory = "../python/jupyter-ai-lite" },
+    { name = "jupyter-ai-persona-kit", directory = "../python/jupyter-ai-persona-kit" },
+    { name = "jupyterlab", specifier = ">=4.5.0" },
+    { name = "jupyterlab-day", specifier = ">=0.2.0" },
+    { name = "jupyterlab-night", specifier = ">=0.5.2" },
+    { name = "jupyterlite-core", specifier = ">=0.8.5" },
+    { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.5" },
+    { name = "jupyternaut", directory = "../python/jupyternaut" },
+]
+
+[[package]]
+name = "jupyter-ai-persona-kit"
+source = { directory = "../python/jupyter-ai-persona-kit" }
+dependencies = [
+    { name = "jupyterlab-ai-commands" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
+    { name = "jupyterlab-ai-commands", specifier = ">=0.4.0,<0.5" },
+    { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
+    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
+]
+provides-extras = ["docs", "jupyter", "test"]
+
+[[package]]
 name = "jupyter-ai-persona-manager"
 version = "0.3.0a0"
 source = { registry = "https://pypi.org/simple" }
@@ -968,14 +1030,14 @@ wheels = [
 
 [[package]]
 name = "jupyterlab-ai-commands"
-version = "0.3.1"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jupyterlab-diff" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/68/74698aa2c332cef312fbfe109245e8729d45b80961c7ce364e92f16499a5/jupyterlab_ai_commands-0.3.1.tar.gz", hash = "sha256:4a5975d8fa6a9a4da16588ae9f4fa04539592b7a72a97662c27f2a91be2814b7", size = 184413, upload-time = "2026-03-24T14:56:31.9Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/28/41ba1b79c77265aac022b762d6ba5b28c899c7ae0bd1ae50472706be331a/jupyterlab_ai_commands-0.4.0.tar.gz", hash = "sha256:077754b7fba5e4325baecbd140a2c28824efd9d5f1a2194a2736ae2ecbac02d7", size = 179966, upload-time = "2026-09-02T23:23:25.885Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/4d/de54bbd77c1a49549d19ce00d038ade5c7c4e626515d1d8942d85762f52d/jupyterlab_ai_commands-0.3.1-py3-none-any.whl", hash = "sha256:d084bd3275e40755bfeadd4538d63e15f47225723fa0ce5a03ee28ee5cb866d1", size = 27532, upload-time = "2026-03-24T14:56:30.332Z" },
+    { url = "https://files.pythonhosted.org/packages/67/75/2a6984e6f885090911241e17a98f2122d5bb954fb66401a57230313c74a9/jupyterlab_ai_commands-0.4.0-py3-none-any.whl", hash = "sha256:854a7aa57ae21be26f8f35a154771d762f94540a9877778989984454c3367c68", size = 29246, upload-time = "2026-09-02T23:23:24.373Z" },
 ]
 
 [[package]]
@@ -1082,50 +1144,6 @@ wheels = [
 ]
 
 [[package]]
-name = "jupyterlite-ai"
-source = { directory = "../python/jupyterlite-ai" }
-dependencies = [
-    { name = "jupyternaut-persona" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "jupyter-book", marker = "extra == 'docs'" },
-    { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
-    { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
-    { name = "jupyternaut-persona", specifier = "==0.20.1" },
-    { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },
-]
-provides-extras = ["docs", "jupyter"]
-
-[[package]]
-name = "jupyterlite-ai-demo"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "ipywidgets" },
-    { name = "jupyterlab" },
-    { name = "jupyterlab-day" },
-    { name = "jupyterlab-night" },
-    { name = "jupyterlite-ai" },
-    { name = "jupyterlite-core" },
-    { name = "jupyterlite-pyodide-kernel" },
-    { name = "jupyternaut-persona" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ipywidgets", specifier = ">=8.1.7" },
-    { name = "jupyterlab", specifier = ">=4.5.0" },
-    { name = "jupyterlab-day", specifier = ">=0.2.0" },
-    { name = "jupyterlab-night", specifier = ">=0.5.2" },
-    { name = "jupyterlite-ai", directory = "../python/jupyterlite-ai" },
-    { name = "jupyterlite-core", specifier = ">=0.8.5" },
-    { name = "jupyterlite-pyodide-kernel", specifier = ">=0.8.5" },
-    { name = "jupyternaut-persona", directory = "../python/jupyternaut-persona" },
-]
-
-[[package]]
 name = "jupyterlite-core"
 version = "0.8.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1153,9 +1171,10 @@ wheels = [
 ]
 
 [[package]]
-name = "jupyternaut-persona"
-source = { directory = "../python/jupyternaut-persona" }
+name = "jupyternaut"
+source = { directory = "../python/jupyternaut" }
 dependencies = [
+    { name = "jupyter-ai-persona-kit" },
     { name = "jupyter-ai-persona-manager" },
     { name = "jupyter-chat-components" },
     { name = "jupyter-mcp-manager" },
@@ -1167,13 +1186,14 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", marker = "extra == 'test'", specifier = ">=3.2.3,<4" },
+    { name = "jupyter-ai-persona-kit", specifier = "==0.20.1" },
     { name = "jupyter-ai-persona-manager", specifier = ">=0.3.0a0,<0.4" },
     { name = "jupyter-book", marker = "extra == 'docs'" },
     { name = "jupyter-chat-components", specifier = ">=0.7.0,<0.8" },
     { name = "jupyter-mcp-manager", specifier = ">=0.2.0,<0.3" },
     { name = "jupyter-secrets-manager", specifier = ">=0.5,<0.6" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.0" },
-    { name = "jupyterlab-ai-commands", specifier = ">=0.3.1,<0.4" },
+    { name = "jupyterlab-ai-commands", specifier = ">=0.4.0,<0.5" },
     { name = "jupyterlab-chat", specifier = ">=0.25.2,<0.26" },
     { name = "jupyterlite", marker = "extra == 'jupyter'", specifier = ">=0.8.0" },
     { name = "notebook", marker = "extra == 'jupyter'", specifier = ">=7.5.0" },

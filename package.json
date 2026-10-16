@@ -1,18 +1,18 @@
 {
-  "name": "jupyterlite-ai-monorepo",
+  "name": "jupyter-ai-lite-monorepo",
   "version": "0.20.1",
   "private": true,
-  "description": "Monorepo for JupyterLite AI - Agent and JupyterLab extension",
+  "description": "Monorepo for the Jupyter AI persona kit and the Jupyternaut persona",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "build": "jlpm build:all",
-    "build:all": "jlpm workspace @jupyternaut/agent build && jlpm workspace @jupyternaut/persona build",
-    "build:prod": "jlpm workspace @jupyternaut/agent build:prod && jlpm workspace @jupyternaut/persona build:prod",
-    "clean": "jlpm workspace @jupyternaut/agent clean && jlpm workspace @jupyternaut/persona clean",
+    "build:all": "jlpm workspace @jupyter-ai/persona-kit build && jlpm workspace @jupyter-ai/jupyternaut build",
+    "build:prod": "jlpm workspace @jupyter-ai/persona-kit build:prod && jlpm workspace @jupyter-ai/jupyternaut build:prod",
+    "clean": "jlpm workspace @jupyter-ai/persona-kit clean && jlpm workspace @jupyter-ai/jupyternaut clean",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-    "clean:labextension": "rimraf python/jupyternaut-persona/jupyternaut_persona/labextension",
+    "clean:labextension": "rimraf python/jupyter-ai-persona-kit/jupyter_ai_persona_kit/labextension python/jupyternaut/jupyternaut/labextension",
     "clean:all": "jlpm clean && jlpm clean:labextension && jlpm clean:lintcache",
     "docs": "jupyter book start",
     "docs:build": "sed -e 's/\\[@/[/g' -e 's/@/\\&#64;/g' CHANGELOG.md > docs/_changelog_content.md && jupyter book build --html",
@@ -24,8 +24,10 @@
     "prettier:check": "prettier --list-different \"**/*{.ts,.tsx,.js,.jsx,.mjs,.css,.json,.md,.yml}\"",
     "stylelint": "jlpm stylelint:check --fix",
     "stylelint:check": "stylelint --cache \"**/style/**/*.css\"",
-    "sync:model-info": "jlpm workspace @jupyternaut/agent run sync:model-info",
-    "watch": "jlpm workspace @jupyternaut/persona run watch"
+    "sync:model-info": "jlpm workspace @jupyter-ai/jupyternaut run sync:model-info",
+    "watch": "run-p watch:kit watch:jupyternaut",
+    "watch:kit": "jlpm workspace @jupyter-ai/persona-kit run watch",
+    "watch:jupyternaut": "jlpm workspace @jupyter-ai/jupyternaut run watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",
@@ -35,6 +37,7 @@
     "eslint-config-prettier": "^10.1.0",
     "eslint-plugin-prettier": "^5.0.0",
     "globals": "^16.0.0",
+    "npm-run-all2": "^7.0.1",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
     "style-loader": "^3.3.1",

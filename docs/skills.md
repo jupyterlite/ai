@@ -1,6 +1,6 @@
 # Agent Skills
 
-JupyterLite AI supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
+Jupyter AI Lite supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
 
 Skills let you teach the AI agent new behaviors — like how to polish notebooks for reproducibility, write code reviews, or follow team conventions — by placing markdown files in your workspace. The agent discovers and activates skills automatically when they are relevant to a task.
 
@@ -16,7 +16,7 @@ The AI agent uses **progressive disclosure** to work with skills efficiently:
 
 Skills are registered in a dedicated skill registry. The agent discovers and uses skills through the `discover_skills` and `load_skill` tools.
 
-When a new chat is created, JupyterLite AI preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_skills` call. The full skill instructions are still loaded on-demand via progressive disclosure.
+When a new chat is created, Jupyter AI Lite preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_skills` call. The full skill instructions are still loaded on-demand via progressive disclosure.
 
 ## Creating a skill
 
@@ -117,11 +117,7 @@ By default, skills are loaded from two directories (in order of priority):
 1. `.agents/skills` — follows the convention used by other AI coding tools
 2. `_agents/skills` — visible by default in the Jupyter file browser
 
-You can add, remove, or reorder paths in the JupyterLite AI settings:
-
-1. Open **Settings** > **Settings Editor**
-2. Search for **JupyterLite AI**
-3. Edit the **Skills Paths** list
+You can add or remove paths in the AI settings: open the AI settings, go to the **Behavior** tab and edit the **Skills Paths** list. To change the order of the paths, open **Settings** > **Settings Editor** > **AI Persona Kit**.
 
 This is useful if you keep skills in additional locations, such as `.claude/skills/` for compatibility with Claude Code. When the same skill name appears in multiple directories, the first occurrence wins (based on the order of the paths list).
 
@@ -172,7 +168,7 @@ import type {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ISkillRegistry } from '@jupyternaut/agent';
+import { ISkillRegistry } from '@jupyter-ai/persona-kit';
 
 // Bundled resource files (scripts, references, templates)
 const resources: Record<string, string> = {
@@ -206,6 +202,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 };
 ```
 
+The extension must consume `@jupyter-ai/persona-kit` as a shared singleton, and its Python package must depend on `jupyter-ai-persona-kit`. Otherwise the extension bundles its own copy of the kit, and the tokens do not match. See [Depending on the kit](./personas.md#depending-on-the-kit).
+
 The registry follows progressive disclosure: `load_skill` returns instructions and a list of resource **paths**, and the agent loads individual resources on demand via the `resource` argument. This keeps token usage low for skills with large bundled files.
 
 This makes it possible to bundle skills as part of a JupyterLab extension and distribute them via PyPI or conda-forge, without requiring users to place files in their workspace manually.
@@ -220,4 +218,4 @@ Skills contain instructions that the AI agent will follow when activated. Only u
 
 ## Compatibility
 
-Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for JupyterLite AI can also be used with other compatible agents, and vice versa.
+Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for Jupyter AI Lite can also be used with other compatible agents, and vice versa.

@@ -1,6 +1,6 @@
 # Using OpenRouter
 
-[OpenRouter](https://openrouter.ai/) gives access to models from many AI providers (Anthropic, OpenAI, Google, Mistral, open-weight models, and more) with a single account and a single API key. It also offers a selection of free models, which is handy to try `jupyterlite-ai` without a paid plan.
+[OpenRouter](https://openrouter.ai/) gives access to models from many AI providers (Anthropic, OpenAI, Google, Mistral, open-weight models, and more) with a single account and a single API key. It also offers a selection of free models, which is handy to try `jupyter-ai-lite` without a paid plan.
 
 ## Connecting your OpenRouter account
 
@@ -12,14 +12,14 @@ The **OpenRouter** provider can create an API key for you, so there is no need t
 4. Choose a **Model**: the list comes from OpenRouter and shows the models with tool support, the most used first. The first model is selected by default. Type a part of a name (for example `sonnet`) to filter the list, or enter any [model ID supported by OpenRouter](https://openrouter.ai/models)
 5. Click on **Connect with OpenRouter**
 
-A window opens with the OpenRouter website, where you can log in (or create an account) and authorize `jupyterlite-ai`. If you are not logged in, OpenRouter shows its sign-up page first: use the **Sign in** link on that page if you already have an account. The window closes after the authorization. The provider is saved with the new API key, and a notification confirms the connection. If you close the window or the dialog before the authorization, nothing is saved and you can click on the button again.
+A window opens with the OpenRouter website, where you can log in (or create an account) and authorize `jupyter-ai-lite`. If you are not logged in, OpenRouter shows its sign-up page first: use the **Sign in** link on that page if you already have an account. The window closes after the authorization. The provider is saved with the new API key, and a notification confirms the connection. If you close the window or the dialog before the authorization, nothing is saved and you can click on the button again.
 
 The application is not reloaded, so your work is not interrupted, and the API keys of the other providers are kept.
 
 To connect again later, for example when the API key is gone after reloading the page (see [below](#where-is-the-api-key-stored)), edit the provider and click on **Connect with OpenRouter** again.
 
 :::{note}
-Each connection creates a new API key in your OpenRouter account, labelled "JupyterLite AI" by default. You can review and delete the keys on the [OpenRouter keys page](https://openrouter.ai/settings/keys).
+Each connection creates a new API key in your OpenRouter account, labelled "Jupyter AI Lite" by default. You can review and delete the keys on the [OpenRouter keys page](https://openrouter.ai/settings/keys).
 :::
 
 :::{note}
@@ -52,16 +52,15 @@ The OpenRouter provider always offers the **Connect with OpenRouter** button. A 
 - **Model**: a [model ID supported by OpenRouter](https://openrouter.ai/models), for example `openrouter/auto`
 - **API Key**: the OpenRouter API key
 
-To also remove the OpenRouter provider from the list of providers, disable the `@jupyternaut/persona:openrouter-provider` and `@jupyternaut/persona:openrouter-auth` plugins, for example in your `jupyter-config-data` or `page_config.json`:
+To also remove the OpenRouter provider from the list of providers, disable the `@jupyter-ai/jupyternaut:openrouter-provider` plugin, for example in your `jupyter-config-data` or `page_config.json`:
 
 ```json
 {
-  "disabledExtensions": [
-    "@jupyternaut/persona:openrouter-provider",
-    "@jupyternaut/persona:openrouter-auth"
-  ]
+  "disabledExtensions": ["@jupyter-ai/jupyternaut:openrouter-provider"]
 }
 ```
+
+Keep the `@jupyter-ai/persona-kit:openrouter-auth` plugin enabled: it completes the sign-in of the other personas built on the kit.
 
 :::{note}
 The Generic provider does not fetch the list of models and does not send the [app attribution](#app-attribution). With the secrets manager, its API key is shared by all the Generic provider configurations.
@@ -69,7 +68,7 @@ The Generic provider does not fetch the list of models and does not send the [ap
 
 ## App attribution
 
-OpenRouter can [attribute the requests to an application](https://openrouter.ai/docs/app-attribution), which then shows in the OpenRouter rankings and in the activity of the user. By default the requests are attributed to "JupyterLite AI".
+OpenRouter can [attribute the requests to an application](https://openrouter.ai/docs/app-attribution), which then shows in the OpenRouter rankings and in the activity of the user. By default the requests are attributed to "Jupyter AI Lite".
 
 A deployment can set its own name and URL with the `appAttribution` option, for example in your `jupyter-config-data` or `page_config.json`:
 

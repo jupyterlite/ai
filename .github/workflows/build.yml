@@ -36,7 +36,8 @@ jobs:
           python scripts/dev_install.py test
 
           jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "@jupyternaut/persona.*OK"
+          jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/persona-kit.*OK"
+          jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/jupyternaut.*OK"
           python -m jupyterlab.browser_check
 
       - name: Package the extension
@@ -44,17 +45,19 @@ jobs:
           set -eux
 
           pip install build
-          python -m build python/jupyternaut-persona --outdir dist
-          python -m build python/jupyterlite-ai --outdir dist
-          pip uninstall -y "jupyterlite_ai" "jupyternaut_persona" jupyterlab
+          python -m build python/jupyter-ai-persona-kit --outdir dist
+          python -m build python/jupyternaut --outdir dist
+          python -m build python/jupyter-ai-lite --outdir dist
+          pip uninstall -y "jupyter_ai_lite" "jupyternaut" "jupyter_ai_persona_kit" jupyterlab
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v7
         with:
           name: extension-artifacts
           path: |
-            dist/jupyterlite_ai*
-            dist/jupyternaut_persona*
+            dist/jupyter_ai_lite*
+            dist/jupyter_ai_persona_kit*
+            dist/jupyternaut*
           if-no-files-found: error
 
   test_isolated:
@@ -80,10 +83,35 @@ jobs:
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
 
-          pip install "jupyterlab>=4.0.0,<5" jupyternaut_persona*.whl jupyterlite_ai*.whl
+          pip install "jupyterlab>=4.0.0,<5" jupyter_ai_persona_kit*.whl jupyternaut*.whl jupyter_ai_lite*.whl
 
           jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "@jupyternaut/persona.*OK"
+          jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/persona-kit.*OK"
+          jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/jupyternaut.*OK"
+          python -m jupyterlab.browser_check --no-browser-test
+
+  test_kit_alone:
+    name: Install the kit alone
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: extension-artifacts
+      - name: Install and check the kit without Jupyternaut
+        run: |
+          set -eux
+          pip install "jupyterlab>=4.0.0,<5" jupyter_ai_persona_kit*.whl
+          python -c "import jupyter_ai_persona_kit"
+
+          jupyter labextension list
+          jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/persona-kit.*OK"
+          if jupyter labextension list 2>&1 | grep -i "jupyternaut"; then exit 1; fi
           python -m jupyterlab.browser_check --no-browser-test
 
   check_links:
@@ -95,4 +123,4 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
         with:
-          ignore_links: '/lite/lab/index.html https://deepwiki.com'
+          ignore_links: '/lite/lab/index.html https://deepwiki.com https://jupyterlite-ai.readthedocs.io/en/latest/personas/'

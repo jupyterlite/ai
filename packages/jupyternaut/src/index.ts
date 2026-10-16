@@ -1,0 +1,844 @@
+import {
+  IChatTracker,
+  IChatPanel,
+  IChatCommandRegistry,
+  InputToolbarRegistry
+} from '@jupyter/chat';
+
+import {
+  ILayoutRestorer,
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+
+import {
+  ICommandPalette,
+  IThemeManager,
+  Notification
+} from '@jupyterlab/apputils';
+
+import { ICompletionProviderManager } from '@jupyterlab/completer';
+
+import { IDocumentManager } from '@jupyterlab/docmanager';
+
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
+import { IStatusBar } from '@jupyterlab/statusbar';
+
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
+
+import { IFormRendererRegistry, settingsIcon } from '@jupyterlab/ui-components';
+
+import {
+  IPersonaSessionRegistry,
+  PersonaSessionRegistry
+} from '@jupyter-ai/persona-manager';
+
+import {
+  getAppAttribution,
+  requestApiKey,
+  IPersonaKitSettings,
+  IToolRegistry,
+  ISkillRegistry
+} from '@jupyter-ai/persona-kit';
+
+import { IComponentsRendererFactory } from 'jupyter-chat-components';
+
+import { IMcpManager } from 'jupyter-mcp-manager';
+
+import { ISecretsManager, SecretsManager } from 'jupyter-secrets-manager';
+
+// The factory is the value provided by the agent manager plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { AgentManagerFactory } from './agent';
+
+import { MentionCommandProvider, SkillsCommandProvider } from './chat-commands';
+
+// The completion provider is registered when the agent manager plugin activates.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { AICompletionProvider } from './completion';
+
+import { CompletionStatusWidget, JupyternautStopButton } from './components';
+
+// The settings model is the value provided by the settings model plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { AISettingsModel } from './models/settings-model';
+
+// The registry is the value provided by the persona registry plugin.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { PersonaRegistry } from './persona-registry';
+
+// The built-in providers register when their plugins activate.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import {
+  anthropicProvider,
+  genericProvider,
+  googleProvider,
+  mistralProvider,
+  openaiProvider,
+  openrouterProvider
+} from './providers/built-in-providers';
+
+import { ProviderRegistry } from './providers/provider-registry';
+
+import {
+  CommandIds,
+  DEFAULT_PERSONA,
+  IAgentManagerFactory,
+  IAISettingsModel,
+  IPersona,
+  IPersonaRegistry,
+  IProviderRegistry,
+  SECRETS_NAMESPACE,
+  SECRETS_REPLACEMENT
+} from './tokens';
+
+import type { IAISecretsAccess, IConnectAccountOptions } from './tokens';
+
+// The settings widget is created on activation so the layout restorer can track it.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { AISettingsWidget } from './widgets/ai-settings';
+
+namespace Private {
+  let aiSecretsToken: symbol | null = null;
+
+  export function setAISecretsToken(token: symbol | null): void {
+    aiSecretsToken = token;
+  }
+
+  export function createAISecretsAccess(
+    secretsManager?: ISecretsManager
+  ): IAISecretsAccess {
+    return {
+      get isAvailable() {
+        return !!(aiSecretsToken && secretsManager);
+      },
+      async get(id: string): Promise<string | undefined> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        const secret = await secretsManager.get(
+          aiSecretsToken,
+          SECRETS_NAMESPACE,
+          id
+        );
+        return secret?.value;
+      },
+      async set(id: string, value: string): Promise<void> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        await secretsManager.set(aiSecretsToken, SECRETS_NAMESPACE, id, {
+          namespace: SECRETS_NAMESPACE,
+          id,
+          value
+        });
+      },
+      async attach(
+        id: string,
+        input: HTMLInputElement,
+        callback?: (value: string) => void
+      ): Promise<void> {
+        if (!aiSecretsToken || !secretsManager) {
+          return;
+        }
+        await secretsManager.attach(
+          aiSecretsToken,
+          SECRETS_NAMESPACE,
+          id,
+          input,
+          callback
+        );
+      }
+    };
+  }
+}
+
+/**
+ * Provider registry plugin
+ */
+const providerRegistryPlugin: JupyterFrontEndPlugin<IProviderRegistry> = {
+  id: '@jupyter-ai/jupyternaut:provider-registry',
+  description: 'AI provider registry',
+  autoStart: true,
+  provides: IProviderRegistry,
+  activate: () => {
+    return new ProviderRegistry();
+  }
+};
+
+/**
+ * Anthropic provider plugin
+ */
+const anthropicProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:anthropic-provider',
+  description: 'Register Anthropic provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(anthropicProvider);
+  }
+};
+
+/**
+ * Google provider plugin
+ */
+const googleProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:google-provider',
+  description: 'Register Google Generative AI provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(googleProvider);
+  }
+};
+
+/**
+ * Mistral provider plugin
+ */
+const mistralProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:mistral-provider',
+  description: 'Register Mistral provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(mistralProvider);
+  }
+};
+
+/**
+ * OpenAI provider plugin
+ */
+const openaiProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:openai-provider',
+  description: 'Register OpenAI provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(openaiProvider);
+  }
+};
+
+/**
+ * OpenRouter provider plugin
+ */
+const openrouterProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:openrouter-provider',
+  description: 'Register OpenRouter provider',
+  autoStart: true,
+  requires: [IProviderRegistry, IAISettingsModel],
+  optional: [ISecretsManager, ITranslator],
+  activate: (
+    app: JupyterFrontEnd,
+    providerRegistry: IProviderRegistry,
+    settingsModel: IAISettingsModel,
+    secretsManager?: ISecretsManager,
+    translator?: ITranslator
+  ) => {
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
+    const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    const connectAccount = async (
+      options: IConnectAccountOptions
+    ): Promise<boolean> => {
+      try {
+        const key = await requestApiKey({
+          keyLabel: getAppAttribution().name,
+          signal: options.signal
+        });
+        if (key === null) {
+          return false;
+        }
+        let apiKey = key;
+        if (
+          settingsModel.config.useSecretsManager &&
+          secretsAccess.isAvailable
+        ) {
+          await secretsAccess.set(`${openrouterProvider.id}:apiKey`, key);
+          apiKey = SECRETS_REPLACEMENT;
+        }
+        const { providerId } = options;
+        const config = { ...options.config, apiKey };
+        if (providerId && settingsModel.getProvider(providerId)) {
+          await settingsModel.updateProvider(providerId, config);
+        } else {
+          await settingsModel.addProvider(config);
+        }
+      } catch (error) {
+        Notification.error(
+          trans.__(
+            'Failed to connect to OpenRouter: %1',
+            (error as Error).message
+          ),
+          { autoClose: false }
+        );
+        return false;
+      }
+      Notification.success(trans.__('Connected to OpenRouter'), {
+        autoClose: 5000
+      });
+      return true;
+    };
+
+    providerRegistry.registerProvider({
+      ...openrouterProvider,
+      // The PKCE flow uses WebCrypto, which needs a secure context.
+      ...(window.isSecureContext && { connectAccount })
+    });
+  }
+};
+
+/**
+ * Generic provider plugin
+ */
+const genericProviderPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:generic-provider',
+  description: 'Register Generic OpenAI-compatible provider',
+  autoStart: true,
+  requires: [IProviderRegistry],
+  activate: (app: JupyterFrontEnd, providerRegistry: IProviderRegistry) => {
+    providerRegistry.registerProvider(genericProvider);
+  }
+};
+
+/**
+ * Provides the persona handler registry without any IChatTracker dependency,
+ * so it can be consumed by the toolbar factory without creating a plugin cycle.
+ */
+const personaRegistry: JupyterFrontEndPlugin<IPersonaRegistry> = {
+  id: '@jupyter-ai/jupyternaut:registry',
+  description: 'Registry mapping chat models to their persona handlers',
+  autoStart: true,
+  provides: IPersonaRegistry,
+  requires: [IAISettingsModel, IPersonaKitSettings],
+  optional: [IProviderRegistry, IDocumentManager],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: IAISettingsModel,
+    kitSettings: IPersonaKitSettings,
+    providerRegistry?: IProviderRegistry,
+    documentManager?: IDocumentManager
+  ): IPersonaRegistry => {
+    return new PersonaRegistry({
+      persona: DEFAULT_PERSONA,
+      settingsModel,
+      kitSettings,
+      providerRegistry,
+      documentManager
+    });
+  }
+};
+
+/**
+ * Connects the persona handler registry to the chat tracker, creating a
+ * PersonaHandler for each chat widget that is opened.
+ */
+const persona: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:plugin',
+  description: 'Attach persona handlers to chat widgets as they are opened',
+  autoStart: true,
+  requires: [IPersonaRegistry, IAgentManagerFactory, IAISettingsModel],
+  optional: [
+    IChatTracker,
+    IPersonaSessionRegistry,
+    IProviderRegistry,
+    IToolRegistry
+  ],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IPersonaRegistry,
+    agentManagerFactory: IAgentManagerFactory,
+    settingsModel: IAISettingsModel,
+    chatTracker: IChatTracker | null,
+    personaSessionRegistry: PersonaSessionRegistry | null,
+    providerRegistry?: IProviderRegistry,
+    toolRegistry?: IToolRegistry
+  ): void => {
+    const attachPersona = async (widget: IChatPanel) => {
+      if (registry.get(widget.model)) {
+        return;
+      }
+
+      // Create the agent and add it to the persona registry.
+      const agentManager = agentManagerFactory.createAgent({
+        settingsModel,
+        providerRegistry,
+        toolRegistry
+      });
+      registry.register(widget.model, agentManager);
+
+      // Wait for the model to be ready
+      await widget.model.ready;
+      const id = widget.model.id;
+      if (!id) {
+        return;
+      }
+
+      // Add the persona to the persona selector component.
+      personaSessionRegistry?.registerFrontendPersona(id, {
+        id: DEFAULT_PERSONA.username,
+        name: DEFAULT_PERSONA.display_name ?? DEFAULT_PERSONA.username,
+        avatar_url: DEFAULT_PERSONA.avatar_url!
+      });
+
+      // The callback to update the persona selector component.
+      const updatePersonaState = () => {
+        const tokenUsage = agentManager.tokenUsage;
+        personaSessionRegistry?.updatePersonaState(
+          id,
+          DEFAULT_PERSONA.username,
+          {
+            model: {
+              current: settingsModel.getDefaultProvider()?.id ?? null,
+              options: [
+                ...settingsModel.providers.map(provider => ({
+                  id: provider.id,
+                  name: provider.name,
+                  description: provider.description ?? provider.model
+                }))
+              ],
+              settings: []
+            },
+            usage: {
+              input_tokens: tokenUsage.inputTokens,
+              output_tokens: tokenUsage.outputTokens,
+              context_tokens: tokenUsage.lastRequestInputTokens ?? null,
+              context_size: tokenUsage.contextWindow ?? null,
+              context_percent: null,
+              cached_read_tokens: null,
+              cached_write_tokens: null,
+              thought_tokens: null,
+              total_tokens: tokenUsage.inputTokens + tokenUsage.outputTokens,
+              cost_amount: null,
+              cost_currency: null
+            }
+          }
+        );
+      };
+
+      updatePersonaState();
+      settingsModel.stateChanged.connect(updatePersonaState);
+      agentManager.tokenUsageChanged.connect(updatePersonaState);
+
+      widget.model.disposed.connect(model => {
+        registry.unregister(model);
+        personaSessionRegistry?.discard(id);
+        settingsModel.stateChanged.disconnect(updatePersonaState);
+        agentManager.tokenUsageChanged.disconnect(updatePersonaState);
+      });
+    };
+
+    chatTracker?.forEach(widget => attachPersona(widget));
+    chatTracker?.widgetAdded.connect((_, widget) => {
+      attachPersona(widget);
+    });
+  }
+};
+
+/**
+ * Registers groupedToolCall callbacks to route tool call approval decisions
+ * to the correct persona's agent manager.
+ */
+const chatComponentsCallbacks: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:chat-components-callbacks',
+  description: 'Register chat components callbacks for the persona.',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker, IComponentsRendererFactory],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null,
+    chatComponentsFactory?: IComponentsRendererFactory
+  ): void => {
+    if (!chatComponentsFactory) {
+      return;
+    }
+
+    const findPersona = (targetId: string) => {
+      const model = chatTracker?.find(
+        chat => chat.model.name === targetId
+      )?.model;
+      return model ? personaRegistry.get(model) : undefined;
+    };
+
+    chatComponentsFactory?.addCallbacks({
+      toolCallPermissionDecision: (
+        targetId: string,
+        toolCallId: string,
+        optionId: string
+      ) => {
+        const agent = findPersona(targetId)?.agentManager;
+        if (!agent) {
+          return;
+        }
+        if (optionId === 'approve') {
+          agent.approveToolCall(toolCallId);
+        } else {
+          agent.rejectToolCall(toolCallId);
+        }
+      }
+    });
+  }
+};
+
+/**
+ * Clear chat command plugin.
+ */
+const mentionCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:mention',
+  description: 'Register the Jupyternaut mention chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry],
+  activate: (app, registry: IChatCommandRegistry) => {
+    registry.addProvider(new MentionCommandProvider());
+  }
+};
+
+/**
+ * Skills chat command plugin.
+ */
+const skillsCommandPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:skills-command',
+  description: 'Register the /skills chat command.',
+  autoStart: true,
+  requires: [IChatCommandRegistry, ISkillRegistry, IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    registry: IChatCommandRegistry,
+    skillRegistry: ISkillRegistry,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ) => {
+    const findModel = (chatName: string) =>
+      chatTracker?.find(c => c.model.name === chatName)?.model;
+
+    const isDefault = (chatName: string) => {
+      const model = findModel(chatName);
+      if (!model) {
+        return false;
+      }
+      const persona = personaRegistry.get(model);
+      return persona ? !persona.requireMention : false;
+    };
+
+    const sendSystemMessage = (chatName: string, body: string) => {
+      const model = findModel(chatName);
+      if (model) {
+        personaRegistry.get(model)?.sendSystemMessage(body);
+      }
+    };
+
+    registry.addProvider(
+      new SkillsCommandProvider({
+        skillRegistry,
+        commands: app.commands,
+        isDefault,
+        sendSystemMessage
+      })
+    );
+  }
+};
+
+/**
+ * A plugin to provide the agent manager factory and completion provider.
+ * These objects require the secrets manager token with the same namespace.
+ */
+const agentManagerFactory: JupyterFrontEndPlugin<IAgentManagerFactory> =
+  SecretsManager.sign(SECRETS_NAMESPACE, token => {
+    Private.setAISecretsToken(token);
+
+    return {
+      // The secrets manager requires the plugin id to be the namespace.
+      // eslint-disable-next-line jupyter/plugin-id-convention
+      id: SECRETS_NAMESPACE,
+      description: 'Provide the AI agent manager',
+      autoStart: true,
+      provides: IAgentManagerFactory,
+      requires: [IAISettingsModel, IProviderRegistry, IPersonaKitSettings],
+      optional: [
+        ISkillRegistry,
+        ICompletionProviderManager,
+        ISecretsManager,
+        IMcpManager
+      ],
+      activate: (
+        app: JupyterFrontEnd,
+        settingsModel: IAISettingsModel,
+        providerRegistry: IProviderRegistry,
+        kitSettings: IPersonaKitSettings,
+        skillRegistry?: ISkillRegistry,
+        completionManager?: ICompletionProviderManager,
+        secretsManager?: ISecretsManager,
+        mcpManager?: IMcpManager
+      ): IAgentManagerFactory => {
+        const agentManagerFactory = new AgentManagerFactory({
+          settingsModel,
+          kitSettings,
+          skillRegistry,
+          mcpManager,
+          secretsManager,
+          token
+        });
+
+        // Build the completion provider
+        if (completionManager) {
+          const completionProvider = new AICompletionProvider({
+            settingsModel,
+            providerRegistry,
+            secretsManager,
+            token
+          });
+
+          completionManager.registerInlineProvider(completionProvider);
+        } else {
+          console.info(
+            'Completion provider manager not available, skipping AI completion setup'
+          );
+        }
+
+        return agentManagerFactory;
+      }
+    };
+  });
+
+/**
+ * AI settings panel plugin.
+ */
+const settingsPanelPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:settings-panel',
+  description: 'Provide the AI settings panel',
+  autoStart: true,
+  requires: [
+    IAISettingsModel,
+    IAgentManagerFactory,
+    IProviderRegistry,
+    IPersonaKitSettings
+  ],
+  optional: [
+    ICommandPalette,
+    ILayoutRestorer,
+    ISecretsManager,
+    IThemeManager,
+    ITranslator,
+    IFormRendererRegistry,
+    // This token is not used, but depending on it ensures that the renderer has been
+    // added to the form renderer registry.
+    IMcpManager
+  ],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: IAISettingsModel,
+    agentManagerFactory: IAgentManagerFactory,
+    providerRegistry: IProviderRegistry,
+    kitSettings: IPersonaKitSettings,
+    palette?: ICommandPalette,
+    restorer?: ILayoutRestorer,
+    secretsManager?: ISecretsManager,
+    themeManager?: IThemeManager,
+    translator?: ITranslator,
+    formRenderer?: IFormRendererRegistry,
+    _mcpManager?: IMcpManager
+  ): void => {
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
+    const secretsAccess = Private.createAISecretsAccess(secretsManager);
+
+    // Get the renderer for MCP servers settings
+    const mcpServerRenderer = formRenderer?.getRenderer(
+      'jupyter-mcp-manager:manager.mcpSettings'
+    ).fieldRenderer;
+
+    const settingsWidget = new AISettingsWidget({
+      settingsModel,
+      kitSettings,
+      agentManagerFactory,
+      themeManager,
+      providerRegistry,
+      secretsAccess,
+      trans,
+      mcpServerRenderer
+    });
+    settingsWidget.title.icon = settingsIcon;
+    settingsWidget.title.iconClass = 'jp-ai-settings-icon';
+
+    const open = () => {
+      let widget = Array.from(app.shell.widgets('main')).find(
+        w => w.id === 'jupyternaut-persona-settings'
+      ) as AISettingsWidget | undefined;
+
+      if (!widget) {
+        widget = settingsWidget;
+        app.shell.add(widget, 'main');
+      }
+
+      app.shell.activateById(widget.id);
+    };
+
+    if (restorer) {
+      restorer.add(settingsWidget, settingsWidget.id);
+    }
+
+    app.commands.addCommand(CommandIds.openSettings, {
+      label: trans.__('Jupyternaut Settings'),
+      caption: trans.__('Configure AI providers and behavior'),
+      icon: settingsIcon,
+      iconClass: 'jp-ai-settings-icon',
+      execute: () => {
+        open();
+      },
+      describedBy: {
+        args: {}
+      }
+    });
+
+    if (palette) {
+      palette.addItem({
+        command: CommandIds.openSettings,
+        category: trans.__('AI Assistant')
+      });
+    }
+  }
+};
+
+/**
+ * Built-in completion providers plugin
+ */
+const settingsModel: JupyterFrontEndPlugin<IAISettingsModel> = {
+  id: '@jupyter-ai/jupyternaut:settings-model',
+  description: 'Provide the AI settings model',
+  autoStart: true,
+  provides: IAISettingsModel,
+  requires: [ISettingRegistry],
+  activate: (
+    app: JupyterFrontEnd,
+    settingRegistry: ISettingRegistry
+  ): IAISettingsModel => {
+    return new AISettingsModel({ settingRegistry });
+  }
+};
+
+const completionStatus: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:completion-status',
+  description: 'The completion status displayed in the status bar',
+  autoStart: true,
+  requires: [IAISettingsModel],
+  optional: [IStatusBar, ITranslator],
+  activate: (
+    app: JupyterFrontEnd,
+    settingsModel: IAISettingsModel,
+    statusBar: IStatusBar | null,
+    translator?: ITranslator
+  ) => {
+    if (!statusBar) {
+      return;
+    }
+    const trans = (translator ?? nullTranslator).load('jupyternaut');
+    const item = new CompletionStatusWidget({
+      settingsModel,
+      translator: trans
+    });
+    statusBar?.registerStatusItem('completionState', {
+      item,
+      align: 'right',
+      rank: 10
+    });
+  }
+};
+
+/**
+ * Update the stop button when the persona is jupyternaut.
+ */
+const stopButtonPlugin: JupyterFrontEndPlugin<void> = {
+  id: '@jupyter-ai/jupyternaut:stop-button',
+  description: 'Add a stop button to the chat input toolbar',
+  autoStart: true,
+  requires: [IPersonaRegistry],
+  optional: [IChatTracker],
+  activate: (
+    _app: JupyterFrontEnd,
+    personaRegistry: IPersonaRegistry,
+    chatTracker: IChatTracker | null
+  ): void => {
+    if (!chatTracker) {
+      return;
+    }
+
+    const registerStopButton = (persona: IPersona, panel: IChatPanel) => {
+      const registry = panel.widget.inputToolbarRegistry;
+      if (!registry || registry.get('jupyternaut-stop')) {
+        return;
+      }
+
+      registry.addItem('jupyternaut-stop', {
+        element: (itemProps: InputToolbarRegistry.IToolbarItemProps) =>
+          JupyternautStopButton({ ...itemProps, persona }),
+        position: 7
+      });
+      registry.hide('jupyternaut-stop');
+
+      const syncVisibility = () => {
+        const jupyternautSelected =
+          (panel.model.input.getMetadata() as any).to_persona ===
+          DEFAULT_PERSONA.username;
+        if (jupyternautSelected) {
+          registry.hide('stop');
+          registry.show('jupyternaut-stop');
+        } else {
+          registry.show('stop');
+          registry.hide('jupyternaut-stop');
+        }
+      };
+
+      syncVisibility();
+      panel.model.input.metadataChanged?.connect(syncVisibility);
+      panel.disposed.connect(() =>
+        panel.model.input.metadataChanged?.disconnect(syncVisibility)
+      );
+    };
+
+    personaRegistry.personaAdded.connect((_, persona) => {
+      const panel = chatTracker.find(p => p.model === persona.model);
+      if (panel) {
+        registerStopButton(persona, panel);
+      }
+    });
+
+    chatTracker.forEach(panel => {
+      const persona = personaRegistry.get(panel.model);
+      if (persona) {
+        registerStopButton(persona, panel);
+      }
+    });
+  }
+};
+
+export default [
+  // Provider registry and builtin providers
+  providerRegistryPlugin,
+  anthropicProviderPlugin,
+  googleProviderPlugin,
+  mistralProviderPlugin,
+  openaiProviderPlugin,
+  openrouterProviderPlugin,
+  genericProviderPlugin,
+  // Agent
+  agentManagerFactory,
+  completionStatus,
+  // Persona
+  personaRegistry,
+  stopButtonPlugin,
+  persona,
+  chatComponentsCallbacks,
+  mentionCommandPlugin,
+  skillsCommandPlugin,
+  // Settings
+  settingsModel,
+  settingsPanelPlugin
+];
+
+// Export extension points for other extensions to use
+export * from './tokens';
+
+// Export helper functions
+export { processAttachments } from './process-attachments';

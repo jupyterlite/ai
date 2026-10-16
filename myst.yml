@@ -2,7 +2,7 @@
 version: 1
 project:
   id: 2cd0dbd8-7ff6-40c3-b74e-7057b3ebec65
-  title: JupyterLite AI
+  title: Jupyter AI Lite
   description: AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite
   keywords:
     - jupyter
@@ -27,6 +27,7 @@ project:
         - file: docs/web-retrieval.md
         - file: docs/skills.md
     - file: docs/custom-providers.md
+    - file: docs/personas.md
     - file: docs/api-keys.md
     - title: Development
       children:
@@ -36,7 +37,7 @@ project:
 site:
   template: book-theme
   options:
-    logo: style/icons/jupyternaut-lite.svg
-    logo_text: JupyterLite AI
+    logo: packages/jupyternaut/style/icons/jupyternaut-lite.svg
+    logo_text: Jupyter AI Lite
     favicon: docs/favicon.ico
     style: docs/custom.css
