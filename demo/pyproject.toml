@@ -1,7 +1,7 @@
 [project]
-name = "jupyterlite-ai-demo"
+name = "jupyter-ai-lite-demo"
 version = "0.1.0"
-description = "JupyterLite AI Demo"
+description = "Jupyter AI Lite Demo"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -9,7 +9,7 @@ dependencies = [
     "jupyterlab>=4.5.0",
     "jupyterlab-day>=0.2.0",
     "jupyterlab-night>=0.5.2",
-    "jupyterlite-ai",
+    "jupyter-ai-lite",
     "jupyter-ai-persona-kit",
     "jupyternaut",
     "jupyterlite-core>=0.8.5",
@@ -17,6 +17,6 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-jupyterlite-ai = { path = "../python/jupyterlite-ai" }
+jupyter-ai-lite = { path = "../python/jupyter-ai-lite" }
 jupyter-ai-persona-kit = { path = "../python/jupyter-ai-persona-kit" }
 jupyternaut = { path = "../python/jupyternaut" }

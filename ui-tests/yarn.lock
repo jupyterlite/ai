@@ -4140,9 +4140,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyterlite-ai-ui-tests@workspace:.":
+"jupyter-ai-lite-ui-tests@workspace:.":
   version: 0.0.0-use.local
-  resolution: "jupyterlite-ai-ui-tests@workspace:."
+  resolution: "jupyter-ai-lite-ui-tests@workspace:."
   dependencies:
     "@jupyterlab/galata": ^5.6.0
     "@playwright/test": ^1.60.0

@@ -3,8 +3,8 @@ requires = ["hatchling", "hatch-nodejs-version>=0.3.2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyterlite-ai-monorepo"
-description = "Monorepo root for jupyterlite-ai"
+name = "jupyter-ai-lite-monorepo"
+description = "Monorepo root for jupyter-ai-lite"
 readme = "README.md"
 license = { file = "LICENSE" }
 dynamic = ["version"]
@@ -29,7 +29,7 @@ version_cmd = "cd ../.. && python scripts/bump_version.py --skip-if-dirty"
 python_packages = [
     "python/jupyter-ai-persona-kit",
     "python/jupyternaut",
-    "python/jupyterlite-ai"
+    "python/jupyter-ai-lite"
 ]
 
 [tool.jupyter-releaser.hooks]

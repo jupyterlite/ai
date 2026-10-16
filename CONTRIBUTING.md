@@ -95,7 +95,7 @@ jlpm docs:build
 ## Development uninstall
 
 ```bash
-pip uninstall jupyterlite-ai
+pip uninstall jupyter-ai-lite
 pip uninstall jupyternaut
 pip uninstall jupyter-ai-persona-kit
 ```

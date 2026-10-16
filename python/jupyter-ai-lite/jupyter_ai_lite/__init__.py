@@ -5,5 +5,5 @@ except ImportError:
     # in editable mode with pip. It is highly recommended to install
     # the package from a stable release or in editable mode: https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs
     import warnings
-    warnings.warn("Importing 'jupyterlite_ai' outside a proper installation.")
+    warnings.warn("Importing 'jupyter_ai_lite' outside a proper installation.")
     __version__ = "dev"

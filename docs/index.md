@@ -1,15 +1,15 @@
-# JupyterLite AI
+# Jupyter AI Lite
 
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyterlite.github.io/ai/lab/index.html)
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite, with the Jupyternaut persona of [Jupyter AI](https://github.com/jupyterlab/jupyter-ai) running in the browser.
 
-The repository holds two packages: `jupyter-ai-persona-kit`, a [kit to build in-browser personas](./personas.md), and `jupyternaut`, the Jupyternaut persona built on it. `jupyterlite-ai` installs both.
+The repository holds two packages: `jupyter-ai-persona-kit`, a [kit to build in-browser personas](./personas.md), and `jupyternaut`, the Jupyternaut persona built on it. `jupyter-ai-lite` installs both.
 
 :::{iframe} https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b
 :width: 100%
-A screencast showing the JupyterLite AI extension in JupyterLite.
+A screencast showing the Jupyter AI Lite extension in JupyterLite.
 :::
 
 ## Requirements

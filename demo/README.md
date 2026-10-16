@@ -1,3 +1,3 @@
-# JupyterLite AI Demo
+# Jupyter AI Lite Demo
 
-This is a demo for showcasing [JupyterLite AI](https://github.com/jupyterlite/ai).
+This is a demo for showcasing [Jupyter AI Lite](https://github.com/jupyterlite/ai).

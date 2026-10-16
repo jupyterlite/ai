@@ -47,11 +47,11 @@ jobs:
           set -eux
           python scripts/bump_version.py 1.2.3
           # Check Python version files
-          grep '__version__ = "1.2.3"' python/jupyterlite-ai/jupyterlite_ai/_version.py
+          grep '__version__ = "1.2.3"' python/jupyter-ai-lite/jupyter_ai_lite/_version.py
           grep '__version__ = "1.2.3"' python/jupyter-ai-persona-kit/jupyter_ai_persona_kit/_version.py
           grep '__version__ = "1.2.3"' python/jupyternaut/jupyternaut/_version.py
           # Check intra-monorepo dependency constraint
-          grep 'jupyternaut ==1.2.3' python/jupyterlite-ai/pyproject.toml
+          grep 'jupyternaut ==1.2.3' python/jupyter-ai-lite/pyproject.toml
           grep 'jupyter-ai-persona-kit ==1.2.3' python/jupyternaut/pyproject.toml
           # Check root package.json
           python3 <<'PY'
@@ -80,10 +80,10 @@ jobs:
           # Reset to original state first
           git checkout .
           python scripts/bump_version.py 2.0.0a1
-          grep '__version__ = "2.0.0a1"' python/jupyterlite-ai/jupyterlite_ai/_version.py
+          grep '__version__ = "2.0.0a1"' python/jupyter-ai-lite/jupyter_ai_lite/_version.py
           grep '__version__ = "2.0.0a1"' python/jupyter-ai-persona-kit/jupyter_ai_persona_kit/_version.py
           grep '__version__ = "2.0.0a1"' python/jupyternaut/jupyternaut/_version.py
-          grep 'jupyternaut ==2.0.0a1' python/jupyterlite-ai/pyproject.toml
+          grep 'jupyternaut ==2.0.0a1' python/jupyter-ai-lite/pyproject.toml
           grep 'jupyter-ai-persona-kit ==2.0.0a1' python/jupyternaut/pyproject.toml
           python3 <<'PY'
           import json

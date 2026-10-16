@@ -47,15 +47,15 @@ jobs:
           pip install build
           python -m build python/jupyter-ai-persona-kit --outdir dist
           python -m build python/jupyternaut --outdir dist
-          python -m build python/jupyterlite-ai --outdir dist
-          pip uninstall -y "jupyterlite_ai" "jupyternaut" "jupyter_ai_persona_kit" jupyterlab
+          python -m build python/jupyter-ai-lite --outdir dist
+          pip uninstall -y "jupyter_ai_lite" "jupyternaut" "jupyter_ai_persona_kit" jupyterlab
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v7
         with:
           name: extension-artifacts
           path: |
-            dist/jupyterlite_ai*
+            dist/jupyter_ai_lite*
             dist/jupyter_ai_persona_kit*
             dist/jupyternaut*
           if-no-files-found: error
@@ -83,7 +83,7 @@ jobs:
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
 
-          pip install "jupyterlab>=4.0.0,<5" jupyter_ai_persona_kit*.whl jupyternaut*.whl jupyterlite_ai*.whl
+          pip install "jupyterlab>=4.0.0,<5" jupyter_ai_persona_kit*.whl jupyternaut*.whl jupyter_ai_lite*.whl
 
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "@jupyter-ai/persona-kit.*OK"

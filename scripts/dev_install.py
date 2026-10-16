@@ -18,7 +18,7 @@ EXTENSION_PACKAGES = [
 
 # Meta-packages with no labextension
 META_PACKAGES = [
-    "python/jupyterlite-ai",
+    "python/jupyter-ai-lite",
 ]
 
 

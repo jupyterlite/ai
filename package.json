@@ -1,5 +1,5 @@
 {
-  "name": "jupyterlite-ai-monorepo",
+  "name": "jupyter-ai-lite-monorepo",
   "version": "0.20.1",
   "private": true,
   "description": "Monorepo for the Jupyter AI persona kit and the Jupyternaut persona",

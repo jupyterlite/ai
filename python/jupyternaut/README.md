@@ -8,7 +8,7 @@ The Jupyternaut persona of [Jupyter AI](https://github.com/jupyterlab/jupyter-ai
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
 
-[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
+[a screencast showing the Jupyter AI Lite extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 # Agent Skills
 
-JupyterLite AI supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
+Jupyter AI Lite supports [Agent Skills](https://agentskills.io), a standard way to extend AI agent capabilities with reusable, shareable instructions.
 
 Skills let you teach the AI agent new behaviors — like how to polish notebooks for reproducibility, write code reviews, or follow team conventions — by placing markdown files in your workspace. The agent discovers and activates skills automatically when they are relevant to a task.
 
@@ -16,7 +16,7 @@ The AI agent uses **progressive disclosure** to work with skills efficiently:
 
 Skills are registered in a dedicated skill registry. The agent discovers and uses skills through the `discover_skills` and `load_skill` tools.
 
-When a new chat is created, JupyterLite AI preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_skills` call. The full skill instructions are still loaded on-demand via progressive disclosure.
+When a new chat is created, Jupyter AI Lite preloads a **snapshot of available skill names and descriptions** into the system prompt. This helps the model notice relevant skills up front without requiring a `discover_skills` call. The full skill instructions are still loaded on-demand via progressive disclosure.
 
 ## Creating a skill
 
@@ -218,4 +218,4 @@ Skills contain instructions that the AI agent will follow when activated. Only u
 
 ## Compatibility
 
-Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for JupyterLite AI can also be used with other compatible agents, and vice versa.
+Skills follow the [agentskills.io specification](https://agentskills.io/specification), so skill directories can be shared across tools that support the standard. A skill created for Jupyter AI Lite can also be used with other compatible agents, and vice versa.

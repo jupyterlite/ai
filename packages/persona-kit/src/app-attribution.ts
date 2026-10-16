@@ -16,7 +16,7 @@ export interface IAppAttribution {
 const APP_ATTRIBUTION_OPTION = 'appAttribution';
 
 const DEFAULT_APP_ATTRIBUTION: IAppAttribution = {
-  name: 'JupyterLite AI',
+  name: 'Jupyter AI Lite',
   url: 'https://github.com/jupyterlite/ai'
 };
 

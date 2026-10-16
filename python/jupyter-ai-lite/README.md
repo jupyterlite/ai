@@ -1,4 +1,4 @@
-# jupyterlite-ai
+# jupyter-ai-lite
 
 [![Github Actions Status](https://github.com/jupyterlite/ai/workflows/Build/badge.svg)](https://github.com/jupyterlite/ai/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/jupyterlite-ai/badge/?version=latest)](https://jupyterlite-ai.readthedocs.io/en/latest/?badge=latest)
@@ -6,7 +6,7 @@
 
 AI code completions and chat for JupyterLab, Notebook 7 and JupyterLite.
 
-[a screencast showing the Jupyterlite AI extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
+[a screencast showing the Jupyter AI Lite extension in JupyterLite](https://github.com/user-attachments/assets/e33d7d84-53ca-4835-a034-b6757476c98b)
 
 ## Requirements
 
@@ -23,13 +23,13 @@ You can try the extension in your browser using JupyterLite:
 To install the extension, execute:
 
 ```bash
-pip install jupyterlite-ai
+pip install jupyter-ai-lite
 ```
 
 To install requirements (JupyterLab, JupyterLite and Notebook):
 
 ```bash
-pip install jupyterlite-ai[jupyter]
+pip install jupyter-ai-lite[jupyter]
 ```
 
 ## Documentation
@@ -41,7 +41,7 @@ For detailed usage instructions, including how to configure AI providers, see th
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyterlite-ai jupyternaut jupyter-ai-persona-kit
+pip uninstall jupyter-ai-lite jupyternaut jupyter-ai-persona-kit
 ```
 
 ## Contributing

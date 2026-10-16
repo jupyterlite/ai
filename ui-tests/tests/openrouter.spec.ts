@@ -144,7 +144,7 @@ test.describe('#openrouter', () => {
     expect(params.get('callback_url')).toBe(pageUrl);
     expect(params.get('code_challenge')).toMatch(/^[\w-]{43}$/);
     expect(params.get('code_challenge_method')).toBe('S256');
-    expect(params.get('key_label')).toBe('JupyterLite AI');
+    expect(params.get('key_label')).toBe('Jupyter AI Lite');
   });
 
   test('should save the provider without a page reload', async ({ page }) => {
